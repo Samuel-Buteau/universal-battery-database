@@ -1,0 +1,10 @@
+.idea\
+*.xml
+*.gz
+document1_june25.png
+db.sqlite3
+*.pyc
+*\*.pyc
+*__pycache__*
+test*
+*.sqlite3*

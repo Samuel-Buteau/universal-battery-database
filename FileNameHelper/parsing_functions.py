@@ -4,6 +4,12 @@ import datetime
 import itertools
 
 def guess_exp_type(file, root):
+    """
+    This function takes a file as input and guesses what experiment type it is.
+    :param file:
+    :param root:
+    :return: the experiment type
+    """
     lowercase_file = file.lower()
     fileList = re.split(r'-|_|\.|\s', lowercase_file)
     #We handle cycling, formation and fra, maccor is only exception
@@ -91,6 +97,12 @@ def guess_exp_type(file, root):
 ##============================================================================================##
 
 def get_date_obj(date_str):
+    """
+    parse date string
+
+    :param date_str:
+    :return:
+    """
     mat1 = re.match(r'20(\d{2,2})(\d{2,2})(\d{2,2})', date_str)
     mat2 = re.match(r'(\d{2,2})(\d{2,2})(\d{2,2})', date_str)
     if mat1:
@@ -112,6 +124,14 @@ def get_date_obj(date_str):
 # Takes in name of file and experiment type as arguments
 
 def deterministic_parser(filename, exp_type):
+    """
+    given a filename and an experiment type,
+    parse as much metadata as possible
+    and return a valid_metadata object (None means no parsing, valid metadata with gaps in in means partial parsing.)
+    :param filename:
+    :param exp_type:
+    :return:
+    """
     lowercase_file = filename.lower()
     fileList = re.split(r'-|_|\.|\s', lowercase_file)
     def get_charID(fileList):

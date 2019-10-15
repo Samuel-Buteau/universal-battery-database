@@ -89,6 +89,7 @@ table, th, td {
     <th>Display Page: </th> <td>{{search_form.page_number}}</td>
 </tr>
 <input type="submit" name = 'search_and_fix_metadata' value="Search database and fix errors">
+<input type="submit" name = 'change_exp_type' value="Get Filename with Selected Experiment Type">
 
 </table>
 
@@ -104,21 +105,24 @@ table, th, td {
 
 
 
-{% if metadata_edit_formset %}
+{% if metadata_edit_formset%}
 {% csrf_token %}
 {{ metadata_edit_formset.management_form }}
-
-Showing page {{page_number}}/{{max_page_number}}.
+{% if make_changes != 'show_filename' %}
+    Showing page {{page_number}}/{{max_page_number}}.
+{% endif %}
     <table>
     <col width = "200">
     <col width = "5">
 
             <tr>
-                <th>Filename</th>
+                {% if make_changes != 'show_filename' %}
+                    <th>Filename</th>
 
-                <th>Exclude</th>
+                    <th>Exclude</th>
 
-                <th>Deprecate</th>
+                    <th>Deprecate</th>
+                {% endif %}
 
                 {% for heading in headings %}
                     {% if heading == "charID" %}
@@ -138,10 +142,12 @@ Showing page {{page_number}}/{{max_page_number}}.
             {% endfor %}
 
             <tr>
+                {% if make_changes != 'show_filename' %}
 
-                <td>{{ form.filename }}</td>
-                <td>{{ form.exclude }}</td>
-                <td>{{ form.deprecate }}</td>
+                    <td>{{ form.filename }}</td>
+                    <td>{{ form.exclude }}</td>
+                    <td>{{ form.deprecate }}</td>
+                {% endif %}
 
                 {% for field in form.visible_fields %}
                     {% if field.name == "id" or field.name == 'filename' or field.name == 'exclude' or field.name == 'deprecate'%}
@@ -166,6 +172,13 @@ Showing page {{page_number}}/{{max_page_number}}.
 
 {% endif %}
 
+
+{% if filename_to_show %}
+<h3>Valid Files</h3>
+    {% for f in filename_to_show %}
+        {{f}} <br>
+    {% endfor %}
+{% endif %}
 
 {% endblock %}
 

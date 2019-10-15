@@ -1,0 +1,16 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% block title %}<title>NEWARE PARSER</title>{% endblock %}
+</head>
+
+<body>
+  <a href="{% url 'FileNameHelper:main_page' %}"> Explore All Files/Fix Bad Filenames</a>
+  <br>
+  <a href="{% url 'main_page' %}"> Explore Validated Cycling Files/Fix Bad Cycles.</a>
+
+  {% block sidebar %}<!-- insert default navigation text for every page -->{% endblock %}
+  {% block content %}<!-- default content text (typically empty) -->{% endblock %}
+</body>
+</html>

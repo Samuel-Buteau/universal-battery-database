@@ -37,7 +37,7 @@ def get_exclusions(experiment_type=None):
     return exclude
 
 
-def get_headings(experiment_type=None, exclude=None):
+def get_headings(experiment_type=None, exclude=None, has_file_linked=True):
     headings = []
     possible_fields = [
         'charID',
@@ -49,9 +49,9 @@ def get_headings(experiment_type=None, exclude=None):
         'AC_increment',
         'version_number',
         'date',
-        'last_modified',
-        'filesize']
-
+    ]
+    if has_file_linked:
+        possible_fields += ['last_modified','filesize']
 
     for field in possible_fields:
         if field not in exclude:
@@ -65,28 +65,17 @@ def get_headings(experiment_type=None, exclude=None):
 
 
 def main_page(request):
-
-
     ar ={
 
     }
-
-
     if request.method == 'POST':
-
-
         search_form = SearchForm(request.POST)
-
         if search_form.is_valid():
-
             ar['search_form'] = search_form
-
             experiment_type = search_form.cleaned_data['experiment_type']
-
             exclude = get_exclusions(experiment_type)
             headings = get_headings(experiment_type, exclude)
             headings = [ h.replace('_', ' ') for h in headings]
-
             MetadataEditForm = modelformset_factory(
                 ValidMetadata,
                 formset=BaseMetadataCorrectionFormSet,
@@ -102,10 +91,28 @@ def main_page(request):
                 exclude=get_exclusions()+["experiment_type", 'date', 'charID'],
             )
 
+            ValidMetadataForm = modelformset_factory(
+                ValidMetadata,
+                exclude=get_exclusions(experiment_type) + ["experiment_type"],
+                widgets={
+                    'date': forms.SelectDateWidget(empty_label="Nothing",
+                                                   years=range(2000, datetime.date.today().year + 1)),
+                    'charID': forms.TextInput(attrs={'size': 5})},
+                extra=1
+            )
 
             ar['search_form'] = search_form
 
-            if 'search_and_fix_metadata' in request.POST:
+            if 'change_exp_type' in request.POST:
+                valid_metadata_formset = ValidMetadataForm()
+                ar['metadata_edit_formset'] = valid_metadata_formset
+                ar['make_changes'] = 'show_filename'
+                headings = get_headings(experiment_type, get_exclusions(experiment_type), has_file_linked=False)
+                headings = [h.replace('_', ' ') for h in headings]
+                print(headings)
+                ar['headings'] = headings
+
+            elif 'search_and_fix_metadata' in request.POST:
                 q = Q()
                 if search_form.cleaned_data['show_valid'] and not search_form.cleaned_data['show_invalid']:
                     q = Q(is_valid=True)
@@ -118,13 +125,10 @@ def main_page(request):
                 elif not search_form.cleaned_data['show_deprecated'] and search_form.cleaned_data[
                         'show_nondeprecated']:
                     q = q & Q(deprecated=False)
-
                 if search_form.cleaned_data['filename1_search']:
                     q = q & Q(filename__icontains=search_form.cleaned_data['filename1'])
-
                 if search_form.cleaned_data['filename2_search']:
                     q = q & Q(filename__icontains=search_form.cleaned_data['filename2'])
-
                 if search_form.cleaned_data['filename3_search']:
                     q = q & Q(filename__icontains=search_form.cleaned_data['filename3'])
 
@@ -141,7 +145,6 @@ def main_page(request):
                 else:
                     q = q & Q(valid_metadata__experiment_type=experiment_type)
                     total_query = DatabaseFile.objects.filter(q)
-
                 initial = []
                 pn = search_form.cleaned_data['page_number']
                 if pn is None:
@@ -241,8 +244,6 @@ def main_page(request):
 
                 ar['page_number'] = pn
                 ar['max_page_number'] = max_page
-
-
             elif 'make_changes_to_metadata' in request.POST or 'make_changes_to_experiment_type' in request.POST:
                 if 'make_changes_to_metadata' in request.POST:
                     metadata_edit_formset = MetadataEditForm(request.POST)
@@ -328,9 +329,60 @@ def main_page(request):
                                 file.set_valid_metadata(valid_metadata=meta)
                                 file.save()
 
-                ar['search_form'] = search_form
+            elif 'show_filename' in request.POST:
+                metadata_edit_formset = ValidMetadataForm(request.POST)
+                filenames = []
+                for form in metadata_edit_formset:
 
+                    if form.is_valid():
+                        charID = None
+                        barcode = None
+                        voltage = None
+                        temperature = None
+                        AC = None
+                        AC_increment = None
+                        version_number = None
+                        date = None
+                        if 'charID' in form.cleaned_data.keys():
+                            charID = form.cleaned_data['charID']
+                        if 'barcode' in form.cleaned_data.keys():
+                            barcode = form.cleaned_data['barcode']
+                        if 'start_cycle' in form.cleaned_data.keys():
+                            start_cycle = form.cleaned_data['start_cycle']
+                        if 'voltage' in form.cleaned_data.keys():
+                            voltage = form.cleaned_data['voltage']
+                        if 'temperature' in form.cleaned_data.keys():
+                            temperature = form.cleaned_data['temperature']
+                        if 'AC' in form.cleaned_data.keys():
+                            AC = form.cleaned_data['AC']
+                        if 'AC_increment' in form.cleaned_data.keys():
+                            AC_increment = form.cleaned_data['AC_increment']
+                        if 'version_number' in form.cleaned_data.keys():
+                            version_number = form.cleaned_data['version_number']
+                        if 'date' in form.cleaned_data.keys():
+                            date = form.cleaned_data['date']
+
+
+                        filenames.append(
+                            ValidMetadata(
+                            experiment_type=experiment_type,
+                            charID=charID,
+                            barcode=barcode,
+                            start_cycle=start_cycle,
+                            voltage=voltage,
+                            temperature=temperature,
+                            AC=AC,
+                            AC_increment=AC_increment,
+                            version_number=version_number,
+                            date=date).get_filename)
+                if len(filenames) != 0:
+                    ar['filename_to_show'] = filenames
+                ar['search_form'] = search_form
     else:
         ar['search_form'] = SearchForm()
-
     return render(request, 'FileNameHelper/form_interface.html', ar)
+
+
+
+
+

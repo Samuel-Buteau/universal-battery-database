@@ -147,71 +147,32 @@ class ValidMetadata(models.Model):
                + z_value
 
     @property
-
-
-    # TODO: If statements could still be reduced and charger could be used more, needs more attention
-
     def get_filename(self):
-
-        filename = ''
-
-        print('Exp type:' + str(self.experiment_type))
-        print('shorthand:' + str(self.experiment_type.shorthand))
-
+        #TODO: implement printing drive profiles if it ever becomes useful
+        if not self.is_valid:
+            return None
+        filename_printed_fields = []
         if self.experiment_type.subcategory != 'exsitu':
-            filename += str(self.charID) + '_' + str(self.experiment_type.shorthand)
-
-            if self.experiment_type.AC_active:
-                filename += '_' + str(self.AC)
-
-            if self.experiment_type.barcode_active:
-                filename += '_' + str(self.barcode)
-
-            if self.experiment_type.charger != '':
-                filename += '_' + str(self.experiment_type.charger)
-
-            if self.experiment_type.start_cycle_active:
-                filename += '_c' + str(self.start_cycle)
-
-            if self.experiment_type.voltage_active:
-
-                x = self.voltage
-                print("x = {}".format(x))
-
-                if (x * 100) % 10 != 0:
-                    y = str(int(x * 100))
-                elif (x * 100) % 10 == 0:
-                    y = str(int(x * 10))
-
-                if x < 1:
-                    y = '0' + y
-
-                if x == 0:
-                    y = "00"
-
-                if x >= 10:
-                    return "voltage was invalid: {} volts is too high. Only supports voltages less than 10.".format(x)
-
-                filename += '_' + str(y) + 'V'
-
-            if self.experiment_type.temperature_active:
-                filename += '_' + str(self.temperature) + 'C'
-
-            if self.experiment_type.drive_profile_active:
-                filename += '_' + str(print_drive_profile(xnum=self.drive_profile_x_numerator,
-                    xden=self.drive_profile_x_denominator,
-                    ynum=self.drive_profile_y_numerator,
-                    yden=self.drive_profile_y_denominator,
-                    z=self.drive_profile_z,
-                    template_name=self.drive_profile.drive_profile))
-
-            filename += '_' + str(self.date.strftime("%y%m%d"))
-
-        elif self.experiment_type.subcategory == 'exsitu':
-
-            filename += 'Ex=situ Gas Checkin_v{}.xls'.format(str(self.version_number))
-
-
+            filename_printed_fields += [str(self.charID),str(self.experiment_type.shorthand)]
+        if self.experiment_type.AC_active and not self.experiment_type.AC_increment_active:
+            filename_printed_fields.append(str(self.AC))
+        if self.experiment_type.AC_active and self.experiment_type.AC_increment_active:
+            filename_printed_fields.append('{}{}'.format(str(self.AC),str(self.AC_increment)))
+        if self.experiment_type.barcode_active:
+            filename_printed_fields.append(str(self.barcode))
+        if self.experiment_type.charger != '':
+            filename_printed_fields.append(str(self.experiment_type.charger))
+        if self.experiment_type.start_cycle_active:
+            filename_printed_fields.append('c{}'.format(str(self.start_cycle)))
+        if self.experiment_type.voltage_active:
+            filename_printed_fields.append("{:03d}V".format(int(self.voltage * 100)))
+        if self.experiment_type.temperature_active:
+            filename_printed_fields.append('{}C'.format(self.temperature))
+        filename_printed_fields.append(self.date.strftime("%y%m%d"))
+        if self.experiment_type.subcategory == 'exsitu':
+            filename='Ex=situ Gas Checkin_v{}.xls'.format(str(self.version_number))
+        else:
+            filename= '_'.join(filename_printed_fields)
         return filename
 
 class DatabaseFile(models.Model):

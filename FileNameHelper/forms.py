@@ -54,6 +54,7 @@ class ParserFieldForm(forms.Form):
     test_date = forms.DateField(widget=forms.SelectDateWidget(empty_label="--------", years=range(2000,date.today().year + 1)), required=False)
 
 
+
 class SearchForm(forms.Form):
 
     filename1_search = forms.BooleanField(required=False)

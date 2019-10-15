@@ -2,8 +2,6 @@ from django.core.management.base import BaseCommand
 from FileNameHelper.models import *
 import os
 from FileNameHelper.parsing_functions import *
-from FileNameHelper.non_deterministic_parser import *
-from FileNameHelper.excel_file_function import *
 import pytz
 halifax_timezone = pytz.timezone("America/Halifax")
 

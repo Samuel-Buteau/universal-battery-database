@@ -2,26 +2,15 @@ from django.db import models
 import datetime
 import neware_parser.models
 # Create your models here.
-
-
-
-
-
 #---------------- Drive Profile Logic Function ------------------------#
-
-
-
-#---------------------------------------------------------------#
 class Category(models.Model):
     name = models.CharField(max_length=100)
-
     def __str__(self):
         return self.name
 
 
 class SubCategory(models.Model):
     name = models.CharField(max_length=20)
-
     def __str__(self):
         return self.name
 
@@ -41,7 +30,6 @@ class ExperimentType(models.Model):
     version_number_active = models.BooleanField(default=False)
     charger = models.CharField(max_length=5, default = '')
     shorthand = models.CharField(max_length=10, default = '')
-
     def __str__(self):
         return '{} ({})'.format(self.subcategory.name, self.category.name)
 
@@ -56,7 +44,6 @@ class ChargerDriveProfile(models.Model):
     x_active = models.BooleanField(default=True)
     y_active = models.BooleanField(default=False)
     z_active = models.BooleanField(default=False)
-
     def __str__(self):
         return '{} ({})'.format(self.test, self.drive_profile)
 
@@ -77,7 +64,6 @@ def print_voltage(x):
     if x >= 10:
         y = "voltage was invalid: {} volts is too high. Only supports voltages less than 10.".format(x)
     return y
-
 
 class ValidMetadata(models.Model):
     ANODE = 'A'
@@ -228,22 +214,6 @@ class ValidMetadata(models.Model):
 
         return filename
 
-
-
-class Token(models.Model):
-    student = models.CharField(max_length=20, default='')
-    barcode = models.IntegerField(default=0)
-    date = models.DateField(null=True)
-    voltage = models.FloatField(default = 0)
-    temperature = models.IntegerField(default=0)
-    start_cycle = models.IntegerField(default=0)
-
-
-    def __str__(self):
-        return self.student
-
-
-
 class DatabaseFile(models.Model):
     '''
     Note that valid_metadata is null if filename hasn't been parsed.
@@ -253,28 +223,17 @@ class DatabaseFile(models.Model):
     last_modified = models.DateTimeField(default=datetime.datetime(1970, 1, 1))
     filesize = models.IntegerField(default=0) # in bytes
     valid_metadata = models.OneToOneField(ValidMetadata, on_delete=models.SET_NULL, null=True)
-    all_possible_students = models.ManyToManyField(Token, related_name = 'all_possible_students')
-    all_possible_barcodes = models.ManyToManyField(Token, related_name = 'all_possible_barcodes')
-    all_possible_dates = models.ManyToManyField(Token, related_name = 'all_possible_dates')
-    all_possible_voltages = models.ManyToManyField(Token, related_name = 'all_possible_voltages')
-    all_possible_experiment_types = models.ManyToManyField(ExperimentType)
-    all_possible_temperatures = models.ManyToManyField(Token, related_name='all_possible_temperatures')
-    all_possible_start_cycles = models.ManyToManyField(Token, related_name='all_possible_start_cycles')
     is_valid = models.BooleanField(default=False)
     deprecated = models.BooleanField(default=False)
-
     def __str__(self):
         return self.filename
-
     def set_deprecated(self, new_deprecated):
         if new_deprecated == self.deprecated:
             return
-
         self.deprecated = new_deprecated
         self.save()
         if not neware_parser.models.CyclingFile.objects.filter(database_file=self).exists():
             return
-
         if ((self.valid_metadata is None) or (not self.is_valid) or (self.valid_metadata.experiment_type != ExperimentType.objects.get(
                     category=Category.objects.get(name='cycling'),
                     subcategory=SubCategory.objects.get(name='neware')))):
@@ -285,8 +244,6 @@ class DatabaseFile(models.Model):
 
         #at this point, we know that the barcode exists.
         neware_parser.models.BarcodeNode.objects.filter(barcode=self.valid_metadata.barcode).update(valid_cache=False)
-
-
     def set_valid_metadata(self,
                         valid_metadata = None,
                         experiment_type = None,
@@ -396,7 +353,6 @@ class DatabaseFile(models.Model):
                     self.valid_metadata.drive_profile_z = drive_profile_z
                 if date is not None:
                     self.valid_metadata.date = date
-
 
             self.valid_metadata.save()
             self.is_valid = self.valid_metadata.is_valid

@@ -8,3 +8,6 @@ db.sqlite3
 *__pycache__*
 test*
 *.sqlite3*
+neware_parser/config.ini
+*.iml
+.idea/UniversalBatteryDatabase.iml

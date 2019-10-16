@@ -9,7 +9,7 @@ from django import forms
 import datetime
 
 from django.utils import timezone
-
+from neware_parser.neware_processing_functions import full_import_barcode
 from .models import *
 from django.db.models import Max,Min
 import math
@@ -451,7 +451,9 @@ def main_page(request):
                     if validation_step:
                         collected_barcodes.append(form.cleaned_data['barcode'])
 
-                print('would have triggered the reimport of: ', collected_barcodes)
+                for barcode in collected_barcodes:
+                    print('called full import barcode with: {}'.format(barcode))
+                    full_import_barcode(barcode)
                 ar['search_form'] = search_form
 
     else:

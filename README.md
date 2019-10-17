@@ -1,8 +1,59 @@
-# how to create the schema.
+# how to set things up.
 
+TODO: somebody with more linux/mac os x knowledge should fill this part for those systems.
+
+## Windows 10
 install dependencies with 
 > pip -r requirements.txt
 
+In order to allow background tasks, 
+which are super useful in this case,
+run in a separate terminal:
+> python manage.py process_tasks
+
+This will process the tasks as they are defined.
+
+
+Then, the more tricky part is to install postgresql and configure it. 
+
+- make sure installation includes the PostgreSQL Unicode ODBC driver 
+(after the PostgreSQL installation, there is a separate process where you can choose a driver. I selected ODBC 64-bit)
+
+- make sure you create a user with a password you remember.
+
+- add the bin path of the install to the Path variable.
+
+- run the following:
+> psql -U postgres
+
+(Then, you enter the password that you hopefully still remember!!)
+> CREATE DATABASE myproject;
+
+> CREATE USER myuser WITH PASSWORD ‘mypassword’;
+
+> GRANT ALL PRIVILEGES ON DATABASE myproject TO myuser;
+
+
+- add a file called config.ini in the root directory, with the following content (feel free to modify):
+>[DEFAULT]
+
+>Database = myproject
+
+>User = myuser
+
+>Password = mypassword
+
+>Host = localhost
+
+>Port = 5432
+
+
+This is for security purposes.
+
+TODO(samuel): before releasing the database itself, also make sure the sensitive contents are removed. 
+
+
+# How to implement new file formats
 The code has a simple bottleneck where text files are imputted and a python data gets output. this function is called read_neware.
 The output of the function should be the same for neware inputs, maccor inputs, moli inputs, etc...
 

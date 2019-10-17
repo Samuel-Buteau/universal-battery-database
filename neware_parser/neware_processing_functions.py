@@ -1141,7 +1141,7 @@ def bulk_deprecate(barcodes=None):
 
 
 @background(schedule=5)
-def full_import_barcode(barcodes):
+def full_import_barcodes(barcodes):
     with transaction.atomic():
         bulk_deprecate(barcodes)
         bulk_import(barcodes=barcodes, DEBUG=False)

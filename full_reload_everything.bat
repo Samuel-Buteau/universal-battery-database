@@ -17,11 +17,8 @@ python manage.py edit_database_filenamehelper --mode display --model ExperimentT
 
 
 
-REM subst X: C:\Users\Samuel\Documents\LabData\Cache
-
-REM python manage.py edit_database_filenamehelper --mode just_add_files --data_dir=C:\Users\Samuel\Documents\LabData\srv\samba\share\DATA
-
-REM python manage.py edit_database_filenamehelper --mode just_parse_database_files
-
-REM python manage.py import_and_process_raw_neware --path_to_filter=degradation_meta.file --DEBUG
+subst X: C:\Users\Samuel\Documents\LabData\Cache
+python manage.py edit_database_filenamehelper --mode just_add_files --data_dir=C:\Users\Samuel\Documents\LabData\srv\samba\share\DATA
+python manage.py edit_database_filenamehelper --mode just_parse_database_files
+python manage.py import_and_process_raw_neware --DEBUG
 

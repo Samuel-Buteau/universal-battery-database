@@ -174,7 +174,7 @@ def plot_barcode(barcode, path_to_plots = None, lower_cycle=None, upper_cycle=No
         return None
     elif vertical_barriers is None:
         buf = BytesIO()
-        plt.savefig(buf, format='png', dpi=300)
+        plt.savefig(buf, format='png', dpi=50)
         bc.set_image(buf.getvalue())
         bc.save()
         buf.close()
@@ -195,11 +195,13 @@ def get_cycle_groups_from_barcode(barcode):
 class BarcodeNode(models.Model):
     barcode = models.IntegerField(primary_key=True)
     valid_cache = models.BooleanField(default=False)
-    image = models.BinaryField()
+    image = models.BinaryField(blank=True)
     def get_image(self):
-        return self.image.decode('utf-8').replace('\n', '')
+        return base64.b64encode(self.image).decode('utf-8').replace('\n', '')
+        #return self.image
     def set_image(self, img):
-        self.image = base64.b64encode(img)
+        #self.image = base64.b64encode(img)
+        self.image = img
         self.valid_cache = True
 
 

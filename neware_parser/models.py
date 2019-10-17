@@ -283,10 +283,6 @@ class CyclingFile(models.Model):
         )
 
 
-#TODO: right now, this doesn't do anything!!!!
-class CycleTag(models.Model):
-    namespace = models.CharField(max_length=100)
-    index = models.IntegerField()
 
 class CycleGroup(models.Model):
     barcode = models.IntegerField()
@@ -334,8 +330,6 @@ class Cycle(models.Model):
     dchg_maximum_current = models.FloatField(null=True)
     dchg_duration = models.FloatField(null=True)
 
-    tags = models.ManyToManyField(CycleTag)
-
     discharge_curve_minimum_voltage = models.FloatField(null=True)
     discharge_curve_maximum_voltage = models.FloatField(null=True)
     '''
@@ -353,7 +347,7 @@ class Cycle(models.Model):
 class Step(models.Model):
     cycle = models.ForeignKey(Cycle, on_delete=models.CASCADE)
     step_number = models.IntegerField()
-    step_type = models.CharField(max_length=100)
+    step_type = models.CharField(max_length=200)
     start_time = models.DateTimeField()
     second_accuracy = models.BooleanField()
 

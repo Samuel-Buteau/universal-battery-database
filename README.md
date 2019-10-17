@@ -3,16 +3,6 @@
 install dependencies with 
 > pip -r requirements.txt
 
-(if you are running linux or mac os x) Run:
-> create_all_tables.sh 
-
-(if you are running windows) Run:
-> create_all_tables.bat 
-
-This will create a database and create the tables and populate some basic tables that define the set of file types we have.
-
-I kept the sqlite database out of the github to not go over size limit.
-
 The code has a simple bottleneck where text files are imputted and a python data gets output. this function is called read_neware.
 The output of the function should be the same for neware inputs, maccor inputs, moli inputs, etc...
 
@@ -30,3 +20,11 @@ here accuracy_in_seconds is a boolean variable saying whether datetime1
  should be trusted down to the seconds or down to the minutes.
  
  Note(Samuel): by the way I know this is a bit ducktapy, please feel free to use pandas or whatever you kids use these days ;P
+ 
+ 
+ 
+ 
+ 
+# TODO(Samuel):
+- separate the filenames into another file that is never made public 
+ 

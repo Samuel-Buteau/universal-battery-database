@@ -79,10 +79,7 @@ WSGI_APPLICATION = 'neware_parser.wsgi.application'
 
 import configparser
 config = configparser.ConfigParser()
-print(config.read('neware_parser/config.ini'))
-print('bal')
-for key in config['DEFAULT']:
-    print(key)
+config.read('neware_parser/config.ini')
 
 DATABASES = {
     'default': {

@@ -4,13 +4,13 @@ import neware_parser.models
 # Create your models here.
 #---------------- Drive Profile Logic Function ------------------------#
 class Category(models.Model):
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=300)
     def __str__(self):
         return self.name
 
 
 class SubCategory(models.Model):
-    name = models.CharField(max_length=20)
+    name = models.CharField(max_length=300)
     def __str__(self):
         return self.name
 
@@ -20,27 +20,27 @@ class ExperimentType(models.Model):
     barcode_active = models.BooleanField(default=True)
     start_cycle_active = models.BooleanField(default=True)
     voltage_active = models.BooleanField(default=True)
-    voltage_name = models.CharField(max_length = 20, default = 'upper_cutoff_voltage')
+    voltage_name = models.CharField(max_length = 50, default = 'upper_cutoff_voltage')
     temperature_active = models.BooleanField(default=True)
-    temperature_name = models.CharField(max_length=20, default = 'temperature')
+    temperature_name = models.CharField(max_length=50, default = 'temperature')
     drive_profile_active = models.BooleanField(default=False)
     AC_active = models.BooleanField(default=False)
     AC_increment_active = models.BooleanField(default=False)
     charger_active = models.BooleanField(default=False)
     version_number_active = models.BooleanField(default=False)
-    charger = models.CharField(max_length=5, default = '')
+    charger = models.CharField(max_length=50, default = '')
     shorthand = models.CharField(max_length=10, default = '')
     def __str__(self):
         return '{} ({})'.format(self.subcategory.name, self.category.name)
 
 
 class ChargerDriveProfile(models.Model):
-    drive_profile = models.CharField(max_length=20)
+    drive_profile = models.CharField(max_length=50)
     test = models.CharField(max_length=200)
     description = models.CharField(max_length=1000)
-    x_name = models.CharField(max_length=20)
-    y_name = models.CharField(max_length=20)
-    z_name = models.CharField(max_length=20)
+    x_name = models.CharField(max_length=50)
+    y_name = models.CharField(max_length=50)
+    z_name = models.CharField(max_length=50)
     x_active = models.BooleanField(default=True)
     y_active = models.BooleanField(default=False)
     z_active = models.BooleanField(default=False)
@@ -170,7 +170,7 @@ class ValidMetadata(models.Model):
             filename_printed_fields.append('{}C'.format(self.temperature))
         filename_printed_fields.append(self.date.strftime("%y%m%d"))
         if self.experiment_type.subcategory == 'exsitu':
-            filename='Ex=situ Gas Checkin_v{}.xls'.format(str(self.version_number))
+            filename='Ex-situ Gas Checkin_v{}.xls'.format(str(self.version_number))
         else:
             filename= '_'.join(filename_printed_fields)
         return filename
@@ -179,8 +179,8 @@ class DatabaseFile(models.Model):
     '''
     Note that valid_metadata is null if filename hasn't been parsed.
     '''
-    filename = models.CharField(max_length=200)
-    root = models.CharField(max_length=200)
+    filename = models.CharField(max_length=300)
+    root = models.CharField(max_length=300)
     last_modified = models.DateTimeField(default=datetime.datetime(1970, 1, 1))
     filesize = models.IntegerField(default=0) # in bytes
     valid_metadata = models.OneToOneField(ValidMetadata, on_delete=models.SET_NULL, null=True)

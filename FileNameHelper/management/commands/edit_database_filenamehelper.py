@@ -78,9 +78,7 @@ def parse_database_files(options):
                 meta, valid = deterministic_parser(
                     my_file.filename,
                     res)
-                print('before call', meta)
                 my_file.set_valid_metadata(valid_metadata=meta)
-                print('after call', my_file.valid_metadata)
                 my_file.save()
             #else:
             #    print('unknown experiment', ' root: ', my_file.root , ' filename: ',my_file.filename)
@@ -95,11 +93,6 @@ class Command(BaseCommand):
                                                'parse_and_add_files',
                                                'just_add_files',
                                                'just_parse_database_files',
-                                               'validate_files',
-                                               'print_invalid_files',
-                                               'nd_parser',
-                                               'output_all_to_excel',
-                                               'output_specific_to_excell'
 
 
                                                ])

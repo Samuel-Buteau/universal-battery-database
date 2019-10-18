@@ -77,5 +77,18 @@ here accuracy_in_seconds is a boolean variable saying whether datetime1
  
  
 # TODO(Samuel):
-- separate the filenames into another file that is never made public 
+- various fields are always "private" in the sense that they should never be shared in the global space.
+- various fields are sometimes "private" in the sense that they may or may not be shared with the global space.
+- various fields are never "private".
+
+- electrolyte and dry cell data have to be:
+ - defined.
+ - linked.
+ - searched.
+ - visualized.
  
+- DOD, Rate, Temperature, 
+    voltage hold (time or current), 
+    open circuit, 
+    CCCV, rest=open circuit, information
+- factor into cyclegroups. 

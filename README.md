@@ -91,4 +91,18 @@ here accuracy_in_seconds is a boolean variable saying whether datetime1
     voltage hold (time or current), 
     open circuit, 
     CCCV, rest=open circuit, information
-- factor into cyclegroups. 
+- factor into cyclegroups.
+
+- In general, a cycle is merely a sequence of steps. 
+- There is no completely general mechanism to summarize arbitrary 
+sequences of steps while also being convenient for modelling.
+
+So we simplify and we have a partial mapping from steps to cycle summary.
+This mapping can evolve over time. First we must represent with a fixed lenght
+ vector the sequence of steps protocol. Second, we must represent 
+ the measured data in a unified format. At first, we have only CC Voltage curves (cap vs voltage).
+ We can also represent CV curves as a capacity vs rate curve. 
+ OCV can be represented as time vs voltage. 
+ But without use cases, it is hard to know what is best. Right now, not all of this is supported.
+ 
+ 

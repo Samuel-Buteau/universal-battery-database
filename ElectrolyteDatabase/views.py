@@ -2,7 +2,7 @@ from django.shortcuts import render, render_to_response
 from django.forms import modelformset_factory, formset_factory
 from django.db.models import Q
 from .forms import *
-from .models import Component, Molecule, Alias, SALT, ADDITIVE, SOLVENT, Electrolyte, DryCell, WetCell
+from .models import ElectrolyteComponent, ElectrolyteMolecule, Alias, SALT, ADDITIVE, SOLVENT, Electrolyte, DryCell, WetCell
 from django import forms
 from ElectrolyteDatabase.models import DryCell, AnodeBinder, CathodeBinder, Cathode, CathodeConductiveAdditive,AnodeConductiveAdditive, MechanicalPouch, BuildInfo, Box, OtherInfo,\
     Separator, Anode, CathodeActiveMaterials, AnodeActiveMaterials, CathodeComponent, AnodeComponent, AnodeFam, CathodeFam, CathodeSpecificMaterials, AnodeSpecificMaterials, CathodeCoating, CellAttribute
@@ -366,7 +366,7 @@ def register_new_molecule(request):
 
             instances = register_molecule_formset.save(commit=False)
             for instance in instances:
-                m = Molecule()
+                m = ElectrolyteMolecule()
 
                 m.name = instance.name
                 m.can_be_solvent = instance.can_be_solvent
@@ -379,10 +379,10 @@ def register_new_molecule(request):
 
     else:
 
-        registered_molecules_formset = RegisteredMoleculesFormSet(queryset=Molecule.objects.all())
-        register_molecule_formset = RegisterMoleculeFormSet(queryset=Molecule.objects.none())
+        registered_molecules_formset = RegisteredMoleculesFormSet(queryset=ElectrolyteMolecule.objects.all())
+        register_molecule_formset = RegisterMoleculeFormSet(queryset=ElectrolyteMolecule.objects.none())
 
-        if len(Molecule.objects.all()) != 0:
+        if len(ElectrolyteMolecule.objects.all()) != 0:
 
             ar['register_molecule_formset'] = register_molecule_formset
             ar['registered_molecules_formset'] = registered_molecules_formset
@@ -453,9 +453,9 @@ def register_new_electrolyte(request):
                     elec.save()
 
                     for salt in component_dict['salts'].keys():
-                        comp = Component()
+                        comp = ElectrolyteComponent()
                         comp.save()
-                        comp.molecule = Molecule.objects.get(name=salt)
+                        comp.molecule = ElectrolyteMolecule.objects.get(name=salt)
                         comp.molal = component_dict['salts'][salt]
                         comp.electrolyte = elec
                         comp.compound_type = SALT
@@ -463,9 +463,9 @@ def register_new_electrolyte(request):
                         print('comp saved')
 
                     for solvent in component_dict['solvents'].keys():
-                        comp = Component()
+                        comp = ElectrolyteComponent()
                         comp.save()
-                        comp.molecule = Molecule.objects.get(name=solvent)
+                        comp.molecule = ElectrolyteMolecule.objects.get(name=solvent)
                         comp.weight_percent = component_dict['solvents'][solvent]
                         comp.electrolyte = elec
                         comp.compound_type = SOLVENT
@@ -516,13 +516,13 @@ def register_new_electrolyte(request):
 
     else:
 
-        salt_component_formset = SaltComponentFormSet(queryset=Component.objects.none(), prefix='salt')
+        salt_component_formset = SaltComponentFormSet(queryset=ElectrolyteComponent.objects.none(), prefix='salt')
         for form in salt_component_formset:
-            form.fields['molecule'].queryset = Molecule.objects.filter(can_be_salt=True)
+            form.fields['molecule'].queryset = ElectrolyteMolecule.objects.filter(can_be_salt=True)
 
-        solvent_component_formset = SolventComponentFormSet(queryset=Component.objects.none(), prefix='solvent')
+        solvent_component_formset = SolventComponentFormSet(queryset=ElectrolyteComponent.objects.none(), prefix='solvent')
         for form in solvent_component_formset:
-            form.fields['molecule'].queryset = Molecule.objects.filter(can_be_additive=True)
+            form.fields['molecule'].queryset = ElectrolyteMolecule.objects.filter(can_be_additive=True)
 
         alias_name_formset = AliasNameFormSet(queryset=Alias.objects.none(), prefix='alias')
 
@@ -1644,13 +1644,13 @@ def specify_and_edit_wet_cells(request):
 
             specific_electrolyte_formset = SpecificElectrolyteFormSet(request.POST, prefix='specific_electrolyte')
 
-            salt_component_formset = SaltComponentFormSet(request.POST, queryset=Component.objects.none(), prefix='salt')
+            salt_component_formset = SaltComponentFormSet(request.POST, queryset=ElectrolyteComponent.objects.none(), prefix='salt')
             for form in salt_component_formset:
-                form.fields['molecule'].queryset = Molecule.objects.filter(can_be_salt=True)
+                form.fields['molecule'].queryset = ElectrolyteMolecule.objects.filter(can_be_salt=True)
 
-            solvent_component_formset = SolventComponentFormSet(request.POST, queryset=Component.objects.none(), prefix='solvent')
+            solvent_component_formset = SolventComponentFormSet(request.POST, queryset=ElectrolyteComponent.objects.none(), prefix='solvent')
             for form in solvent_component_formset:
-                form.fields['molecule'].queryset = Molecule.objects.filter(can_be_salt=True)
+                form.fields['molecule'].queryset = ElectrolyteMolecule.objects.filter(can_be_salt=True)
 
             q = Q()
 
@@ -1945,13 +1945,13 @@ def specify_and_edit_wet_cells(request):
 
             specific_electrolyte_formset = SpecificElectrolyteFormSet(request.POST, prefix='specific_electrolyte')
 
-            salt_component_formset = SaltComponentFormSet(request.POST, queryset=Component.objects.none(), prefix='salt')
+            salt_component_formset = SaltComponentFormSet(request.POST, queryset=ElectrolyteComponent.objects.none(), prefix='salt')
             for form in salt_component_formset:
-                form.fields['molecule'].queryset = Molecule.objects.filter(can_be_salt=True)
+                form.fields['molecule'].queryset = ElectrolyteMolecule.objects.filter(can_be_salt=True)
 
-            solvent_component_formset = SolventComponentFormSet(request.POST, queryset=Component.objects.none(), prefix='solvent')
+            solvent_component_formset = SolventComponentFormSet(request.POST, queryset=ElectrolyteComponent.objects.none(), prefix='solvent')
             for form in salt_component_formset:
-                form.fields['molecule'].queryset = Molecule.objects.filter(can_be_salt=True)
+                form.fields['molecule'].queryset = ElectrolyteMolecule.objects.filter(can_be_salt=True)
 
             q = Q()
 
@@ -1996,32 +1996,32 @@ def specify_and_edit_wet_cells(request):
 
                 for instance in salt_instances:
                     if (not instance.molecule is None) and (not instance.molal is None):
-                        electrolyte_ids = Component.objects.filter(molecule=instance.molecule,
-                                                                   molal=float(instance.molal)).values_list('electrolyte_id',
+                        electrolyte_ids = ElectrolyteComponent.objects.filter(molecule=instance.molecule,
+                                                                              molal=float(instance.molal)).values_list('electrolyte_id',
                                                                                                             flat=True)
                         q = q & Q(id__in=electrolyte_ids)
 
                     elif not instance.molecule is None:
-                        electrolyte_ids = Component.objects.filter(molecule=instance.molecule).values_list('electrolyte_id',
-                                                                                                           flat=True)
+                        electrolyte_ids = ElectrolyteComponent.objects.filter(molecule=instance.molecule).values_list('electrolyte_id',
+                                                                                                                      flat=True)
                         q = q & Q(id__in=electrolyte_ids)
 
                 for instance in solvent_instances:
                     if (not instance.molecule is None) and (not instance.weight_percent is None):
-                        electrolyte_ids = Component.objects.filter(molecule=instance.molecule,
-                                                                   weight_percent=float(instance.weight_percent)).values_list(
+                        electrolyte_ids = ElectrolyteComponent.objects.filter(molecule=instance.molecule,
+                                                                              weight_percent=float(instance.weight_percent)).values_list(
                             'electrolyte_id', flat=True)
                         q = q & Q(id__in=electrolyte_ids)
 
                     elif not instance.molecule is None:
-                        electrolyte_ids = Component.objects.filter(molecule=instance.molecule).values_list('electrolyte_id',
-                                                                                                           flat=True)
+                        electrolyte_ids = ElectrolyteComponent.objects.filter(molecule=instance.molecule).values_list('electrolyte_id',
+                                                                                                                      flat=True)
                         q = q & Q(id__in=electrolyte_ids)
 
                 for instance in absent_instances:
                     if not instance.molecule is None:
-                        electrolyte_ids = Component.objects.filter(molecule=instance.molecule).values_list('electrolyte_id',
-                                                                                                           flat=True)
+                        electrolyte_ids = ElectrolyteComponent.objects.filter(molecule=instance.molecule).values_list('electrolyte_id',
+                                                                                                                      flat=True)
                         q = q & ~Q(id__in=electrolyte_ids)
 
 
@@ -2038,7 +2038,7 @@ def specify_and_edit_wet_cells(request):
                         ratio_dict[instance.molecule.name] = instance.weight_percent
 
                 for key in ratio_dict.keys():
-                    electrolyte_ids = Component.objects.filter(molecule=Molecule.objects.get(name=key)).values_list(
+                    electrolyte_ids = ElectrolyteComponent.objects.filter(molecule=ElectrolyteMolecule.objects.get(name=key)).values_list(
                         'electrolyte_id', flat=True)
                     x = x & Q(id__in=electrolyte_ids)
 
@@ -2367,15 +2367,15 @@ def specify_and_edit_wet_cells(request):
         specific_electrolyte_formset = SpecificElectrolyteFormSet(prefix='specific_electrolyte')
 
 
-        salt_component_formset = SaltComponentFormSet(queryset=Component.objects.none(), prefix='salt')
+        salt_component_formset = SaltComponentFormSet(queryset=ElectrolyteComponent.objects.none(), prefix='salt')
         for form in salt_component_formset:
-            form.fields['molecule'].queryset = Molecule.objects.filter(can_be_salt=True)
+            form.fields['molecule'].queryset = ElectrolyteMolecule.objects.filter(can_be_salt=True)
 
-        solvent_component_formset = SolventComponentFormSet(queryset=Component.objects.none(), prefix='solvent')
+        solvent_component_formset = SolventComponentFormSet(queryset=ElectrolyteComponent.objects.none(), prefix='solvent')
         for form in salt_component_formset:
-            form.fields['molecule'].queryset = Molecule.objects.filter(can_be_salt=True)
+            form.fields['molecule'].queryset = ElectrolyteMolecule.objects.filter(can_be_salt=True)
 
-        absent_component_formset = AbsentComponentFormSet(queryset=Component.objects.none(), prefix='absent')
+        absent_component_formset = AbsentComponentFormSet(queryset=ElectrolyteComponent.objects.none(), prefix='absent')
 
         ## Returned Formset Lists
 

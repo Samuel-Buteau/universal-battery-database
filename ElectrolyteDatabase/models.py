@@ -5,6 +5,7 @@ import re
 
 
 ## ==================================Electrolyte================================== ##
+#TODO: this is useless. Find usages and rewrite!!
 def test_similarity(elec_dict1, elec_dict2):
 
     molecule_list1 = []
@@ -70,378 +71,271 @@ def test_similarity(elec_dict1, elec_dict2):
 
 
 class Electrolyte(models.Model):
-    creation_date = models.DateField(null=True)
-    shortstring = models.CharField(max_length=100, null=True)
     proprietary = models.BooleanField(default=False)
+    proprietary_name = models.CharField(max_length=100, null=True)
+    @property
+    def get_shortstring(self):
+        shortstring = []
+        for component in self.component_set.filter(compound_type=ElectrolyteComponent.SALT).order_by('molecule__name'):
+            shortstring.append(
+                '{:10.3f}m{}'.format(component.molal, component.molecule.name))
+        for component in (list(self.component_set.filter(compound_type=ElectrolyteComponent.SOLVENT).order_by('molecule__name')) + list(self.component_set.filter(compound_type=ElectrolyteComponent.ADDITIVE).order_by('molecule__name'))):
+            shortstring.append(
+                '{:100.3f}%{}'.format(component.weight_percent, component.molecule.name))
+        return '+'.join(shortstring)
 
+class ElectrolyteLot(models.Model):
+    '''
+    if Electrolyte contains everything we know about an electrolyte recipe,
+    then ElectrolyteLot is an actual instanciation of that recipe.
+    If we wish to specify which recipe was followed but we do not know which lot,
+    we simply use a lot with a null lot_name, creation_date and creator, and known_lot==False.
+    '''
+    electrolyte = models.ForeignKey(Electrolyte, on_delete=models.CASCADE)
+    lot_name = models.CharField(max_length=100, null=True)
+    known_lot = models.BooleanField(default=True)
+    creation_date = models.DatetimeField(null=True)
+    creator = models.CharField(max_length=100, null=True)
 
     def __str__(self):
+        return self.name
 
-        if self.shortstring is None:
-
-            return 'NO SHORTSTRING'
-
-        else:
-
-            return self.shortstring
-
-
-    @property
-    def generate_shortstring(self):
-
-        shortstring = ''
-
-        for component in self.component_set.all():
-            if component.molecule.can_be_salt:
-
-                if (float(component.molal) % 1) == 0:
-                    num = int(component.molal)
-                else:
-                    num = round(float(component.molal), 1)
-
-                shortstring += '{}m{}+'.format(num, component.molecule.name)
-
-            if component.molecule.can_be_additive or component.molecule.can_be_solvent:
-
-                if not(component.weight_percent is None) and (float(component.weight_percent) % 1) == 0:
-                    num = int(component.weight_percent)
-
-                elif not(component.weight_percent is None):
-                    num = round(float(component.weight_percent), 1)
-                else:
-                    num = None
-
-                shortstring += '{}%{}+'.format(num, component.molecule.name)
-
-        shortstring = re.sub(r'\+$', '', shortstring)
-
-        return shortstring
-
-    @property
-    def get_sum(self):
-
-        sum = 0
-
-        for component in self.component_set.all():
-
-            if (not component.molal is None) or (not component.weight_percent is None):
-
-                if component.molecule.can_be_additive or component.molecule.can_be_solvent:
-
-                    sum += float(component.weight_percent)
-
-        return sum
-
-class Molecule(models.Model):
-
+class ElectrolyteMolecule(models.Model):
     name = models.CharField(max_length=100, null=True)
+    smiles = models.CharField(max_length=1000, null=True)
+    proprietary = models.BooleanField(default=False)
+
     can_be_salt = models.BooleanField(default=False)
     can_be_additive = models.BooleanField(default=False)
     can_be_solvent = models.BooleanField(default=False)
-
-
     def __str__(self):
         return self.name
 
+class ElectrolyteComponent(models.Model):
+    SALT = 'sa'
+    ADDITIVE = 'ad'
+    SOLVENT = 'so'
+    COMPOUND_TYPES = [(SALT, 'salt'), (ADDITIVE, 'additive'), (SOLVENT, 'solvent')]
 
-SALT = 'sa'
-ADDITIVE = 'ad'
-SOLVENT = 'so'
-COMPOUND_TYPES = [(SALT,'salt'),(ADDITIVE,'additive'),(SOLVENT,'solvent')]
-
-class Component(models.Model):
+    electrolyte = models.ForeignKey(Electrolyte, on_delete=models.CASCADE)
     molal = models.FloatField(blank=True,null=True)
     weight_percent = models.FloatField(blank=True,null=True)
-    molecule = models.ForeignKey(Molecule, on_delete=models.CASCADE, null=True)
-    electrolyte = models.ForeignKey(Electrolyte, on_delete=models.CASCADE, null=True)
-    compound_type = models.CharField(max_length=2, choices=COMPOUND_TYPES, null=True)
-    notes = models.CharField(max_length=200,null=True)
+    molecule = models.ForeignKey(ElectrolyteMolecule, on_delete=models.CASCADE)
+    compound_type = models.CharField(max_length=2, choices=COMPOUND_TYPES)
+
+    @property
+    def is_valid(self):
+        valid_salt = (
+                (self.molal is not None) and
+                (self.weight_percent is None) and
+                (self.compound_type == ElectrolyteComponent.SALT) and
+                (self.molecule.can_be_salt))
+        valid_solvent = (
+                (self.molal is None) and
+                (self.weight_percent is not None) and
+                (self.compound_type == ElectrolyteComponent.SOLVENT) and
+                (self.molecule.can_be_solvent))
+
+        valid_additive = (
+                (self.molal is None) and
+                (self.weight_percent is not None) and
+                (self.compound_type == ElectrolyteComponent.ADDITIVE) and
+                (self.molecule.can_be_additive))
+
+        return (valid_salt or valid_solvent or valid_additive)
 
     def __str__(self):
         return self.molecule.name
-
-class Alias(models.Model):
-
-    #TODO: an argument for the CharField used to be 'unique=True' but I took it out because it wasn't working. Need to figure out.
-    name = models.CharField(max_length=100)
-    electrolyte = models.ForeignKey(Electrolyte, on_delete=models.CASCADE, null=True)
-
-
-    def __str__(self):
-        return self.name
 
 
 ## ==================================Dry Cell================================== ##
 ## Categories on the excel sheet that have not been addressed:
 # - Mechanical Cylindrical
 
-#TODO(sam): Electrolyte doesn't have to be dealt with.
-# We will just have a ForeignKey to an electrolyte (from above).
-# We can enter the info manually ourselves if needed in this case because it doesn't belong here.
+#TODO(sam): units are stored as class strings
 
 
 # - Build Info (cell to cell confidence)
 
 # Dry Cell
 
+
+class DryCellGeometry(models.Model):
+    POUCH = 'po'
+    CYLINDER = 'cy'
+    STACK = 'st'
+    COIN = 'co'
+    GEO_TYPES = [(POUCH, 'pouch'), (CYLINDER, 'cylinder'), (STACK, 'stack'),(COIN, 'coin')]
+
+    UNITS_LENGTH = 'Millimeters (mm)'
+
+    geometry_category = models.CharField(max_length=2, choices=GEO_TYPES)
+    cell_width = models.FloatField(null=True)
+    cell_length = models.FloatField(null=True)
+    cell_thickness = models.FloatField(null=True)
+    seal_width_side = models.FloatField(null=True)
+    seal_width_top = models.FloatField(null=True)
+    metal_bag_sheet_thickness = models.FloatField(null=True)
+
+
+
 class DryCell(models.Model):
+    UNITS_SOC = 'Percentage (i.e. 0 to 100)'
+    UNITS_ENERGY_ESTIMATE = 'Watt Hour (Wh)'
+    UNITS_CAPACITY_ESTIMATE = 'Ampere Hour (Ah)'
+    UNITS_MASS_ESTIMATE = 'Grams (g)'
+    UNITS_MAX_CHARGE_VOLTAGE = 'Volts (V)'
+    UNITS_DCR_ESTIMATE = 'Ohms (\\Omega)'
 
-    cell_model = models.CharField(max_length=300,null=True, blank=True)
+    cell_model = models.CharField(max_length=300)
     family = models.CharField(max_length=100,null=True, blank=True)
-    version_number = models.CharField(max_length=100,null=True, blank=True)
-    description = models.CharField(max_length=100,null=True, blank=True)
-    quantity = models.CharField(max_length=100,null=True, blank=True)
-    packing_date = models.CharField(max_length=100, null=True, blank=True)
-    ship_date = models.CharField(max_length=100,null=True, blank=True)
-    marking_on_box = models.CharField(max_length=300,null=True, blank=True)
-    shipping_soc = models.CharField(max_length=100,null=True, blank=True)
-    energy_estimate_wh = models.FloatField(null=True, blank=True)
-    capacity_estimate_ah = models.FloatField(null=True, blank=True)
-    mass_estimate_g = models.FloatField(null=True, blank=True)
-    max_charge_voltage_v = models.FloatField(null=True, blank=True)
-    dcr_estimate = models.CharField(max_length=100,null=True, blank=True)
-    chemistry_freeze_date_requested = models.CharField(max_length=100,null=True, blank=True)
-
-    def __str__(self):
-
-        if not self.cell_model is None:
-
-            return self.cell_model
-
-        else:
-
-            return 'NO NAME REGISTERED'
-
-
-class CellAttribute(models.Model):
-    attribute = models.CharField(max_length=100,null=True,blank=True)
-    dry_cells = models.ManyToManyField(DryCell, null=True)
-
-    def __str__(self):
-
-        return self.attribute
+    version = models.CharField(max_length=100,null=True, blank=True)
+    description = models.CharField(max_length=10000,null=True, blank=True)
+    marking_on_box = models.CharField(max_length=300, null=True, blank=True)
+    quantity = models.IntegerField(null=True, blank=True)
+    packing_date = models.DateField( null=True, blank=True)
+    ship_date = models.DateField( null=True, blank=True)
+    shipping_soc = models.FloatField(null=True, blank=True)
+    energy_estimate = models.FloatField(null=True, blank=True)
+    capacity_estimate = models.FloatField(null=True, blank=True)
+    mass_estimate = models.FloatField(null=True, blank=True)
+    max_charge_voltage = models.FloatField(null=True, blank=True)
+    dcr_estimate = models.FloatField(null=True, blank=True)
+    chemistry_freeze_date_requested = models.DateField(null=True, blank=True)
+    geometry = models.OneToOneField(DryCellGeometry, on_delete=models.SET_NULL, null=True)
 
 
 
-# Cathode
-
-class CathodeFam(models.Model):
-    cathode_family = models.CharField(max_length=100,null=True)
-
-    def __str__(self):
-        return self.cathode_family
-
-class AnodeFam(models.Model):
-    anode_family = models.CharField(max_length=100,null=True)
-
-    def __str__(self):
-        return self.anode_family
-
-class CathodeSpecificMaterials(models.Model):
-    cathode_family = models.ForeignKey(CathodeFam,on_delete=models.CASCADE, null=True)
-    name = models.CharField(max_length=100,null=True)
+class DryCellLot(models.Model):
+    '''
+    if DryCell contains everything we know about an electrolyte recipe,
+    then DryCellLot is an actual instanciation of that recipe.
+    If we wish to specify which recipe was followed but we do not know which lot,
+    we simply use a lot with a null lot_name, creation_date and creator, and known_lot==False.
+    '''
+    dry_cell = models.ForeignKey(DryCell, on_delete=models.CASCADE)
+    lot_name = models.CharField(max_length=100, null=True)
+    known_lot = models.BooleanField(default=True)
+    creation_date = models.DatetimeField(null=True)
+    creator = models.CharField(max_length=100, null=True)
 
     def __str__(self):
         return self.name
 
-class AnodeSpecificMaterials(models.Model):
-    anode_family = models.ForeignKey(AnodeFam,on_delete=models.CASCADE, null=True)
-    name = models.CharField(max_length=100,null=True)
+class ElectrodeGeometry(models.Model):
+    UNITS_LOADING = 'milligrams per centimeter squared (mg/cm^2)'
+    UNITS_DENSITY = 'grams per cubic centimeters (g/cm^3)'
+    UNITS_POROSITY = 'TODO(sam): I DON"T KNOW THESE UNITS'
+    UNITS_THICKNESS = 'micrometers (\\mu m)'
+    UNITS_LENGTH_SINGLE_SIDE = 'millimeters (mm)'
+    UNITS_LENGTH_DOUBLE_SIDE = 'millimeters (mm)'
+    UNITS_WIDTH = 'millimeters (mm)'
+    UNITS_TAB_POSITION_FROM_CORE = 'TODO(sam): I DON"T KNOW THESE UNITS'
+    UNITS_FOIL_THICKNESS = 'micrometers (\\mu m)'
+
+    loading = models.FloatField(null=True)
+    density = models.FloatField(null=True)
+    porosity = models.FloatField(null=True)
+    thickness = models.FloatField(null=True)
+    length_single_side = models.FloatField(null=True)
+    length_double_side = models.FloatField(null=True)
+    width = models.FloatField(null=True)
+    tab_position_from_core = models.FloatField(null=True)
+    foil_thickness = models.FloatField(null=True)
+
+
+
+class Electrode(models.Model):
+    CATHODE = '+'
+    ANODE = '-'
+    ELECTRODE_TYPES = [(CATHODE, 'cathode'), (ANODE, 'anode')]
+    electrode_type = models.CharField(max_length=1, choices=ELECTRODE_TYPES)
+    proprietary = models.BooleanField(default=False)
+    proprietary_name = models.CharField(max_length=100, null=True)
+    geometry = models.OneToOneField(ElectrodeGeometry, on_delete=models.SET_NULL, null=True)
+
+
+
+class ElectrodeLot(models.Model):
+    '''
+    if Electrode contains everything we know about an electrolyte recipe,
+    then ElectrodeLot is an actual instanciation of that recipe.
+    If we wish to specify which recipe was followed but we do not know which lot,
+    we simply use a lot with a null lot_name, creation_date and creator, and known_lot==False.
+    '''
+    electrode = models.ForeignKey(Electrode, on_delete=models.CASCADE)
+    lot_name = models.CharField(max_length=100, null=True)
+    known_lot = models.BooleanField(default=True)
+    creation_date = models.DatetimeField(null=True)
+    creator = models.CharField(max_length=100, null=True)
 
     def __str__(self):
         return self.name
 
-
-class CathodeActiveMaterials(models.Model):
-    coating = models.CharField(max_length=100, null=True)
-    composition = models.CharField(max_length=100,null=True)
-
-    cathode_active_1_notes = models.CharField(max_length=100, null=True)
-    cathode_active_2_notes = models.CharField(max_length=100, null=True)
-    cathode_active_3_notes = models.CharField(max_length=100, null=True)
-    name = models.CharField(max_length=100,null=True)
-
-
-class CathodeCoating(models.Model):
+class ElectrodeMaterialCoating(models.Model):
     name = models.CharField(max_length=100, null=True)
+    proprietary = models.BooleanField(default=False)
+    description = models.CharField(max_length=1000, null=True)
 
-    def __str__(self):
+class ElectrodeMaterialAtom(models.Model):
+    name = models.CharField(max_length=10)
 
-        return self.name
+class ElectrodeMaterial(models.Model):
+    name = models.CharField(max_length=100, null=True)
+    proprietary = models.BooleanField(default=False)
+    notes = models.CharField(max_length=1000, null=True)
 
-class Cathode(models.Model):
+    can_be_cathode = models.BooleanField(default=False)
+    can_be_anode = models.BooleanField(default=False)
 
-    metal_bag_sheet_structure = models.CharField(max_length=100, null=True)
-    positive_electrode_composition_notes = models.CharField(max_length=100, null=True)
-    positive_electrode_loading_mg_cm2 = models.FloatField(null=True)
-    positive_electrode_density_g_cm3 = models.FloatField(null=True)
-    positive_electrode_porosity = models.FloatField(null=True)
-    positive_electrode_thickness_um = models.FloatField(null=True)
-    positive_electrode_length_single_side = models.FloatField(null=True)
-    positive_electrode_length_double_side = models.FloatField(null=True)
-    positive_electrode_width = models.FloatField(null=True)
-    electrode_tab_position_from_core = models.FloatField(null=True)
-    positive_foil_thickness_um = models.FloatField(null=True)
-    positive_functional_layer_notes = models.CharField(max_length=100, null=True)
-    positive_functional_thickness = models.FloatField(null=True)
-    dry_cell = models.ForeignKey(DryCell,on_delete=models.CASCADE, null=True)
-    cathode_active_materials = models.ForeignKey(CathodeActiveMaterials,on_delete=models.CASCADE, null=True)
-    cathode_specific_materials = models.ForeignKey(CathodeSpecificMaterials,on_delete=models.CASCADE, null=True)
-    coating = models.ForeignKey(CathodeCoating, on_delete=models.CASCADE, null=True, blank=True)
+    can_be_active_material = models.BooleanField(default=False)
+    can_be_conductive_additive = models.BooleanField(default=False)
+    can_be_binder = models.BooleanField(default=False)
 
-class CathodeConductiveAdditive(models.Model):
-    notes = models.CharField(max_length=200,null=True)
-    cathode = models.ForeignKey(Cathode, on_delete=models.CASCADE,null=True)
+    coating = models.ForeignKey(ElectrodeMaterialCoating, on_delete=models.SET_NULL, null=True)
+    particle_size = models.FloatField(null=True)
+    single_crystal = models.BooleanField(null=True)
+    turbostratic_misalignment = models.FloatField(null=True)
+    maximum_experienced_temperature = models.FloatField(null=True)
+    natural = models.BooleanField(null=True)
+    core_shell = models.BooleanField(null=True)
+    #TODO(sam): structure = Layered, Spinel, ...
+    vendor = models.CharField(null=True)
 
+class ElectrodeMaterialStochiometry(models.Model):
+    electrode_material = models.ForeignKey(ElectrodeMaterial, on_delete=models.CASCADE)
+    atom = models.ForeignKey(ElectrodeMaterialAtom, on_delete=models.CASCADE)
+    stochiometry = models.FloatField()
 
-class CathodeComponent(models.Model):
-    chemical_formula = models.CharField(max_length=3,null=True)
-    atom_ratio = models.FloatField(null=True)
-    cathode_active_materials = models.ForeignKey(CathodeActiveMaterials,on_delete=models.CASCADE, null=True)
+class ElectrodeMaterialLot(models.Model):
+    electrode_material = models.ForeignKey(ElectrodeMaterial, on_delete=models.CASCADE)
+    lot_name = models.CharField(max_length=100, null=True)
+    known_lot = models.BooleanField(default=True)
+    creation_date = models.DatetimeField(null=True)
+    creator = models.CharField(max_length=100, null=True)
 
-class CathodeBinder(models.Model):
-    cathode_binder_1_notes = models.CharField(max_length=100,null=True)
-    cathode_binder_2_notes = models.CharField(max_length=100,null=True)
-    cathode = models.ForeignKey(Cathode,on_delete=models.CASCADE, null=True)
+class ElectrodeComponent(models):
+    can_be_active_material = models.BooleanField(default=False)
+    can_be_conductive_additive = models.BooleanField(default=False)
+    can_be_binder = models.BooleanField(default=False)
+    ACTIVE_MATERIAL = 'am'
+    CONDUCTIVE_ADDITIVE = 'ad'
+    BINDER = 'bi'
+    MATERIAL_TYPES = [(ACTIVE_MATERIAL, 'active_material'), (CONDUCTIVE_ADDITIVE, 'conductive_additive'), (BINDER, 'binder')]
 
-
-# Anode
-
-#TODO: I might need some advice regarding how I should describe/parse certain anode active materials.
-# Examples include '(natural graphite) BTR918II' and 'carbon coated nano-Si'
-
-
-
-
-class AnodeActiveMaterials(models.Model):
-    coating = models.CharField(max_length=100, null=True)
-    composition = models.CharField(max_length=100,null=True)
-    material_id = models.CharField(max_length=100,null=True)
-
-    anode_active_1_notes = models.CharField(max_length=100, null=True)
-    anode_active_2_notes = models.CharField(max_length=100, null=True)
-    anode_active_3_notes = models.CharField(max_length=100, null=True)
-    anode_active_4_notes = models.CharField(max_length=100, null=True)
-
-class Anode(models.Model):
-
-    negative_electrode_composition_notes = models.CharField(max_length=100,null=True)
-    negative_electrode_loading_mg_cm2 = models.FloatField(null=True)
-    negative_electrode_density_g_cm3 = models.FloatField(null=True)
-    negative_electrode_porosity = models.FloatField(null=True)
-    negative_electrode_thickness_um = models.FloatField(null=True)
-    negative_electrode_length_single_side = models.FloatField(null=True)
-    negative_electrode_length_double_side = models.FloatField(null=True)
-    negative_electrode_width = models.FloatField(null=True)
-    negative_tab_position_from_core = models.FloatField(null=True)
-    negative_foil_thickness_um = models.FloatField(null=True)
-    negative_tab_notes = models.CharField(max_length=100,null=True)
-    tab_2_notes = models.CharField(max_length=100,null=True)
-    negative_functional_layer = models.CharField(max_length=100,null=True)
-    negative_functional_thickness = models.FloatField(null=True)
-    dry_cell = models.ForeignKey(DryCell, on_delete=models.CASCADE, null=True)
-    anode_active_materials = models.ForeignKey(AnodeActiveMaterials, on_delete=models.CASCADE, null=True)
-    anode_specific_materials = models.ForeignKey(AnodeSpecificMaterials,on_delete=models.CASCADE, null=True)
-
-
-
-class AnodeConductiveAdditive(models.Model):
-    notes = models.CharField(max_length=200,null=True)
-    anode = models.ForeignKey(Anode,on_delete=models.CASCADE, null=True)
-
-
-class AnodeComponent(models.Model):
-    chemical_formula = models.CharField(max_length=3,null=True)
-    atom_ratio = models.FloatField(null=True)
-    anode_active_materials = models.ForeignKey(AnodeActiveMaterials,on_delete=models.CASCADE, null=True)
-
-class AnodeType(models.Model):
-    name = models.CharField(max_length=50,null=True)
-    anode_category = models.CharField(max_length=100, null=True)
-    preparation_temperature = models.FloatField(null=True)
-    anode = models.ForeignKey(Anode,on_delete=models.CASCADE, null=True)
-
-class AnodeBinder(models.Model):
-    anode_binder_1_notes = models.CharField(max_length=200,null=True)
-    anode_binder_2_notes = models.CharField(max_length=200,null=True)
-    anode_binder_3_notes = models.CharField(max_length=200,null=True)
-    anode = models.ForeignKey(Anode,on_delete=models.CASCADE, null=True)
+    electrode = models.ForeignKey(Electrode, on_delete=models.CASCADE)
+    weight_percent = models.FloatField(null=True)
+    material_lot = models.ForeignKey(ElectrodeMaterialLot, on_delete=models.CASCADE)
+    material_type = models.CharField(max_length=2, choices=MATERIAL_TYPES)
 
 
 
 
-# Build Info
-
-class BuildInfo(models.Model):
-
-    cathode_active_lot = models.IntegerField(null=True)
-    anode_active_lot = models.IntegerField(null=True)
-    separator_lot = models.IntegerField(null=True)
-    cathode_mix_lot = models.IntegerField(null=True)
-    anode_mix_lot = models.IntegerField(null=True)
-    cell_assembly_lot = models.IntegerField(null=True)
-    mix_coat_location = models.CharField(max_length=100, null=True)
-    winding_location = models.CharField(max_length=100, null=True)
-    assembly_location = models.CharField(max_length=100, null=True)
-    other_mechanical_notes = models.CharField(max_length=100, null=True)
-    other_electrode_notes = models.CharField(max_length=100, null=True)
-    other_process_notes = models.CharField(max_length=100, null=True)
-    other_notes = models.CharField(max_length=100, null=True)
-
-    dry_cell = models.ForeignKey(DryCell,on_delete=models.CASCADE, null=True)
-
-# Box
-
-class Box(models.Model):
-    box_id_number = models.CharField(max_length=100, null=True)
-    cell_model = models.ForeignKey(DryCell,on_delete=models.CASCADE, null=True)
-
-    def __str__(self):
-
-        if not self.cell_model is None:
-
-            return str(self.box_id_number) + " - " + str(self.cell_model.cell_model)
-
-        else:
-
-            return str(self.box_id_number) + " -  NO CELL ASSOCIATED YET"
-
-
-# Mechanical Pouch
-
-class MechanicalPouch(models.Model):
-    outer_taping = models.CharField(max_length=100,null=True)
-    cell_width_mm = models.FloatField(null=True)
-    cell_length_mm = models.FloatField(null=True)
-    cell_thickness_mm = models.FloatField(null=True)
-    seal_width_side_mm = models.FloatField(null=True)
-    seal_width_top_mm = models.FloatField(null=True)
-    cathode_tab_polymer_material = models.CharField(max_length=100,null=True)
-    anode_tab_polymer_material = models.CharField(max_length=100,null=True)
-    metal_bag_sheet_thickness_mm = models.FloatField(null=True)
-
-    dry_cell = models.ForeignKey(DryCell,on_delete=models.CASCADE, null=True)
-
-
-class OtherInfo(models.Model):
-    jellyroll_centering = models.CharField(max_length=100,null=True)
-    ni_tab_rear_tape_material = models.CharField(max_length=100,null=True)
-    ni_tab_rear_tape_width_mm = models.FloatField(max_length=100,null=True)
-    anode_front_substrate_length = models.FloatField(null=True)
-    anode_end_substrate_length = models.FloatField(null=True)
-    negative_tab_ultra_sonic_welding_spots = models.CharField(max_length=100,null=True)
-    starting_can_height_mm = models.FloatField(null=True)
-    positive_tab_laser_welding_spots = models.CharField(max_length=100,null=True)
-    alpha = models.CharField(max_length=100,null=True)
-    beta = models.CharField(max_length=100,null=True)
-    gamma = models.CharField(max_length=100,null=True)
-
-    other_info_cell = models.ForeignKey(DryCell, on_delete=models.CASCADE, null=True)
 
 
 
 # Separator
-
+#TODO(sam): figure out what the separator is.
 class Separator(models.Model):
     separator_notes = models.CharField(max_length=100,null=True)
     separator_base_thickness = models.FloatField(null=True)

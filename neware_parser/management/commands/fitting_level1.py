@@ -18,10 +18,7 @@ from tensorflow.keras import Model
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 
-# TODO: a tool to delete cycles by looking at the total capacity vs cycle number
-# TODO: control derivatives w.r.t. voltage and cycle.
 
-NUM_CYCLES = 5
 
 
 class Colour:
@@ -107,41 +104,53 @@ class DegradationModel(Model):
         self.num_keys = num_keys
     def call(self, x, training=False):
         """
-        (centers, indecies, xs, mu) = x
+        (centers, indecies, measured_cycles, voltages) = x
 
         centers : batch of [cyc, k[0], k[1]]
         indecies : batch of index
-        xs: batch of [cyc, cyc, ...]
-        mu: this is the vector of voltages. It doesn't change across the batch.
+        measured_cycles: batch of cycles
+        voltages: this is the vector of voltages. It doesn't change across the batch.
         :param x:
         :param training:
         :return:
         """
         centers = x[0]
         indecies = x[1]
-        xs = x[2]
-        mu = x[3]
+        measured_cycles = x[2]
+        voltages = x[3]
+        #print('initial values:')
+        #print('centers: ', centers, 'indecies:', indecies, 'measured_cycles:', measured_cycles,'voltages:', voltages)
 
         features, mean, log_sig = self.dictionary(indecies, training=training)
-
         cycles = centers[:, 0:1]
         others = centers[:, 1:]
 
+        #print('features: ', features, 'cycles:', cycles, 'others:', others)
+
         # basically, we need to duplicate the cycles and others for all the voltages.
         # now dimentions are [batch, voltages, features]
-        cycles_tiled = tf.tile(tf.expand_dims(cycles, axis=1), [1]+mu.shape[0:1]+[1])
-        others_tiled = tf.tile(tf.expand_dims(others, axis=1), [1]+mu.shape[0:1]+[1])
-        features_tiled = tf.tile(tf.expand_dims(features, axis=1), [1]+mu.shape[0:1]+[1])
-        mu_tiled = tf.tile(tf.expand_dims(tf.expand_dims(mu, axis=1), axis=0), cycles.shape[0:1]+  [1, 1])
+        cycles_tiled = tf.tile(tf.expand_dims(cycles, axis=1), [1, voltages.shape[0], 1])
+        others_tiled = tf.tile(tf.expand_dims(others, axis=1), [1, voltages.shape[0], 1])
+        features_tiled = tf.tile(tf.expand_dims(features, axis=1), [1, voltages.shape[0], 1])
+        voltages_tiled = tf.tile(tf.expand_dims(tf.expand_dims(voltages, axis=1), axis=0), [cycles.shape[0], 1, 1])
+        #print('cycles_tiled: ', cycles_tiled,'others_tiled:', others_tiled, 'features_tiled:', features_tiled, 'voltages_tiled:', voltages_tiled)
+
+
+
         others_tiled_2 = tf.concat(
             (others_tiled,
-             mu_tiled,
+             voltages_tiled,
              ),
             axis = 2
          )
+        #print('others_tiled 2:', others_tiled_2)
+
         cycles_flat = tf.reshape(cycles_tiled, [-1, 1])
         others_flat = tf.reshape(others_tiled_2, [-1, 3])
         features_flat = tf.reshape(features_tiled, [-1, self.width])
+        #print('cycles_flat:', cycles_flat)
+        #print('others_flat:', others_flat)
+        #print('features_flat:', features_flat)
         # now every dimension works for concatenation.
         if training:
 
@@ -164,7 +173,7 @@ class DegradationModel(Model):
                             others_flat,
                             features_flat[:, 1:]),
                         axis=1)
-
+                    #print('centers2:', centers2)
 
                     centers2 = self.dense_initial(centers2)
 
@@ -172,7 +181,9 @@ class DegradationModel(Model):
                         centers2 = d(centers2)
 
                     coeffs = self.dense_final(centers2)
+                    #print('coeffs:', coeffs)
                     res1 = tf.reshape(coeffs, shape=[-1, 1])
+                    #print('res1: ', res1)
 
                 dresdcyc = tape2.batch_jacobian(
                     source=cycles_flat, target=res1)[:, 0, :]
@@ -192,19 +203,20 @@ class DegradationModel(Model):
 
             del tape3
 
-            var_cyc = (xs - cycles)
+            var_cyc = (tf.expand_dims(measured_cycles, axis=1) - cycles)
             var_cyc2 = tf.square(var_cyc)
+            #print('var_cyc:', var_cyc)
+            #print('var_cyc2',var_cyc2 )
+            cap = tf.reshape(res1, [-1, voltages.shape[0]])
+            #print('cap:', cap)
+            dcapdcyc = tf.reshape(dresdcyc, [-1, voltages.shape[0]])
+            d2capdcyc = tf.reshape(d2resdcyc, [-1, voltages.shape[0]])
 
-            cap = tf.reshape(res1, [-1, mu.shape[0], 1])
-            dcapdcyc = tf.reshape(dresdcyc, [-1, mu.shape[0], 1])
-            d2capdcyc = tf.reshape(d2resdcyc, [-1, mu.shape[0], 1])
-
-            var_cyc_reshape= tf.expand_dims(var_cyc, axis=1)
-            var_cyc2_reshape= tf.expand_dims(var_cyc2, axis=1)
             res = (cap +
-                   dcapdcyc * var_cyc_reshape +
-                   d2capdcyc * var_cyc2_reshape)
+                   dcapdcyc * var_cyc +
+                   d2capdcyc * var_cyc2)
 
+            print("res: ", res)
             print(Colour.BLUE + "Degradation Model - call (training)"
                   + Colour.END)
 
@@ -228,7 +240,7 @@ class DegradationModel(Model):
             coeffs = self.dense_final(centers2)
 
 
-            return tf.reshape(coeffs, shape=[-1, mu.shape[0]])
+            return tf.reshape(coeffs, shape=[-1, voltages.shape[0]])
 
 
 ################################################################################
@@ -253,13 +265,7 @@ def clamp(a, x, b):
 wanted_barcodes = [
     83220,
     83083,
-    82012,
-    82993,
-    82410,
-    82311,
-    82306,
-    81625,
-    57706,
+
 ]
 def make_my_barcodes(args):
     if not os.path.exists(args['path_to_plots']):
@@ -323,6 +329,23 @@ def test_inconsistent_mu(my_barcodes):
 # === End: test inconsistent mu ================================================
 
 # ==== Begin: initial processing ===============================================
+'''
+
+ neighborhood_data_int.append([min_cyc_index, max_cyc_index, k_count, barcode_count,
+                                   len(cycles_full), 0])
+                neighborhood_data_float.append([combined_delta, k[0], k[1]])
+                
+                '''
+
+NEIGH_INT_MIN_CYC_INDEX = 0
+NEIGH_INT_MAX_CYC_INDEX = 1
+NEIGH_INT_RATE_INDEX = 2
+NEIGH_INT_BARCODE_INDEX = 3
+NEIGH_INT_ABSOLUTE_INDEX = 4
+NEIGH_INT_VALID_CYC_INDEX = 5
+NEIGH_FLOAT_DELTA = 0
+NEIGH_FLOAT_CHG_RATE = 1
+NEIGH_FLOAT_DCHG_RATE = 2
 
 def initial_processing(my_barcodes, args):
     neighborhood_data_int_full_full = []
@@ -461,13 +484,13 @@ def initial_processing(my_barcodes, args):
                 # keep a slot empty for later
                 neighborhood_data_int.append([min_cyc_index, max_cyc_index, k_count, barcode_count,
                                    len(cycles_full), 0])
-                neighborhood_data_float.append([cyc, k[0], k[1]])
+                neighborhood_data_float.append([combined_delta, k[0], k[1]])
 
             if valid_cycles != 0:
                 neighborhood_data_int = numpy.array(neighborhood_data_int, dtype=numpy.int32)
                 # the empty slot becomes the count of added neighborhoods,
                 # which we use to counterbalance the bias toward longer cycle life.
-                neighborhood_data_int[:, -1] = valid_cycles
+                neighborhood_data_int[:, NEIGH_INT_VALID_CYC_INDEX] = valid_cycles
                 neighborhood_data_float = numpy.array(neighborhood_data_float,
                                             dtype=numpy.float32)
 
@@ -528,13 +551,12 @@ def initial_processing(my_barcodes, args):
         axis=0))
 
     # the centers of neighborhoods are normalized in the same way.
-    neighborhood_data_float[:, 0] = ((neighborhood_data_float[:, 0] - cycles_m)
+    neighborhood_data_float[:, NEIGH_FLOAT_DELTA] = ((neighborhood_data_float[:, NEIGH_FLOAT_DELTA])
                            / numpy.sqrt(cycles_v))
 
     neighborhood_data_float = tf.constant(neighborhood_data_float)
 
-    batch_size = 16 * 32
-    num_cycles = NUM_CYCLES
+    batch_size = args['batch_size']
     mirrored_strategy = tf.distribute.MirroredStrategy()
 
     with mirrored_strategy.scope():
@@ -550,7 +572,7 @@ def initial_processing(my_barcodes, args):
 
         optimizer = tf.keras.optimizers.Adam()
 
-    return (mirrored_strategy, train_ds, cycles_m, cycles_v, num_cycles,
+    return (mirrored_strategy, train_ds, cycles_m, cycles_v,
             cycles, voltages, n_voltages, vq_curves, vq_curves_mask, degradation_model,
             optimizer, test_object, all_data, mu)
 
@@ -560,7 +582,7 @@ def initial_processing(my_barcodes, args):
 # === Begin: train =============================================================
 
 def train(my_barcodes, mirrored_strategy, train_ds, degradation_model,
-          cycles, num_cycles, cycles_m, cycles_v, test_object, all_data,
+          cycles,  cycles_m, cycles_v, test_object, all_data,
           mu, vq_curves, vq_curves_mask, optimizer, voltages, n_voltages, args):
     EPOCHS = 100000
     count = 0
@@ -571,8 +593,8 @@ def train(my_barcodes, mirrored_strategy, train_ds, degradation_model,
         for epoch in range(EPOCHS):
             for neighborhood_int, neighborhood_float in train_ds:
                 count += 1
-                dist_train_step(neighborhood_float, neighborhood_int, mirrored_strategy, cycles_v,
-                                num_cycles, cycles, vq_curves, vq_curves_mask,
+                dist_train_step(neighborhood_float, neighborhood_int, mirrored_strategy,
+                                 cycles, vq_curves, vq_curves_mask,
                                 voltages,
                                 n_voltages,
                                 degradation_model, args, optimizer)
@@ -594,70 +616,69 @@ def train(my_barcodes, mirrored_strategy, train_ds, degradation_model,
 
 # === Begin: train step ========================================================
 
-def train_step(centers, index_d, cycles_v, num_cycles, cycles, vq_curves,
+def train_step(centers, index_d, cycles, vq_curves,
                vq_curves_mask, voltages, n_voltages, degradation_model, args, optimizer):
     print(Colour.BLUE + "train step" + Colour.END)
     # need to split the range ourselves.
     batch_size2 = index_d.shape[0]
 
+    # we will find the actual cycle number by interpolation.
+    # we will then offset the cycle number by the delta * randomness.
+
     # we offset the center cycles so that we make sure that we never exactly evaluate the model at the exact same cycle.
     center_cycle_offsets = tf.random.uniform(
-        [batch_size2, 1],
-        minval=-5.0 / tf.sqrt(cycles_v),
-        maxval=5. / tf.sqrt(cycles_v),
+        [batch_size2],
+        minval=-1.,
+        maxval=1.,
         dtype=tf.float32)
 
     # if you have the minimum cycle and maximum cycle for a neighborhood, you can sample cycles from this neighborhood
     # by sampling real numbers x from [0,1] and just compute min_cyc*(1.-x) + max_cyc*x.
     # but here we do this computation in index space and then gather the cycle numbers and vq curves.
     cycle_indecies_lerp = tf.random.uniform(
-        [batch_size2, num_cycles], minval=0., maxval=1., dtype=tf.float32)
+        [batch_size2], minval=0., maxval=1., dtype=tf.float32)
 
-    A = tf.expand_dims(
-        tf.cast(index_d[:, 0] + index_d[:, 5], tf.float32), axis=1)
+    A = tf.cast(index_d[:, NEIGH_INT_MIN_CYC_INDEX] + index_d[:, NEIGH_INT_ABSOLUTE_INDEX], tf.float32)
 
-    B = tf.expand_dims(
-        tf.cast(index_d[:, 1] + index_d[:, 5], tf.float32), axis=1)
+    B = tf.cast(index_d[:, NEIGH_INT_MAX_CYC_INDEX] + index_d[:, NEIGH_INT_ABSOLUTE_INDEX], tf.float32)
 
     cycle_indecies_float = (
             A * (1. - cycle_indecies_lerp) + B * (cycle_indecies_lerp))
 
     cycle_indecies = tf.cast(cycle_indecies_float, tf.int32)
 
-    flat_cycle_indecies = tf.reshape(
-        cycle_indecies, [batch_size2 * num_cycles])
 
-    my_cycles_flat = tf.gather(
-        cycles, indices=flat_cycle_indecies, axis=0)
+    my_measured_cycles = tf.gather(
+        cycles, indices=cycle_indecies, axis=0)
 
-    my_cycles = tf.reshape(my_cycles_flat, [batch_size2, num_cycles])
-
-    xs = my_cycles
+    my_model_evaluation_cycles = my_measured_cycles + center_cycle_offsets * centers[:, NEIGH_FLOAT_DELTA]
 
 
 
-    ys = tf.reshape(
-        tf.gather(vq_curves, indices=flat_cycle_indecies),
-        [-1, n_voltages, num_cycles])
 
-    ws = tf.reshape(
-        tf.gather(vq_curves_mask, indices=flat_cycle_indecies),
-        [-1, n_voltages, num_cycles])
+    ys = tf.gather(vq_curves, indices=cycle_indecies)
+
+    ws = tf.gather(vq_curves_mask, indices=cycle_indecies)
 
     ws2 = tf.tile(
-        tf.reshape(1. / (tf.cast(index_d[:, -1], tf.float32)), [-1, 1, 1]),
-        [1, n_voltages, num_cycles])
+        tf.reshape(1. / (tf.cast(index_d[:, NEIGH_INT_VALID_CYC_INDEX], tf.float32)), [batch_size2, 1]),
+        [1, n_voltages])
 
     # the indecies are referring to the cell indecies
-    indecies = index_d[:, 3]
+    indecies = index_d[:, NEIGH_INT_BARCODE_INDEX]
 
     my_centers = tf.concat(
-        [centers[:, 0:1] + center_cycle_offsets, centers[:, 1:]], axis=1)
+        (
+            tf.expand_dims(my_model_evaluation_cycles, axis =1),
+            centers[:, 1:]
+        ),
+        axis=1
+    )
 
     with tf.GradientTape() as tape:
         (predictions_ys, mean, log_sig, res,
          dcyc, ddcyc, dother, ddother, dfeatures, ddfeatures
-         ) = degradation_model((my_centers, indecies, xs, voltages), training=True)
+         ) = degradation_model((my_centers, indecies, my_measured_cycles, voltages), training=True)
 
         loss = (
                 tf.reduce_mean(ws2 * ws * tf.square(ys - predictions_ys))
@@ -689,10 +710,10 @@ def train_step(centers, index_d, cycles_v, num_cycles, cycles, vq_curves,
 # === Begin: dist train step ===================================================
 
 @tf.function
-def dist_train_step(centers, index_d, mirrored_strategy, cycles_v, num_cycles,
+def dist_train_step(centers, index_d, mirrored_strategy,
                     cycles, vq_curves, vq_curves_mask, voltages, n_voltages, degradation_model, args, optimizer):
     mirrored_strategy.experimental_run_v2(
-        train_step, args=(centers, index_d, cycles_v, num_cycles, cycles,
+        train_step, args=(centers, index_d,  cycles,
                           vq_curves, vq_curves_mask, voltages,n_voltages, degradation_model, args, optimizer))
 
 
@@ -790,11 +811,14 @@ def test_all_voltages(cycle, k, barcode_count, degradation_model, voltages):
     centers = tf.expand_dims(tf.concat(
         (tf.expand_dims(cycle, axis=0),
          k), axis=0), axis =0)
-    indecies = tf.expand_dims(barcode_count, axis=0)
-    xs = tf.reshape(cycle, [1,1])
-    predictions_ys = degradation_model((centers, indecies, xs,voltages), training=False)
+    indecies = tf.reshape(barcode_count, [1])
+    measured_cycles = tf.reshape(cycle, [1,1])
+    #print('centers {}, indecies {}, measured_cycles {}, voltages {}'.format(centers, indecies, measured_cycles, voltages))
+    predictions_ys = degradation_model((centers, indecies, measured_cycles,voltages), training=False)
 
+    #print('predictions: {}'.format(predictions_ys))
     predictions_ys = tf.reshape(predictions_ys, shape=[-1])
+    #print('predictions: {}'.format(predictions_ys))
     return predictions_ys
 
 
@@ -810,9 +834,9 @@ def test_single_voltage(cycles, v, k, barcode_count, degradation_model):
         ),
         axis = 1)
     indecies = tf.tile(tf.expand_dims(barcode_count, axis=0), [len(cycles)])
-    xs = tf.expand_dims(cycles,
+    measured_cycles = tf.expand_dims(cycles,
                         axis=1)
-    predictions_ys = degradation_model((centers, indecies, xs, tf.expand_dims(v, axis=0)), training=False)
+    predictions_ys = degradation_model((centers, indecies, measured_cycles, tf.expand_dims(v, axis=0)), training=False)
     predictions_ys = tf.reshape(predictions_ys, shape=[len(cycles)])
     return predictions_ys
 
@@ -834,7 +858,7 @@ def fitting_level0(args):
         train_ds,  # tensorflow.python.distribute.input_lib.DistributedDataset
         cycles_m,  # numpy.float32
         cycles_v,  # numpy.float32
-        num_cycles,  # int
+          # int
         cycles,  # tensorflow.python.framework.ops.EagerTensor
         voltages,  # tensorflow.python.framework.ops.EagerTensor
         n_voltages,
@@ -849,7 +873,7 @@ def fitting_level0(args):
     ) = initial_processing(my_barcodes, args)
 
     train(my_barcodes, mirrored_strategy, train_ds, degradation_model,
-          cycles, num_cycles, cycles_m, cycles_v, test_object, all_data,
+          cycles,  cycles_m, cycles_v, test_object, all_data,
           mu, vq_curves, vq_curves_mask, optimizer, voltages,n_voltages, args)
 
 
@@ -869,13 +893,14 @@ class Command(BaseCommand):
         parser.add_argument('--smooth_f_coeff', type=float, default=.01)
         parser.add_argument('--depth', type=int, default=2)
         parser.add_argument('--width', type=int, default=1 * 16)
-        parser.add_argument('--print_loss_every', type=int, default=5000)
+        parser.add_argument('--batch_size', type=int, default=2 * 16)
+        parser.add_argument('--print_loss_every', type=int, default=1000)
         parser.add_argument(
-            '--visualize_fit_every', type=int, default=50000)
+            '--visualize_fit_every', type=int, default=10000)
         parser.add_argument(
-            '--visualize_vq_every', type=int, default=100000)
+            '--visualize_vq_every', type=int, default=10000)
 
-        parser.add_argument('--stop_count', type=int, default=300000)
+        parser.add_argument('--stop_count', type=int, default=40000)
 
     def handle(self, *args, **options):
         fitting_level0(options)

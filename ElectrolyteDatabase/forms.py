@@ -1,6 +1,6 @@
 from django import forms
 from django.forms import formset_factory, modelformset_factory, ModelForm
-from .models import Molecule, Electrolyte, DryCell, Box, Component, Alias, MechanicalPouch, OtherInfo, Separator, BuildInfo, \
+from .models import ElectrolyteMolecule, Electrolyte, DryCell, Box, ElectrolyteComponent, Alias, MechanicalPouch, OtherInfo, Separator, BuildInfo, \
 Cathode, CathodeActiveMaterials, Anode, AnodeActiveMaterials, AnodeFam, CathodeFam, CathodeCoating, CathodeSpecificMaterials, AnodeSpecificMaterials, \
     CellAttribute, CathodeConductiveAdditive, AnodeConductiveAdditive, VendorInfo, AnodeBinder, CathodeBinder
 from django.db.models import Q
@@ -115,18 +115,18 @@ class WetCellMetadataEditForm(forms.Form):
 
 ## Registering New Molecules
 
-RegisteredMoleculesFormSet = modelformset_factory(Molecule, fields=('name','can_be_salt','can_be_additive', 'can_be_solvent', ), extra=0, widgets={
+RegisteredMoleculesFormSet = modelformset_factory(ElectrolyteMolecule, fields=('name', 'can_be_salt', 'can_be_additive', 'can_be_solvent',), extra=0, widgets={
     'name': forms.TextInput(attrs={'readonly': 'readonly'}),
     'can_be_salt':forms.CheckboxInput(attrs={'readonly':'readonly'}),
     'can_be_additive': forms.CheckboxInput(attrs={'readonly': 'readonly'}),
     'can_be_solvent': forms.CheckboxInput(attrs={'readonly': 'readonly'}),
 })
-RegisterMoleculeFormSet = modelformset_factory(Molecule, exclude=tuple(['vendor']), can_delete=False,extra=1)
+RegisterMoleculeFormSet = modelformset_factory(ElectrolyteMolecule, exclude=tuple(['vendor']), can_delete=False, extra=1)
 
 
 ## Search By Ratio
 
-RatioSearchFormSet = modelformset_factory(Component, exclude=tuple(['molal', 'electrolyte', 'compound_type']),can_delete=False, extra=6)
+RatioSearchFormSet = modelformset_factory(ElectrolyteComponent, exclude=tuple(['molal', 'electrolyte', 'compound_type']), can_delete=False, extra=6)
 
 ## Alias Name Form
 
@@ -134,9 +134,9 @@ AliasNameFormSet = modelformset_factory(Alias,exclude=tuple(['electrolyte']),ext
 
 ## Cell Component Formsets
 
-SaltComponentFormSet = modelformset_factory(Component,exclude=tuple(['weight_percent','notes', 'electrolyte', 'compound_type']),extra=3)
-SolventComponentFormSet = modelformset_factory(Component,exclude=tuple(['molal','notes', 'electrolyte', 'compound_type']),extra=6)
-AbsentComponentFormSet = modelformset_factory(Component,exclude=tuple(['molal', 'notes', 'weight_percent','electrolyte', 'compound_type']),can_delete=False, extra=3,)
+SaltComponentFormSet = modelformset_factory(ElectrolyteComponent, exclude=tuple(['weight_percent', 'notes', 'electrolyte', 'compound_type']), extra=3)
+SolventComponentFormSet = modelformset_factory(ElectrolyteComponent, exclude=tuple(['molal', 'notes', 'electrolyte', 'compound_type']), extra=6)
+AbsentComponentFormSet = modelformset_factory(ElectrolyteComponent, exclude=tuple(['molal', 'notes', 'weight_percent', 'electrolyte', 'compound_type']), can_delete=False, extra=3, )
 
 
 ## Search Querysets

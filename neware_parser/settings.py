@@ -38,7 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'neware_parser',
-    'FileNameHelper'
+    'FileNameHelper',
+    'background_task',
 ]
 
 MIDDLEWARE = [
@@ -75,10 +76,19 @@ WSGI_APPLICATION = 'neware_parser.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
 
+
+import configparser
+config = configparser.ConfigParser()
+config.read('neware_parser/config.ini')
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': config['DEFAULT']['Database'],
+        'USER':config['DEFAULT']['User'],
+        'PASSWORD':config['DEFAULT']['Password'],
+        'HOST':config['DEFAULT']['Host'],
+        'PORT':config['DEFAULT']['Port'],
     }
 }
 

@@ -1,18 +1,59 @@
-# how to create the schema.
+# how to set things up.
 
+TODO: somebody with more linux/mac os x knowledge should fill this part for those systems.
+
+## Windows 10
 install dependencies with 
 > pip -r requirements.txt
 
-(if you are running linux or mac os x) Run:
-> create_all_tables.sh 
+In order to allow background tasks, 
+which are super useful in this case,
+run in a separate terminal:
+> python manage.py process_tasks
 
-(if you are running windows) Run:
-> create_all_tables.bat 
+This will process the tasks as they are defined.
 
-This will create a database and create the tables and populate some basic tables that define the set of file types we have.
 
-I kept the sqlite database out of the github to not go over size limit.
+Then, the more tricky part is to install postgresql and configure it. 
 
+- make sure installation includes the PostgreSQL Unicode ODBC driver 
+(after the PostgreSQL installation, there is a separate process where you can choose a driver. I selected ODBC 64-bit)
+
+- make sure you create a user with a password you remember.
+
+- add the bin path of the install to the Path variable.
+
+- run the following:
+> psql -U postgres
+
+(Then, you enter the password that you hopefully still remember!!)
+> CREATE DATABASE myproject;
+
+> CREATE USER myuser WITH PASSWORD ‘mypassword’;
+
+> GRANT ALL PRIVILEGES ON DATABASE myproject TO myuser;
+
+
+- add a file called config.ini in the root directory, with the following content (feel free to modify):
+>[DEFAULT]
+
+>Database = myproject
+
+>User = myuser
+
+>Password = mypassword
+
+>Host = localhost
+
+>Port = 5432
+
+
+This is for security purposes.
+
+TODO(samuel): before releasing the database itself, also make sure the sensitive contents are removed. 
+
+
+# How to implement new file formats
 The code has a simple bottleneck where text files are imputted and a python data gets output. this function is called read_neware.
 The output of the function should be the same for neware inputs, maccor inputs, moli inputs, etc...
 
@@ -30,3 +71,38 @@ here accuracy_in_seconds is a boolean variable saying whether datetime1
  should be trusted down to the seconds or down to the minutes.
  
  Note(Samuel): by the way I know this is a bit ducktapy, please feel free to use pandas or whatever you kids use these days ;P
+ 
+ 
+ 
+ 
+ 
+# TODO(Samuel):
+- various fields are always "private" in the sense that they should never be shared in the global space.
+- various fields are sometimes "private" in the sense that they may or may not be shared with the global space.
+- various fields are never "private".
+
+- electrolyte and dry cell data have to be:
+ - defined.
+ - linked.
+ - searched.
+ - visualized.
+ 
+- DOD, Rate, Temperature, 
+    voltage hold (time or current), 
+    open circuit, 
+    CCCV, rest=open circuit, information
+- factor into cyclegroups.
+
+- In general, a cycle is merely a sequence of steps. 
+- There is no completely general mechanism to summarize arbitrary 
+sequences of steps while also being convenient for modelling.
+
+So we simplify and we have a partial mapping from steps to cycle summary.
+This mapping can evolve over time. First we must represent with a fixed lenght
+ vector the sequence of steps protocol. Second, we must represent 
+ the measured data in a unified format. At first, we have only CC Voltage curves (cap vs voltage).
+ We can also represent CV curves as a capacity vs rate curve. 
+ OCV can be represented as time vs voltage. 
+ But without use cases, it is hard to know what is best. Right now, not all of this is supported.
+ 
+ 

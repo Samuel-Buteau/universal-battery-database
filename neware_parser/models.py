@@ -174,7 +174,7 @@ def plot_barcode(barcode, path_to_plots = None, lower_cycle=None, upper_cycle=No
         return None
     elif vertical_barriers is None:
         buf = BytesIO()
-        plt.savefig(buf, format='png', dpi=300)
+        plt.savefig(buf, format='png', dpi=50)
         bc.set_image(buf.getvalue())
         bc.save()
         buf.close()
@@ -195,11 +195,13 @@ def get_cycle_groups_from_barcode(barcode):
 class BarcodeNode(models.Model):
     barcode = models.IntegerField(primary_key=True)
     valid_cache = models.BooleanField(default=False)
-    image = models.BinaryField()
+    image = models.BinaryField(blank=True)
     def get_image(self):
-        return self.image.decode('utf-8').replace('\n', '')
+        return base64.b64encode(self.image).decode('utf-8').replace('\n', '')
+        #return self.image
     def set_image(self, img):
-        self.image = base64.b64encode(img)
+        #self.image = base64.b64encode(img)
+        self.image = img
         self.valid_cache = True
 
 
@@ -283,10 +285,6 @@ class CyclingFile(models.Model):
         )
 
 
-#TODO: right now, this doesn't do anything!!!!
-class CycleTag(models.Model):
-    namespace = models.CharField(max_length=100)
-    index = models.IntegerField()
 
 class CycleGroup(models.Model):
     barcode = models.IntegerField()
@@ -334,8 +332,6 @@ class Cycle(models.Model):
     dchg_maximum_current = models.FloatField(null=True)
     dchg_duration = models.FloatField(null=True)
 
-    tags = models.ManyToManyField(CycleTag)
-
     discharge_curve_minimum_voltage = models.FloatField(null=True)
     discharge_curve_maximum_voltage = models.FloatField(null=True)
     '''
@@ -353,7 +349,7 @@ class Cycle(models.Model):
 class Step(models.Model):
     cycle = models.ForeignKey(Cycle, on_delete=models.CASCADE)
     step_number = models.IntegerField()
-    step_type = models.CharField(max_length=100)
+    step_type = models.CharField(max_length=200)
     start_time = models.DateTimeField()
     second_accuracy = models.BooleanField()
 

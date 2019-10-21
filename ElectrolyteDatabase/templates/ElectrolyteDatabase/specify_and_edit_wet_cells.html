@@ -1,0 +1,693 @@
+{% extends "ElectrolyteDatabase/main_page.html" %}
+
+{% block content %}
+
+
+<style>
+    table {
+        border-collapse:collapse;
+
+    }
+    table, th, td {
+        border:1px solid black;}
+
+</style>
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+* {
+  box-sizing: border-box;
+}
+
+/* Create three equal columns that floats next to each other */
+
+.column {
+  float: left;
+  width: 50%;
+  padding: 10px;
+}
+
+.column2 {
+  float: left;
+  width: 50%;
+  padding: 10px;
+
+}
+
+
+/* Clear floats after the columns */
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+#left {
+float:left;
+background: #ccc;
+}
+
+#right {
+float:right;
+
+}
+
+.border {
+border:2px dashed #0000cc;padding-left:4px;
+}
+
+
+.border2 {
+border:2px dashed #0000cc;padding-left:4px;
+background: #ccc;
+}
+
+</style>
+
+
+
+{% if wet_cell_metadata_edit_formset %}
+
+<form action="{% url 'ElectrolyteDatabase:specify_and_edit_wet_cells' %}" method="post" enctype="multipart/form-data">
+{% csrf_token %}
+{{ wet_cell_metadata_edit_formset.management_form }}
+
+<table>
+    <tr>
+        <th>Cell ID</th><th>Box ID</th><th>Electrolyte</th><th>Exclude</th>
+    <tr>
+
+    {% for form in wet_cell_metadata_edit_formset %}
+        </tr>
+            <td>{{ form.cell_id }}</td><td>{{ form.box }}</td><td>{{ form.electrolyte }}</td><td>{{ form.exclude }}</td>
+        </tr>
+    {% endfor %}
+
+</table>
+
+
+<input type="submit" name ='submit_wet_cell_edit' value="Submit edits" />
+
+</form>
+
+{% else %}
+
+
+
+<h2>Specify Cell</h2>
+
+<form action="{% url 'ElectrolyteDatabase:specify_and_edit_wet_cells' %}" method="post" enctype="multipart/form-data">
+{% csrf_token %}
+
+{{ salt_component_formset.management_form }}
+{{ solvent_component_formset.management_form }}
+{{ absent_component_formset.management_form }}
+{{ box_id_formset.management_form }}
+
+{{ box_queryset_formset.management_form }}
+{{ electrolyte_queryset_formset.management_form }}
+{{ cell_list_formset.management_form }}
+{{ cell_id_range_formset.management_form }}
+{{ specific_electrolyte_formset.management_form }}
+
+
+<div class="row">
+  <div class="column" style="background-color:#ccc;">
+
+
+<h3>Specify Boxes</h3>
+
+Cell ID ranges:<br>
+
+<button type="button" onclick="cell_ids_reveal()">Hide/Show Cell ID Ranges</button>
+
+<div id="cell_id_ranges">
+
+{% for form in cell_id_range_formset %}
+
+    {{ form.management_form }}
+[ {{ form.range_min }} , {{ form.range_max }} ],<br>
+
+{% endfor %}
+
+</div>
+
+<script>
+
+document.getElementById("cell_id_ranges").style.display = "none";
+
+function cell_ids_reveal() {
+  var x = document.getElementById("cell_id_ranges");
+  if (x.style.display === "none") {
+    x.style.display = "block";
+  } else {
+    x.style.display = "none";
+  }
+}
+</script>
+
+<br><br>
+
+
+
+<input type="submit" name ='update_box_queryset_formset' value="Update Box Queryset" /><br><br>
+
+
+  <div class="row" style="background-color:#aaa;" >
+
+<strong>Specify Dry Cell</strong>
+<br>
+
+Cell Model {{ specify_dry_cell_form.cell_model }}<br>
+Cell Description {{ specify_dry_cell_form.cell_description }}<br>
+Cell Attribute {{ specify_dry_cell_form.cell_attribute }}
+
+<br>
+</div>
+<br>
+
+<div class="row" style="background-color:#aaa;">
+
+
+
+
+<strong>Cathode Details:</strong>
+<br>
+<button type="button" onclick="cathode_table_reveal()">Why isn't my cathode material showing up here? (+/-)</button>
+
+<div id="dry_cells_with_no_cathode_ratio">
+
+Dry Cells that do not have a specific material ratio:<br><br>
+
+    <table>
+        <tr>
+            <th>Dry Cell</th>
+        </tr>
+        {% for cell in dry_cells_with_no_cathode_ratio %}
+
+            <tr>
+                <td>
+                    {{ cell }}
+                </td>
+            </tr>
+
+        {% endfor %}
+    </table>
+<br>
+If the particular cell you are looking for isn't showing up here with its specific cathode material ratio (ie:NMC532), it<br>
+is because the cell, like all other cells on the table above, do not have a registered material ratio associated with it<br>
+in the database. To change this, you must modify the information associated with it here: <a href="{% url 'ElectrolyteDatabase:register_or_modify_dry_cell_models' %}">Register or Modify Dry Cell Models</a>
+<br><br>
+</div>
+
+<script>
+
+document.getElementById("dry_cells_with_no_cathode_ratio").style.display = "none";
+
+function cathode_table_reveal() {
+  var x = document.getElementById("dry_cells_with_no_cathode_ratio");
+  if (x.style.display === "none") {
+    x.style.display = "block";
+  } else {
+    x.style.display = "none";
+  }
+}
+</script>
+
+
+
+<table>
+
+
+    <tr>
+    {% for family,spec_list in cathode_data_list %}
+    <th bgcolor="#FFA0A0">
+    {{ family }} <input type="radio" name="cathode_data" value="Family-{{ family }}">
+    <button type="button" onclick="page_reveal('{{ family }}')">+/-</button>
+    </th>
+    {% endfor %}
+    </tr>
+
+    {% for family,spec_list in cathode_data_list %}
+    <td>
+    <div id="{{ family }}">
+    {% for spec,exact_list in spec_list %}
+
+
+    <table>
+
+
+        <tr>
+
+        <td  bgcolor="#D0F0F0">
+            {{ spec }}<input type="radio" name="cathode_data" value="Ratio+Family-{{ spec }}">
+            <button type="button" onclick="page_reveal('{{ spec }}')">+/-</button></td>
+            <td bgcolor="#FFFFFF">
+                <div id="{{ spec }}">
+                    <table>
+                        {% for ex in exact_list %}
+                            <tr>
+                            <td>- {{ ex }} <input type="radio" name="cathode_data" value="Example-{{ ex }}"></td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+        </td>
+    </tr>
+    </table>
+
+
+    {% endfor %}
+    </div>
+    </td>
+    {% endfor %}
+
+
+</table>
+
+
+<!-- Dynamic Table Script -->
+
+<script>
+
+{% for family, spec_list in cathode_data_list %}
+    document.getElementById("{{ family }}").style.display = "none";
+    {% for spec,ex_list in spec_list %}
+        document.getElementById("{{ spec }}").style.display = "none";
+    {% endfor %}
+{% endfor %}
+function page_reveal(v) {
+  var x = document.getElementById(v);
+  if (x.style.display === "none") {
+    x.style.display = "block";
+  } else {
+    x.style.display = "none";
+  }
+}
+
+</script>
+
+<!---------->
+
+Cathode Coating:<br>
+{{ specify_dry_cell_form.cathode_coating }}
+<br><br>
+
+{% if show_anode_data_list %}
+<strong>Anode Details:</strong><br>
+
+
+    <button type="button" onclick="anode_table_reveal()">Why isn't my anode material showing up here? (+/-)</button>
+
+<div id="dry_cells_with_no_anode_ratio">
+
+Dry Cells that do not have a specific cathode material ratio:<br><br>
+
+    <table>
+        <tr>
+            <th>Dry Cell</th>
+        </tr>
+        {% for cell in dry_cells_with_no_anode_ratio %}
+
+            <tr>
+                <td>
+                    {{ cell }}
+                </td>
+            </tr>
+
+        {% endfor %}
+    </table>
+<br>
+If the particular cell you are looking for isn't showing up here with its specific material ratio (ie:NMC532), it<br>
+is because the cell, like all other cells on the table above, do not have a registered material ratio associated with it<br>
+in the database. To change this, you must modify the information associated with it here: <a href="{% url 'ElectrolyteDatabase:register_or_modify_dry_cell_models' %}">Register or Modify Dry Cell Models</a>
+<br><br>
+</div>
+
+<script>
+
+document.getElementById("dry_cells_with_no_anode_ratio").style.display = "none";
+
+function anode_table_reveal() {
+  var x = document.getElementById("dry_cells_with_no_anode_ratio");
+  if (x.style.display === "none") {
+    x.style.display = "block";
+  } else {
+    x.style.display = "none";
+  }
+}
+</script>
+
+
+<table>
+
+
+    <tr>
+    {% for family,spec_list in anode_data_list %}
+    <th bgcolor="#FFA0A0">
+    {{ family }} <input type="radio" name="anode_data" value="Family-{{ family }}">
+    <button type="button" onclick="page_reveal('{{ family }}')">+/-</button>
+    </th>
+    {% endfor %}
+    </tr>
+
+    {% for family,spec_list in anode_data_list %}
+    <td>
+    <div id="{{ family }}">
+    {% for spec,exact_list in spec_list %}
+
+
+    <table>
+
+
+        <tr>
+
+        <td  bgcolor="#D0F0F0">
+            {{ spec }}<input type="radio" name="anode_data" value="Ratio+Family-{{ spec }}">
+            <button type="button" onclick="page_reveal('{{ spec }}')">+/-</button></td>
+            <td bgcolor="#FFFFFF">
+                <div id="{{ spec }}">
+                    <table>
+                        {% for ex in exact_list %}
+                            <tr>
+                            <td>- {{ ex }} <input type="radio" name="anode_data" value="Example-{{ ex }}"></td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+        </td>
+    </tr>
+    </table>
+
+
+    {% endfor %}
+    </div>
+    </td>
+    {% endfor %}
+
+
+</table>
+
+
+<!-- Dynamic Table Script -->
+
+<script>
+
+{% for family, spec_list in anode_data_list %}
+    document.getElementById("{{ family }}").style.display = "none";
+    {% for spec,ex_list in spec_list %}
+        document.getElementById("{{ spec }}").style.display = "none";
+    {% endfor %}
+{% endfor %}
+
+function page_reveal(v) {
+  var x = document.getElementById(v);
+  if (x.style.display === "none") {
+    x.style.display = "block";
+  } else {
+    x.style.display = "none";
+  }
+}
+
+</script>
+
+<!---------->
+
+
+{% endif %}
+
+</div>
+  <br><br>
+
+<div class="border2" style="background-color:#aaa;">
+
+Box Queryset:<br>
+
+
+<button type="button" onclick="box_ids_reveal()">Hide/Show Box IDs</button>
+<div id="box_ids">
+
+<table>
+
+<tr>
+    <th>Box ID</th>
+</tr>
+
+{% for form in box_id_formset %}
+<tr>
+<td>
+    {{ form.management_form }}
+    {{ form.box_id }}
+</td>
+</tr>
+{% endfor %}
+
+</table>
+
+</div>
+
+<script>
+
+document.getElementById("box_ids").style.display = "none";
+
+function box_ids_reveal() {
+  var x = document.getElementById("box_ids");
+  if (x.style.display === "none") {
+    x.style.display = "block";
+  } else {
+    x.style.display = "none";
+  }
+}
+</script>
+
+{% if show_box_queryset_formset %}
+<table>
+
+<tr>
+    <th>Box ID</th><th>Cell Model</th><th>Ignore?</th>
+</tr>
+
+{% for form in box_queryset_formset %}
+    <tr>
+        <td>{{ form.box_id }}</td><td>{{ form.cell_model }}</td><td>{{ form.ignore }}</td>
+    </tr>
+{% endfor %}
+
+</table>
+{% endif %}
+
+</div>
+
+
+<br><br>
+
+
+</div>
+
+
+<div class="column2" style="background-color:#aaa;">
+    <h3>Specify Electrolytes</h3>
+
+<input type="submit" name ='update_electrolyte_queryset_formset' value="Update Electrolyte Queryset" />
+
+<br><br>
+
+<button type="button" onclick="show_specific_electrolytes()">Use Specific Electrolytes (+/-)</button>
+<br>
+
+<div id="specific_electrolytes">
+
+Specific Electrolytes:
+
+{% for form in specific_electrolyte_formset %}
+
+    {{ form.electrolyte }}<br>
+
+{% endfor %}
+</div>
+
+<script>
+
+document.getElementById("specific_electrolytes").style.display = "none";
+
+function show_specific_electrolytes() {
+  var x = document.getElementById("specific_electrolytes");
+  if (x.style.display === "none") {
+    x.style.display = "block";
+  } else {
+    x.style.display = "none";
+  }
+}
+</script>
+
+
+<br>
+Electrolyte Alias Keywords {{ specify_electrolyte_form.electrolyte_alias }}<br><br>
+
+
+Use the ratio between electrolyte components in your search : {{ specify_electrolyte_form.use_ratio }}
+
+<br><br>
+
+<div class="border" id="right">
+Electrolyte Queryset:<br>
+
+{% if show_electrolyte_queryset_formset %}
+<table>
+<tr>
+    <th>Shortstring</th><th>Ignore?</th>
+
+</tr>
+{% for form in electrolyte_queryset_formset %}
+    <tr>
+        <td>{{ form.shortstring }}</td><td>{{ form.ignore }}</td>
+    </tr>
+{% endfor %}
+
+</table>
+
+{% else %}
+
+None
+
+{% endif %}
+
+</div>
+
+<strong>Salt Components</strong>
+
+<button type="button" onclick="salt_components_reveal()">Hide/Show Salt Components</button><br>
+
+<div id="salt_components">
+<table>
+<tr>
+<th>Molecule</th><th>Molality</th>
+</tr>
+
+    {% for form in salt_component_formset %}
+        {{ form.management_form }}
+<tr>
+<td>{{ form.molecule }}</td><td>{{ form.molal }}</td>
+
+</tr>
+    {% endfor %}
+
+
+</table>
+</div>
+
+
+<script>
+
+document.getElementById("salt_components").style.display = "none";
+
+function salt_components_reveal() {
+  var x = document.getElementById("salt_components");
+  if (x.style.display === "none") {
+    x.style.display = "block";
+  } else {
+    x.style.display = "none";
+  }
+}
+</script>
+
+<strong>Solvent/Additive components</strong>
+
+
+<button type="button" onclick="solvent_components_reveal()">Hide/Show Solvent Components</button><br>
+
+<div id="solvent_components">
+
+
+    <table>
+    <tr>
+    <th>Molecule</th><th>Weight <br> Percentage (%)</th>
+    </tr>
+
+        {% for form in solvent_component_formset %}
+            {{ form.management_form }}
+    <tr>
+    <td>{{ form.molecule }}</td><td>{{ form.weight_percent }}</td>
+
+    </tr>
+        {% endfor %}
+
+
+    </table>
+</div>
+
+
+<script>
+
+document.getElementById("solvent_components").style.display = "none";
+
+function solvent_components_reveal() {
+  var x = document.getElementById("solvent_components");
+  if (x.style.display === "none") {
+    x.style.display = "block";
+  } else {
+    x.style.display = "none";
+  }
+}
+</script>
+
+
+
+<strong>ABSENT Components</strong>
+<button type="button" onclick="absent_components_reveal()">Hide/Show Absent Components</button><br>
+
+<div id="absent_components">
+
+
+
+  <table>
+<tr>
+<th>Molecule</th>
+</tr>
+
+    {% for form in absent_component_formset %}
+        {{ form.management_form }}
+<tr>
+<td>{{ form.molecule }}</td>
+
+</tr>
+    {% endfor %}
+
+
+</table>
+
+
+</div>
+
+
+<script>
+
+document.getElementById("absent_components").style.display = "none";
+
+function absent_components_reveal() {
+  var x = document.getElementById("absent_components");
+  if (x.style.display === "none") {
+    x.style.display = "block";
+  } else {
+    x.style.display = "none";
+  }
+}
+</script>
+
+
+
+
+
+
+</div>
+</div>
+
+
+<input type="submit" name ='edit_cell_queryset_metadata' value="Edit metadata for cell in cell queryset" />
+
+</form>
+
+{% endif %}
+
+{% endblock %}

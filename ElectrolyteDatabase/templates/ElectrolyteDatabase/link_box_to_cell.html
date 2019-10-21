@@ -1,0 +1,85 @@
+{% extends "ElectrolyteDatabase/main_page.html" %}
+
+{% block content %}
+
+<style>
+
+.border {
+border:2px dashed #0000cc;padding-left:4px;
+}
+
+</style>
+
+<h2>Link Box to Cell Model</h2>
+
+<form action="{% url 'ElectrolyteDatabase:link_box_to_cell' %}" method="post" enctype="multipart/form-data">
+
+{% csrf_token %}
+
+<button type="button" onclick="existing_links_reveal()">Hide/Show Existing Box ID - Cell Model Links</button>
+
+<div id="existing_links">
+
+<h3>Existing Links</h3>
+
+<table>
+    <th>Box ID</th><th>Cell Model</th>
+    {% for box in box_list %}
+    <tr><td>{{ box.box_id_number }}</td><td>{{ box.cell_model }}</td></tr>
+    {% endfor %}
+</table>
+<br><br>
+
+</div>
+
+
+
+<script>
+
+document.getElementById("existing_links").style.display = "none";
+
+function existing_links_reveal() {
+  var x = document.getElementById("existing_links");
+  if (x.style.display === "none") {
+    x.style.display = "block";
+  } else {
+    x.style.display = "none";
+  }
+}
+</script>
+
+
+<h3>New Link:</h3>
+
+<strong>Choose Box ID:</strong>
+
+{{ link_box_to_cell_form.box_id }}
+
+<br><br>
+<strong>Choose Cell Model:</strong>
+
+{{ link_box_to_cell_form.cell_model }}
+
+<br><br>
+
+<input type="submit" name ='link_box_to_cell' value="Submit" />
+<br><br>
+
+
+{% if box_id_already_linked %}
+
+
+    <div class="border">
+    --WARNING--<br>
+    <br>
+    The Box ID you entered is already linked to {{ linked_cell_model }} : <br>
+    Would you like to overwrite this link with the new cell model ( {{ new_cell_model }} ) or leave the existing link unchanged?<br>
+    <br>
+    <input type="submit" name ='overwrite_link' value="Overwrite link" /> OR <input type="submit" name ='leave_existing_link' value="Leave existing link" />
+    </div>
+
+
+{% endif %}
+</form>
+
+{% endblock %}

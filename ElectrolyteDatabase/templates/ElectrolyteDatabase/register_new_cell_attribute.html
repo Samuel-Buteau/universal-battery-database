@@ -1,0 +1,60 @@
+
+{% extends "ElectrolyteDatabase/main_page.html" %}
+
+{% block content %}
+
+
+<style>
+    table {
+        border-collapse:collapse;
+
+    }
+    table, th, td {
+        border:1px solid black;}
+
+</style>
+
+<form action="{% url 'ElectrolyteDatabase:register_new_cell_attribute' %}" method="post" enctype="multipart/form-data">
+
+{% csrf_token %}
+
+{% if show_existing_attribute_table %}
+
+<strong>Existing Cell Attributes</strong>
+
+
+<table>
+    <tr>
+        <th>
+            Name
+        </th>
+    </tr>
+    {% for attribute in list_of_attributes %}
+        <tr>
+            <td>{{ attribute }}</td>
+        </tr>
+    {% endfor %}
+
+</table>
+<br><br>
+{% endif %}
+
+<strong>Register New Attribute</strong>
+
+<table>
+    <tr>
+        <th>
+            Name
+        </th>
+    </tr>
+    <tr>
+        <td>{{ register_attribute_form.attribute }}</td>
+    </tr>
+
+</table>
+
+<input type="submit" name ='register_new_cell_attribute' value="Submit" />
+
+</form>
+
+{% endblock %}

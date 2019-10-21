@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+
+<style>
+table {
+    border-collapse:collapse;
+
+}
+table, th, td {
+    border:1px solid black;}
+
+
+</style>
+
+
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chosen/1.8.7/chosen.jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chosen/1.8.7/chosen.min.css">
+</head>
+
+
+
+<h1>Cell Database</h1>
+
+
+If you're new to this site or are having trouble using the tools,<br>
+click this button to hide or reveal the 'help' information:<br>
+
+<button onclick="help_page_reveal()">Hide/Show Help Page</button>
+
+<div id="Help">
+<h3>Help</h3>
+
+<strong>How are Electrodes organized in our database?</strong><br>
+
+In our database, the composition of a cathode/anode is described in terms of a specific ratio of its components <br>
+(ie: NMC532 or NMC622. ) Each of these specific ratios are organized in terms of their family; for example, the <br>
+family that ‘NMC532’ belongs to is ‘NMC.’<br><br>
+
+<strong>Searching for Wet Cells</strong><br>
+To use our tool to search wet cells, press 'Specify and Edit Wet Cells' on the main page. From there, you will need to fill out<br>
+the fields to specify both a list of boxes and a list of electrolytes. Specify as much information as you can in order to get more<br>
+accurate search results. After you have specified these two lists, click 'Update Cell Queryset' to generate a list of wet cells that exclusively<br>
+uses boxes and electrolytes from the previously generated lists.<br>
+
+After generating the list of wet cells, if you wish to edit the saved data associated with the cells, click 'edit metadata for cell queryset'.<br>
+<br><br>
+<strong>Modifying and Adding Dry Cells to the Database</strong><br>
+
+This web app gives lab members the ability to add new dry cells into the database as well as modify the data related to existing<br>
+dry cell. To use either of these tools, click 'Register or Modify Dry Cell Models' on the main page. From there, if you want to edit an existing dry cell,<br>
+select the model in question in the drop down and click 'Choose Cell.' To create a new model, click 'Register New Dry Cell.'
+<br>
+<br>
+If you choose to edit a dry cell, every database field relating to these cells will be generated, and they will be populated wioth<br>
+the initial data that is already in the database. To edit this information, simply replace any of the data within these fields with the updated information, and<br>
+then click 'Update Dry Cell.' If you are creating a new dry cell, the process is the same however all of the fields will be initially empty.
+
+<br><br>
+
+
+</div><br>
+
+<script>
+
+document.getElementById("Help").style.display = "none";
+
+function help_page_reveal() {
+  var x = document.getElementById("Help");
+  if (x.style.display === "none") {
+    x.style.display = "block";
+  } else {
+    x.style.display = "none";
+  }
+}
+</script>
+
+
+---------------------------------------------------------------<br>
+
+<!-- Initial links to tools -->
+
+<strong>Adding to the Database</strong>
+
+
+
+<br>
+
+<a href="{% url 'ElectrolyteDatabase:register_new_molecule' %}">Register New Molecule</a>
+
+<br>
+
+<a href="{% url 'ElectrolyteDatabase:register_new_electrolyte' %}">Register New Electrolyte</a>
+
+<br>
+
+<a href="{% url 'ElectrolyteDatabase:register_cathode_anode_info' %}">Register New Cathode Family</a>
+
+<br>
+
+<a href="{% url 'ElectrolyteDatabase:register_cathode_anode_info' %}">Register New Anode Family</a>
+
+<br>
+
+<a href="{% url 'ElectrolyteDatabase:register_cathode_anode_info' %}">Register New Cathode Specific Material Ratio</a>
+
+<br>
+
+<a href="{% url 'ElectrolyteDatabase:register_cathode_anode_info' %}">Register New Anode Specific Material Ratio</a>
+
+<br>
+
+<a href="{% url 'ElectrolyteDatabase:register_new_cell_attribute' %}">Register New Cell Attribute</a>
+
+<br>
+
+<a href="{% url 'ElectrolyteDatabase:register_new_cathode_coating' %}">Register New Cathode Coating</a>
+
+<br>
+
+<br>
+
+<a href="{% url 'ElectrolyteDatabase:register_cathode_anode_info' %}">Register Cathode and Anode Info</a>
+
+<br><br>
+
+<strong>Editing the Database</strong>
+<br>
+<a href="{% url 'ElectrolyteDatabase:register_or_modify_dry_cell_models' %}">Register or Modify Dry Cell Models</a>
+
+<br>
+
+<a href="{% url 'ElectrolyteDatabase:specify_and_edit_wet_cells' %}">Specify and Edit Wet Cell Data</a>
+
+<br>
+
+<a href="{% url 'ElectrolyteDatabase:link_box_to_cell' %}">Link Box to Cell Model</a>
+
+<br>
+
+<hr/>
+
+
+
+<script type="text/javascript">
+    $(".chosen").chosen();
+</script>
+
+
+<!DOCTYPE html>
+<html>
+
+<body>
+{% block content %}{% endblock %}
+</body>
+
+</html>
+<br>

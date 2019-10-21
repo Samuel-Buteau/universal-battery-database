@@ -1,0 +1,59 @@
+{% extends "ElectrolyteDatabase/main_page.html" %}
+
+{% block content %}
+
+
+<style>
+    table {
+        border-collapse:collapse;
+
+    }
+    table, th, td {
+        border:1px solid black;}
+
+</style>
+
+<form action="{% url 'ElectrolyteDatabase:register_new_cathode_coating' %}" method="post" enctype="multipart/form-data">
+
+{% csrf_token %}
+
+{% if show_existing_coating_table %}
+
+<strong>Existing Cathode Coatings</strong>
+
+
+<table>
+    <tr>
+        <th>
+            Name
+        </th>
+    </tr>
+    {% for coating in list_of_cathode_coatings %}
+        <tr>
+            <td>{{ coating }}</td>
+        </tr>
+    {% endfor %}
+
+</table>
+<br><br>
+{% endif %}
+
+<strong>Register New Cathode Coatings</strong>
+
+<table>
+    <tr>
+        <th>
+            Name
+        </th>
+    </tr>
+    <tr>
+        <td>{{ register_cathode_coating_form.name }}</td>
+    </tr>
+
+</table>
+
+<input type="submit" name ='register_new_cathode_coating' value="Submit" />
+
+</form>
+
+{% endblock %}

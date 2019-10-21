@@ -24,4 +24,5 @@ urlpatterns = [
     path('', index, name='index'),
     path('admin/', admin.site.urls),
     path('FileNameHelper/', include('FileNameHelper.urls')),
+    path('ElectrolyteDatabase/', include('ElectrolyteDatabase.urls')),
 ]

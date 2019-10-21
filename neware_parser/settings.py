@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'neware_parser',
     'FileNameHelper',
+    'ElectrolyteDatabase',
     'background_task',
 ]
 

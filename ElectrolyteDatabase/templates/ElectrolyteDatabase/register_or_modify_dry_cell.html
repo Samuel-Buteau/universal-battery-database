@@ -1,0 +1,161 @@
+
+{% extends "ElectrolyteDatabase/main_page.html" %}
+{% block content %}
+
+<style>
+    table {
+        border-collapse:collapse;
+
+    }
+    table, th, td {
+        border:1px solid black;}
+
+</style>
+
+{% if register_or_modify_dry_cell_models %}
+
+<form action="{% url 'ElectrolyteDatabase:register_or_modify_dry_cell_models' %}" method="post" enctype="multipart/form-data">
+{% csrf_token %}
+
+Choose Cell To Modify : {{ anode_and_cathode_update_form.cell_model }}
+
+<input type="submit" name = 'choose_cell' value="Choose Cell" />
+
+<br><br>OR<br></br>
+
+<input type="submit" name = 'register_new_cell' value="Register New Cell" />
+
+
+
+<br><br>
+
+{% endif %}
+
+
+
+{% if go_to_cell_metadata %}
+
+<strong>Cell Model: {{ cell_model }}</strong><br>
+<br>
+
+<table>
+
+    <tr>
+        <th>Anode Information/Notes</th>
+    </tr>
+
+    {% for note in anode_info %}
+        <tr>
+            <td>{{ note }}</td>
+        </tr>
+    {% endfor %}
+
+</table>
+
+<table>
+
+    <tr>
+        <th>Cathode Information/Notes</th>
+    </tr>
+
+    {% for note in cathode_info %}
+        <tr>
+            <td>{{ note }}</td>
+        </tr>
+    {% endfor %}
+
+</table>
+
+
+
+<h3>Cathode Data</h3>
+
+Cathode Family : {{ anode_and_cathode_update_form.cathode_family }}<br>
+
+Cathode Ratio : {{ anode_and_cathode_update_form.cathode_ratio }}<br>
+
+Cathode Coating : {{ anode_and_cathode_update_form.cathode_coating }}<br>
+
+Cathode Additional Attributes: {{ anode_and_cathode_update_form.cathode_attribute1 }}{{ anode_and_cathode_update_form.cathode_attribute2 }}
+
+<br><br>
+
+Cathode Components:<br><br>
+
+<table>
+<tr>
+<th>Chemical Formula</th><th>Ratio number</th>
+</tr>
+<tr>
+<td>{{ anode_and_cathode_update_form.cathode_component_chemical_formula_1 }}</td><td>{{ anode_and_cathode_update_form.cathode_component_ratio_number_1 }}</td>
+</tr>
+<tr>
+<td>{{ anode_and_cathode_update_form.cathode_component_chemical_formula_2 }}</td><td>{{ anode_and_cathode_update_form.cathode_component_ratio_number_2 }}</td>
+</tr>
+<tr>
+<td>{{ anode_and_cathode_update_form.cathode_component_chemical_formula_3 }}</td><td>{{ anode_and_cathode_update_form.cathode_component_ratio_number_3 }}</td>
+</tr>
+<tr>
+<td>{{ anode_and_cathode_update_form.cathode_component_chemical_formula_4 }}</td><td>{{ anode_and_cathode_update_form.cathode_component_ratio_number_4 }}</td>
+</tr>
+<tr>
+<td>{{ anode_and_cathode_update_form.cathode_component_chemical_formula_5 }}</td><td>{{ anode_and_cathode_update_form.cathode_component_ratio_number_5 }}</td>
+</tr>
+<tr>
+<td>{{ anode_and_cathode_update_form.cathode_component_chemical_formula_6 }}</td><td>{{ anode_and_cathode_update_form.cathode_component_ratio_number_6 }}</td>
+</tr>
+
+</table>
+
+<br>
+
+<h3>Anode Data</h3>
+
+Anode Family : {{ anode_and_cathode_update_form.anode_family }}<br>
+
+Anode Ratio : {{ anode_and_cathode_update_form.anode_ratio }}<br>
+
+Anode Coating : {{ anode_and_cathode_update_form.cathode_coating }}<br>
+
+Additional Attributes:
+{{ anode_and_cathode_update_form.anode_attribute1 }}
+{{ anode_and_cathode_update_form.anode_attribute2 }}
+
+
+<br><br>
+
+Anode Components:<br><br>
+
+<table>
+<tr>
+<th>Chemical Formula</th><th>Ratio number</th>
+</tr>
+<tr>
+<td>{{ anode_and_cathode_update_form.anode_component_chemical_formula_1 }}</td><td>{{ anode_and_cathode_update_form.anode_component_ratio_number_1 }}</td>
+</tr>
+<tr>
+<td>{{ anode_and_cathode_update_form.anode_component_chemical_formula_2 }}</td><td>{{ anode_and_cathode_update_form.anode_component_ratio_number_2 }}</td>
+</tr>
+<tr>
+<td>{{ anode_and_cathode_update_form.anode_component_chemical_formula_3 }}</td><td>{{ anode_and_cathode_update_form.anode_component_ratio_number_3 }}</td>
+</tr>
+<tr>
+<td>{{ anode_and_cathode_update_form.anode_component_chemical_formula_4 }}</td><td>{{ anode_and_cathode_update_form.anode_component_ratio_number_4 }}</td>
+</tr>
+<tr>
+<td>{{ anode_and_cathode_update_form.anode_component_chemical_formula_5 }}</td><td>{{ anode_and_cathode_update_form.anode_component_ratio_number_5 }}</td>
+</tr>
+<tr>
+<td>{{ anode_and_cathode_update_form.anode_component_chemical_formula_6 }}</td><td>{{ anode_and_cathode_update_form.anode_component_ratio_number_6 }}</td>
+</tr>
+
+</table>
+
+
+<input type="submit" name = 'make_changes_to_cell_metadata' value="Save changes" />
+
+</form>
+
+{% endif %}
+
+{% endblock %}

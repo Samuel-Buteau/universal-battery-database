@@ -1,0 +1,72 @@
+{% extends "ElectrolyteDatabase/main_page.html" %}
+
+{% block content %}
+
+
+<style>
+    table {
+        border-collapse:collapse;
+
+    }
+    table, th, td {
+        border:1px solid black;}
+
+</style>
+
+
+<h3>Register New Molecule</h3>
+
+
+<h4>Registered Molecules</h4>
+
+
+<table>
+
+    <tr>
+        <th>Name</th><th>Can be Salt</th><th>Can be Additive</th><th>Can be Solvent</th>
+    </tr>
+
+    {% for form in registered_molecules_formset %}
+        <tr>
+            {% for field in form %}
+                <td>{{ field }}</td>
+            {% endfor %}
+        </tr>
+    {% endfor %}
+
+</table>
+
+
+<h4>New Molecule</h4>
+
+<form action="{% url 'ElectrolyteDatabase:register_new_molecule' %}" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ register_molecule_formset.management_form }}
+
+    <table>
+        <tr>
+            <th>Name</th><th>Can be Salt</th><th>Can be Additive</th><th>Can be Solvent</th>
+        </tr>
+
+        {% for form in register_molecule_formset %}
+
+            {{ form.management_form }}
+
+            <tr>
+                {% for field in form %}
+
+                    <td> {{ field }} </td>
+
+                {% endfor %}
+
+             </tr>
+
+        {% endfor %}
+
+    </table>
+
+    <input type="submit" name = 'submit_molecule' value="Register" />
+
+</form>
+
+{% endblock %}

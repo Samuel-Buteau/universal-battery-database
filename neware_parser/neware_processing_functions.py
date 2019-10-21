@@ -13,6 +13,7 @@ from django.db import transaction
 import numpy
 from scipy.interpolate import PchipInterpolator
 import math
+from background_task import background
 
 halifax_timezone = pytz.timezone("America/Halifax")
 UNIFORM_VOLTAGES = .05 * numpy.array(range(2 * 30, 2 * 46))
@@ -1100,12 +1101,21 @@ def process_single_file(f,DEBUG=False):
     error_message['error'] = False
     return error_message
 
-def bulk_process(DEBUG=False, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
-    errors = list(map(lambda x: process_single_file(x, DEBUG),
-                      CyclingFile.objects.filter(database_file__deprecated=False, process_time__lte = F('import_time'))))
-    all_current_barcodes = CyclingFile.objects.filter(
-        database_file__deprecated=False).values_list(
-        'database_file__valid_metadata__barcode', flat=True).distinct()
+def bulk_process(DEBUG=False, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10, barcodes = None):
+    if barcodes is None:
+        errors = list(map(lambda x: process_single_file(x, DEBUG),
+                          CyclingFile.objects.filter(database_file__deprecated=False,
+                                                     process_time__lte = F('import_time'))))
+        all_current_barcodes = CyclingFile.objects.filter(
+            database_file__deprecated=False).values_list(
+            'database_file__valid_metadata__barcode', flat=True).distinct()
+
+    else:
+        errors = list(map(lambda x: process_single_file(x, DEBUG),
+                          CyclingFile.objects.filter(database_file__deprecated=False,
+                                                     database_file__valid_metadata__barcode__in=barcodes,
+                                                     process_time__lte=F('import_time'))))
+        all_current_barcodes = barcodes
 
     print(list(all_current_barcodes))
     for barcode in all_current_barcodes:
@@ -1117,12 +1127,23 @@ def bulk_process(DEBUG=False, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
 
 
 
-def bulk_deprecate():
-    all_current_barcodes = get_good_neware_files().values_list(
-        'valid_metadata__barcode', flat=True).distinct()
-    print(list(all_current_barcodes))
+def bulk_deprecate(barcodes=None):
+    if barcodes is None:
+        all_current_barcodes = get_good_neware_files().values_list(
+            'valid_metadata__barcode', flat=True).distinct()
+        print(list(all_current_barcodes))
+    else:
+        all_current_barcodes = barcodes
+
     for barcode in all_current_barcodes:
         default_deprecation(
             barcode)
 
+
+@background(schedule=5)
+def full_import_barcodes(barcodes):
+    with transaction.atomic():
+        bulk_deprecate(barcodes)
+        bulk_import(barcodes=barcodes, DEBUG=False)
+        bulk_process(DEBUG=False, barcodes=barcodes)
 

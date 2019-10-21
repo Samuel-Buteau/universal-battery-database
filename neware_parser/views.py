@@ -9,7 +9,7 @@ from django import forms
 import datetime
 
 from django.utils import timezone
-
+from neware_parser.neware_processing_functions import full_import_barcodes
 from .models import *
 from django.db.models import Max,Min
 import math
@@ -423,9 +423,10 @@ def main_page(request):
                     for barcode in total_query[(pn - 1) * number_per_page:min(n, (pn) * number_per_page)]:
                         bc = plot_barcode(barcode, path_to_plots=None, figsize=[5., 4.])
                         image_base64 = bc.get_image()
+                        print(image_base64)
                         datas.append((bc, bc.barcode, image_base64))
 
-                    n = 2
+                    n = 5
 
                     split_datas = [datas[i:min(len(datas), i + n)] for i in range(0, len(datas), n)]
                     ar['visual_data'] = split_datas
@@ -451,7 +452,7 @@ def main_page(request):
                     if validation_step:
                         collected_barcodes.append(form.cleaned_data['barcode'])
 
-                print('would have triggered the reimport of: ', collected_barcodes)
+                full_import_barcodes(collected_barcodes)
                 ar['search_form'] = search_form
 
     else:

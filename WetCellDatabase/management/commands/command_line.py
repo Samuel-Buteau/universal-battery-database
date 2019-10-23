@@ -1,10 +1,10 @@
 from django.core.management.base import BaseCommand
 import os
-from ElectrolyteDatabase.read_electrolyte_csv import *
-from ElectrolyteDatabase.read_dry_cell_csv import *
-from ElectrolyteDatabase.models import *
-from ElectrolyteDatabase.matplotlib_tutorial import *
-from ElectrolyteDatabase.read_dates_table import *
+from WetCellDatabase.read_electrolyte_csv import *
+from WetCellDatabase.read_dry_cell_csv import *
+from WetCellDatabase.models import *
+from WetCellDatabase.matplotlib_tutorial import *
+from WetCellDatabase.read_dates_table import *
 
 class Command(BaseCommand):
     def add_arguments(self, parser):

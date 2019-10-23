@@ -2,7 +2,7 @@ def read_sql_cell_table(box_model,model_cell_electrolyte):
 
     from pandas import DataFrame
     import pandas as pd
-    from ElectrolyteDatabase.models import DryCell, Box, Electrolyte, Alias, WetCell
+    from WetCellDatabase.models import DryCell, Box, Electrolyte, Alias, WetCell
     import numpy
     import math
     import re

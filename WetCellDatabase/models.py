@@ -43,9 +43,9 @@ Electrolyte Component: shortstring
 
 class LotInfo(models.Model):
     lot_name = models.CharField(max_length=100, null=True)
-    known_lot = models.BooleanField(default=True)
-    creation_date = models.DatetimeField(null=True)
+    creation_date = models.DateField(null=True)
     creator = models.CharField(max_length=100, null=True)
+    vendor = models.CharField(max_length=300, null=True, blank=True)
 
 
 class ElectrodeGeometry(models.Model):
@@ -105,9 +105,14 @@ class Coating(models.Model):
     proprietary = models.BooleanField(default=False)
     description = models.CharField(max_length=1000, null=True)
 
+class CoatingLot(models.Model):
+    coating = models.ForeignKey(Coating, on_delete=models.CASCADE)
+    lot_info = models.OneToOneField(LotInfo, on_delete=models.SET_NULL, null=True)
+
+
 class Component(models.Model):
-    name = models.CharField(max_length=100, null=True)
-    smiles = models.CharField(max_length=1000, null=True)
+    name = models.CharField(max_length=100, null=True, blank=True)
+    smiles = models.CharField(max_length=1000, null=True, blank=True)
     proprietary = models.BooleanField(default=False)
     can_be_cathode = models.BooleanField(default=False)
     can_be_anode = models.BooleanField(default=False)
@@ -121,23 +126,20 @@ class Component(models.Model):
     can_be_conductive_additive = models.BooleanField(default=False)
     can_be_binder = models.BooleanField(default=False)
 
-    name = models.CharField(max_length=100, null=True)
-    proprietary = models.BooleanField(default=False)
-    notes = models.CharField(max_length=1000, null=True)
-    coating = models.ForeignKey(Coating, on_delete=models.SET_NULL, null=True)
-    particle_size = models.FloatField(null=True)
-    single_crystal = models.BooleanField(null=True)
-    turbostratic_misalignment = models.FloatField(null=True)
-    preparation_temperature = models.FloatField(null=True)
-    natural = models.BooleanField(null=True)
-    core_shell = models.BooleanField(null=True)
-    vendor = models.CharField(null=True)
+    notes = models.CharField(max_length=1000, null=True, blank=True)
+    coating_lot = models.ForeignKey(CoatingLot, on_delete=models.SET_NULL, null=True, blank=True)
+    particle_size = models.FloatField(null=True, blank=True)
+    single_crystal = models.BooleanField(null=True, blank=True)
+    turbostratic_misalignment = models.FloatField(null=True, blank=True)
+    preparation_temperature = models.FloatField(null=True, blank=True)
+    natural = models.BooleanField(null=True, blank=True)
+    core_shell = models.BooleanField(null=True, blank=True)
 
 class ComponentLot(models.Model):
     component = models.ForeignKey(Component, on_delete=models.CASCADE)
     lot_info = models.OneToOneField(LotInfo, on_delete=models.SET_NULL, null=True)
 
-class RatioComponent(models):
+class RatioComponent(models.Model):
     SALT = 'sa'
     ADDITIVE = 'ad'
     SOLVENT = 'so'
@@ -148,13 +150,13 @@ class RatioComponent(models):
     COMPONENT_TYPES = [
         (SALT, 'salt'),
         (ADDITIVE, 'additive'),
-        (SOLVENT, 'solvent')
+        (SOLVENT, 'solvent'),
         (ACTIVE_MATERIAL, 'active_material'),
         (CONDUCTIVE_ADDITIVE, 'conductive_additive'),
         (BINDER, 'binder'),
     ]
 
-    compound_type = models.CharField(max_length=2, choices=COMPONENT_TYPES)
+    component_type = models.CharField(max_length=2, choices=COMPONENT_TYPES)
     composite = models.ForeignKey(Composite, on_delete=models.CASCADE)
     ratio = models.FloatField(null=True)
     component_lot = models.ForeignKey(ComponentLot, on_delete=models.CASCADE)
@@ -258,15 +260,15 @@ class DryCell(models.Model):
     top_cap_vendor = models.CharField(max_length=100,null=True)
     outer_tape_vendor = models.CharField(max_length=100,null=True)
 
-    cathode = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True)
-    anode = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True)
-    separator = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True)
+    cathode = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True, related_name='cathode')
+    anode = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True, related_name='anode')
+    separator = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True, related_name='separator')
 
 class DryCellLot(models.Model):
     dry_cell = models.ForeignKey(DryCell, on_delete=models.CASCADE)
     lot_info = models.OneToOneField(LotInfo, on_delete=models.SET_NULL, null=True)
 
 class WetCell(models.Model):
-    cell_id = models.IntegerField(primary=True)
+    cell_id = models.IntegerField(primary_key=True)
     electrolyte = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True)
     dry_cell = models.ForeignKey(DryCellLot, on_delete=models.SET_NULL, null=True)

@@ -1,13 +1,13 @@
 
 def electrolyte_csv_to_db(file):
 
-    from ElectrolyteDatabase.models import Electrolyte, ElectrolyteComponent, Alias, ElectrolyteMolecule
+    from WetCellDatabase.models import Electrolyte, ElectrolyteComponent, Alias, ElectrolyteMolecule
     from pandas import DataFrame
     import pandas as pd
     import numpy
     import math
     import re
-    from ElectrolyteDatabase.models import test_similarity
+    from WetCellDatabase.models import test_similarity
 
     df = pd.read_csv(file)
 

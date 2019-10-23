@@ -2,7 +2,7 @@ def dry_cell_csv_to_db(file):
 
     from pandas import DataFrame
     import pandas as pd
-    from ElectrolyteDatabase.models import DryCell, AnodeBinder, CathodeBinder, Cathode, CathodeConductiveAdditive,AnodeConductiveAdditive, MechanicalPouch, BuildInfo, Box, OtherInfo,\
+    from WetCellDatabase.models import DryCell, AnodeBinder, CathodeBinder, Cathode, CathodeConductiveAdditive,AnodeConductiveAdditive, MechanicalPouch, BuildInfo, Box, OtherInfo,\
         Separator, Anode, CathodeActiveMaterials, AnodeActiveMaterials, CathodeCoating, VendorInfo
     import numpy
     import math

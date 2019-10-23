@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'neware_parser',
     'FileNameHelper',
-    'ElectrolyteDatabase',
+    'WetCellDatabase',
     'background_task',
 ]
 

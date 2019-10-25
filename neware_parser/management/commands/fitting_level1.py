@@ -183,6 +183,7 @@ class DegradationModel(Model):
 
         if training:
             cap, cap_derivatives = self.create_derivatives(cycles_flat, others_flat, features_flat, 'cap')
+
             vol, vol_derivatives = self.create_derivatives(cycles, others, features, 'vol')
 
             var_cyc = tf.expand_dims(measured_cycles, axis=1) - cycles
@@ -194,12 +195,10 @@ class DegradationModel(Model):
                              tf.reshape(cap_derivatives['d2Cyc'], [-1, voltages.shape[0]]) * var_cyc_squared
                              )
 
-            predicted_vol = (vol +
-                             tf.reshape(vol_derivatives['dCyc'], [-1]) * tf.reshape(var_cyc,[-1]) +
-                             tf.reshape(vol_derivatives['d2Cyc'], [-1]) * tf.reshape(var_cyc_squared, [-1])
-                             )
+            vol = tf.reshape(vol, [-1])
+            predicted_vol = (vol +tf.reshape(vol_derivatives['dCyc'], [-1]) * tf.reshape(var_cyc,[-1]) + tf.reshape(vol_derivatives['d2Cyc'], [-1]) * tf.reshape(var_cyc_squared, [-1]))
 
-            return (predicted_cap, predicted_vol, mean, log_sig, cap_derivatives, vol_derivatives)
+            return (predicted_cap, tf.reshape(predicted_vol, [-1]), mean, log_sig, cap_derivatives, vol_derivatives)
 
         else:
             predicted_cap = self.apply_nn(cycles_flat, others_flat, features_flat, 'cap')
@@ -492,6 +491,7 @@ def initial_processing(my_barcodes, args):
                      len(cycles_full), 0])
                 neighborhood_data_float.append([combined_delta, k[0], k[1]])
 
+
             if valid_cycles != 0:
                 neighborhood_data_int = numpy.array(
                     neighborhood_data_int, dtype=numpy.int32)
@@ -564,9 +564,13 @@ def initial_processing(my_barcodes, args):
 
     # DONE: you must define a tensor containing the max_discharge_voltages.
     # Also, you must normalize it by removing the voltage mean and variance.
+    max_dchg_voltage_tensor = tf.constant(discharge_voltages_full)
+    #dchg_voltages_m, dchg_voltages_v = tf.nn.moments(max_dchg_voltage_tensor, axes=[0])
+    dchg_voltages_m = 0.
+    dchg_voltages_v = 1.
     max_dchg_voltage_tensor = (
-            (tf.constant(discharge_voltages_full) - voltages_m)
-            / tf.sqrt(voltages_v))
+            (max_dchg_voltage_tensor - dchg_voltages_m)
+            / tf.sqrt(dchg_voltages_v))
 
     neighborhood_data_float = (numpy.concatenate(
         [numpy.concatenate(neighborhood_data_float_full, axis=0)
@@ -602,8 +606,8 @@ def initial_processing(my_barcodes, args):
         "train_ds": train_ds,
         "cycles_m": cycles_m,
         "cycles_v": cycles_v,
-        "voltages_m": voltages_m,
-        "voltages_v": voltages_v,
+        "voltages_m": dchg_voltages_m,
+        "voltages_v": dchg_voltages_v,
 
         "cycles": cycles,
         "voltages": voltages,
@@ -790,12 +794,13 @@ def train_step(params, args):
         axis=1
     )
 
+
+
     with tf.GradientTape() as tape:
         (predicted_cap, predicted_vol, mean, log_sig, cap_derivatives,vol_derivatives
          ) = degradation_model(
             (my_centers, indecies, measured_cycles, voltages),
             training=True)
-
 
         # question: looks like `res` changes size and changes into a
         # different dimension than `predicted_voltages`
@@ -806,7 +811,6 @@ def train_step(params, args):
         loss = (
                 tf.reduce_mean(ws2 * ws * tf.square(cap - predicted_cap))
                 / (1e-10 + tf.reduce_mean(ws2 * ws))
-                # DONE: you must include the weights
                 + tf.reduce_mean(ws2_discharge_voltages
                                  * tf.square(measured_discharge_voltages-predicted_vol))
                 / (1e-10 + tf.reduce_mean(ws2_discharge_voltages))
@@ -918,6 +922,39 @@ def plot_vq(plot_params, voltage_vector):
         plt.close(fig)
 
 
+def plot_test_rate_voltage(plot_params):
+    my_barcodes = plot_params["my_barcodes"]
+    count = plot_params["count"]
+    args = plot_params["args"]
+    cycles_m = plot_params["cycles_m"]
+    cycles_v = plot_params["cycles_v"]
+    voltages_m = plot_params["voltages_m"]
+    voltages_v = plot_params["voltages_v"]
+    degradation_model = plot_params["degradation_model"]
+    voltages = plot_params["voltages"]
+    test_object = plot_params["test_object"]
+    all_data = plot_params["all_data"]
+
+    print(Colour.BLUE + "plot capacity" + Colour.END)
+    for barcode_count, barcode in enumerate(my_barcodes):
+        results = []
+        for k in [[0.1, x/10.] for x in range(40)]:
+            _, predicted_vol = test_single_voltage([0.], voltages[0],
+                                                           k, barcode_count, degradation_model)
+            results.append([k[1], predicted_vol])
+
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1)
+
+        results = numpy.array(results)
+        ax.scatter(results[:,0],
+                   results[:,1])
+
+        plt.savefig(os.path.join(
+            args['path_to_plots'],
+            'Cap_{}_Count_{}.png'.format(barcode, count)))
+        plt.close(fig)
+
 def plot_capacity(plot_params):
     my_barcodes = plot_params["my_barcodes"]
     count = plot_params["count"]
@@ -1028,9 +1065,9 @@ class Command(BaseCommand):
         parser.add_argument('--const_f_coeff', type=float, default=.0)
         parser.add_argument('--smooth_f_coeff', type=float, default=.01)
         parser.add_argument('--depth', type=int, default=2)
-        parser.add_argument('--width', type=int, default=1 * 16)
-        parser.add_argument('--batch_size', type=int, default=1 * 16)
-        parser.add_argument('--print_loss_every', type=int, default=500)
+        parser.add_argument('--width', type=int, default=8)
+        parser.add_argument('--batch_size', type=int, default=2 * 16)
+        parser.add_argument('--print_loss_every', type=int, default=1000)
         parser.add_argument(
             '--visualize_fit_every', type=int, default=5000)
         parser.add_argument(

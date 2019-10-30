@@ -42,9 +42,9 @@ Electrolyte Component: shortstring
 
 
 class LotInfo(models.Model):
-    lot_name = models.CharField(max_length=100, null=True)
-    creation_date = models.DateField(null=True)
-    creator = models.CharField(max_length=100, null=True)
+    lot_name = models.CharField(max_length=100, null=True, blank=True)
+    creation_date = models.DateField(null=True, blank=True)
+    creator = models.CharField(max_length=100, null=True, blank=True)
     vendor = models.CharField(max_length=300, null=True, blank=True)
 
 
@@ -59,28 +59,28 @@ class ElectrodeGeometry(models.Model):
     UNITS_TAB_POSITION_FROM_CORE = 'TODO(sam): I DON"T KNOW THESE UNITS'
     UNITS_FOIL_THICKNESS = 'micrometers (\\mu m)'
 
-    loading = models.FloatField(null=True)
-    density = models.FloatField(null=True)
-    porosity = models.FloatField(null=True)
-    thickness = models.FloatField(null=True)
-    length_single_side = models.FloatField(null=True)
-    length_double_side = models.FloatField(null=True)
-    width = models.FloatField(null=True)
-    tab_position_from_core = models.FloatField(null=True)
-    foil_thickness = models.FloatField(null=True)
+    loading = models.FloatField(null=True, blank=True)
+    density = models.FloatField(null=True, blank=True)
+    porosity = models.FloatField(null=True, blank=True)
+    thickness = models.FloatField(null=True, blank=True)
+    length_single_side = models.FloatField(null=True, blank=True)
+    length_double_side = models.FloatField(null=True, blank=True)
+    width = models.FloatField(null=True, blank=True)
+    tab_position_from_core = models.FloatField(null=True, blank=True)
+    foil_thickness = models.FloatField(null=True, blank=True)
 
 class SeparatorGeometry(models.Model):
     UNITS_BASE_THICKNESS = 'millimeters (mm)'
     UNITS_WIDTH = 'millimeters (mm)'
     UNITS_OVERHANG_IN_CORE = 'millimeters (mm)'
-    base_thickness = models.FloatField(null=True)
-    width = models.FloatField(null=True)
-    overhang_in_core = models.FloatField(null=True)
+    base_thickness = models.FloatField(null=True, blank=True)
+    width = models.FloatField(null=True, blank=True)
+    overhang_in_core = models.FloatField(null=True, blank=True)
 
 
 class Composite(models.Model):
-    proprietary = models.BooleanField(default=False)
-    proprietary_name = models.CharField(max_length=100, null=True)
+    proprietary = models.BooleanField(default=False, blank=True)
+    proprietary_name = models.CharField(max_length=100, null=True, blank=True)
 
     ELECTROLYTE = 'el'
     CATHODE = 'ca'
@@ -92,39 +92,39 @@ class Composite(models.Model):
         (ANODE, 'anode'),
         (SEPARATOR, 'separator'),
     ]
-    composite_type = models.CharField(max_length=2, choices=COMPOSITE_TYPES)
-    electrode_geometry = models.OneToOneField(ElectrodeGeometry, on_delete=models.SET_NULL, null=True)
-    separator_geometry = models.OneToOneField(SeparatorGeometry, on_delete=models.SET_NULL, null=True)
+    composite_type = models.CharField(max_length=2, choices=COMPOSITE_TYPES, blank=True)
+    electrode_geometry = models.OneToOneField(ElectrodeGeometry, on_delete=models.SET_NULL, null=True, blank=True)
+    separator_geometry = models.OneToOneField(SeparatorGeometry, on_delete=models.SET_NULL, null=True, blank=True)
 
 class CompositeLot(models.Model):
-    composite = models.ForeignKey(Composite, on_delete=models.CASCADE)
-    lot_info = models.OneToOneField(LotInfo, on_delete=models.SET_NULL, null=True)
+    composite = models.ForeignKey(Composite, on_delete=models.CASCADE, blank=True)
+    lot_info = models.OneToOneField(LotInfo, on_delete=models.SET_NULL, null=True, blank=True)
 
 class Coating(models.Model):
-    name = models.CharField(max_length=100, null=True)
-    proprietary = models.BooleanField(default=False)
-    description = models.CharField(max_length=1000, null=True)
+    name = models.CharField(max_length=100, null=True, blank=True)
+    proprietary = models.BooleanField(default=False, blank=True)
+    description = models.CharField(max_length=1000, null=True, blank=True)
 
 class CoatingLot(models.Model):
-    coating = models.ForeignKey(Coating, on_delete=models.CASCADE)
-    lot_info = models.OneToOneField(LotInfo, on_delete=models.SET_NULL, null=True)
+    coating = models.ForeignKey(Coating, on_delete=models.CASCADE, blank=True)
+    lot_info = models.OneToOneField(LotInfo, on_delete=models.SET_NULL, null=True, blank=True)
 
 
 class Component(models.Model):
     name = models.CharField(max_length=100, null=True, blank=True)
     smiles = models.CharField(max_length=1000, null=True, blank=True)
-    proprietary = models.BooleanField(default=False)
-    can_be_cathode = models.BooleanField(default=False)
-    can_be_anode = models.BooleanField(default=False)
-    can_be_separator = models.BooleanField(default=False)
-    can_be_electrolyte = models.BooleanField(default=False)
+    proprietary = models.BooleanField(default=False, blank=True)
+    can_be_cathode = models.BooleanField(default=False, blank=True)
+    can_be_anode = models.BooleanField(default=False, blank=True)
+    can_be_separator = models.BooleanField(default=False, blank=True)
+    can_be_electrolyte = models.BooleanField(default=False, blank=True)
 
-    can_be_salt = models.BooleanField(default=False)
-    can_be_additive = models.BooleanField(default=False)
-    can_be_solvent = models.BooleanField(default=False)
-    can_be_active_material = models.BooleanField(default=False)
-    can_be_conductive_additive = models.BooleanField(default=False)
-    can_be_binder = models.BooleanField(default=False)
+    can_be_salt = models.BooleanField(default=False, blank=True)
+    can_be_additive = models.BooleanField(default=False, blank=True)
+    can_be_solvent = models.BooleanField(default=False, blank=True)
+    can_be_active_material = models.BooleanField(default=False, blank=True)
+    can_be_conductive_additive = models.BooleanField(default=False, blank=True)
+    can_be_binder = models.BooleanField(default=False, blank=True)
 
     notes = models.CharField(max_length=1000, null=True, blank=True)
     coating_lot = models.ForeignKey(CoatingLot, on_delete=models.SET_NULL, null=True, blank=True)
@@ -136,8 +136,8 @@ class Component(models.Model):
     core_shell = models.BooleanField(null=True, blank=True)
 
 class ComponentLot(models.Model):
-    component = models.ForeignKey(Component, on_delete=models.CASCADE)
-    lot_info = models.OneToOneField(LotInfo, on_delete=models.SET_NULL, null=True)
+    component = models.ForeignKey(Component, on_delete=models.CASCADE, blank=True)
+    lot_info = models.OneToOneField(LotInfo, on_delete=models.SET_NULL, null=True, blank=True)
 
 class RatioComponent(models.Model):
     SALT = 'sa'
@@ -156,10 +156,10 @@ class RatioComponent(models.Model):
         (BINDER, 'binder'),
     ]
 
-    component_type = models.CharField(max_length=2, choices=COMPONENT_TYPES)
-    composite = models.ForeignKey(Composite, on_delete=models.CASCADE)
-    ratio = models.FloatField(null=True)
-    component_lot = models.ForeignKey(ComponentLot, on_delete=models.CASCADE)
+    component_type = models.CharField(max_length=2, choices=COMPONENT_TYPES, blank=True)
+    composite = models.ForeignKey(Composite, on_delete=models.CASCADE, blank=True)
+    ratio = models.FloatField(null=True, blank=True)
+    component_lot = models.ForeignKey(ComponentLot, on_delete=models.CASCADE, blank=True)
 
 
 class ElectrodeMaterialStochiometry(models.Model):
@@ -207,9 +207,9 @@ class ElectrodeMaterialStochiometry(models.Model):
         (SILICON, 'SILICON'),
         (PLATINUM, 'PLATINUM'),
     ]
-    electrode_material = models.ForeignKey(Component, on_delete=models.CASCADE)
-    atom = models.CharField(max_length=3, choices=ATOMS)
-    stochiometry = models.FloatField()
+    electrode_material = models.ForeignKey(Component, on_delete=models.CASCADE, blank=True)
+    atom = models.CharField(max_length=3, choices=ATOMS, blank=True)
+    stochiometry = models.FloatField(blank=True)
 
 
 class DryCellGeometry(models.Model):
@@ -219,13 +219,13 @@ class DryCellGeometry(models.Model):
     STACK = 'st'
     COIN = 'co'
     GEO_TYPES = [(POUCH, 'pouch'), (CYLINDER, 'cylinder'), (STACK, 'stack'),(COIN, 'coin')]
-    geometry_category = models.CharField(max_length=2, choices=GEO_TYPES)
-    cell_width = models.FloatField(null=True)
-    cell_length = models.FloatField(null=True)
-    cell_thickness = models.FloatField(null=True)
-    seal_width_side = models.FloatField(null=True)
-    seal_width_top = models.FloatField(null=True)
-    metal_bag_sheet_thickness = models.FloatField(null=True)
+    geometry_category = models.CharField(max_length=2, choices=GEO_TYPES, blank=True)
+    cell_width = models.FloatField(null=True, blank=True)
+    cell_length = models.FloatField(null=True, blank=True)
+    cell_thickness = models.FloatField(null=True, blank=True)
+    seal_width_side = models.FloatField(null=True, blank=True)
+    seal_width_top = models.FloatField(null=True, blank=True)
+    metal_bag_sheet_thickness = models.FloatField(null=True, blank=True)
 
 
 
@@ -237,7 +237,7 @@ class DryCell(models.Model):
     UNITS_MAX_CHARGE_VOLTAGE = 'Volts (V)'
     UNITS_DCR_ESTIMATE = 'Ohms (\\Omega)'
 
-    cell_model = models.CharField(max_length=300)
+    cell_model = models.CharField(max_length=300, blank=True)
     family = models.CharField(max_length=100,null=True, blank=True)
     version = models.CharField(max_length=100,null=True, blank=True)
     description = models.CharField(max_length=10000,null=True, blank=True)
@@ -252,23 +252,23 @@ class DryCell(models.Model):
     max_charge_voltage = models.FloatField(null=True, blank=True)
     dcr_estimate = models.FloatField(null=True, blank=True)
     chemistry_freeze_date_requested = models.DateField(null=True, blank=True)
-    geometry = models.OneToOneField(DryCellGeometry, on_delete=models.SET_NULL, null=True)
+    geometry = models.OneToOneField(DryCellGeometry, on_delete=models.SET_NULL, null=True, blank=True)
 
-    negative_foil_vendor = models.CharField(max_length=100,null=True)
-    gasket_vendor = models.CharField(max_length=100,null=True)
-    can_vendor = models.CharField(max_length=100,null=True)
-    top_cap_vendor = models.CharField(max_length=100,null=True)
-    outer_tape_vendor = models.CharField(max_length=100,null=True)
+    negative_foil_vendor = models.CharField(max_length=100,null=True, blank=True)
+    gasket_vendor = models.CharField(max_length=100,null=True, blank=True)
+    can_vendor = models.CharField(max_length=100,null=True, blank=True)
+    top_cap_vendor = models.CharField(max_length=100,null=True, blank=True)
+    outer_tape_vendor = models.CharField(max_length=100,null=True, blank=True)
 
-    cathode = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True, related_name='cathode')
-    anode = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True, related_name='anode')
-    separator = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True, related_name='separator')
+    cathode = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True, related_name='cathode', blank=True)
+    anode = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True, related_name='anode', blank=True)
+    separator = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True, related_name='separator', blank=True)
 
 class DryCellLot(models.Model):
-    dry_cell = models.ForeignKey(DryCell, on_delete=models.CASCADE)
-    lot_info = models.OneToOneField(LotInfo, on_delete=models.SET_NULL, null=True)
+    dry_cell = models.ForeignKey(DryCell, on_delete=models.CASCADE, blank=True)
+    lot_info = models.OneToOneField(LotInfo, on_delete=models.SET_NULL, null=True, blank=True)
 
 class WetCell(models.Model):
-    cell_id = models.IntegerField(primary_key=True)
-    electrolyte = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True)
-    dry_cell = models.ForeignKey(DryCellLot, on_delete=models.SET_NULL, null=True)
+    cell_id = models.IntegerField(primary_key=True, blank=True)
+    electrolyte = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True, blank=True)
+    dry_cell = models.ForeignKey(DryCellLot, on_delete=models.SET_NULL, null=True, blank=True)

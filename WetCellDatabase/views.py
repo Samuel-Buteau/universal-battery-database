@@ -47,8 +47,8 @@ def define_page(request):
     ar['electrode_composition_formset'] = electrode_composition_formset
     ar['separator_composition_formset'] = separator_composition_formset
 
-    ar['define_molecule_form'] = ElectrolyteMoleculeForm()
-    ar['define_molecule_lot_form'] = ElectrolyteMoleculeLotForm()
+    ar['define_molecule_form'] = ElectrolyteMoleculeForm(prefix='electrolyte-molecule-form')
+    ar['define_molecule_lot_form'] = ElectrolyteMoleculeLotForm(prefix='electrolyte-molecule-lot-form')
 
     ar['define_coating_form'] = CoatingForm()
     ar['define_coating_lot_form'] = CoatingLotForm()
@@ -84,14 +84,46 @@ def define_page(request):
 
     if request.method == 'POST':
         if ('define_molecule' in request.POST) or ('define_molecule_lot' in request.POST):
-            define_molecule_form = ElectrolyteMoleculeForm(request.POST)
+            define_molecule_form = ElectrolyteMoleculeForm(request.POST, prefix='electrolyte-molecule-form')
             if define_molecule_form.is_valid():
                 print(define_molecule_form.cleaned_data)
-                ar['define_molecule_form'] = define_molecule_form
+                if 'define_molecule' in request.POST:
+                    if define_molecule_form.cleaned_data['name'] is not None:
+                        # TODO(sam):handle already existing molecule
+                        if not Component.objects.filter(can_be_electrolyte=True, name=define_molecule_form.cleaned_data['name']).exists():
+                            Component.objects.create(
+                                name = define_molecule_form.cleaned_data['name'],
+                                smiles = define_molecule_form.cleaned_data['smiles'],
+                                proprietary=define_molecule_form.cleaned_data['proprietary'],
+                                can_be_electrolyte = True,
+                                can_be_salt = define_molecule_form.cleaned_data['can_be_salt'],
+                                can_be_solvent=define_molecule_form.cleaned_data['can_be_solvent'],
+                                can_be_additive=define_molecule_form.cleaned_data['can_be_additive'],
+                            )
+                        ar['define_molecule_form'] = define_molecule_form
 
             if 'define_molecule_lot' in request.POST:
-                define_molecule_lot_form = ElectrolyteMoleculeLotForm(request.POST)
+                define_molecule_lot_form = ElectrolyteMoleculeLotForm(request.POST, prefix='electrolyte-molecule-lot-form')
                 if define_molecule_lot_form.is_valid():
+                    if define_molecule_lot_form.cleaned_data['predefined_molecule'] is not None:
+                        if define_molecule_lot_form.cleaned_data['lot_name'] is not None:
+                            #TODO(sam): handle already existing lot
+                            if not ComponentLot.objects.filter(component__can_be_electrolyte=True).exclude(lot_info=None).filter(lot_info__lot_name=define_molecule_lot_form.cleaned_data['lot_name']).exists():
+                                lot_info = LotInfo(
+                                    lot_name = define_molecule_lot_form.cleaned_data['lot_name'],
+                                    creation_date=define_molecule_lot_form.cleaned_data['creation_date'],
+                                    creator=define_molecule_lot_form.cleaned_data['creator'],
+                                    vendor=define_molecule_lot_form.cleaned_data['vendor'],
+
+                                )
+                                lot_info.save()
+                                ComponentLot.objects.create(
+                                    component=define_molecule_lot_form.cleaned_data['predefined_molecule'],
+                                    lot_info = lot_info
+                                )
+                    else:
+                        #TODO(sam): handle the case where we create on the fly.
+                        raise("not yet implemented")
                     print(define_molecule_lot_form.cleaned_data)
                     ar['define_molecule_lot_form'] = define_molecule_lot_form
 
@@ -260,4 +292,102 @@ def define_page(request):
                 ar['define_wet_cell_form'] = define_wet_cell_form
 
 
-    return render(request, 'WetCellDatabase/form_interface.html', ar)
+    return render(request, 'WetCellDatabase/define_page.html', ar)
+
+
+
+def search_page(request):
+    ElectrolyteCompositionFormset = formset_factory(
+        SearchElectrolyteComponentForm,
+        extra=10
+    )
+
+
+    ElectrolytePreviewFormset = formset_factory(
+        ElectrolytePreviewForm,
+        extra=0
+    )
+
+    electrolyte_composition_formset = ElectrolyteCompositionFormset(prefix='electrolyte_composition')
+    electrolyte_preview_formset = ElectrolytePreviewFormset( prefix='electrolyte_preview')
+    ar = {}
+    ar['electrolyte_composition_formset'] = electrolyte_composition_formset
+    ar['electrolyte_preview_formset'] = electrolyte_preview_formset
+    ar['electrolyte_form'] = SearchElectrolyteForm()
+
+    if request.method == 'POST':
+        electrolyte_composition_formset = ElectrolyteCompositionFormset(request.POST,prefix='electrolyte_composition')
+        electrolyte_composition_formset_is_valid = electrolyte_composition_formset.is_valid()
+        if electrolyte_composition_formset_is_valid:
+            print('valid1')
+            ar['electrolyte_composition_formset'] = electrolyte_composition_formset
+
+        search_electrolyte_form = SearchElectrolyteForm(request.POST)
+        search_electrolyte_form_is_valid = search_electrolyte_form.is_valid()
+        if search_electrolyte_form_is_valid:
+            print('valid2')
+            ar['electrolyte_form'] = search_electrolyte_form
+
+        electrolyte_preview_formset = ElectrolytePreviewFormset(request.POST,prefix='electrolyte_preview')
+        if electrolyte_preview_formset.is_valid():
+            print(
+                'valid3'
+            )
+            for form in electrolyte_preview_formset:
+                if not form.is_valid():
+                    continue
+                print(form.cleaned_data)
+            ar['electrolyte_preview_formset'] = electrolyte_preview_formset
+
+        if 'preview_electrolyte' in request.POST:
+
+            if electrolyte_composition_formset_is_valid and search_electrolyte_form_is_valid:
+                complete_salt = search_electrolyte_form.cleaned_data['complete_salt']
+                complete_solvent = search_electrolyte_form.cleaned_data['complete_solvent']
+                complete_additive = search_electrolyte_form.cleaned_data['complete_additive']
+                relative_tolerance = search_electrolyte_form.cleaned_data['relative_tolerance']
+                if not complete_salt or not complete_additive or not complete_solvent:
+                    raise('error!!!')
+
+                all_data = []
+                for form in electrolyte_composition_formset:
+                    if form.is_valid:
+                        all_data.append(form.cleaned_data)
+
+                # TODO(sam): search electrolyte database
+                prohibited = filter(
+                    lambda x: x['must_type'] == SearchElectrolyteComponentForm.PROHIBITED,
+                    all_data
+                )
+
+                prohibited_lots = []
+                prohibited_molecules = []
+                for pro in prohibited:
+                    if pro['molecule'] is not None:
+                        prohibited_molecules.append(pro['molecule'])
+                    elif pro['molecule_lot'] is not None:
+                        prohibited_lots.append(pro['molecule_lot'])
+
+                q = Q(composite_type=Composite.ELECTROLYTE)
+                # prohibit molecules
+
+                q = q & ~Q(ratiocomponent__component_lot__in=prohibited_lots)
+                q = q & ~Q(ratiocomponent__component_lot__component__in=prohibited_molecules)
+
+                total_query = Composite.objects.filter(q)
+
+                initial = []
+                for electrolyte in total_query[:1]:
+                    my_initial = {
+                        "electrolyte": electrolyte.shortstring,
+                        "electrolyte_id": electrolyte.id,
+                        "exclude": True,
+                    }
+
+                    initial.append(my_initial)
+                electrolyte_preview_formset = ElectrolytePreviewFormset(initial=initial,prefix='electrolyte_preview')
+                ar['electrolyte_preview_formset'] = electrolyte_preview_formset
+
+
+    return render(request, 'WetCellDatabase/search_page.html', ar)
+

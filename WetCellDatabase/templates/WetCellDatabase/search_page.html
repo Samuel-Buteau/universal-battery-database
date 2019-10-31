@@ -30,11 +30,11 @@ table, th, td {
                     {{ electrolyte_composition_formset.management_form }}
                     <table>
                         <tr>
-                            <th>Molecule</th><th>Lot</th><th>Type of Molecule</th><th>Must have?</th><th>Amount</th><th>Tolerance</th>
+                            <th>Molecule</th><th>Lot</th><th>Must have?</th><th>Amount</th><th>Tolerance</th>
                         </tr>
                         {% for form in electrolyte_composition_formset%}
                             <tr>
-                                <td>{{ form.molecule}}</td><td>{{ form.molecule_lot}}</td><td>{{ form.component_type}}</td><td>{{form.must_type}}</td><td>{{ form.ratio}}</td><td>{{ form.tolerance}}</td>
+                                <td>{{ form.molecule}}</td><td>{{ form.molecule_lot}}</td><td>{{form.must_type}}</td><td>{{ form.ratio}}</td><td>{{ form.tolerance}}</td>
                             </tr>
                         {% endfor %}
                     </table>

@@ -78,28 +78,6 @@ class SeparatorGeometry(models.Model):
     overhang_in_core = models.FloatField(null=True, blank=True)
 
 
-class Composite(models.Model):
-    proprietary = models.BooleanField(default=False, blank=True)
-    proprietary_name = models.CharField(max_length=100, null=True, blank=True)
-
-    ELECTROLYTE = 'el'
-    CATHODE = 'ca'
-    ANODE = 'an'
-    SEPARATOR = 'se'
-    COMPOSITE_TYPES = [
-        (ELECTROLYTE, 'electrolyte'),
-        (CATHODE, 'cathode'),
-        (ANODE, 'anode'),
-        (SEPARATOR, 'separator'),
-    ]
-    composite_type = models.CharField(max_length=2, choices=COMPOSITE_TYPES, blank=True)
-    electrode_geometry = models.OneToOneField(ElectrodeGeometry, on_delete=models.SET_NULL, null=True, blank=True)
-    separator_geometry = models.OneToOneField(SeparatorGeometry, on_delete=models.SET_NULL, null=True, blank=True)
-
-class CompositeLot(models.Model):
-    composite = models.ForeignKey(Composite, on_delete=models.CASCADE, blank=True)
-    lot_info = models.OneToOneField(LotInfo, on_delete=models.SET_NULL, null=True, blank=True)
-
 class Coating(models.Model):
     name = models.CharField(max_length=100, null=True, blank=True)
     proprietary = models.BooleanField(default=False, blank=True)
@@ -109,22 +87,42 @@ class CoatingLot(models.Model):
     coating = models.ForeignKey(Coating, on_delete=models.CASCADE, blank=True)
     lot_info = models.OneToOneField(LotInfo, on_delete=models.SET_NULL, null=True, blank=True)
 
+SALT = 'sa'
+ADDITIVE = 'ad'
+SOLVENT = 'so'
+ACTIVE_MATERIAL = 'am'
+CONDUCTIVE_ADDITIVE = 'co'
+BINDER = 'bi'
+
+COMPONENT_TYPES = [
+    (SALT, 'salt'),
+    (ADDITIVE, 'additive'),
+    (SOLVENT, 'solvent'),
+    (ACTIVE_MATERIAL, 'active_material'),
+    (CONDUCTIVE_ADDITIVE, 'conductive_additive'),
+    (BINDER, 'binder'),
+]
+
+ELECTROLYTE = 'el'
+CATHODE = 'ca'
+ANODE = 'an'
+SEPARATOR = 'se'
+COMPOSITE_TYPES = [
+    (ELECTROLYTE, 'electrolyte'),
+    (CATHODE, 'cathode'),
+    (ANODE, 'anode'),
+    (SEPARATOR, 'separator'),
+]
+
 
 class Component(models.Model):
     name = models.CharField(max_length=100, null=True, blank=True)
     smiles = models.CharField(max_length=1000, null=True, blank=True)
     proprietary = models.BooleanField(default=False, blank=True)
-    can_be_cathode = models.BooleanField(default=False, blank=True)
-    can_be_anode = models.BooleanField(default=False, blank=True)
-    can_be_separator = models.BooleanField(default=False, blank=True)
-    can_be_electrolyte = models.BooleanField(default=False, blank=True)
+    composite_type = models.CharField(max_length=2, choices=COMPOSITE_TYPES, blank=True)
 
-    can_be_salt = models.BooleanField(default=False, blank=True)
-    can_be_additive = models.BooleanField(default=False, blank=True)
-    can_be_solvent = models.BooleanField(default=False, blank=True)
-    can_be_active_material = models.BooleanField(default=False, blank=True)
-    can_be_conductive_additive = models.BooleanField(default=False, blank=True)
-    can_be_binder = models.BooleanField(default=False, blank=True)
+
+    component_type = models.CharField(max_length=2, choices=COMPONENT_TYPES, blank=True)
 
     notes = models.CharField(max_length=1000, null=True, blank=True)
     coating_lot = models.ForeignKey(CoatingLot, on_delete=models.SET_NULL, null=True, blank=True)
@@ -135,31 +133,57 @@ class Component(models.Model):
     natural = models.BooleanField(null=True, blank=True)
     core_shell = models.BooleanField(null=True, blank=True)
 
+    def __str__(self):
+        return "{}[{}]".format(self.name, self.get_component_type_display())
+
+
 class ComponentLot(models.Model):
     component = models.ForeignKey(Component, on_delete=models.CASCADE, blank=True)
     lot_info = models.OneToOneField(LotInfo, on_delete=models.SET_NULL, null=True, blank=True)
 
+    def __str__(self):
+        if self.lot_info is None:
+            return self.component.__str__()
+        else:
+            return "{}({})".format(self.lot_info.lot_name, self.component.__str__())
+
+
 class RatioComponent(models.Model):
-    SALT = 'sa'
-    ADDITIVE = 'ad'
-    SOLVENT = 'so'
-    ACTIVE_MATERIAL = 'am'
-    CONDUCTIVE_ADDITIVE = 'co'
-    BINDER = 'bi'
-
-    COMPONENT_TYPES = [
-        (SALT, 'salt'),
-        (ADDITIVE, 'additive'),
-        (SOLVENT, 'solvent'),
-        (ACTIVE_MATERIAL, 'active_material'),
-        (CONDUCTIVE_ADDITIVE, 'conductive_additive'),
-        (BINDER, 'binder'),
-    ]
-
-    component_type = models.CharField(max_length=2, choices=COMPONENT_TYPES, blank=True)
-    composite = models.ForeignKey(Composite, on_delete=models.CASCADE, blank=True)
     ratio = models.FloatField(null=True, blank=True)
     component_lot = models.ForeignKey(ComponentLot, on_delete=models.CASCADE, blank=True)
+
+    def __str__(self):
+        if self.component_lot.component.component_type == SALT:
+            return '{:2.2f}m{}'.format(self.ratio, self.component_lot.__str__())
+        else:
+            return '{:3.2f}%{}'.format(self.ratio, self.component_lot.__str__())
+
+class Composite(models.Model):
+    proprietary = models.BooleanField(default=False, blank=True)
+    proprietary_name = models.CharField(max_length=100, null=True, blank=True)
+
+    composite_type = models.CharField(max_length=2, choices=COMPOSITE_TYPES, blank=True)
+    electrode_geometry = models.OneToOneField(ElectrodeGeometry, on_delete=models.SET_NULL, null=True, blank=True)
+    separator_geometry = models.OneToOneField(SeparatorGeometry, on_delete=models.SET_NULL, null=True, blank=True)
+
+    components = models.ManyToManyField(RatioComponent)
+
+    def __str__(self):
+        if self.proprietary:
+            return "{}[{}]".format(self.proprietary_name,self.get_composite_type_display())
+        else:
+            if self.composite_type == ELECTROLYTE:
+                list_of_salts = list(map(lambda x: x.__str__(), self.components.filter(component_lot__component__component_type=SALT).order_by('-ratio')))
+                list_of_solvents= list(map(lambda x: x.__str__(), self.components.filter(component_lot__component__component_type=SOLVENT).order_by('-ratio')))
+                list_of_additives = list(map(lambda x: x.__str__(), self.components.filter(component_lot__component__component_type=ADDITIVE).order_by('-ratio')))
+                return "+".join(list_of_salts+list_of_solvents+list_of_additives)
+            else:
+                return 'not yet implemented'
+
+class CompositeLot(models.Model):
+    composite = models.ForeignKey(Composite, on_delete=models.CASCADE, blank=True)
+    lot_info = models.OneToOneField(LotInfo, on_delete=models.SET_NULL, null=True, blank=True)
+
 
 
 class ElectrodeMaterialStochiometry(models.Model):
@@ -272,3 +296,5 @@ class WetCell(models.Model):
     cell_id = models.IntegerField(primary_key=True, blank=True)
     electrolyte = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True, blank=True)
     dry_cell = models.ForeignKey(DryCellLot, on_delete=models.SET_NULL, null=True, blank=True)
+
+

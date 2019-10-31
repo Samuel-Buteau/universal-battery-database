@@ -1,6 +1,6 @@
 from django.shortcuts import render, render_to_response
 from django.forms import modelformset_factory, formset_factory
-from django.db.models import Q
+from django.db.models import Q, F, Func, Count
 from .forms import *
 from .models import *
 from django import forms
@@ -14,30 +14,28 @@ def define_page(request):
         extra=10
     )
 
-    ElectrolyteCompositionFormset = modelformset_factory(
-        RatioComponent,
-        formset=BaseElectrolyteCompositionFormSet,
-        fields=['ratio', 'component_type'],
+    ElectrolyteCompositionFormset = formset_factory(
+        ElectrolyteCompositionForm,
         extra=10
     )
 
     ElectrodeCompositionFormset = modelformset_factory(
         RatioComponent,
         formset=BaseElectrodeCompositionFormSet,
-        fields=['ratio', 'component_type'],
+        fields=['ratio'],
         extra=10
     )
 
     SeparatorCompositionFormset = modelformset_factory(
         RatioComponent,
         formset=BaseSeparatorCompositionFormSet,
-        fields=['ratio', 'component_type'],
+        fields=['ratio'],
         extra=10
     )
 
 
     active_material_composition_formset = ActiveMaterialCompositionFormset()
-    electrolyte_composition_formset = ElectrolyteCompositionFormset()
+    electrolyte_composition_formset = ElectrolyteCompositionFormset(prefix='electrolyte-composition-formset')
     electrode_composition_formset = ElectrodeCompositionFormset()
     separator_composition_formset = SeparatorCompositionFormset()
 
@@ -65,7 +63,7 @@ def define_page(request):
     ar['define_separator_material_form'] = SeparatorMaterialForm()
     ar['define_separator_material_lot_form'] = SeparatorMaterialLotForm()
 
-    ar['define_electrolyte_form'] = ElectrolyteForm()
+    ar['define_electrolyte_form'] = ElectrolyteForm(prefix='electrolyte-form')
     ar['define_electrolyte_lot_form'] = ElectrolyteLotForm()
 
     ar['define_electrode_form'] = ElectrodeForm()
@@ -90,15 +88,17 @@ def define_page(request):
                 if 'define_molecule' in request.POST:
                     if define_molecule_form.cleaned_data['name'] is not None:
                         # TODO(sam):handle already existing molecule
-                        if not Component.objects.filter(can_be_electrolyte=True, name=define_molecule_form.cleaned_data['name']).exists():
+                        if not Component.objects.filter(
+                                composite_type=ELECTROLYTE,
+                                name=define_molecule_form.cleaned_data['name'],
+                                component_type=define_molecule_form.cleaned_data['component_type']
+                        ).exists():
                             Component.objects.create(
                                 name = define_molecule_form.cleaned_data['name'],
                                 smiles = define_molecule_form.cleaned_data['smiles'],
                                 proprietary=define_molecule_form.cleaned_data['proprietary'],
-                                can_be_electrolyte = True,
-                                can_be_salt = define_molecule_form.cleaned_data['can_be_salt'],
-                                can_be_solvent=define_molecule_form.cleaned_data['can_be_solvent'],
-                                can_be_additive=define_molecule_form.cleaned_data['can_be_additive'],
+                                composite_type=ELECTROLYTE,
+                                component_type=define_molecule_form.cleaned_data['component_type'],
                             )
                         ar['define_molecule_form'] = define_molecule_form
 
@@ -108,7 +108,8 @@ def define_page(request):
                     if define_molecule_lot_form.cleaned_data['predefined_molecule'] is not None:
                         if define_molecule_lot_form.cleaned_data['lot_name'] is not None:
                             #TODO(sam): handle already existing lot
-                            if not ComponentLot.objects.filter(component__can_be_electrolyte=True).exclude(lot_info=None).filter(lot_info__lot_name=define_molecule_lot_form.cleaned_data['lot_name']).exists():
+                            if not ComponentLot.objects.filter(
+                                    component__composite_type=ELECTROLYTE).exclude(lot_info=None).filter(lot_info__lot_name=define_molecule_lot_form.cleaned_data['lot_name']).exists():
                                 lot_info = LotInfo(
                                     lot_name = define_molecule_lot_form.cleaned_data['lot_name'],
                                     creation_date=define_molecule_lot_form.cleaned_data['creation_date'],
@@ -171,7 +172,7 @@ def define_page(request):
                 print(define_active_material_form.cleaned_data)
                 ar['define_active_material_form'] = define_active_material_form
 
-            electrolyte_composition_formset = ElectrolyteCompositionFormset(request.POST)
+            active_material_composition_formset = ActiveMaterialCompositionFormset(request.POST)
             for form in active_material_composition_formset:
                 validation_step = form.is_valid()
                 if validation_step:
@@ -199,18 +200,132 @@ def define_page(request):
                     ar['define_separator_material_lot_form'] = define_separator_material_lot_form
 
         elif ('define_electrolyte' in request.POST) or ('define_electrolyte_lot' in request.POST):
-            define_electrolyte_form = ElectrolyteForm(request.POST)
+            define_electrolyte_form = ElectrolyteForm(request.POST, prefix='electrolyte-form')
             if define_electrolyte_form.is_valid():
-                print(define_electrolyte_form.cleaned_data)
                 ar['define_electrolyte_form'] = define_electrolyte_form
 
-            electrolyte_composition_formset = ElectrolyteCompositionFormset(request.POST)
-            for form in electrolyte_composition_formset:
-                validation_step = form.is_valid()
-                if validation_step:
-                    print(form.cleaned_data)
+                if 'proprietary' in define_electrolyte_form.cleaned_data.keys() and define_electrolyte_form.cleaned_data['proprietary']:
+                    if 'proprietary_name' in define_electrolyte_form.cleaned_data.keys() and define_electrolyte_form.cleaned_data['proprietary_name'] is not None:
+                        print('This is a proprietary electrolyte called: ', define_electrolyte_form.cleaned_data['proprietary_name'])
+                        proprietary_name = define_electrolyte_form.cleaned_data['proprietary_name']
+                        if Composite.objects.filter(composite_type=ELECTROLYTE).filter(proprietary=True, proprietary_name=proprietary_name).exists():
+                            Composite.objects.create(
+                                composite_type=ELECTROLYTE,
+                                proprietary=True,
+                                proprietary_name=proprietary_name
+                            )
+                    else:
+                        print('name is missing.')
+                else:
+                    print('This is an electrolyte defined by components.')
+                    electrolyte_composition_formset = ElectrolyteCompositionFormset(request.POST, prefix='electrolyte-composition-formset')
+                    print(electrolyte_composition_formset)
+                    molecules = []
+                    molecules_lot = []
+                    for form in electrolyte_composition_formset:
 
-            ar['electrolyte_composition_formset'] = electrolyte_composition_formset
+                        validation_step = form.is_valid()
+                        if validation_step:
+                            print(form.cleaned_data)
+                            if not 'molecule' in form.cleaned_data.keys() or not 'molecule_lot' in form.cleaned_data.keys():
+                                continue
+                            if form.cleaned_data['ratio'] <= 0:
+                                continue
+                            if form.cleaned_data['molecule'] is not None:
+                                molecules.append(
+                                    {
+                                        'molecule':form.cleaned_data['molecule'],
+                                        'ratio':form.cleaned_data['ratio']
+                                    }
+                                )
+                            elif form.cleaned_data['molecule_lot'] is not None:
+                                molecules_lot.append(
+                                    {
+                                        'molecule_lot': form.cleaned_data['molecule_lot'],
+                                        'ratio': form.cleaned_data['ratio']
+                                    }
+                                )
+
+                    print(molecules)
+                    print(molecules_lot)
+
+                    #check if there is a problem with the molecules/molecules_lot
+                    all_ids = list(map(lambda x: x['molecule'].id, molecules)) + list(map(lambda x: x['molecule_lot'].component.id, molecules_lot))
+                    if len(set(all_ids)) == len(all_ids):
+                        #normalize things.
+                        total_solvent = (sum(map(lambda x: x['ratio'],
+                                                 filter(lambda x: x['molecule'].component_type == SOLVENT, molecules)),
+                                             0.) +
+                                         sum(map(lambda x: x['ratio'],
+                                                 filter(lambda x: x['molecule_lot'].component.component_type == SOLVENT,
+                                                        molecules_lot)), 0.))
+
+                        total_additive = (sum(map(lambda x: x['ratio'],
+                                                 filter(lambda x: x['molecule'].component_type == ADDITIVE, molecules)),
+                                             0.) +
+                                         sum(map(lambda x: x['ratio'],
+                                                 filter(lambda x: x['molecule_lot'].component.component_type == ADDITIVE,
+                                                        molecules_lot)), 0.))
+
+                        print('total solvent: ', total_solvent)
+                        print('total additive: ', total_additive)
+                        if total_additive < 100. and total_solvent > 0.:
+                            # create or get each RatioComponent.
+                            my_ratio_components = []
+                            for ms, kind in [(molecules, 'molecule'), (molecules_lot, 'molecule_lot')]:
+                                for molecule in ms:
+                                    if kind == 'molecule':
+                                        actual_molecule = molecule['molecule']
+                                    elif kind == 'molecule_lot':
+                                        actual_molecule = molecule['molecule_lot'].component
+
+                                    if actual_molecule.component_type == SOLVENT:
+                                        ratio = molecule['ratio'] * 100./total_solvent
+                                        tolerance = 0.25
+                                    elif actual_molecule.component_type == ADDITIVE:
+                                        ratio = molecule['ratio']
+                                        tolerance = 0.01
+                                    elif actual_molecule.component_type == SALT:
+                                        ratio = molecule['ratio']
+                                        tolerance = 0.1
+
+                                    if kind=='molecule':
+                                        comp_lot, _ = ComponentLot.objects.get_or_create(
+                                            lot_info=None,
+                                            component=molecule['molecule']
+                                        )
+                                    elif kind == 'molecule_lot':
+                                        comp_lot = molecule['molecule_lot']
+
+                                    ratio_components = RatioComponent.objects.filter(
+                                        component_lot=comp_lot,
+                                        ratio__range=(ratio - tolerance, ratio + tolerance))
+                                    if ratio_components.exists():
+                                        selected_ratio_component = ratio_components.annotate(
+                                            distance=Func(F('ratio') - ratio, function='ABS')).order_by('distance')[0]
+                                    else:
+                                        selected_ratio_component = RatioComponent.objects.create(
+                                            component_lot=comp_lot,
+                                            ratio=ratio
+                                        )
+
+                                    my_ratio_components.append(selected_ratio_component)
+
+
+                            #For every component, filter electrolytes which don't have it.
+
+                            query = Composite.objects.annotate(
+                                count_components=Count('components')
+                            ).filter(count_components=len(my_ratio_components)).annotate(
+                                count_valid_components=Count('components', filter=Q(components__in=my_ratio_components))
+                            ).filter(count_valid_components=len(my_ratio_components))
+                            if not query.exists():
+                                my_electrolyte = Composite(composite_type=ELECTROLYTE)
+                                my_electrolyte.save()
+                                my_electrolyte.components.set(my_ratio_components)
+                                print('my electrolyte: ', my_electrolyte)
+
+                            ar['electrolyte_composition_formset'] = electrolyte_composition_formset
 
             if 'define_electrolyte_lot' in request.POST:
                 define_electrolyte_lot_form = ElectrolyteLotForm(request.POST)
@@ -352,8 +467,10 @@ def search_page(request):
                 all_data = []
                 for form in electrolyte_composition_formset:
                     if form.is_valid:
-                        all_data.append(form.cleaned_data)
+                        if 'molecule' in form.cleaned_data.keys() and 'molecule_lot' in form.cleaned_data.keys() and (form.cleaned_data['molecule'] is not None or form.cleaned_data['molecule_lot'] is not None):
+                          all_data.append(form.cleaned_data)
 
+                print(all_data)
                 # TODO(sam): search electrolyte database
                 prohibited = filter(
                     lambda x: x['must_type'] == SearchElectrolyteComponentForm.PROHIBITED,
@@ -368,18 +485,18 @@ def search_page(request):
                     elif pro['molecule_lot'] is not None:
                         prohibited_lots.append(pro['molecule_lot'])
 
-                q = Q(composite_type=Composite.ELECTROLYTE)
+                q = Q(composite_type=ELECTROLYTE)
                 # prohibit molecules
 
-                q = q & ~Q(ratiocomponent__component_lot__in=prohibited_lots)
-                q = q & ~Q(ratiocomponent__component_lot__component__in=prohibited_molecules)
+                q = q & ~Q(components__component_lot__in=prohibited_lots)
+                q = q & ~Q(components__component_lot__component__in=prohibited_molecules)
 
                 total_query = Composite.objects.filter(q)
 
                 initial = []
-                for electrolyte in total_query[:1]:
+                for electrolyte in total_query[:10]:
                     my_initial = {
-                        "electrolyte": electrolyte.shortstring,
+                        "electrolyte": electrolyte.__str__(),
                         "electrolyte_id": electrolyte.id,
                         "exclude": True,
                     }

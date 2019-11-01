@@ -1,6 +1,6 @@
 from django.shortcuts import render, render_to_response
 from django.forms import modelformset_factory, formset_factory
-from django.db.models import Q, F, Func, Count
+from django.db.models import Q, F, Func, Count,Exists, OuterRef
 from .forms import *
 from .models import *
 from django import forms
@@ -461,8 +461,6 @@ def search_page(request):
                 complete_solvent = search_electrolyte_form.cleaned_data['complete_solvent']
                 complete_additive = search_electrolyte_form.cleaned_data['complete_additive']
                 relative_tolerance = search_electrolyte_form.cleaned_data['relative_tolerance']
-                if not complete_salt or not complete_additive or not complete_solvent:
-                    raise('error!!!')
 
                 all_data = []
                 for form in electrolyte_composition_formset:
@@ -491,7 +489,85 @@ def search_page(request):
                 q = q & ~Q(components__component_lot__in=prohibited_lots)
                 q = q & ~Q(components__component_lot__component__in=prohibited_molecules)
 
+                allowed_molecules = []
+                allowed_molecules_lot = []
+                not_prohibited = filter(
+                    lambda x: x['must_type'] != SearchElectrolyteComponentForm.PROHIBITED,
+                    all_data
+                )
+                for pro in not_prohibited:
+                    if pro['molecule'] is not None:
+                        allowed_molecules.append(pro['molecule'])
+                    elif pro['molecule_lot'] is not None:
+                        allowed_molecules_lot.append(pro['molecule_lot'])
+
                 total_query = Composite.objects.filter(q)
+                completes = []
+                if complete_solvent:
+                    completes.append(SOLVENT)
+                if complete_salt:
+                    completes.append(SALT)
+                if complete_additive:
+                    completes.append(ADDITIVE)
+
+                if len(completes) !=0:
+                    total_query = total_query.annotate(
+                        has_extra = Exists(RatioComponent.objects.filter(Q(composite=OuterRef('pk'))&
+                                                      Q(component_lot__component__component_type__in=completes)&
+                                                      ~Q(component_lot__component__in=allowed_molecules) &
+                                                      ~Q(component_lot__in=allowed_molecules_lot)
+                                                     ))
+                    ).filter(has_extra=False)
+
+                mandatory_molecules = []
+                mandatory_molecules_lot = []
+                mandatory = filter(
+                    lambda x: x['must_type'] == SearchElectrolyteComponentForm.MANDATORY,
+                    all_data
+                )
+                for pro in mandatory:
+                    if pro['molecule'] is not None:
+                        mandatory_molecules.append(pro)
+                    elif pro['molecule_lot'] is not None:
+                        mandatory_molecules_lot.append(pro)
+
+                for mol in mandatory_molecules:
+                    if mol['ratio'] is None:
+                        total_query = total_query.annotate(
+                            checked_molecule=Exists(RatioComponent.objects.filter(
+                                composite=OuterRef('pk'),
+                                component_lot__component=mol['molecule']))
+                        ).filter(checked_molecule=True)
+                    else:
+                        tolerance = relative_tolerance/100. * mol['ratio']
+                        if mol['tolerance'] is not None:
+                            tolerance = mol['tolerance']
+
+                        total_query = total_query.annotate(
+                            checked_molecule=Exists(RatioComponent.objects.filter(
+                                composite=OuterRef('pk'),
+                                component_lot__component=mol['molecule'],
+                                ratio__range=(mol['ratio']-tolerance, mol['ratio']+tolerance)))
+                        ).filter(checked_molecule=True)
+
+                for mol in mandatory_molecules_lot:
+                    if mol['ratio'] is None:
+                        total_query = total_query.annotate(
+                            checked_molecule=Exists(RatioComponent.objects.filter(
+                                composite=OuterRef('pk'),
+                                component_lot=mol['molecule_lot']))
+                        ).filter(checked_molecule=True)
+                    else:
+                        tolerance = relative_tolerance / 100. * mol['ratio']
+                        if mol['tolerance'] is not None:
+                            tolerance = mol['tolerance']
+
+                        total_query = total_query.annotate(
+                            checked_molecule=Exists(RatioComponent.objects.filter(
+                                composite=OuterRef('pk'),
+                                component_lot=mol['molecule_lot'],
+                                ratio__range=(mol['ratio'] - tolerance, mol['ratio'] + tolerance)))
+                        ).filter(checked_molecule=True)
 
                 initial = []
                 for electrolyte in total_query[:10]:

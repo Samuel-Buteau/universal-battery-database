@@ -229,9 +229,9 @@ class WetCellForm(ModelForm):
 
 
 class SearchElectrolyteForm(Form):
-    complete_salt = forms.BooleanField(initial=True)
-    complete_solvent = forms.BooleanField(initial=True)
-    complete_additive = forms.BooleanField(initial=True)
+    complete_salt = forms.BooleanField(initial=True, required=False)
+    complete_solvent = forms.BooleanField(initial=True, required=False)
+    complete_additive = forms.BooleanField(initial=True, required=False)
     relative_tolerance = forms.FloatField(initial=5., help_text='the default tolerance in percentage.')
 
 class SearchElectrolyteComponentForm(Form):

@@ -147,17 +147,17 @@ class ElectrodeLotForm(ModelForm):
         model = LotInfo
         exclude = []
 
+class ElectrodeCompositionForm(Form):
+    material = forms.ModelChoiceField(queryset=Component.objects.filter(Q(composite_type=ANODE)|Q(composite_type=CATHODE)), required=False)
+    material_lot = forms.ModelChoiceField(queryset=ComponentLot.objects.filter(Q(component__composite_type=ANODE)|Q(component__composite_type=CATHODE)).exclude(lot_info=None), required=False)
+    ratio = forms.FloatField(required=False)
+
+
 class ElectrodeGeometryForm(ModelForm):
     class Meta:
         model = ElectrodeGeometry
         exclude = []
 
-
-class BaseElectrodeCompositionFormSet(BaseModelFormSet):
-    def add_fields(self, form, index):
-        super().add_fields(form, index)
-        form.fields["material"] =forms.ModelChoiceField(queryset=Component.objects.filter(Q(composite_type=CATHODE)|Q(composite_type=ANODE)), required=False)
-        form.fields["material_lot"] = forms.ModelChoiceField(queryset=ComponentLot.objects.filter(Q(component__composite_type=CATHODE)|Q(component__composite_type=ANODE)).exclude(lot_info=None), required=False)
 
 
 
@@ -233,6 +233,8 @@ class SearchElectrolyteForm(Form):
     complete_solvent = forms.BooleanField(initial=True, required=False)
     complete_additive = forms.BooleanField(initial=True, required=False)
     relative_tolerance = forms.FloatField(initial=5., help_text='the default tolerance in percentage.')
+    proprietary_flag = forms.BooleanField(initial=False, required=False)
+    proprietary_search = forms.CharField(required=False)
 
 class SearchElectrolyteComponentForm(Form):
     MANDATORY = 'ma'

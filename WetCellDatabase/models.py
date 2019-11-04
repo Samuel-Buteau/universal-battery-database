@@ -83,9 +83,29 @@ class Coating(models.Model):
     proprietary = models.BooleanField(default=False, blank=True)
     description = models.CharField(max_length=1000, null=True, blank=True)
 
+    def __str__(self):
+        return "{}[coating]".format(self.name)
+
 class CoatingLot(models.Model):
     coating = models.ForeignKey(Coating, on_delete=models.CASCADE, blank=True)
     lot_info = models.OneToOneField(LotInfo, on_delete=models.SET_NULL, null=True, blank=True)
+    def __str__(self):
+        if self.lot_info is None:
+            return self.coating.__str__()
+        else:
+            return "{}({})".format(self.lot_info.lot_name, self.coating.__str__())
+
+
+def get_coating_lot(coating, coating_lot):
+    my_coating_lot = None
+    if coating is not None:
+        my_coating_lot, _ = CoatingLot.objects.get_or_create(
+            coating = coating,
+            lot_info = None
+        )
+    elif coating_lot is not None:
+        my_coating_lot = coating_lot
+    return my_coating_lot
 
 SALT = 'sa'
 ADDITIVE = 'ad'
@@ -93,6 +113,7 @@ SOLVENT = 'so'
 ACTIVE_MATERIAL = 'am'
 CONDUCTIVE_ADDITIVE = 'co'
 BINDER = 'bi'
+SEPARATOR_MATERIAL = 'se'
 
 COMPONENT_TYPES = [
     (SALT, 'salt'),
@@ -101,6 +122,7 @@ COMPONENT_TYPES = [
     (ACTIVE_MATERIAL, 'active_material'),
     (CONDUCTIVE_ADDITIVE, 'conductive_additive'),
     (BINDER, 'binder'),
+    (SEPARATOR_MATERIAL, 'separator_material'),
 ]
 
 ELECTROLYTE = 'el'
@@ -113,6 +135,55 @@ COMPOSITE_TYPES = [
     (ANODE, 'anode'),
     (SEPARATOR, 'separator'),
 ]
+
+
+class ElectrodeMaterialStochiometry(models.Model):
+    LITHIUM = 'Li'
+    OXIGEN = 'O'
+    CARBON = 'C'
+    NICKEL = 'Ni'
+    MANGANESE = 'Mn'
+    COBALT = 'Co'
+    MAGNESIUM = 'Mg'
+    ALUMINUM = 'Al'
+    IRON = 'Fe'
+    PHOSPHORUS= 'P'
+    TITANIUM = 'Ti'
+    SULFUR = 'S'
+    SODIUM = 'Na'
+    FLUORINE = 'F'
+    CHLORINE = 'Cl'
+    COPPER = 'Cu'
+    ZINC = 'Zn'
+    MOLYBDENUM = 'Mo'
+    NIOBIUM = 'Nb'
+    SILICON = 'Si'
+    PLATINUM = 'Pt'
+    ATOMS = [
+        (LITHIUM, 'LITHIUM'),
+        (OXIGEN, 'OXIGEN'),
+        (CARBON, 'CARBON'),
+        (NICKEL, 'NICKEL'),
+        (MANGANESE, 'MANGANESE'),
+        (COBALT, 'COBALT'),
+        (MAGNESIUM, 'MAGNESIUM'),
+        (ALUMINUM, 'ALUMINUM'),
+        (IRON, 'IRON'),
+        (PHOSPHORUS, 'PHOSPHORUS'),
+        (TITANIUM, 'TITANIUM'),
+        (SULFUR, 'SULFUR'),
+        (SODIUM, 'SODIUM'),
+        (FLUORINE, 'FLUORINE'),
+        (CHLORINE, 'CHLORINE'),
+        (COPPER, 'COPPER'),
+        (ZINC, 'ZINC'),
+        (MOLYBDENUM, 'MOLYBDENUM'),
+        (NIOBIUM, 'NIOBIUM'),
+        (SILICON, 'SILICON'),
+        (PLATINUM, 'PLATINUM'),
+    ]
+    atom = models.CharField(max_length=3, choices=ATOMS, blank=True)
+    stochiometry = models.FloatField(blank=True)
 
 
 class Component(models.Model):
@@ -132,9 +203,13 @@ class Component(models.Model):
     preparation_temperature = models.FloatField(null=True, blank=True)
     natural = models.BooleanField(null=True, blank=True)
     core_shell = models.BooleanField(null=True, blank=True)
+    stochiometry = models.ManyToManyField(ElectrodeMaterialStochiometry)
 
     def __str__(self):
-        return "{}[{}]".format(self.name, self.get_component_type_display())
+        if self.composite_type in [ANODE, CATHODE]:
+            return "{}[{}/{}]".format(self.name, self.get_component_type_display(), self.get_composite_type_display())
+        else:
+            return "{}[{}]".format(self.name, self.get_component_type_display())
 
 
 class ComponentLot(models.Model):
@@ -183,57 +258,13 @@ class Composite(models.Model):
 class CompositeLot(models.Model):
     composite = models.ForeignKey(Composite, on_delete=models.CASCADE, blank=True)
     lot_info = models.OneToOneField(LotInfo, on_delete=models.SET_NULL, null=True, blank=True)
+    def __str__(self):
+        if self.lot_info is None:
+            return self.composite.__str__()
+        else:
+            return "{}({})".format(self.lot_info.lot_name, self.composite.__str__())
 
 
-
-class ElectrodeMaterialStochiometry(models.Model):
-    LITHIUM = 'Li'
-    OXIGEN = 'O'
-    CARBON = 'C'
-    NICKEL = 'Ni'
-    MANGANESE = 'Mn'
-    COBALT = 'Co'
-    MAGNESIUM = 'Mg'
-    ALUMINUM = 'Al'
-    IRON = 'Fe'
-    PHOSPHORUS= 'P'
-    TITANIUM = 'Ti'
-    SULFUR = 'S'
-    SODIUM = 'Na'
-    FLUORINE = 'F'
-    CHLORINE = 'Cl'
-    COPPER = 'Cu'
-    ZINC = 'Zn'
-    MOLYBDENUM = 'Mo'
-    NIOBIUM = 'Nb'
-    SILICON = 'Si'
-    PLATINUM = 'Pt'
-    ATOMS = [
-        (LITHIUM, 'LITHIUM'),
-        (OXIGEN, 'OXIGEN'),
-        (CARBON, 'CARBON'),
-        (NICKEL, 'NICKEL'),
-        (MANGANESE, 'MANGANESE'),
-        (COBALT, 'COBALT'),
-        (MAGNESIUM, 'MAGNESIUM'),
-        (ALUMINUM, 'ALUMINUM'),
-        (IRON, 'IRON'),
-        (PHOSPHORUS, 'PHOSPHORUS'),
-        (TITANIUM, 'TITANIUM'),
-        (SULFUR, 'SULFUR'),
-        (SODIUM, 'SODIUM'),
-        (FLUORINE, 'FLUORINE'),
-        (CHLORINE, 'CHLORINE'),
-        (COPPER, 'COPPER'),
-        (ZINC, 'ZINC'),
-        (MOLYBDENUM, 'MOLYBDENUM'),
-        (NIOBIUM, 'NIOBIUM'),
-        (SILICON, 'SILICON'),
-        (PLATINUM, 'PLATINUM'),
-    ]
-    electrode_material = models.ForeignKey(Component, on_delete=models.CASCADE, blank=True)
-    atom = models.CharField(max_length=3, choices=ATOMS, blank=True)
-    stochiometry = models.FloatField(blank=True)
 
 
 class DryCellGeometry(models.Model):

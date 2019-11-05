@@ -18,25 +18,6 @@ Composite : shortstring
                 '{:100.3f}%{}'.format(component.ratio, component.molecule.name))
         return '+'.join(shortstring)
 
-ComponentRatio: is_valid
-@property
-    def is_valid(self):
-        valid_salt = (
-                (self.ratio is not None) and
-                (self.compound_type == ElectrolyteComponent.SALT) and
-                (self.molecule.can_be_salt))
-        valid_solvent = (
-                (self.ratio is not None) and
-                (self.compound_type == ElectrolyteComponent.SOLVENT) and
-                (self.molecule.can_be_solvent))
-
-        valid_additive = (
-                (self.ratio is not None) and
-                (self.compound_type == ElectrolyteComponent.ADDITIVE) and
-                (self.molecule.can_be_additive))
-
-        return (valid_salt or valid_solvent or valid_additive)
-
 Electrolyte Component: shortstring
 '''
 
@@ -191,8 +172,6 @@ class Component(models.Model):
     smiles = models.CharField(max_length=1000, null=True, blank=True)
     proprietary = models.BooleanField(default=False, blank=True)
     composite_type = models.CharField(max_length=2, choices=COMPOSITE_TYPES, blank=True)
-
-
     component_type = models.CharField(max_length=2, choices=COMPONENT_TYPES, blank=True)
 
     notes = models.CharField(max_length=1000, null=True, blank=True)
@@ -235,7 +214,7 @@ class RatioComponent(models.Model):
 
 class Composite(models.Model):
     proprietary = models.BooleanField(default=False, blank=True)
-    proprietary_name = models.CharField(max_length=100, null=True, blank=True)
+    name = models.CharField(max_length=100, null=True, blank=True)
 
     composite_type = models.CharField(max_length=2, choices=COMPOSITE_TYPES, blank=True)
     electrode_geometry = models.OneToOneField(ElectrodeGeometry, on_delete=models.SET_NULL, null=True, blank=True)
@@ -245,7 +224,7 @@ class Composite(models.Model):
 
     def __str__(self):
         if self.proprietary:
-            return "{}[{}]".format(self.proprietary_name,self.get_composite_type_display())
+            return "PROPRIETARY:{}[{}]".format(self.name,self.get_composite_type_display())
         else:
             if self.composite_type == ELECTROLYTE:
                 list_of_salts = list(map(lambda x: x.__str__(), self.components.filter(component_lot__component__component_type=SALT).order_by('-ratio')))

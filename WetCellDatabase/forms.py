@@ -121,7 +121,7 @@ class CoatingLotForm(ModelForm):
 class ElectrolyteForm(ModelForm):
     class Meta:
         model = Composite
-        fields = ['proprietary', 'proprietary_name']
+        fields = ['proprietary', 'name']
 
 class ElectrolyteLotForm(ModelForm):
     predefined_electrolyte = forms.ModelChoiceField(queryset=Composite.objects.filter(composite_type=ELECTROLYTE), required=False)
@@ -142,7 +142,7 @@ class ElectrodeForm(ModelForm):
 
     class Meta:
         model = Composite
-        fields = ['proprietary', 'proprietary_name']
+        fields = ['proprietary', 'name']
 
 
 class ElectrodeLotForm(ModelForm):
@@ -163,13 +163,16 @@ class ElectrodeGeometryForm(ModelForm):
         exclude = []
 
 
+class ElectrodeMaterialStochiometryForm(Form):
+    atom = forms.ChoiceField(choices=ElectrodeMaterialStochiometry.ATOMS, required=False)
+    stochiometry = forms.FloatField(required=False)
 
 
 
 class SeparatorForm(ModelForm):
     class Meta:
         model = Composite
-        fields = ['proprietary', 'proprietary_name']
+        fields = ['proprietary', 'name']
 
 class SeparatorLotForm(ModelForm):
     predefined_separator = forms.ModelChoiceField(queryset=Composite.objects.filter(composite_type=SEPARATOR), required=False)
@@ -184,11 +187,11 @@ class SeparatorGeometryForm(ModelForm):
         exclude = []
 
 
-class BaseSeparatorCompositionFormSet(BaseModelFormSet):
-    def add_fields(self, form, index):
-        super().add_fields(form, index)
-        form.fields["material"] =forms.ModelChoiceField(queryset=Component.objects.filter(composite_type=SEPARATOR), required=False)
-        form.fields["material_lot"] = forms.ModelChoiceField(queryset=ComponentLot.objects.filter(component__composite_type=SEPARATOR).exclude(lot_info=None), required=False)
+class SeparatorCompositionForm(Form):
+    material = forms.ModelChoiceField(queryset=Component.objects.filter(composite_type=SEPARATOR), required=False)
+    material_lot = forms.ModelChoiceField(queryset=ComponentLot.objects.filter(component__composite_type=SEPARATOR).exclude(lot_info=None), required=False)
+    ratio = forms.FloatField(required=False)
+
 
 
 

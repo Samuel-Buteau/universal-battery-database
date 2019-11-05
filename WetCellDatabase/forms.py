@@ -33,7 +33,7 @@ class ElectrodeActiveMaterialForm(ModelForm):
         COMPOSITE_TYPES))
     class Meta:
         model = Component
-        fields = ['name', 'smiles', 'proprietary',
+        fields = ['name', 'proprietary',
                   'particle_size',
                   'single_crystal',
                   'turbostratic_misalignment',
@@ -136,6 +136,10 @@ class ElectrolyteCompositionForm(Form):
     ratio = forms.FloatField(required=False)
 
 class ElectrodeForm(ModelForm):
+    composite_type = forms.ChoiceField(choices=filter(
+        lambda x: x[0] in [ANODE, CATHODE],
+        COMPOSITE_TYPES))
+
     class Meta:
         model = Composite
         fields = ['proprietary', 'proprietary_name']

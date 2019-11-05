@@ -7,17 +7,19 @@ from django import forms
 import re
 
 
-#TODO(sam): electrodes must have a name, as well as a composition.
-#the name must be unique.
 
-#TODO(sam): electrodes must have either (anode, or cathode)
 #TODO(sam): separators must have a name, as well as a composition.
 #the name must be unique.
 
+#TODO(sam): active materials must have names, and they are basically like electrodes.
+#the name must be unique.
+
+
 def define_page(request):
+    #TODO(sam): make a custom form and then formset to avoid already existing stochiometries.
     ActiveMaterialCompositionFormset = modelformset_factory(
         ElectrodeMaterialStochiometry,
-        exclude=['electrode_material'],
+        exclude=[],
         extra=10
     )
 
@@ -72,9 +74,9 @@ def define_page(request):
     ar['define_electrolyte_form'] = ElectrolyteForm(prefix='electrolyte-form')
     ar['define_electrolyte_lot_form'] = ElectrolyteLotForm(prefix='electrolyte-lot-form')
 
-    ar['define_electrode_form'] = ElectrodeForm()
-    ar['define_electrode_lot_form'] = ElectrodeLotForm()
-    ar['define_electrode_geometry_form'] = ElectrodeGeometryForm()
+    ar['define_electrode_form'] = ElectrodeForm(prefix='electrode-form')
+    ar['define_electrode_lot_form'] = ElectrodeLotForm(prefix='electrode-lot-form')
+    ar['define_electrode_geometry_form'] = ElectrodeGeometryForm(prefix='electrode-geometry-form')
 
     ar['define_separator_form'] = SeparatorForm()
     ar['define_separator_lot_form'] = SeparatorLotForm()
@@ -227,6 +229,194 @@ def define_page(request):
                             return True, my_electrolyte
             return False, None
 
+
+        if content=='electrode':
+            define_electrode_form = ElectrodeForm(request.POST, prefix='electrode-form')
+            define_electrode_geometry_form = ElectrodeGeometryForm(request.POST, prefix='electrode-geometry-form')
+            if define_electrode_form.is_valid():
+                ar['define_electrode_form'] = define_electrode_form
+                if define_electrode_geometry_form.is_valid():
+                    ar['define_electrode_geometry_form'] = define_electrode_geometry_form
+
+                    if 'proprietary_name' in define_electrode_form.cleaned_data.keys() and \
+                            define_electrode_form.cleaned_data['proprietary_name'] is not None:
+                        proprietary_name = define_electrode_form.cleaned_data['proprietary_name']
+
+                        if 'proprietary' in define_electrode_form.cleaned_data.keys() and \
+                                define_electrode_form.cleaned_data['proprietary']:
+
+                            if not Composite.objects.filter(
+                                    composite_type=define_electrode_form.cleaned_data['composite_type'],
+                                    proprietary=True,
+                                    proprietary_name=proprietary_name
+                                ).exists():
+
+                                electrode_geometry = ElectrodeGeometry.objects.create(
+                                    loading= define_electrode_geometry_form.cleaned_data['loading'],
+                                    porosity=define_electrode_geometry_form.cleaned_data['porosity'],
+                                    thickness=define_electrode_geometry_form.cleaned_data['thickness'],
+                                    length_single_side=define_electrode_geometry_form.cleaned_data['length_single_side'],
+                                    length_double_side=define_electrode_geometry_form.cleaned_data['length_double_side'],
+                                    width=define_electrode_geometry_form.cleaned_data['width'],
+                                    tab_position_from_core=define_electrode_geometry_form.cleaned_data['tab_position_from_core'],
+                                    foil_thickness=define_electrode_geometry_form.cleaned_data['foil_thickness'],
+                                )
+                                my_electrode = Composite.objects.create(
+                                        composite_type=define_electrode_form.cleaned_data['composite_type'],
+                                        proprietary=True,
+                                        proprietary_name=proprietary_name,
+                                        electrode_geometry=electrode_geometry,
+                                    )
+                            else:
+                                my_electrode = Composite.objects.filter(
+                                    composite_type=define_electrode_form.cleaned_data['composite_type'],
+                                    proprietary=True,
+                                    proprietary_name=proprietary_name
+                                )[0]
+
+                            return True, my_electrode
+
+                        else:
+                            electrode_composition_formset = ElectrodeCompositionFormset(request.POST,
+                                                                                            prefix='electrode-composition-formset')
+                            print(electrode_composition_formset)
+                            composite_type = define_electrode_form.cleaned_data['composite_type']
+                            materials = []
+                            materials_lot = []
+
+                            for form in electrode_composition_formset:
+
+                                validation_step = form.is_valid()
+                                if validation_step:
+                                    print(form.cleaned_data)
+                                    if not 'material' in form.cleaned_data.keys() or not 'material_lot' in form.cleaned_data.keys():
+                                        continue
+                                    if form.cleaned_data['ratio'] <= 0:
+                                        continue
+
+                                    if form.cleaned_data['material'] is not None and form.cleaned_data['material'].composite_type==composite_type:
+                                        materials.append(
+                                            {
+                                                'material': form.cleaned_data['material'],
+                                                'ratio': form.cleaned_data['ratio']
+                                            }
+                                        )
+                                    elif form.cleaned_data['material_lot'] is not None and form.cleaned_data['material_lot'].composite.composite_type==composite_type:
+                                        materials_lot.append(
+                                            {
+                                                'material_lot': form.cleaned_data['material_lot'],
+                                                'ratio': form.cleaned_data['ratio']
+                                            }
+                                        )
+
+                            print(materials)
+                            print(materials_lot)
+
+                            # check if there is a problem with the materials/materials_lot
+                            all_ids = list(map(lambda x: x['material'].id, materials)) + list(
+                                map(lambda x: x['material_lot'].component.id, materials_lot))
+                            if len(set(all_ids)) == len(all_ids):
+                                # normalize things.
+                                total_active = (sum(map(lambda x: x['ratio'],
+                                                         filter(lambda x: x['material'].component_type == ACTIVE_MATERIAL, materials)),
+                                                     0.) +
+                                                 sum(map(lambda x: x['ratio'],
+                                                         filter(lambda x: x['material_lot'].component.component_type == ACTIVE_MATERIAL,
+                                                                materials_lot)), 0.))
+
+                                total_inactive = (sum(map(lambda x: x['ratio'],
+                                                          filter(lambda x: x['material'].component_type != ACTIVE_MATERIAL,
+                                                                 materials)),
+                                                      0.) +
+                                                  sum(map(lambda x: x['ratio'],
+                                                          filter(
+                                                              lambda x: x['material_lot'].component.component_type != ACTIVE_MATERIAL,
+                                                              materials_lot)), 0.))
+
+                                print('total solvent: ', total_active)
+                                print('total additive: ', total_inactive)
+                                if total_inactive < 100. and total_active > 0.:
+                                    # create or get each RatioComponent.
+                                    my_ratio_components = []
+                                    for ms, kind in [(materials, 'material'), (materials_lot, 'material_lot')]:
+                                        for material in ms:
+                                            if kind == 'material':
+                                                actual_material = material['material']
+                                            elif kind == 'material_lot':
+                                                actual_material = material['material_lot'].component
+
+                                            if actual_material.component_type == ACTIVE_MATERIAL:
+                                                ratio = material['ratio'] * 100. / total_active
+                                                tolerance = 0.25
+                                            elif actual_material.component_type != ACTIVE_MATERIAL:
+                                                ratio = material['ratio']
+                                                tolerance = 0.01
+
+
+                                            if kind == 'material':
+                                                comp_lot, _ = ComponentLot.objects.get_or_create(
+                                                    lot_info=None,
+                                                    component=material['material']
+                                                )
+                                            elif kind == 'material_lot':
+                                                comp_lot = material['material_lot']
+
+                                            ratio_components = RatioComponent.objects.filter(
+                                                component_lot=comp_lot,
+                                                ratio__range=(ratio - tolerance, ratio + tolerance))
+                                            if ratio_components.exists():
+                                                selected_ratio_component = ratio_components.annotate(
+                                                    distance=Func(F('ratio') - ratio, function='ABS')).order_by('distance')[0]
+                                            else:
+                                                selected_ratio_component = RatioComponent.objects.create(
+                                                    component_lot=comp_lot,
+                                                    ratio=ratio
+                                                )
+
+                                            my_ratio_components.append(selected_ratio_component)
+
+                                    # For every component, filter electrodes which don't have it.
+                                    if not Composite.objects.filter(
+                                            composite_type=define_electrode_form.cleaned_data['composite_type'],
+                                            proprietary=True,
+                                            proprietary_name=proprietary_name
+                                    ).exists():
+
+                                        electrode_geometry = ElectrodeGeometry.objects.create(
+                                            loading=define_electrode_geometry_form.cleaned_data['loading'],
+                                            porosity=define_electrode_geometry_form.cleaned_data['porosity'],
+                                            thickness=define_electrode_geometry_form.cleaned_data['thickness'],
+                                            length_single_side=define_electrode_geometry_form.cleaned_data[
+                                                'length_single_side'],
+                                            length_double_side=define_electrode_geometry_form.cleaned_data[
+                                                'length_double_side'],
+                                            width=define_electrode_geometry_form.cleaned_data['width'],
+                                            tab_position_from_core=define_electrode_geometry_form.cleaned_data[
+                                                'tab_position_from_core'],
+                                            foil_thickness=define_electrode_geometry_form.cleaned_data[
+                                                'foil_thickness'],
+                                        )
+                                        my_electrode = Composite.objects.create(
+                                            composite_type=define_electrode_form.cleaned_data['composite_type'],
+                                            proprietary=True,
+                                            proprietary_name=proprietary_name,
+                                            electrode_geometry=electrode_geometry,
+                                        )
+                                        my_electrode.components.set(my_ratio_components)
+
+                                    else:
+                                        my_electrode = Composite.objects.filter(
+                                            composite_type=define_electrode_form.cleaned_data['composite_type'],
+                                            proprietary=True,
+                                            proprietary_name=proprietary_name
+                                        )[0]
+
+
+                                    ar['electrode_composition_formset'] = electrode_composition_formset
+                                    return True, my_electrode
+            return False, None
+
+
         if content=='molecule':
             simple_form = ElectrolyteMoleculeForm(post, prefix='electrolyte-molecule-form')
         elif content=='coating':
@@ -354,6 +544,11 @@ def define_page(request):
                 post,
                 prefix='electrolyte-lot-form'
             )
+        elif content == 'electrode':
+            define_lot_form = ElectrodeLotForm(
+                post,
+                prefix='electrode-lot-form'
+            )
 
 
         if define_lot_form.is_valid():
@@ -378,6 +573,9 @@ def define_page(request):
                                                              component__composite_type=SEPARATOR)
                 elif content == 'electrolyte':
                     base_query = CompositeLot.objects.filter(composite__composite_type=ELECTROLYTE)
+
+                elif content == 'electrode':
+                    base_query = CompositeLot.objects.filter(Q(composite__composite_type=ANODE)|Q(composite__composite_type=CATHODE))
 
                 if not base_query.exclude(lot_info=None).filter(
                         lot_info__lot_name=define_lot_form.cleaned_data['lot_name']).exists():
@@ -417,6 +615,11 @@ def define_page(request):
                         )
 
                     if content == 'electrolyte':
+                        CompositeLot.objects.create(
+                            composite=my_content,
+                            lot_info=lot_info
+                        )
+                    if content == 'electrode':
                         CompositeLot.objects.create(
                             composite=my_content,
                             lot_info=lot_info
@@ -483,28 +686,10 @@ def define_page(request):
                 define_lot(request.POST, content='separator_material')
 
         elif ('define_electrode' in request.POST) or ('define_electrode_lot' in request.POST):
-            define_electrode_form = ElectrodeForm(request.POST)
-            if define_electrode_form.is_valid():
-                print(define_electrode_form.cleaned_data)
-                ar['define_electrode_form'] = define_electrode_form
-
-            define_electrode_geometry_form = ElectrodeGeometry(request.POST)
-            if define_electrode_geometry_form.is_valid():
-                print(define_electrode_geometry_form.cleaned_data)
-                ar['define_electrode_geometry_form'] = define_electrode_geometry_form
-
-            electrode_composition_formset = ElectrodeCompositionFormset(request.POST)
-            for form in electrode_composition_formset:
-                validation_step = form.is_valid()
-                if validation_step:
-                    print(form.cleaned_data)
-
-            ar['electrode_composition_formset'] = electrode_composition_formset
-            if 'define_electrode_lot' in request.POST:
-                define_electrode_lot_form = ElectrodeLotForm(request.POST)
-                if define_electrode_lot_form.is_valid():
-                    print(define_electrode_lot_form.cleaned_data)
-                    ar['define_electrode_lot_form'] = define_electrode_lot_form
+            if 'define_electrode' in request.POST:
+                define_simple(request.POST, content='electrode')
+            if 'define_electrode_lot'  in request.POST:
+                define_lot(request.POST, content='electrode')
 
 
         elif ('define_separator' in request.POST) or ('define_separator_lot' in request.POST):

@@ -7,11 +7,14 @@ from django import forms
 import re
 
 
-
-#TODO(sam): separators must have a name, as well as a composition.
-#the name must be unique.
-
-
+#TODO(sam): condense the code!!!
+'''
+DONE - remove all the fields that I don't currently care about.
+- good name generation
+- good uniqueness check.
+- streamline the various definitions into much simpler and unique flows.
+- make the processing specific to machine learning optional.
+'''
 
 #TODO(sam): name proposal
 '''
@@ -395,7 +398,7 @@ def define_page(request):
                                     # For every component, filter electrodes which don't have it.
                                     if not Composite.objects.filter(
                                             composite_type=define_electrode_form.cleaned_data['composite_type'],
-                                            proprietary=True,
+                                            proprietary=False,
                                             name=name
                                     ).exists():
 
@@ -415,7 +418,7 @@ def define_page(request):
                                         )
                                         my_electrode = Composite.objects.create(
                                             composite_type=define_electrode_form.cleaned_data['composite_type'],
-                                            proprietary=True,
+                                            proprietary=False,
                                             name=name,
                                             electrode_geometry=electrode_geometry,
                                         )
@@ -424,7 +427,7 @@ def define_page(request):
                                     else:
                                         my_electrode = Composite.objects.filter(
                                             composite_type=define_electrode_form.cleaned_data['composite_type'],
-                                            proprietary=True,
+                                            proprietary=False,
                                             name=name
                                         )[0]
 
@@ -543,6 +546,158 @@ def define_page(request):
                             return True, my_active_material
             return False, None
 
+        if content=='separator':
+            define_separator_form = SeparatorForm(request.POST, prefix='separator-form')
+            define_separator_geometry_form = SeparatorGeometryForm(request.POST, prefix='separator-geometry-form')
+            if define_separator_form.is_valid():
+                ar['define_separator_form'] = define_separator_form
+                if define_separator_geometry_form.is_valid():
+                    ar['define_separator_geometry_form'] = define_separator_geometry_form
+
+                    if 'name' in define_separator_form.cleaned_data.keys() and \
+                            define_separator_form.cleaned_data['name'] is not None:
+                        name = define_separator_form.cleaned_data['name']
+
+                        if 'proprietary' in define_separator_form.cleaned_data.keys() and \
+                                define_separator_form.cleaned_data['proprietary']:
+
+                            if not Composite.objects.filter(
+                                    composite_type=SEPARATOR,
+                                    proprietary=True,
+                                    name=name
+                                ).exists():
+
+                                separator_geometry = SeparatorGeometry.objects.create(
+                                    base_thickness= define_separator_geometry_form.cleaned_data['base_thickness'],
+                                    width=define_separator_geometry_form.cleaned_data['width'],
+                                    overhang_in_core=define_separator_geometry_form.cleaned_data['overhang_in_core'],
+                                )
+                                my_separator = Composite.objects.create(
+                                        composite_type=SEPARATOR,
+                                        proprietary=True,
+                                        name=name,
+                                        separator_geometry=separator_geometry,
+                                    )
+                            else:
+                                my_separator = Composite.objects.filter(
+                                    composite_type=SEPARATOR,
+                                    proprietary=True,
+                                    name=name
+                                )[0]
+
+                            return True, my_separator
+
+                        else:
+                            separator_composition_formset = SeparatorCompositionFormset(request.POST,
+                                                                                            prefix='separator-composition-formset')
+                            print(separator_composition_formset)
+                            materials = []
+                            materials_lot = []
+                            composite_type = SEPARATOR
+                            for form in separator_composition_formset:
+
+                                validation_step = form.is_valid()
+                                if validation_step:
+                                    print(form.cleaned_data)
+                                    if not 'material' in form.cleaned_data.keys() or not 'material_lot' in form.cleaned_data.keys():
+                                        continue
+                                    if form.cleaned_data['ratio'] is  None or form.cleaned_data['ratio'] <= 0:
+                                        continue
+
+                                    if form.cleaned_data['material'] is not None and form.cleaned_data['material'].composite_type==composite_type:
+                                        materials.append(
+                                            {
+                                                'material': form.cleaned_data['material'],
+                                                'ratio': form.cleaned_data['ratio']
+                                            }
+                                        )
+                                    elif form.cleaned_data['material_lot'] is not None and form.cleaned_data['material_lot'].composite.composite_type==composite_type:
+                                        materials_lot.append(
+                                            {
+                                                'material_lot': form.cleaned_data['material_lot'],
+                                                'ratio': form.cleaned_data['ratio']
+                                            }
+                                        )
+
+                            print(materials)
+                            print(materials_lot)
+
+                            # check if there is a problem with the materials/materials_lot
+                            all_ids = list(map(lambda x: x['material'].id, materials)) + list(
+                                map(lambda x: x['material_lot'].component.id, materials_lot))
+                            if len(set(all_ids)) == len(all_ids):
+                                # normalize things.
+                                total = (sum(map(lambda x: x['ratio'],
+                                                         filter(lambda x: x['material'].component_type == SEPARATOR_MATERIAL, materials)),
+                                                     0.) +
+                                                 sum(map(lambda x: x['ratio'],
+                                                         filter(lambda x: x['material_lot'].component.component_type == SEPARATOR_MATERIAL,
+                                                                materials_lot)), 0.))
+
+                                if total > 0.:
+                                    # create or get each RatioComponent.
+                                    my_ratio_components = []
+                                    for ms, kind in [(materials, 'material'), (materials_lot, 'material_lot')]:
+                                        for material in ms:
+
+                                            ratio = material['ratio'] * 100. / total
+                                            tolerance = 0.25
+
+
+                                            if kind == 'material':
+                                                comp_lot, _ = ComponentLot.objects.get_or_create(
+                                                    lot_info=None,
+                                                    component=material['material']
+                                                )
+                                            elif kind == 'material_lot':
+                                                comp_lot = material['material_lot']
+
+                                            ratio_components = RatioComponent.objects.filter(
+                                                component_lot=comp_lot,
+                                                ratio__range=(ratio - tolerance, ratio + tolerance))
+                                            if ratio_components.exists():
+                                                selected_ratio_component = ratio_components.annotate(
+                                                    distance=Func(F('ratio') - ratio, function='ABS')).order_by('distance')[0]
+                                            else:
+                                                selected_ratio_component = RatioComponent.objects.create(
+                                                    component_lot=comp_lot,
+                                                    ratio=ratio
+                                                )
+
+                                            my_ratio_components.append(selected_ratio_component)
+
+                                    # For every component, filter separators which don't have it.
+                                    if not Composite.objects.filter(
+                                            composite_type=SEPARATOR,
+                                            proprietary=False,
+                                            name=name
+                                    ).exists():
+
+                                        separator_geometry = SeparatorGeometry.objects.create(
+                                            base_thickness=define_separator_geometry_form.cleaned_data[
+                                                'base_thickness'],
+                                            width=define_separator_geometry_form.cleaned_data['width'],
+                                            overhang_in_core=define_separator_geometry_form.cleaned_data[
+                                                'overhang_in_core'],
+                                        )
+                                        my_separator = Composite.objects.create(
+                                            composite_type=SEPARATOR,
+                                            proprietary=False,
+                                            name=name,
+                                            separator_geometry=separator_geometry,
+                                        )
+                                        my_separator.components.set(my_ratio_components)
+
+                                    else:
+                                        my_separator = Composite.objects.filter(
+                                            composite_type=SEPARATOR,
+                                            proprietary=False,
+                                            name=name
+                                        )[0]
+
+                                    ar['separator_composition_formset'] = separator_composition_formset
+                                    return True, my_separator
+            return False, None
 
         if content=='molecule':
             simple_form = ElectrolyteMoleculeForm(post, prefix='electrolyte-molecule-form')
@@ -681,6 +836,11 @@ def define_page(request):
                 post,
                 prefix='electrode-active-material-lot-form'
             )
+        elif content == 'separator':
+            define_lot_form = SeparatorLotForm(
+                post,
+                prefix='separator-lot-form'
+            )
 
 
         if define_lot_form.is_valid():
@@ -710,6 +870,9 @@ def define_page(request):
                     base_query = CompositeLot.objects.filter(Q(composite__composite_type=ANODE)|Q(composite__composite_type=CATHODE))
                 elif content == 'active_material':
                     base_query = ComponentLot.objects.filter(component__component_type=ACTIVE_MATERIAL)
+                elif content == 'separator':
+                    base_query = CompositeLot.objects.filter(composite__composite_type=SEPARATOR)
+
 
                 if not base_query.exclude(lot_info=None).filter(
                         lot_info__lot_name=define_lot_form.cleaned_data['lot_name']).exists():
@@ -761,6 +924,11 @@ def define_page(request):
                     if content == 'active_material':
                         ComponentLot.objects.create(
                             component=my_content,
+                            lot_info=lot_info
+                        )
+                    if content == 'separator':
+                        CompositeLot.objects.create(
+                            composite=my_content,
                             lot_info=lot_info
                         )
 
@@ -817,29 +985,10 @@ def define_page(request):
 
 
         elif ('define_separator' in request.POST) or ('define_separator_lot' in request.POST):
-            define_separator_form = SeparatorForm(request.POST)
-            if define_separator_form.is_valid():
-                print(define_separator_form.cleaned_data)
-                ar['define_separator_form'] = define_separator_form
-
-            define_separator_geometry_form = SeparatorGeometry(request.POST)
-            if define_separator_geometry_form.is_valid():
-                print(define_separator_geometry_form.cleaned_data)
-                ar['define_separator_geometry_form'] = define_separator_geometry_form
-
-            separator_composition_formset = SeparatorCompositionFormset(request.POST)
-            for form in separator_composition_formset:
-                validation_step = form.is_valid()
-                if validation_step:
-                    print(form.cleaned_data)
-
-            ar['separator_composition_formset'] = separator_composition_formset
-
-            if 'define_separator_lot' in request.POST:
-                define_separator_lot_form = SeparatorLotForm(request.POST)
-                if define_separator_lot_form.is_valid():
-                    print(define_separator_lot_form.cleaned_data)
-                    ar['define_separator_lot_form'] = define_separator_lot_form
+            if 'define_separator' in request.POST:
+                define_simple(request.POST, content='separator')
+            if 'define_separator_lot'  in request.POST:
+                define_lot(request.POST, content='separator')
 
         elif ('define_dry_cell' in request.POST) or ('define_dry_cell_lot' in request.POST):
             define_dry_cell_form = DryCellForm(request.POST)

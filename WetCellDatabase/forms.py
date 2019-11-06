@@ -39,7 +39,6 @@ class ElectrodeActiveMaterialForm(ModelForm):
                   'turbostratic_misalignment',
                   'preparation_temperature',
                   'natural',
-                  'core_shell',
                    'notes'
                   ]
 

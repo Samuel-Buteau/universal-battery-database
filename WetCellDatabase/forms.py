@@ -14,7 +14,7 @@ class ElectrolyteMoleculeForm(ModelForm):
         COMPONENT_TYPES))
     class Meta:
         model = Component
-        fields = ['name', 'smiles', 'proprietary']
+        fields = ['name', 'smiles', 'proprietary', 'component_type_name']
 
 
 class ElectrolyteMoleculeLotForm(ModelForm):
@@ -35,11 +35,27 @@ class ElectrodeActiveMaterialForm(ModelForm):
         model = Component
         fields = ['name', 'proprietary',
                   'particle_size',
+                  'particle_size_name',
+
                   'single_crystal',
+                  'single_crystal_name',
+
                   'turbostratic_misalignment',
+                  'turbostratic_misalignment_name',
+
                   'preparation_temperature',
+                  'preparation_temperature_name',
+
                   'natural',
-                   'notes'
+                  'natural_name',
+
+                  'notes',
+                  'notes_name',
+
+                  'composite_type_name',
+                  
+                  'coating_lot_name',
+
                   ]
 
 class ElectrodeActiveMaterialLotForm(ModelForm):
@@ -49,44 +65,42 @@ class ElectrodeActiveMaterialLotForm(ModelForm):
         exclude = []
 
 
-class ElectrodeConductiveAdditiveForm(ModelForm):
+class ElectrodeInactiveForm(ModelForm):
     coating = forms.ModelChoiceField(queryset=Coating.objects.all(), required=False)
     coating_lot = forms.ModelChoiceField(queryset=CoatingLot.objects.exclude(lot_info=None), required=False)
     composite_type = forms.ChoiceField(choices=filter(
         lambda x: x[0] in [ANODE, CATHODE],
         COMPOSITE_TYPES))
+    component_type = forms.ChoiceField(choices=filter(
+        lambda x: x[0] in [CONDUCTIVE_ADDITIVE, BINDER],
+        COMPONENT_TYPES))
+
     class Meta:
         model = Component
         fields = ['name', 'smiles', 'proprietary',
-                   'particle_size', 'preparation_temperature',
-                   'notes'
+
+                  'particle_size',
+                  'particle_size_name',
+
+                  'preparation_temperature',
+                  'preparation_temperature_name',
+
+                  'notes',
+                  'notes_name',
+
+                  'composite_type_name',
+                  'component_type_name',
+
+                  'coating_lot_name',
+
                   ]
 
-class ElectrodeConductiveAdditiveLotForm(ModelForm):
-    predefined_conductive_additive = forms.ModelChoiceField(queryset=Component.objects.filter(component_type=CONDUCTIVE_ADDITIVE), required=False)
+class ElectrodeInactiveLotForm(ModelForm):
+    predefined_conductive_additive = forms.ModelChoiceField(queryset=Component.objects.filter(Q(component_type=CONDUCTIVE_ADDITIVE)|Q(component_type=BINDER)), required=False)
     class Meta:
         model = LotInfo
         exclude = []
 
-
-class ElectrodeBinderForm(ModelForm):
-    coating = forms.ModelChoiceField(queryset=Coating.objects.all(), required=False)
-    coating_lot = forms.ModelChoiceField(queryset=CoatingLot.objects.exclude(lot_info=None), required=False)
-    composite_type = forms.ChoiceField(choices=filter(
-        lambda x: x[0] in [ANODE, CATHODE],
-        COMPOSITE_TYPES))
-    class Meta:
-        model = Component
-        fields = ['name', 'smiles', 'proprietary',
-                   'particle_size', 'preparation_temperature',
-                   'notes'
-                  ]
-
-class ElectrodeBinderLotForm(ModelForm):
-    predefined_binder = forms.ModelChoiceField(queryset=Component.objects.filter(component_type=BINDER), required=False)
-    class Meta:
-        model = LotInfo
-        exclude = []
 
 
 class SeparatorMaterialForm(ModelForm):

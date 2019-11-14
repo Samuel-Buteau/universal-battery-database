@@ -246,7 +246,7 @@ def define_page(request):
                 if content == 'molecule':
                     composite_type = ELECTROLYTE
                     composite_type_name = False
-                if content == 'separator':
+                if content == 'separator_material':
                     composite_type = SEPARATOR
                     composite_type_name = False
 
@@ -261,13 +261,6 @@ def define_page(request):
                     component_type_name = False
 
 
-                coating_lot = get_lot(
-                    simple_form.cleaned_data['coating'],
-                    simple_form.cleaned_data['coating_lot'],
-                    type='coating'
-                )
-
-
 
                 my_component = Component(
                     proprietary = simple_form.cleaned_data['proprietary'],
@@ -276,18 +269,24 @@ def define_page(request):
                     component_type_name=component_type_name,
                     composite_type=composite_type,
                     composite_type_name=composite_type_name,
-                    particle_size=simple_form.cleaned_data['particle_size'],
-                    particle_size_name=simple_form.cleaned_data['particle_size_name'],
-                    preparation_temperature=simple_form.cleaned_data['preparation_temperature'],
-                    preparation_temperature_name=simple_form.cleaned_data[
-                        'preparation_temperature_name'],
-                    notes=simple_form.cleaned_data['notes'],
-                    notes_name=simple_form.cleaned_data['notes_name'],
-                    coating_lot=coating_lot,
-                    coating_lot_name=simple_form.cleaned_data['coating_lot_name'],
-
-
                 )
+
+                if content != 'molecule':
+                    my_component.coating_lot = get_lot(
+                        simple_form.cleaned_data['coating'],
+                        simple_form.cleaned_data['coating_lot'],
+                        type='coating'
+                    )
+                    my_component.particle_size = simple_form.cleaned_data['particle_size']
+                    my_component.particle_size_name = simple_form.cleaned_data['particle_size_name']
+                    my_component.preparation_temperature = simple_form.cleaned_data['preparation_temperature']
+                    my_component.preparation_temperature_name = simple_form.cleaned_data[
+                                                       'preparation_temperature_name']
+                    my_component.notes = simple_form.cleaned_data['notes']
+                    my_component.notes_name = simple_form.cleaned_data['notes_name']
+                    my_component.coating_lot_name = simple_form.cleaned_data['coating_lot_name']
+
+
                 if content == 'active_material':
                     my_component.single_crystal = simple_form.cleaned_data['single_crystal']
                     my_component.single_crystal_name = simple_form.cleaned_data['single_crystal_name']
@@ -319,13 +318,10 @@ def define_page(request):
                                         'stochiometry': form.cleaned_data['stochiometry']
                                     }
                                 )
-
-
+                    print(atoms)
                 return my_component.define_if_possible(
                     atoms=atoms,
                 )
-
-
 
         if content == 'coating':
             simple_form = CoatingForm(post, prefix='coating-form')
@@ -364,8 +360,6 @@ def define_page(request):
                 post,
                 prefix='electrode-inactive-lot-form'
             )
-
-
         elif content == 'separator_material':
             define_lot_form = SeparatorMaterialLotForm(
                 post,
@@ -392,7 +386,6 @@ def define_page(request):
                 prefix='separator-lot-form'
             )
 
-
         if define_lot_form.is_valid():
             ar[define_lot_form_string] = define_lot_form
             if define_lot_form.cleaned_data[predefined_string] is not None:
@@ -410,10 +403,9 @@ def define_page(request):
                     base_query = ComponentLot.objects.filter(Q(composite__composite_type=CONDUCTIVE_ADDITIVE)|Q(composite__composite_type=BINDER))
                 elif content == 'separator_material':
                     base_query = ComponentLot.objects.filter(component__component_type=SEPARATOR_MATERIAL,
-                                                             component__composite_type=SEPARATOR)
+                                                            component__composite_type=SEPARATOR)
                 elif content == 'electrolyte':
                     base_query = CompositeLot.objects.filter(composite__composite_type=ELECTROLYTE)
-
                 elif content == 'electrode':
                     base_query = CompositeLot.objects.filter(Q(composite__composite_type=ANODE)|Q(composite__composite_type=CATHODE))
                 elif content == 'active_material':
@@ -423,10 +415,8 @@ def define_page(request):
 
                 if not base_query.exclude(lot_info=None).filter(
                         lot_info__lot_name=define_lot_form.cleaned_data['lot_name']).exists():
-                    print('reached the end')
                     lot_info = LotInfo(
                         lot_name=define_lot_form.cleaned_data['lot_name'],
-                        creation_date=define_lot_form.cleaned_data['creation_date'],
                         creator=define_lot_form.cleaned_data['creator'],
                         vendor=define_lot_form.cleaned_data['vendor'],
                     )
@@ -451,7 +441,6 @@ def define_page(request):
                             component=my_content,
                             lot_info=lot_info
                         )
-
                     if content == 'electrolyte':
                         CompositeLot.objects.create(
                             composite=my_content,
@@ -474,56 +463,14 @@ def define_page(request):
                         )
 
     if request.method == 'POST':
-        if ('define_molecule' in request.POST) or ('define_molecule_lot' in request.POST):
-            if 'define_molecule' in request.POST:
-                define_simple(request.POST, content='molecule')
-            if 'define_molecule_lot' in request.POST:
-                define_lot(request.POST, content='molecule')
+        for m in ['molecule', 'coating', 'inactive', 'electrolyte', 'active_material', 'separator_material','electrode','separator']:
+            if ('define_{}'.format(m) in request.POST) or ('define_{}_lot'.format(m) in request.POST):
+                if 'define_{}'.format(m) in request.POST:
+                    print(define_simple(request.POST, content=m))
+                if 'define_{}_lot'.format(m) in request.POST:
+                    define_lot(request.POST, content=m)
 
-        elif ('define_coating' in request.POST) or ('define_coating_lot' in request.POST):
-            if 'define_coating' in request.POST:
-                define_simple(request.POST, content='coating')
-            if 'define_coating_lot' in request.POST:
-                define_lot(request.POST, content='coating')
-
-        elif ('define_inactive' in request.POST) or ('define_inactive_lot' in request.POST):
-            if 'define_inactive' in request.POST:
-                define_simple(request.POST, content='inactive')
-            if 'define_inactive_lot' in request.POST:
-                define_lot(request.POST, content='inactive')
-
-        elif ('define_electrolyte' in request.POST) or ('define_electrolyte_lot' in request.POST):
-            if 'define_electrolyte' in request.POST:
-                define_simple(request.POST, content='electrolyte')
-            if 'define_electrolyte_lot' in request.POST:
-                define_lot(request.POST, content='electrolyte')
-
-        elif ('define_active_material' in request.POST) or ('define_active_material_lot' in request.POST):
-            if 'define_active_material' in request.POST:
-                define_simple(request.POST, content='active_material')
-            if 'define_active_material_lot' in request.POST:
-                define_lot(request.POST, content='active_material')
-
-        elif ('define_separator_material' in request.POST) or ('define_separator_material_lot' in request.POST):
-            if 'define_separator_material' in request.POST:
-                define_simple(request.POST, content='separator_material')
-            if 'define_separator_material_lot'  in request.POST:
-                define_lot(request.POST, content='separator_material')
-
-        elif ('define_electrode' in request.POST) or ('define_electrode_lot' in request.POST):
-            if 'define_electrode' in request.POST:
-                define_simple(request.POST, content='electrode')
-            if 'define_electrode_lot'  in request.POST:
-                define_lot(request.POST, content='electrode')
-
-
-        elif ('define_separator' in request.POST) or ('define_separator_lot' in request.POST):
-            if 'define_separator' in request.POST:
-                define_simple(request.POST, content='separator')
-            if 'define_separator_lot'  in request.POST:
-                define_lot(request.POST, content='separator')
-
-        elif ('define_dry_cell' in request.POST) or ('define_dry_cell_lot' in request.POST):
+        if ('define_dry_cell' in request.POST) or ('define_dry_cell_lot' in request.POST):
             define_dry_cell_form = DryCellForm(request.POST)
             if define_dry_cell_form.is_valid():
                 print(define_dry_cell_form.cleaned_data)
@@ -544,7 +491,6 @@ def define_page(request):
             if define_wet_cell_form.is_valid():
                 print(define_wet_cell_form.cleaned_data)
                 ar['define_wet_cell_form'] = define_wet_cell_form
-
 
     return render(request, 'WetCellDatabase/define_page.html', ar)
 

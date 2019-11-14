@@ -177,7 +177,7 @@ class ElectrodeGeometryForm(ModelForm):
 
 
 class ElectrodeMaterialStochiometryForm(Form):
-    atom = forms.ChoiceField(choices=ElectrodeMaterialStochiometry.ATOMS, required=False)
+    atom = forms.ChoiceField(choices=ElectrodeMaterialStochiometry.ATOMS + [(None,'-------')], required=False)
     stochiometry = forms.FloatField(required=False)
 
 

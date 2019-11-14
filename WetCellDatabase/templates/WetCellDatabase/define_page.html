@@ -118,26 +118,15 @@ table, th, td {
         {% endif %}
 
         {% if define_conductive_additive_form %}
-            <h4>Conductive Additive</h4>
-                <table>{{ define_conductive_additive_form.as_table }}</table>
-            <input type="submit" name = 'define_conductive_additive' value="Define Conductive Additive">
-            {% if define_conductive_additive_lot_form %}
-
-            <table>{{ define_conductive_additive_lot_form.as_table }}</table>
-            <input type="submit" name = 'define_conductive_additive_lot' value="Define Conductive Additive Lot">
-        {% endif %}
-        {% endif %}
-
-        {% if define_binder_form %}
-            <h4>Binder</h4>
-                <table>{{ define_binder_form.as_table }}</table>
-            <input type="submit" name = 'define_binder' value="Define Binder">
-            {% if define_binder_lot_form %}
-
-                <table>{{ define_binder_lot_form.as_table }}</table>
-                <input type="submit" name = 'define_binder_lot' value="Define Binder Lot">
+            <h4>Inactive Material</h4>
+                <table>{{ define_inactive_form.as_table }}</table>
+            <input type="submit" name = 'define_inactive' value="Define Inactive Material">
+            {% if define_inactive_lot_form %}
+                <table>{{ define_inactive_lot_form.as_table }}</table>
+                <input type="submit" name = 'define_inactive_lot' value="Define Inactive Material Lot">
             {% endif %}
         {% endif %}
+
 
         <h3>Electrode:</h3>
         {% if define_electrode_form %}

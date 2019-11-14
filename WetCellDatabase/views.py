@@ -10,10 +10,12 @@ import re
 #TODO(sam): condense the code!!!
 '''
 DONE - remove all the fields that I don't currently care about.
-- good name generation
+DONE - good name generation
 - good uniqueness check.
 - streamline the various definitions into much simpler and unique flows.
 - make the processing specific to machine learning optional.
+- bake a tensor instead of having to use the database all the time.
+
 '''
 
 #TODO(sam): name proposal
@@ -79,14 +81,12 @@ def define_page(request):
     ar['define_coating_form'] = CoatingForm(prefix='coating-form')
     ar['define_coating_lot_form'] = CoatingLotForm(prefix='coating-lot-form')
 
-    ar['define_conductive_additive_form'] = ElectrodeConductiveAdditiveForm(prefix='electrode-conductive-additive-form')
-    ar['define_conductive_additive_lot_form'] = ElectrodeConductiveAdditiveLotForm(prefix='electrode-conductive-additive-lot-form')
+    ar['define_inactive_form'] = ElectrodeInactiveForm(prefix='electrode-inactive-form')
+    ar['define_inactive_lot_form'] = ElectrodeInactiveLotForm(prefix='electrode-inactive-lot-form')
 
     ar['define_active_material_form'] = ElectrodeActiveMaterialForm(prefix='electrode-active-material-form')
     ar['define_active_material_lot_form'] = ElectrodeActiveMaterialLotForm(prefix='electrode-active-material-lot-form')
 
-    ar['define_binder_form'] = ElectrodeBinderForm(prefix='electrode-binder-form')
-    ar['define_binder_lot_form'] = ElectrodeBinderLotForm(prefix='electrode-binder-lot-form')
 
     ar['define_separator_material_form'] = SeparatorMaterialForm(prefix='separator-material-form')
     ar['define_separator_material_lot_form'] = SeparatorMaterialLotForm(prefix='separator-material-lot-form')
@@ -437,7 +437,6 @@ def define_page(request):
             return False, None
 
         if content=='active_material':
-            print('got it 1')
             define_active_material_form = ElectrodeActiveMaterialForm(request.POST, prefix='electrode-active-material-form')
             if define_active_material_form.is_valid():
                 ar['define_active_material_form'] = define_active_material_form
@@ -513,9 +512,10 @@ def define_page(request):
                                     name=name,
                                     component_type=ACTIVE_MATERIAL
                             ).exists():
-                                coating_lot = get_coating_lot(
+                                coating_lot = get_lot(
                                     define_active_material_form.cleaned_data['coating'],
-                                    define_active_material_form.cleaned_data['coating_lot']
+                                    define_active_material_form.cleaned_data['coating_lot'],
+                                    type='coating'
                                 )
                                 my_active_material = Component.objects.create(
                                     composite_type=define_active_material_form.cleaned_data['composite_type'],
@@ -703,13 +703,10 @@ def define_page(request):
             simple_form = ElectrolyteMoleculeForm(post, prefix='electrolyte-molecule-form')
         elif content=='coating':
             simple_form = CoatingForm(post, prefix='coating-form')
-        elif content=='conductive_additive':
-            simple_form = ElectrodeConductiveAdditiveForm(request.POST, prefix='electrode-conductive-additive-form')
-        elif content == 'binder':
-            simple_form = ElectrodeConductiveAdditiveForm(request.POST, prefix='electrode-binder-form')
+        elif content=='inactive':
+            simple_form = ElectrodeInactiveForm(request.POST, prefix='electrode-inactive-form')
         elif content == 'separator_material':
             simple_form = SeparatorMaterialForm(request.POST, prefix='separator-material-form')
-
 
         simple_form_string = 'define_{}_form'.format(content)
 
@@ -734,11 +731,11 @@ def define_page(request):
                             'proprietary':simple_form.cleaned_data['proprietary'],
                         }
                     )
-                elif content=='conductive_additive':
-                    coating_lot = get_coating_lot(simple_form.cleaned_data['coating'], simple_form.cleaned_data['coating_lot'])
+                elif content=='inactive':
+                    coating_lot = get_lot(simple_form.cleaned_data['coating'], simple_form.cleaned_data['coating_lot'], type='coating')
                     my_content, _ = Component.objects.get_or_create(
                         name=simple_form.cleaned_data['name'],
-                        component_type=CONDUCTIVE_ADDITIVE,
+                        component_type=simple_form.cleaned_data['component_type'],
                         composite_type= simple_form.cleaned_data['composite_type'],
                         defaults={
                             'smiles': simple_form.cleaned_data['smiles'],
@@ -749,27 +746,9 @@ def define_page(request):
                             'coating_lot': coating_lot,
                         }
                     )
-
-                elif content == 'binder':
-                    coating_lot = get_coating_lot(simple_form.cleaned_data['coating'],
-                                                  simple_form.cleaned_data['coating_lot'])
-                    my_content, _ = Component.objects.get_or_create(
-                        name=simple_form.cleaned_data['name'],
-                        component_type=BINDER,
-                        composite_type=simple_form.cleaned_data['composite_type'],
-                        defaults={
-                            'smiles': simple_form.cleaned_data['smiles'],
-                            'proprietary': simple_form.cleaned_data['proprietary'],
-                            'particle_size': simple_form.cleaned_data['particle_size'],
-                            'preparation_temperature': simple_form.cleaned_data['preparation_temperature'],
-                            'notes': simple_form.cleaned_data['notes'],
-                            'coating_lot': coating_lot,
-                        }
-                    )
-
                 elif content == 'separator_material':
-                    coating_lot = get_coating_lot(simple_form.cleaned_data['coating'],
-                                                  simple_form.cleaned_data['coating_lot'])
+                    coating_lot = get_lot(simple_form.cleaned_data['coating'],
+                                                  simple_form.cleaned_data['coating_lot'], type='coating')
                     my_content, _ = Component.objects.get_or_create(
                         name=simple_form.cleaned_data['name'],
                         component_type=SEPARATOR_MATERIAL,
@@ -804,17 +783,12 @@ def define_page(request):
                 post,
                 prefix='coating-lot-form'
             )
-        elif content == 'conductive_additive':
-            define_lot_form = ElectrodeConductiveAdditiveLotForm(
+        elif content == 'inactive':
+            define_lot_form = ElectrodeInactiveLotForm(
                 post,
-                prefix='electrode-conductive-additive-lot-form'
+                prefix='electrode-inactive-lot-form'
             )
 
-        elif content == 'binder':
-            define_lot_form = ElectrodeBinderLotForm(
-                post,
-                prefix='electrode-binder-lot-form'
-            )
 
         elif content == 'separator_material':
             define_lot_form = SeparatorMaterialLotForm(
@@ -856,10 +830,8 @@ def define_page(request):
                     base_query = ComponentLot.objects.filter(component__composite_type=ELECTROLYTE)
                 elif content == 'coating':
                     base_query = CoatingLot.objects
-                elif content == 'conductive_additive':
-                    base_query = ComponentLot.objects.filter(component__component_type=CONDUCTIVE_ADDITIVE)
-                elif content == 'binder':
-                    base_query = ComponentLot.objects.filter(component__component_type=BINDER)
+                elif content == 'inactive':
+                    base_query = ComponentLot.objects.filter(Q(composite__composite_type=CONDUCTIVE_ADDITIVE)|Q(composite__composite_type=BINDER))
                 elif content == 'separator_material':
                     base_query = ComponentLot.objects.filter(component__component_type=SEPARATOR_MATERIAL,
                                                              component__composite_type=SEPARATOR)
@@ -872,7 +844,6 @@ def define_page(request):
                     base_query = ComponentLot.objects.filter(component__component_type=ACTIVE_MATERIAL)
                 elif content == 'separator':
                     base_query = CompositeLot.objects.filter(composite__composite_type=SEPARATOR)
-
 
                 if not base_query.exclude(lot_info=None).filter(
                         lot_info__lot_name=define_lot_form.cleaned_data['lot_name']).exists():
@@ -894,17 +865,11 @@ def define_page(request):
                             coating=my_content,
                             lot_info=lot_info
                         )
-                    if content == 'conductive_additive':
+                    if content == 'inactive':
                         ComponentLot.objects.create(
                             component=my_content,
                             lot_info=lot_info
                         )
-                    if content == 'binder':
-                        ComponentLot.objects.create(
-                            component=my_content,
-                            lot_info=lot_info
-                        )
-
                     if content == 'separator_material':
                         ComponentLot.objects.create(
                             component=my_content,
@@ -945,18 +910,11 @@ def define_page(request):
             if 'define_coating_lot' in request.POST:
                 define_lot(request.POST, content='coating')
 
-        elif ('define_conductive_additive' in request.POST) or ('define_conductive_additive_lot' in request.POST):
-            if 'define_conductive_additive' in request.POST:
-                define_simple(request.POST, content='conductive_additive')
-            if 'define_conductive_additive_lot' in request.POST:
-                define_lot(request.POST, content='conductive_additive')
-
-        elif ('define_binder' in request.POST) or ('define_binder_lot' in request.POST):
-            if 'define_binder' in request.POST:
-                define_simple(request.POST, content='binder')
-            if 'define_binder_lot' in request.POST:
-                define_lot(request.POST, content='binder')
-
+        elif ('define_inactive' in request.POST) or ('define_inactive_lot' in request.POST):
+            if 'define_inactive' in request.POST:
+                define_simple(request.POST, content='inactive')
+            if 'define_inactive_lot' in request.POST:
+                define_lot(request.POST, content='inactive')
 
         elif ('define_electrolyte' in request.POST) or ('define_electrolyte_lot' in request.POST):
             if 'define_electrolyte' in request.POST:

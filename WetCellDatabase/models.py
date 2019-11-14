@@ -6,7 +6,11 @@ import re
 
 
 def determine_digits(num):
-    return max(int(-(numpy.floor(numpy.log(num) / numpy.log(10.)) - 1)), 0)
+    dig = max(int(-(numpy.floor(numpy.log(num) / numpy.log(10.)) - 1)), 0)
+    if (round(num*(10**dig)) % 10) ==0 and dig > 0:
+        dig = dig -1
+
+    return dig
 
 def print_digits(num, digits=None):
     if digits is None:
@@ -213,8 +217,9 @@ def helper_return(
         if my_ratio_components is not None:
             my_self.components.set(my_ratio_components)
         if my_stochiometry_components is not None:
+            print(my_stochiometry_components)
             my_self.stochiometry.set(my_stochiometry_components)
-
+            print(my_self.stochiometry)
         return my_self
 
     else:
@@ -327,7 +332,9 @@ class Component(models.Model):
            value fields DO exist and same naming subset:
            return Instance
         """
+        print('entered define if possible')
         if not self.is_valid():
+            print('was invalid')
             return None
         wrt_query = Q(name=self.name, proprietary=self.proprietary, smiles=self.smiles)
         if self.composite_type_name:
@@ -379,11 +386,12 @@ class Component(models.Model):
         )
 
 
-        if self.proprietary or self.composite_type != ACTIVE_MATERIAL:
+        if self.proprietary or self.component_type != ACTIVE_MATERIAL:
+            print("was proprietary or not active: {}, {}".format(self.proprietary, self.composite_type))
             set_of_candidates = Component.objects.filter(wrt_query)
             set_of_valid_duplicates = Component.objects.filter(duplicate_query & naming_set_query)
 
-            helper_return(
+            return helper_return(
                 set_of_candidates=set_of_candidates,
                 set_of_valid_duplicates=set_of_valid_duplicates,
                 my_self=self)
@@ -393,9 +401,12 @@ class Component(models.Model):
         # we currently assume that if we create a stochiometry,
         # then we will create an active material.
         # if this becomes false, it will be necessary to cleanup after we are done.
+        #TODO(sam): maybe we want uniform scaling of stochiometry to mean nothing.
+        # In such a case, there will be an issue.
         else:
             all_ids = list(map(lambda x: x['atom'], atoms))
             if len(set(all_ids)) != len(all_ids):
+                print('atoms were not unique')
                 return None
             else:
                 tolerance = 0.01
@@ -418,7 +429,7 @@ class Component(models.Model):
 
                     my_stochiometry_components.append(selected_stochiometry_component)
 
-
+                print('gathered the following stochiometry:', my_stochiometry_components)
                 set_with_valid_stoc = Component.objects.annotate(
                     count_stochiometry=Count('stochiometry')
                 ).filter(count_stochiometry=len(my_stochiometry_components)
@@ -429,7 +440,7 @@ class Component(models.Model):
                 set_of_candidates = set_with_valid_stoc.filter(wrt_query)
                 set_of_valid_duplicates = set_with_valid_stoc.filter(duplicate_query & naming_set_query)
 
-                helper_return(
+                return helper_return(
                     set_of_candidates=set_of_candidates,
                     set_of_valid_duplicates=set_of_valid_duplicates,
                     my_self=self,
@@ -438,12 +449,10 @@ class Component(models.Model):
 
 
     def print_stochiometry(self):
-        if len(self.stochiometry) == 1:
-            return self.stochiometry[0].atom
-        elif len(self.stochiometry) >1:
-            list_of_stochiometry = [stoc for stoc in self.stochiometry]
+        if self.stochiometry.count() >=1:
+            list_of_stochiometry =list(self.stochiometry.order_by('-stochiometry'))
             digit = max(map(lambda stoc: determine_digits(stoc.stochiometry), list_of_stochiometry))
-            return ' '.join([stoc.pretty_print(digits=digit) for stoc in self.stochiometry.order_by('stochiometry')])
+            return ' '.join([stoc.pretty_print(digits=digit) for stoc in self.stochiometry.order_by('-stochiometry')])
         else:
             return ''
 
@@ -461,16 +470,16 @@ class Component(models.Model):
 
         if self.single_crystal_name:
             if self.single_crystal:
-                single_crystal = 'Mono'
+                single_crystal = 'SC'
             else:
-                single_crystal = 'Poly'
-            extras.append("CRYSTAL={}".format(single_crystal))
+                single_crystal = 'POLY'
+            extras.append("{}".format(single_crystal))
 
         if self.natural_name:
             if self.natural:
-                natural = 'Natural'
+                natural = 'NAT'
             else:
-                natural = 'Artificial'
+                natural = 'ART'
             extras.append(natural)
 
 
@@ -543,7 +552,7 @@ class RatioComponent(models.Model):
         return my_string.format(print_digits(self.ratio, digits), self.component_lot.__str__())
 
     def __str__(self):
-        return self.pretty_print()
+        return self.pretty_print(digits=2)
 
 def helper_component_type(x, type=None):
     if type == 'component':
@@ -705,7 +714,7 @@ class Composite(models.Model):
             set_of_candidates = Composite.objects.filter(wrt_query)
             set_of_valid_duplicates = Composite.objects.filter(duplicate_query & naming_set_query)
 
-            helper_return(
+            return helper_return(
                 set_of_candidates=set_of_candidates,
                 set_of_valid_duplicates=set_of_valid_duplicates,
                 my_self=self,
@@ -805,7 +814,7 @@ class Composite(models.Model):
                     set_of_candidates = set_with_valid_comp.filter(wrt_query)
                     set_of_valid_duplicates = set_with_valid_comp.filter(duplicate_query & naming_set_query)
 
-                    helper_return(
+                    return helper_return(
                         set_of_candidates=set_of_candidates,
                         set_of_valid_duplicates=set_of_valid_duplicates,
                         my_self=self,

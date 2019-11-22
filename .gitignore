@@ -12,3 +12,4 @@ neware_parser/config.ini
 *.iml
 .idea/UniversalBatteryDatabase.iml
 full_reload_private_prefix.bat
+compiled*

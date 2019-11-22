@@ -18,6 +18,8 @@ def print_digits(num, digits=None):
 
     format_str = '{:2.' +str(digits) +'f}'
     if digits == 0:
+        if str(int(num)) == '1':
+            return ''
         return str(int(num))
     else:
         return format_str.format(num)
@@ -547,9 +549,12 @@ class RatioComponent(models.Model):
 
     def pretty_print(self, digits=None):
         my_string = '{}%{}'
+        pd = print_digits(self.ratio, digits)
         if self.component_lot.component.component_type == SALT:
             my_string = '{}m{}'
-        return my_string.format(print_digits(self.ratio, digits), self.component_lot.__str__())
+            if pd == '':
+                pd = '1'
+        return my_string.format(pd, self.component_lot.__str__())
 
     def __str__(self):
         return self.pretty_print(digits=2)

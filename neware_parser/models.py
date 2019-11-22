@@ -211,18 +211,6 @@ class CyclingFile(models.Model):
     import_time = models.DateTimeField(default=datetime.datetime(1970, 1, 1))
     process_time = models.DateTimeField(default=datetime.datetime(1970, 1, 1))
 
-    uniform_voltages = models.BinaryField(null=True)
-
-    def get_uniform_voltages(self):
-        return pickle.loads(base64.decodebytes(self.uniform_voltages))
-
-    def set_uniform_voltages(self, uniform_voltages):
-        np_bytes = pickle.dumps(uniform_voltages)
-        np_base64 = base64.b64encode(np_bytes)
-        self.uniform_voltages = np_base64
-
-
-
 
     def get_cycles_array(self, fil=Q()):
         return numpy.array(
@@ -307,6 +295,13 @@ class Cycle(models.Model):
         """
         return float(self.cycling_file.database_file.valid_metadata.start_cycle) + self.cycle_number
 
+    def get_temperature(self):
+        """
+        Really important that this only be called when the file is known to be valid!!!
+        """
+        return float(self.cycling_file.database_file.valid_metadata.temperature)
+
+
     group = models.ForeignKey(CycleGroup, null=True, on_delete=models.SET_NULL)
     valid_cycle = models.BooleanField(default=True)
 
@@ -331,20 +326,6 @@ class Cycle(models.Model):
     dchg_minimum_current = models.FloatField(null=True)
     dchg_maximum_current = models.FloatField(null=True)
     dchg_duration = models.FloatField(null=True)
-
-    discharge_curve_minimum_voltage = models.FloatField(null=True)
-    discharge_curve_maximum_voltage = models.FloatField(null=True)
-    '''
-    the numpy array has the capacity and the mask vs. index which matches the uniform_voltage of the cycling_file.
-    '''
-    discharge_curve = models.BinaryField(null=True)
-    def get_discharge_curve(self):
-        return pickle.loads(base64.decodebytes(self.discharge_curve))
-    def set_discharge_curve(self, discharge_curve):
-        np_bytes = pickle.dumps(discharge_curve)
-        np_base64 = base64.b64encode(np_bytes)
-        self.discharge_curve = np_base64
-
 
 class Step(models.Model):
     cycle = models.ForeignKey(Cycle, on_delete=models.CASCADE)

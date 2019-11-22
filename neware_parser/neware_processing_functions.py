@@ -16,7 +16,7 @@ import math
 from background_task import background
 
 halifax_timezone = pytz.timezone("America/Halifax")
-UNIFORM_VOLTAGES = .05 * numpy.array(range(2 * 30, 2 * 46))
+
 
 
 import FileNameHelper.models as filename_models
@@ -387,8 +387,6 @@ def import_single_file(database_file, DEBUG=False):
 
     with transaction.atomic():
         f, created = CyclingFile.objects.get_or_create(database_file=database_file)
-        if created:
-            f.set_uniform_voltages(UNIFORM_VOLTAGES)
 
         def get_last_cycle():
             if f.cycle_set.exists():
@@ -603,8 +601,8 @@ def process_barcode(barcode, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
 
                     math.log(1e-10 + cyc.chg_total_capacity),  # charge capacity
                     math.log(1e-10 + cyc.dchg_total_capacity),  # discharge capacity
-                    cyc.discharge_curve_minimum_voltage,
-                    cyc.discharge_curve_maximum_voltage,
+                    cyc.dchg_minimum_voltage,
+                    cyc.dchg_maximum_voltage,
                 )
             )
 
@@ -751,8 +749,7 @@ def process_single_file(f,DEBUG=False):
     def thing_to_try():
         with transaction.atomic():
             if f.process_time <= f.import_time:
-                # must process the step data to summarize it.
-                uniform_voltages = f.get_uniform_voltages()
+                # must process the step data to summarize i
                 for cyc in f.cycle_set.filter(processed=False):
 
                     for step in cyc.step_set.all():
@@ -922,159 +919,6 @@ def process_single_file(f,DEBUG=False):
                         cyc.delete()
                         continue
 
-                    steps = cyc.step_set.filter(step_type__contains='DChg').order_by('cycle__cycle_number','step_number')
-                    if len(steps) == 0:
-                        cyc.delete()
-                        continue
-                    else:
-                        first_step = steps[0]
-                        vcqt_curve = first_step.get_v_c_q_t_data()
-                        v_min = first_step.minimum_voltage
-                        v_max = first_step.maximum_voltage
-                        curve = vcqt_curve[:, [0, 2]]
-
-                    cursor = numpy.array([-1, len(curve)], dtype=numpy.int32)
-                    limits_v = numpy.array([10., -10.], dtype=numpy.float32)
-                    limits_q = numpy.array([-10, 1e6], dtype=numpy.float32)
-                    masks = numpy.zeros(len(curve), dtype=numpy.bool)
-
-                    never_added_up = True
-                    never_added_down = True
-                    if len(curve) < 3:
-                        cyc.delete()
-                        continue
-
-                    while True:
-                        if cursor[0] + 1 >= cursor[1]:
-                            break
-
-                        can_add_upward = False
-                        delta_upward = 0.
-                        can_add_downward = False
-                        delta_downward = 0.
-
-                        # Test upward addition
-                        dv1 = limits_v[0] - curve[cursor[0] + 1, 0]
-                        dq1 = curve[cursor[0] + 1, 1] - limits_q[0]
-                        dv2 = curve[cursor[0] + 1, 0] - limits_v[1]
-                        dq2 = limits_q[1] - curve[cursor[0] + 1, 1]
-
-                        if dv1 >= 0.0001 and dq1 >= -0.001 and dv2 >= 0.0001 and dq2 >= -0.001:
-
-                            delta_upward = dv1 + dq1 / 100.
-                            if dq1 < 0.0001:
-                                dq1 = 0.0001
-                            delta_upward += abs(dv1) / dq1
-                            if abs(dv1) / dq1 < 10.:
-                                if never_added_up:
-                                    dv1 = curve[cursor[0] + 1, 0] - curve[cursor[0] + 2, 0]
-                                    dq1 = curve[cursor[0] + 2, 1] - curve[cursor[0] + 1, 1]
-                                    if dv1 >= -0.001 and dq1 >= -0.001:
-                                        can_add_upward = True
-                                else:
-                                    can_add_upward = True
-
-                        # Test downward addition
-                        dv1 = limits_v[0] - curve[cursor[1] - 1, 0]
-                        dq1 = curve[cursor[1] - 1, 1] - limits_q[0]
-                        dv2 = curve[cursor[1] - 1, 0] - limits_v[1]
-                        dq2 = limits_q[1] - curve[cursor[1] - 1, 1]
-
-                        if dv1 >= 0.0001 and dq1 >= -0.001 and dv2 >= 0.0001 and dq2 >= -0.001:
-
-                            delta_downward = dv2 + dq2 / 100.
-
-                            if dq2 < 0.0001:
-                                dq2 = 0.0001
-                            delta_upward += abs(dv2) / dq2
-                            if abs(dv2) / dq2 < 10.:
-                                if never_added_down:
-                                    dv2 = curve[cursor[1] - 2, 0] - curve[cursor[1] - 1, 0]
-                                    dq2 = curve[cursor[1] - 1, 1] - curve[cursor[1] - 2, 1]
-                                    if dv2 >= -0.001 and dq2 >= -0.001:
-                                        can_add_downward = True
-                                else:
-                                    can_add_downward = True
-
-                        if not can_add_upward and not can_add_downward:
-                            cursor[0] += 1
-                            cursor[1] += -1
-                            continue
-
-                        if can_add_upward and can_add_downward:
-                            if delta_upward > delta_downward:
-                                my_add = 'Down'
-                            else:
-                                my_add = 'Up'
-
-                        elif can_add_upward and not can_add_downward:
-                            my_add = 'Up'
-                        elif not can_add_upward and can_add_downward:
-                            my_add = 'Down'
-
-                        if my_add == 'Up':
-                            never_added_up = False
-                            masks[cursor[0] + 1] = True
-                            limits_v[0] = min(limits_v[0], curve[cursor[0] + 1, 0])
-                            limits_q[0] = max(limits_q[0], curve[cursor[0] + 1, 1])
-
-                            cursor[0] += 1
-
-                        elif my_add == 'Down':
-                            never_added_down = False
-                            masks[cursor[1] - 1] = True
-                            limits_v[1] = max(limits_v[1], curve[cursor[1] - 1, 0])
-                            limits_q[1] = min(limits_q[1], curve[cursor[1] - 1, 1])
-
-                            cursor[1] += -1
-
-                    valid_curve = curve[masks]
-                    invalid_curve = curve[~masks]
-                    if len(invalid_curve) > 5:
-                        cyc.delete()
-                        continue
-
-                    # uniformly sample it
-
-                    v = valid_curve[:, 0]
-                    q = valid_curve[:, 1]
-
-                    sorted_ind = numpy.argsort(v)
-                    v = v[sorted_ind]
-                    q = q[sorted_ind]
-
-                    last = v[-1]
-
-                    added_v = numpy.arange(last + 0.01, 4.6, 0.01)
-                    added_q = 0. * numpy.arange(last + 0.01, 4.6, 0.01)
-                    v = numpy.concatenate((v, added_v), axis=0)
-                    q = numpy.concatenate((q, added_q), axis=0)
-                    spline = PchipInterpolator(v, q)
-                    res = spline(uniform_voltages)
-
-                    if not is_monotonically_decreasing(res):
-                        cyc.delete()
-                        continue
-
-                    cyc.discharge_curve_minimum_voltage = v_min
-                    cyc.discharge_curve_maximum_voltage = v_max
-                    cyc.set_discharge_curve(
-                        numpy.stack(
-                            (
-                                res,  # charge curve
-                                numpy.where(
-                                    numpy.logical_and(
-                                        uniform_voltages <= v_min,
-                                        uniform_voltages >= v_max
-                                    ),
-                                    numpy.ones(len(uniform_voltages), dtype=numpy.float32),
-                                    0.001 * numpy.ones(len(uniform_voltages), dtype=numpy.float32),
-                                )
-                            ),
-                            axis=1
-                        )
-                    )
-
                     cyc.processed = True
                     cyc.save()
 
@@ -1100,6 +944,154 @@ def process_single_file(f,DEBUG=False):
     # after all processing.
     error_message['error'] = False
     return error_message
+
+def machine_learning_post_process_cycle(cyc, voltage_grid):
+    #TODO(sam): add option to compute the charge curve too.
+    steps = cyc.step_set.filter(step_type__contains='DChg').order_by('cycle__cycle_number','step_number')
+    if len(steps) == 0:
+        return None, None
+    else:
+        first_step = steps[0]
+        vcqt_curve = first_step.get_v_c_q_t_data()
+        v_min = first_step.minimum_voltage
+        v_max = first_step.maximum_voltage
+        curve = vcqt_curve[:, [0, 2]]
+
+    cursor = numpy.array([-1, len(curve)], dtype=numpy.int32)
+    limits_v = numpy.array([10., -10.], dtype=numpy.float32)
+    limits_q = numpy.array([-10, 1e6], dtype=numpy.float32)
+    masks = numpy.zeros(len(curve), dtype=numpy.bool)
+
+    never_added_up = True
+    never_added_down = True
+    if len(curve) < 3:
+        return None, None
+
+    while True:
+        if cursor[0] + 1 >= cursor[1]:
+            break
+
+        can_add_upward = False
+        delta_upward = 0.
+        can_add_downward = False
+        delta_downward = 0.
+
+        # Test upward addition
+        dv1 = limits_v[0] - curve[cursor[0] + 1, 0]
+        dq1 = curve[cursor[0] + 1, 1] - limits_q[0]
+        dv2 = curve[cursor[0] + 1, 0] - limits_v[1]
+        dq2 = limits_q[1] - curve[cursor[0] + 1, 1]
+
+        if dv1 >= 0.0001 and dq1 >= -0.001 and dv2 >= 0.0001 and dq2 >= -0.001:
+
+            delta_upward = dv1 + dq1 / 100.
+            if dq1 < 0.0001:
+                dq1 = 0.0001
+            delta_upward += abs(dv1) / dq1
+            if abs(dv1) / dq1 < 10.:
+                if never_added_up:
+                    dv1 = curve[cursor[0] + 1, 0] - curve[cursor[0] + 2, 0]
+                    dq1 = curve[cursor[0] + 2, 1] - curve[cursor[0] + 1, 1]
+                    if dv1 >= -0.001 and dq1 >= -0.001:
+                        can_add_upward = True
+                else:
+                    can_add_upward = True
+
+        # Test downward addition
+        dv1 = limits_v[0] - curve[cursor[1] - 1, 0]
+        dq1 = curve[cursor[1] - 1, 1] - limits_q[0]
+        dv2 = curve[cursor[1] - 1, 0] - limits_v[1]
+        dq2 = limits_q[1] - curve[cursor[1] - 1, 1]
+
+        if dv1 >= 0.0001 and dq1 >= -0.001 and dv2 >= 0.0001 and dq2 >= -0.001:
+
+            delta_downward = dv2 + dq2 / 100.
+
+            if dq2 < 0.0001:
+                dq2 = 0.0001
+            delta_upward += abs(dv2) / dq2
+            if abs(dv2) / dq2 < 10.:
+                if never_added_down:
+                    dv2 = curve[cursor[1] - 2, 0] - curve[cursor[1] - 1, 0]
+                    dq2 = curve[cursor[1] - 1, 1] - curve[cursor[1] - 2, 1]
+                    if dv2 >= -0.001 and dq2 >= -0.001:
+                        can_add_downward = True
+                else:
+                    can_add_downward = True
+
+        if not can_add_upward and not can_add_downward:
+            cursor[0] += 1
+            cursor[1] += -1
+            continue
+
+        if can_add_upward and can_add_downward:
+            if delta_upward > delta_downward:
+                my_add = 'Down'
+            else:
+                my_add = 'Up'
+
+        elif can_add_upward and not can_add_downward:
+            my_add = 'Up'
+        elif not can_add_upward and can_add_downward:
+            my_add = 'Down'
+
+        if my_add == 'Up':
+            never_added_up = False
+            masks[cursor[0] + 1] = True
+            limits_v[0] = min(limits_v[0], curve[cursor[0] + 1, 0])
+            limits_q[0] = max(limits_q[0], curve[cursor[0] + 1, 1])
+
+            cursor[0] += 1
+
+        elif my_add == 'Down':
+            never_added_down = False
+            masks[cursor[1] - 1] = True
+            limits_v[1] = max(limits_v[1], curve[cursor[1] - 1, 0])
+            limits_q[1] = min(limits_q[1], curve[cursor[1] - 1, 1])
+
+            cursor[1] += -1
+
+    valid_curve = curve[masks]
+    invalid_curve = curve[~masks]
+    if len(invalid_curve) > 5:
+        return None, None
+
+    # uniformly sample it
+
+    v = valid_curve[:, 0]
+    q = valid_curve[:, 1]
+
+    sorted_ind = numpy.argsort(v)
+    v = v[sorted_ind]
+    q = q[sorted_ind]
+
+    last = v[-1]
+
+    added_v = numpy.arange(last + 0.01, 4.6, 0.01)
+    added_q = 0. * numpy.arange(last + 0.01, 4.6, 0.01)
+    v = numpy.concatenate((v, added_v), axis=0)
+    q = numpy.concatenate((q, added_q), axis=0)
+    spline = PchipInterpolator(v, q)
+    res = spline(voltage_grid)
+
+    if not is_monotonically_decreasing(res):
+        return None, None
+
+    return res, numpy.where(
+                    numpy.logical_and(
+                        voltage_grid <= v_min,
+                        voltage_grid >= v_max
+                    ),
+                    numpy.ones(len(voltage_grid), dtype=numpy.float32),
+                    0.001 * numpy.ones(len(voltage_grid), dtype=numpy.float32),
+                )
+
+
+
+
+
+
+
 
 def bulk_process(DEBUG=False, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10, barcodes = None):
     if barcodes is None:

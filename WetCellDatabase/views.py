@@ -13,8 +13,8 @@ DONE - remove all the fields that I don't currently care about.
 DONE - good name generation
 DONE - good uniqueness check.(library)
 DONE - good uniqueness check (view)
-- test uniqueness check
-- streamline the various definitions into much simpler and unique flows.
+DONE - test uniqueness check
+DONE - streamline the various definitions into much simpler and unique flows.
 - make the processing specific to machine learning optional.
 - bake a tensor instead of having to use the database all the time.
 

@@ -77,9 +77,28 @@ here accuracy_in_seconds is a boolean variable saying whether datetime1
  
  
 # TODO(Samuel):
-- various fields are always "private" in the sense that they should never be shared in the global space.
-- various fields are sometimes "private" in the sense that they may or may not be shared with the global space.
-- various fields are never "private".
+DONE - remove all the fields that I don't currently care about.
+DONE - good name generation
+DONE - good uniqueness check.(library)
+DONE - good uniqueness check (view)
+DONE - test uniqueness check
+DONE - streamline the various definitions into much simpler and unique flows.
+
+
+- create a separate page for:
+    - electrolyte definition
+    - electrode definition
+    - dry cell definition
+    - wet cell definition
+- create SOP for entering info (especially incomplete info)
+- allow modifications
+- allow unknown values
+- machine learning postprocess:
+DONE    - make the processing specific to machine learning on-demand.
+DONE    - bake a numpy structured array instead of having to use the database all the time.
+    - add key variables to the numpy structured array (dod, temperature, charge/discharge CC curves)
+
+
 
 - electrolyte and dry cell data have to be:
  - defined.

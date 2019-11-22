@@ -1,4 +1,27 @@
 # how to set things up.
+## without the database
+1. you must install requirements with pip install -r requirements_nosql.txt
+2. you must download a dataset file and put it in the appropriate folder
+3. you must create a file called config.ini in neware_parser/, and put the following content within:
+
+>[DEFAULT]
+
+> Database = d
+
+>User = u
+
+>Password = p
+
+>Host = localhost
+
+>Port = 0000
+
+>Backend = sqlite3
+
+
+
+
+
 
 TODO: somebody with more linux/mac os x knowledge should fill this part for those systems.
 

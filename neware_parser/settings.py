@@ -84,7 +84,7 @@ config.read('neware_parser/config.ini')
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': 'django.db.backends.'+config['DEFAULT']['Backend'],
         'NAME': config['DEFAULT']['Database'],
         'USER':config['DEFAULT']['User'],
         'PASSWORD':config['DEFAULT']['Password'],

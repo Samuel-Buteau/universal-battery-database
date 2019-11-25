@@ -18,6 +18,8 @@
 
 >Backend = sqlite3
 
+>SecretKey = verysecretkeyhaha
+
 
 
 
@@ -121,6 +123,11 @@ DONE    - make the processing specific to machine learning on-demand.
 DONE    - bake a numpy structured array instead of having to use the database all the time.
     - add key variables to the numpy structured array (dod, temperature, charge/discharge CC curves)
 
+- For temperature, first we shall target only cases where the temperature is constant across cycling.
+- In general, compute a handcrafted embedding of the protocol which is the average per cycle of something.
+    - for example, the average temperature, 
+    - the average DOD (up, down), 
+    - the average rate of charge, rate of discharge.
 
 
 - electrolyte and dry cell data have to be:

@@ -309,15 +309,17 @@ def define_page(request):
                             print(form.cleaned_data)
                             if not 'atom' in form.cleaned_data.keys():
                                 continue
-                            if form.cleaned_data['stochiometry'] is None or form.cleaned_data['stochiometry'] <= 0:
-                                continue
                             if form.cleaned_data['atom'] is not None:
-                                atoms.append(
-                                    {
-                                        'atom': form.cleaned_data['atom'],
-                                        'stochiometry': form.cleaned_data['stochiometry']
-                                    }
-                                )
+                                value, unknown = unknown_numerical(form.cleaned_data['stochiometry'])
+                                if not unknown and value is None:
+                                    continue
+                                else:
+                                    atoms.append(
+                                        {
+                                            'atom': form.cleaned_data['atom'],
+                                            'stochiometry': value
+                                        }
+                                    )
                     print(atoms)
                 return my_component.define_if_possible(
                     atoms=atoms,

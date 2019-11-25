@@ -5,6 +5,17 @@ import numpy
 import re
 
 
+def unknown_numerical(num_string):
+    if num_string is None or num_string == '':
+        return None, False
+    elif num_string == '?':
+        return None, True
+    elif num_string.lstrip('-').replace('.','',1).isdigit():
+        return float(num_string), False
+    else:
+        return None, False
+
+
 def determine_digits(num):
     dig = max(int(-(numpy.floor(numpy.log(num) / numpy.log(10.)) - 1)), 0)
     if (round(num*(10**dig)) % 10) ==0 and dig > 0:
@@ -186,11 +197,15 @@ class ElectrodeMaterialStochiometry(models.Model):
         (PLATINUM, 'PLATINUM'),
     ]
     atom = models.CharField(max_length=3, choices=ATOMS, blank=True)
-    stochiometry = models.FloatField(blank=True)
+    stochiometry = models.FloatField(blank=True, null=True)
 
     def pretty_print(self, digits=None):
         my_string = '{}{}'
-        return my_string.format(self.atom, print_digits(self.stochiometry, digits))
+        if self.stochiometry is not None:
+            num = print_digits(self.stochiometry, digits)
+        else:
+            num = '?'
+        return my_string.format(self.atom, num)
 
     def __str__(self):
         return self.pretty_print()
@@ -417,17 +432,29 @@ class Component(models.Model):
                     actual_atom = atom['atom']
                     stochiometry = atom['stochiometry']
 
-                    stochiometry_components = ElectrodeMaterialStochiometry.objects.filter(
-                        atom=actual_atom,
-                        stochiometry__range=(stochiometry - tolerance, stochiometry + tolerance))
-                    if stochiometry_components.exists():
-                        selected_stochiometry_component = stochiometry_components.annotate(
-                            distance=Func(F('stochiometry') - stochiometry, function='ABS')).order_by('distance')[0]
-                    else:
-                        selected_stochiometry_component = ElectrodeMaterialStochiometry.objects.create(
+                    if stochiometry is not None:
+                        stochiometry_components = ElectrodeMaterialStochiometry.objects.filter(
                             atom=actual_atom,
-                            stochiometry=stochiometry
-                        )
+                            stochiometry__range=(stochiometry - tolerance, stochiometry + tolerance))
+                        if stochiometry_components.exists():
+                            selected_stochiometry_component = stochiometry_components.annotate(
+                                distance=Func(F('stochiometry') - stochiometry, function='ABS')).order_by('distance')[0]
+                        else:
+                            selected_stochiometry_component = ElectrodeMaterialStochiometry.objects.create(
+                                atom=actual_atom,
+                                stochiometry=stochiometry
+                            )
+                    else:
+                        stochiometry_components = ElectrodeMaterialStochiometry.objects.filter(
+                            atom=actual_atom,
+                            stochiometry=None)
+                        if stochiometry_components.exists():
+                            selected_stochiometry_component = stochiometry_components.order_by('id')[0]
+                        else:
+                            selected_stochiometry_component = ElectrodeMaterialStochiometry.objects.create(
+                                atom=actual_atom,
+                                stochiometry=None
+                            )
 
                     my_stochiometry_components.append(selected_stochiometry_component)
 
@@ -453,7 +480,7 @@ class Component(models.Model):
     def print_stochiometry(self):
         if self.stochiometry.count() >=1:
             list_of_stochiometry =list(self.stochiometry.order_by('-stochiometry'))
-            digit = max(map(lambda stoc: determine_digits(stoc.stochiometry), list_of_stochiometry))
+            digit = max([determine_digits(stoc.stochiometry) for stoc in list_of_stochiometry if stoc.stochiometry is not None], default=0)
             return ' '.join([stoc.pretty_print(digits=digit) for stoc in self.stochiometry.order_by('-stochiometry')])
         else:
             return ''
@@ -472,7 +499,7 @@ class Component(models.Model):
 
         if self.single_crystal_name:
             if self.single_crystal:
-                single_crystal = 'SC'
+                single_crystal = 'SINGLE CRYSTAL'
             else:
                 single_crystal = 'POLY'
             extras.append("{}".format(single_crystal))

@@ -155,3 +155,20 @@ This mapping can evolve over time. First we must represent with a fixed lenght
  But without use cases, it is hard to know what is best. Right now, not all of this is supported.
  
  
+# A Guide to entering the metadata the proper way
+First, there needs to be some concept of unknown value, since the info can be missing sometimes.
+TODO: list the ways to handle missing value in the definition page
+
+TODO: when validating, null means unapplicable or unknown. there needs to be a flag to distinguish between the two.
+for ratios, missing always means unknown
+
+In terms of modelling, any value which can be Unknown should be given a latent variable per cell, electrolyte, ...
+and the general way to handle this is indicator*known + (1-indicator)*latent where indicator is 0 in case of unknown and 1 in case of known and where latent is trainable.
+This might be slightly inefficient, but at most 2x, and having this systematic mechanism will avoid headaches later.
+
+As for how to enter the info the right way, below we list some examples, some general rules of thumb, and generally try to be consistent.
+
+# Stochiometry
+- It is reccomended to always use whole numbers. For instance, instead of 0.33, 0.33, 0.33, simply use 1, 1, 1
+  If there are some very specific ratios that are too inexact to rationalize, you can try to have sub whole numbers.
+

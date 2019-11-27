@@ -67,6 +67,12 @@ def print_lot(lot, type=None):
         return "{}({})".format(lot.lot_info.__str__(), sub)
 
 
+def print_unknown(val):
+    if val is None:
+        ret = '?'
+    else:
+        ret = val
+
 class LotInfo(models.Model):
     notes = models.CharField(max_length=100, null=True, blank=True)
 
@@ -74,9 +80,12 @@ class LotInfo(models.Model):
     def notes_name(self):
         return self.notes is not None
 
+    """
+     dates, creator, notes, vendor are either unknown or known 
+    """
     creator = models.CharField(max_length=100, null=True, blank=True)
     creator_name = models.BooleanField(default=False, blank=True)
-    date = models.DateField(null=True, blank=True)
+    date = models.DateField(null=True, blank=True, help_text='YYYY-MM-DD')
     date_name = models.BooleanField(default=False, blank=True)
     vendor = models.CharField(max_length=300, null=True, blank=True)
     vendor_name = models.BooleanField(default=False, blank=True)
@@ -85,12 +94,21 @@ class LotInfo(models.Model):
     def is_valid(self):
         if not self.notes_name and not self.creator_name and not self.date_name and not self.vendor_name:
             return False
-        if self.creator_name and self.creator is None:
+        if self.notes is None and self.creator is None and self.date is None and self.vendor is None:
             return False
+
+        if self.vendor == '?' or self.creator == '?':
+            return False
+
         if self.vendor_name and self.vendor is None:
             return False
 
-        #NOTE: a null date means an unknown date
+        if self.creator_name and self.creator is None:
+            return False
+
+        if self.date_name and self.date is None:
+            return False
+
         return True
 
     def __str__(self):
@@ -204,24 +222,22 @@ def define_if_possible(lot, lot_info=None, type =None):
 
 
 class ElectrodeGeometry(models.Model):
-    UNITS_LOADING = 'milligrams per centimeter squared (mg/cm^2)'
-    UNITS_DENSITY = 'grams per cubic centimeters (g/cm^3)'
+    UNITS_LOADING = ('milligrams per squared centimeters', 'mg/cm^2')
+    UNITS_DENSITY = ('grams per cubic centimeters', 'g/cm^3')
     UNITS_POROSITY = 'TODO(sam): I DON"T KNOW THESE UNITS'
-    UNITS_THICKNESS = 'micrometers (\\mu m)'
-    UNITS_LENGTH_SINGLE_SIDE = 'millimeters (mm)'
-    UNITS_LENGTH_DOUBLE_SIDE = 'millimeters (mm)'
-    UNITS_WIDTH = 'millimeters (mm)'
+    UNITS_THICKNESS = ('micrometers', 'um')
+    UNITS_LENGTH = ('millimeters', 'mm')
+    UNITS_WIDTH = ('millimeters','mm')
     UNITS_TAB_POSITION_FROM_CORE = 'TODO(sam): I DON"T KNOW THESE UNITS'
-    UNITS_FOIL_THICKNESS = 'micrometers (\\mu m)'
 
-    loading = models.FloatField(null=True, blank=True)
+    loading = models.FloatField(null=True, blank=True, help_text=UNITS_LOADING[0])
     loading_name = models.BooleanField(default=False, blank=True)
 
-    density = models.FloatField(null=True, blank=True)
+    density = models.FloatField(null=True, blank=True, help_text=UNITS_DENSITY[0])
     density_name = models.BooleanField(default=False, blank=True)
     #porosity = models.FloatField(null=True, blank=True)
 
-    thickness = models.FloatField(null=True, blank=True)
+    thickness = models.FloatField(null=True, blank=True, help_text=UNITS_THICKNESS[0])
     thickness_name = models.BooleanField(default=False, blank=True)
     #length_single_side = models.FloatField(null=True, blank=True)
     #length_double_side = models.FloatField(null=True, blank=True)
@@ -230,14 +246,11 @@ class ElectrodeGeometry(models.Model):
     #foil_thickness = models.FloatField(null=True, blank=True)
 
 class SeparatorGeometry(models.Model):
-    UNITS_BASE_THICKNESS = 'millimeters (mm)'
-    UNITS_WIDTH = 'millimeters (mm)'
-    UNITS_OVERHANG_IN_CORE = 'millimeters (mm)'
-
-    thickness = models.FloatField(null=True, blank=True)
+    UNITS = ('millimeters','mm')
+    thickness = models.FloatField(null=True, blank=True, help_text=UNITS[0])
     thickness_name = models.BooleanField(default=False, blank=True)
 
-    width = models.FloatField(null=True, blank=True)
+    width = models.FloatField(null=True, blank=True, help_text=UNITS[0])
     width_name = models.BooleanField(default=False, blank=True)
 
     #overhang_in_core = models.FloatField(null=True, blank=True)
@@ -260,6 +273,19 @@ class CoatingLot(models.Model):
     lot_info = models.OneToOneField(LotInfo, on_delete=models.SET_NULL, null=True, blank=True)
     def __str__(self):
         return print_lot(self, type='coating')
+
+
+
+SINGLE_CRYSTAL = 'sc'
+POLY_CRYSTAL = 'po'
+MIXED_CRYSTAL = 'mx'
+UNKNOWN_CRYSTAL = 'un'
+CRYSTAL_TYPES = [
+    (SINGLE_CRYSTAL, 'single_crystal'),
+    (POLY_CRYSTAL, 'poly_crystal'),
+    (MIXED_CRYSTAL, 'mixed_crystal'),
+    (UNKNOWN_CRYSTAL, 'unknown'),
+]
 
 
 
@@ -413,6 +439,24 @@ class Component(models.Model):
     separator material
 
     '''
+    """
+    notes: None or known
+    smiles: None or known
+    proprietary: known
+    composite_type: known
+    component_type: known
+    coating: known, no, unknown [can be used in name]
+    particle_size: known, unknown [can be used in name]
+    single_crystal: known, none 
+    turbostratic_misalignment: known, unknown [can be used in name]
+    preparation_temperature: known, unknown [can be used in name]
+    natural: known, unknown [can be used in name]
+    
+    """
+    UNITS_SIZE = ('micrometers','um')
+    UNITS_TEMPERATURE = ('celsius','C')
+    UNITS_MISALIGNMENT = ('percent', '%')
+
     notes = models.CharField(max_length=1000, null=True, blank=True)
     @property
     def notes_name(self):
@@ -432,17 +476,18 @@ class Component(models.Model):
 
     coating_lot = models.ForeignKey(CoatingLot, on_delete=models.SET_NULL, null=True, blank=True)
     coating_lot_name = models.BooleanField(default=False, blank=True)
+    coating_lot_unknown = models.BooleanField(default=False, blank=True)
 
-    particle_size = models.FloatField(null=True, blank=True)
+    particle_size = models.FloatField(null=True, blank=True, help_text = UNITS_SIZE[0])
     particle_size_name = models.BooleanField(default=False, blank=True)
 
-    single_crystal = models.BooleanField(null=True, blank=True)
+    single_crystal = models.CharField(max_length=2, choices=CRYSTAL_TYPES, null=True, blank=True)
     single_crystal_name = models.BooleanField(default=False, blank=True)
 
-    turbostratic_misalignment = models.FloatField(null=True, blank=True)
+    turbostratic_misalignment = models.FloatField(null=True, blank=True, help_text = UNITS_MISALIGNMENT[0])
     turbostratic_misalignment_name = models.BooleanField(default=False, blank=True)
 
-    preparation_temperature = models.FloatField(null=True, blank=True)
+    preparation_temperature = models.FloatField(null=True, blank=True, help_text= UNITS_TEMPERATURE[0])
     preparation_temperature_name = models.BooleanField(default=False, blank=True)
 
     natural = models.BooleanField(null=True, blank=True)
@@ -465,15 +510,10 @@ class Component(models.Model):
             return False
         if self.component_type is None:
             return False
-        if self.particle_size is None and self.particle_size_name:
+        if self.coating_lot is not None and self.coating_lot_unknown:
             return False
+
         if self.single_crystal is None and self.single_crystal_name:
-            return False
-        if self.turbostratic_misalignment is None and self.turbostratic_misalignment_name:
-            return False
-        if self.preparation_temperature is None and self.preparation_temperature_name:
-            return False
-        if self.natural is None and self.natural_name:
             return False
 
         return True
@@ -508,7 +548,7 @@ class Component(models.Model):
         if self.notes_name:
             wrt_query = wrt_query & Q(notes=self.notes)
         if self.coating_lot_name:
-            wrt_query = wrt_query & Q(coating_lot=self.coating_lot)
+            wrt_query = wrt_query & Q(coating_lot=self.coating_lot, coating_lot_unknown=self.coating_lot_unknown)
         if self.particle_size_name:
             wrt_query = wrt_query & Q(particle_size=self.particle_size)
         if self.single_crystal_name:
@@ -528,6 +568,7 @@ class Component(models.Model):
             component_type=self.component_type,
             notes=self.notes,
             coating_lot=self.coating_lot,
+            coating_lot_unknown = self.coating_lot_unknown,
             particle_size=self.particle_size,
             single_crystal=self.single_crystal,
             turbostratic_misalignment=self.turbostratic_misalignment,
@@ -637,32 +678,45 @@ class Component(models.Model):
             extras.append(secret)
 
         if self.particle_size_name:
-            extras.append('SIZE={:2.2f}'.format(self.particle_size))
+            particle_size = '?'
+            if self.particle_size is not None:
+                particle_size= '{:2.2f}'.format(self.particle_size)
+            extras.append('SIZE={}{}'.format(particle_size, self.UNITS_SIZE[1]))
 
         if self.smiles_name:
             extras.append('SMILES={}'.format(self.smiles))
 
         if self.single_crystal_name:
-            if self.single_crystal:
-                single_crystal = 'SINGLE CRYSTAL'
-            else:
-                single_crystal = 'POLY'
-            extras.append("{}".format(single_crystal))
+            extras.append(self.get_single_crystal_display())
 
         if self.natural_name:
-            if self.natural:
+            if self.natural is None:
+                natural = 'NAT/ART?'
+            elif self.natural:
                 natural = 'NAT'
             else:
                 natural = 'ART'
             extras.append(natural)
+
         if self.preparation_temperature_name:
-            extras.append('TEMP={:4.0f}'.format(self.preparation_temperature))
+            temp = '?'
+            if self.preparation_temperature is not None:
+                temp = '{:4.0f}'.format(self.preparation_temperature)
+            extras.append('TEMP={}{}'.format(temp, self.UNITS_TEMPERATURE[1]))
+
         if self.turbostratic_misalignment_name:
-            extras.append('TURBO={:3.3f}'.format(self.turbostratic_misalignment))
+            turbo = '?'
+            if self.turbostratic_misalignment is not None:
+                turbo = '{:2.0f}'.format(self.turbostratic_misalignment)
+
+            extras.append('TURBO={}{}'.format(turbo, self.UNITS_MISALIGNMENT[1]))
 
         if self.coating_lot_name:
             if self.coating_lot is None:
-                extras.append('NO COAT')
+                if self.coating_lot_unknown:
+                    extras.append('COAT=?')
+                else:
+                    extras.append('NO COAT')
             else:
                 extras.append('COAT={}'.format(self.coating_lot))
 
@@ -1078,17 +1132,17 @@ class Composite(models.Model):
             extras.append(secret)
         if self.electrode_geometry is not None:
             if self.electrode_geometry.loading_name:
-                extras.append('LOADING={:2.2f}'.format(self.electrode_geometry.loading))
+                extras.append('LOADING={:2.2f}{}'.format(self.electrode_geometry.loading,ElectrodeGeometry.UNITS_LOADING[1]))
             if self.electrode_geometry.density_name:
-                extras.append('DENSITY={:2.2f}'.format(self.electrode_geometry.density))
+                extras.append('DENSITY={:2.2f}{}'.format(self.electrode_geometry.density,ElectrodeGeometry.UNITS_DENSITY[1]))
             if self.electrode_geometry.thickness_name:
-                extras.append('THICKNESS={:2.2f}'.format(self.electrode_geometry.thickness))
+                extras.append('THICKNESS={:2.2f}{}'.format(self.electrode_geometry.thickness,ElectrodeGeometry.UNITS_THICKNESS[1]))
 
         if self.separator_geometry is not None:
             if self.separator_geometry.thickness_name:
-                extras.append('THICKNESS={:2.2f}'.format(self.separator_geometry.thickness))
+                extras.append('THICKNESS={:2.2f}{}'.format(self.separator_geometry.thickness,SeparatorGeometry.UNITS[1]))
             if self.separator_geometry.width_name:
-                extras.append('WIDTH={:2.2f}'.format(self.separator_geometry.width))
+                extras.append('WIDTH={:2.2f}{}'.format(self.separator_geometry.width, SeparatorGeometry.UNITS[1]))
 
 
         if self.composite_type_name:

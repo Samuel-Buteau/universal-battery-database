@@ -56,6 +56,7 @@ class ElectrodeActiveMaterialForm(ModelForm):
                   'composite_type_name',
                   
                   'coating_lot_name',
+                  'coating_lot_unknown'
 
                   ]
 
@@ -97,11 +98,11 @@ class ElectrodeInactiveForm(ModelForm):
                   'component_type_name',
 
                   'coating_lot_name',
-
+                  'coating_lot_unknown'
                   ]
 
 class ElectrodeInactiveLotForm(ModelForm):
-    predefined_conductive_additive = forms.ModelChoiceField(queryset=Component.objects.filter(Q(component_type=CONDUCTIVE_ADDITIVE)|Q(component_type=BINDER)), required=False)
+    predefined_inactive_material = forms.ModelChoiceField(queryset=Component.objects.filter(Q(component_type=CONDUCTIVE_ADDITIVE)|Q(component_type=BINDER)), required=False)
     class Meta:
         model = LotInfo
         exclude = []

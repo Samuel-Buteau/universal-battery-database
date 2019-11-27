@@ -16,30 +16,29 @@ table, th, td {
 </style>
 
 
-<h1>Define Stuff</h1>
-
-
-
-<form action="{% url 'WetCellDatabase:define_page' %}" method="post">
+<form action="{% url 'WetCellDatabase:define_page' mode=mode %}" method="post">
     {% csrf_token %}
 
-    {% if define_coating_form %}
+
+    {% if define_wet_cell_form %}
         <h2>Link a cell to its Metadata</h2>
         <table>{{ define_wet_cell_form.as_table }}</table>
         <input type="submit" name = 'define_wet_cell' value="Link cell">
     {% endif %}
 
+    <table>
 
     {% if define_coating_form %}
-        <h2>Coating</h2>
+        <td valign="top">
+        <h1>Coating</h1>
         <table>{{ define_coating_form.as_table }}</table>
         <input type="submit" name = 'define_coating' value="Define Coating">
 
         {% if define_coating_lot_form %}
-
-            <table>{{ define_coating_lot_form.as_table }}</table>
+            {% include "WetCellDatabase/lot_info.html" with lot_info_form=define_coating_lot_form predefined=define_coating_lot_form.predefined_coating predefined_label="Predefined Coating" %}
             <input type="submit" name = 'define_coating_lot' value="Define Coating Lot">
         {% endif %}
+        </td>
     {% endif %}
 
 
@@ -47,24 +46,24 @@ table, th, td {
 
 
 
-    <h2>Electrolyte:</h2>
         {% if define_molecule_form %}
-            <h3>Molecule</h3>
-                <table>{{ define_molecule_form.as_table }}</table>
+            <td valign="top">
+            <h1>Molecule</h1>
+                {% include "WetCellDatabase/molecule.html"  %}
             <input type="submit" name = 'define_molecule' value="Define Electrolyte Molecule">
 
             {% if define_molecule_lot_form %}
-
-            <table>{{ define_molecule_lot_form.as_table }}</table>
+                {% include "WetCellDatabase/lot_info.html" with lot_info_form=define_molecule_lot_form predefined=define_molecule_lot_form.predefined_molecule predefined_label="Predefined Molecule" %}
             <input type="submit" name = 'define_molecule_lot' value="Define Electrolyte Molecule Lot">
             {% endif %}
-
+            </td>
         {% endif %}
 
 
         {% if define_electrolyte_form %}
-            <h3>Electrolyte</h3>
-            <table>{{ define_electrolyte_form.as_table }}</table>
+            <td valign="top">
+            <h1>Electrolyte</h1>
+                {% include "WetCellDatabase/electrolyte.html"  %}
             {% if electrolyte_composition_formset %}
                 {% csrf_token %}
                 {{ electrolyte_composition_formset.management_form }}
@@ -84,17 +83,16 @@ table, th, td {
             {% endif %}
             <input type="submit" name = 'define_electrolyte' value="Define Electrolyte">
             {% if define_electrolyte_lot_form %}
-
-            <table>{{ define_electrolyte_lot_form.as_table }}</table>
+            {% include "WetCellDatabase/lot_info.html" with lot_info_form=define_electrolyte_lot_form predefined=define_electrolyte_lot_form.predefined_electrolyte predefined_label="Predefined Electrolyte" %}
             <input type="submit" name = 'define_electrolyte_lot' value="Define Electrolyte Lot">
         {% endif %}
+            </td>
         {% endif %}
 
-    <h2>Electrode:</h2>
-        <h3>Electrode Material:</h3>
         {% if define_active_material_form %}
-            <h4>Active Material</h4>
-                <table>{{ define_active_material_form.as_table }}</table>
+        <td valign="top">
+        <h1>Active Material</h1>
+            {% include "WetCellDatabase/active_material.html" %}
                 {% if active_material_composition_formset %}
                     {% csrf_token %}
                     {{ active_material_composition_formset.management_form }}
@@ -111,30 +109,29 @@ table, th, td {
                 {% endif %}
             <input type="submit" name = 'define_active_material' value="Define Active Material">
             {% if define_active_material_lot_form %}
-
-            <table>{{ define_active_material_lot_form.as_table }}</table>
+            {% include "WetCellDatabase/lot_info.html" with lot_info_form=define_active_material_lot_form predefined=define_active_material_lot_form.predefined_active_material predefined_label="Predefined Active Material" %}
             <input type="submit" name = 'define_active_material_lot' value="Define Active Material Lot">
             {% endif %}
-        {% endif %}
+        </td>
+            {% endif %}
 
         {% if define_inactive_form %}
-            <h4>Inactive Material</h4>
-                <table>{{ define_inactive_form.as_table }}</table>
+        <td valign="top">
+        <h1>Inactive Material</h1>
+            {% include "WetCellDatabase/inactive_material.html" %}
             <input type="submit" name = 'define_inactive' value="Define Inactive Material">
             {% if define_inactive_lot_form %}
-                <table>{{ define_inactive_lot_form.as_table }}</table>
+            {% include "WetCellDatabase/lot_info.html" with lot_info_form=define_inactive_lot_form predefined=define_inactive_lot_form.predefined_inactive_material predefined_label="Predefined Inactive Material" %}
                 <input type="submit" name = 'define_inactive_lot' value="Define Inactive Material Lot">
             {% endif %}
+        </td>
         {% endif %}
 
 
-        <h3>Electrode:</h3>
-        {% if define_electrode_form %}
-            <table>{{ define_electrode_form.as_table }}</table>
-            {% if define_electrode_geometry_form %}
-                <table>{{ define_electrode_geometry_form.as_table }}</table>
-            {% endif %}
-
+        {% if define_electrode_form and define_electrode_geometry_form%}
+        <td valign="top">
+        <h1>Electrode</h1>
+            {% include "WetCellDatabase/electrode.html" %}
             {% if electrode_composition_formset %}
                 {% csrf_token %}
                 {{ electrode_composition_formset.management_form }}
@@ -151,27 +148,31 @@ table, th, td {
             {% endif %}
             <input type="submit" name = 'define_electrode' value="Define Electrode">
             {% if define_electrode_lot_form %}
+            {% include "WetCellDatabase/lot_info.html" with lot_info_form=define_electrode_lot_form predefined=define_electrode_lot_form.predefined_electrode predefined_label="Predefined Electrode" %}
 
-                <table>{{ define_electrode_lot_form.as_table }}</table>
                 <input type="submit" name = 'define_electrode_lot' value="Define Electrode Lot">
             {% endif %}
+        </td>
         {% endif %}
 
-    <h2>Separator:</h2>
+
         {% if define_separator_material_form %}
-            <h3>Separator Material</h3>
+        <td valign="top">
+        <h3>Separator Material</h3>
                 <table>{{ define_separator_material_form.as_table }}</table>
             <input type="submit" name = 'define_separator_material' value="Define Separator Material">
             {% if define_separator_material_lot_form %}
+            {% include "WetCellDatabase/lot_info.html" with lot_info_form=define_separator_material_lot_form predefined=define_separator_material_lot_form.predefined_separator_material predefined_label="Predefined Separator Material" %}
 
-                <table>{{ define_separator_material_lot_form.as_table }}</table>
-                <input type="submit" name = 'define_separator_material_lot' value="Define Separator Material Lot">
+            <input type="submit" name = 'define_separator_material_lot' value="Define Separator Material Lot">
             {% endif %}
-        {% endif %}
+        </td>
+            {% endif %}
 
 
         {% if define_separator_form %}
-            <h3>Separator</h3>
+        <td valign="top">
+        <h3>Separator</h3>
             <table>{{ define_separator_form.as_table }}</table>
             {% if define_separator_geometry_form %}
                 <table>{{ define_separator_geometry_form.as_table }}</table>
@@ -195,13 +196,15 @@ table, th, td {
             <input type="submit" name = 'define_separator' value="Define Separator">
             {% if define_separator_lot_form %}
 
-                <table>{{ define_separator_lot_form.as_table }}</table>
+                {% include "WetCellDatabase/lot_info.html" with lot_info_form=define_separator_lot_form predefined=define_separator_lot_form.predefined_separator predefined_label="Predefined Separator" %}
                 <input type="submit" name = 'define_separator_lot' value="Define Separator Lot">
             {% endif %}
+        </td>
         {% endif %}
 
-    <h2>Dry Cell Model:</h2>
     {% if define_dry_cell_form %}
+        <h2>Dry Cell Model:</h2>
+
         <table>{{ define_dry_cell_form.as_table }}</table>
         {% if define_dry_cell_geometry_form %}
             <table>{{ define_dry_cell_geometry_form.as_table }}</table>
@@ -213,6 +216,7 @@ table, th, td {
             <input type="submit" name = 'define_dry_cell_lot' value="Define Dry Cell Lot (AKA Box)">
         {% endif %}
     {% endif %}
+    </table>
 
 </form>
 

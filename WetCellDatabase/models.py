@@ -40,7 +40,7 @@ def print_components(list_of_components, complete=False, prefix=None):
         if complete and len(list_of_components) == 1:
             component_string = list_of_components[0].component_lot.__str__()
         else:
-            digit = max(map(lambda comp: determine_digits(comp.ratio), list_of_components))
+            digit = max([determine_digits(comp.ratio) for comp in list_of_components if comp.ratio is not None], default=0)
             component_string = '+'.join([comp.pretty_print(digits=digit) for comp in list_of_components])
         if prefix is None:
             return component_string
@@ -49,11 +49,158 @@ def print_components(list_of_components, complete=False, prefix=None):
     else:
         return None
 
+def print_lot(lot, type=None):
+    if type == 'coating':
+        sub = lot.coating.__str__()
+    elif type == 'component':
+        sub = lot.component.__str__()
+    elif type == 'composite':
+        sub = lot.composite.__str__()
+    elif type == 'dry_cell':
+        sub = lot.dry_cell.__str__()
+    else:
+        raise('Not implemented {}'.format(type))
+
+    if lot.lot_info is None:
+        return sub
+    else:
+        return "{}({})".format(lot.lot_info.__str__(), sub)
+
 
 class LotInfo(models.Model):
-    lot_name = models.CharField(max_length=100, null=True, blank=True)
+    notes = models.CharField(max_length=100, null=True, blank=True)
+
+    @property
+    def notes_name(self):
+        return self.notes is not None
+
     creator = models.CharField(max_length=100, null=True, blank=True)
+    creator_name = models.BooleanField(default=False, blank=True)
+    date = models.DateField(null=True, blank=True)
+    date_name = models.BooleanField(default=False, blank=True)
     vendor = models.CharField(max_length=300, null=True, blank=True)
+    vendor_name = models.BooleanField(default=False, blank=True)
+
+
+    def is_valid(self):
+        if not self.notes_name and not self.creator_name and not self.date_name and not self.vendor_name:
+            return False
+        if self.creator_name and self.creator is None:
+            return False
+        if self.vendor_name and self.vendor is None:
+            return False
+
+        #NOTE: a null date means an unknown date
+        return True
+
+    def __str__(self):
+        printed_name = ''
+        if self.notes_name:
+            printed_name = self.notes
+
+        extras = []
+        if self.vendor_name:
+            extras.append('VEN:{}'.format(self.vendor))
+        if self.creator_name:
+            extras.append('BY:{}'.format(self.creator))
+        if self.date_name:
+            extras.append('DATE:{}'.format(self.date))
+
+        if len(extras) != 0:
+            printed_name = '{}[{}]'.format(printed_name, ','.join(extras))
+
+        return printed_name
+
+
+
+def define_if_possible(lot, lot_info=None, type =None):
+    """
+    There are two things defining an object here:
+    - value fields
+    - naming subset
+    :return:
+    if value fields DONT exist and not unique w.r.t. naming subset OR
+       value fields DO exist and different naming subset:
+       return None
+    if value fields DONT exist and unique w.r.t. naming subset OR
+       value fields DO exist and same naming subset:
+       return Instance
+    """
+    print('entered define if possible')
+    if lot_info is None or not lot_info.is_valid():
+        print('was invalid')
+        return None
+    if type == 'coating':
+        wrt_query = Q(coating=lot.coating)
+    elif type == 'component':
+        wrt_query = Q(component=lot.component)
+    elif type == 'composite':
+        wrt_query = Q(composite=lot.composite)
+    elif type == 'dry_cell':
+        wrt_query = Q(dry_cell=lot.dry_cell)
+    else:
+        raise('not yet implemented {}'.format(type))
+
+    wrt_query = wrt_query & Q(lot_info__notes=lot_info.notes)
+
+
+    if lot_info.creator_name:
+        wrt_query = wrt_query & Q(lot_info__creator=lot_info.creator)
+    if lot_info.date_name:
+        wrt_query = wrt_query & Q(lot_info__date=lot_info.date)
+    if lot_info.vendor_name:
+        wrt_query = wrt_query & Q(lot_info__vendor=lot_info.vendor)
+
+    if type == 'coating':
+        duplicate_query = Q(coating=lot.coating)
+    elif type == 'component':
+        duplicate_query = Q(component=lot.component)
+    elif type == 'composite':
+        duplicate_query = Q(composite=lot.composite)
+    elif type == 'dry_cell':
+        duplicate_query = Q(dry_cell=lot.dry_cell)
+    else:
+        raise ('not yet implemented {}'.format(type))
+
+    duplicate_query = duplicate_query & Q(lot_info__notes=lot_info.notes)
+
+    duplicate_query = duplicate_query & Q(
+        lot_info__creator=lot_info.creator,
+        lot_info__date=lot_info.date,
+        lot_info__vendor=lot_info.vendor,
+    )
+
+
+    naming_set_query = Q(
+        lot_info__creator_name=lot_info.creator_name,
+        lot_info__date_name=lot_info.date_name,
+        lot_info__vendor_name=lot_info.vendor_name,
+    )
+
+    if type == 'coating':
+        objs = CoatingLot.objects
+    elif type == 'component':
+        objs = ComponentLot.objects
+    elif type == 'composite':
+        objs = CompositeLot.objects
+    elif type == 'dry_cell':
+        objs = DryCellLot.objects
+    else:
+        raise ('not yet implemented {}'.format(type))
+
+    objs = objs.exclude(lot_info=None)
+    set_of_candidates = objs.filter(wrt_query)
+    set_of_valid_duplicates = objs.filter(duplicate_query & naming_set_query)
+
+    return helper_return(
+        set_of_candidates=set_of_candidates,
+        set_of_valid_duplicates=set_of_valid_duplicates,
+        my_self=lot,
+        lot_info=lot_info
+    )
+
+
+
 
 
 class ElectrodeGeometry(models.Model):
@@ -112,11 +259,7 @@ class CoatingLot(models.Model):
     coating = models.ForeignKey(Coating, on_delete=models.CASCADE, blank=True)
     lot_info = models.OneToOneField(LotInfo, on_delete=models.SET_NULL, null=True, blank=True)
     def __str__(self):
-        if self.lot_info is None:
-            return self.coating.__str__()
-        else:
-            return "{}({})".format(self.lot_info.lot_name, self.coating.__str__())
-
+        return print_lot(self, type='coating')
 
 
 
@@ -217,7 +360,9 @@ def helper_return(
         electrode_geometry=None,
         separator_geometry=None,
         my_stochiometry_components=None,
-        my_ratio_components=None):
+        my_ratio_components=None,
+        lot_info=None
+):
     if not set_of_candidates.exists():
         # we know for a fact that value fields don't exist.
         # so we can create it as it is.
@@ -228,6 +373,10 @@ def helper_return(
         if separator_geometry is not None:
             separator_geometry.save()
             my_self.separator_geometry = separator_geometry
+
+        if lot_info is not None:
+            lot_info.save()
+            my_self.lot_info = lot_info
 
         my_self.save()
 
@@ -264,18 +413,22 @@ class Component(models.Model):
     separator material
 
     '''
-    name = models.CharField(max_length=100, null=True, blank=True)
+    notes = models.CharField(max_length=1000, null=True, blank=True)
+    @property
+    def notes_name(self):
+        return self.notes is not None
+
     smiles = models.CharField(max_length=1000, null=True, blank=True)
+    smiles_name = models.BooleanField(default=False, blank=True)
+
     proprietary = models.BooleanField(default=False, blank=True)
+    proprietary_name = models.BooleanField(default=False, blank=True)
 
     composite_type = models.CharField(max_length=2, choices=COMPOSITE_TYPES, blank=True)
     composite_type_name = models.BooleanField(default=False, blank=True)
 
     component_type = models.CharField(max_length=2, choices=COMPONENT_TYPES, blank=True)
     component_type_name = models.BooleanField(default=False, blank=True)
-
-    notes = models.CharField(max_length=1000, null=True, blank=True)
-    notes_name = models.BooleanField(default=False, blank=True)
 
     coating_lot = models.ForeignKey(CoatingLot, on_delete=models.SET_NULL, null=True, blank=True)
     coating_lot_name = models.BooleanField(default=False, blank=True)
@@ -306,22 +459,12 @@ class Component(models.Model):
 
         :return:
         """
+        if self.smiles is None and self.smiles_name:
+            return False
         if self.composite_type is None:
             return False
         if self.component_type is None:
             return False
-        if self.proprietary:
-            if self.name is None:
-                return False
-            if self.smiles is not None:
-                return False
-        elif self.component_type == ACTIVE_MATERIAL and self.name is not None:
-                return False
-        if self.component_type == ACTIVE_MATERIAL and self.smiles is not None:
-            return False
-        if self.notes is None and self.notes_name:
-            return False
-        # a Null coating is a valid thing.
         if self.particle_size is None and self.particle_size_name:
             return False
         if self.single_crystal is None and self.single_crystal_name:
@@ -333,7 +476,6 @@ class Component(models.Model):
         if self.natural is None and self.natural_name:
             return False
 
-        #so far, this is valid.
         return True
 
     def define_if_possible(self, atoms=None):
@@ -353,7 +495,12 @@ class Component(models.Model):
         if not self.is_valid():
             print('was invalid')
             return None
-        wrt_query = Q(name=self.name, proprietary=self.proprietary, smiles=self.smiles)
+        wrt_query = Q()
+
+        if self.proprietary_name:
+            wrt_query = wrt_query & Q(proprietary=self.proprietary)
+        if self.smiles_name:
+            wrt_query = wrt_query & Q(smiles=self.smiles)
         if self.composite_type_name:
             wrt_query = wrt_query & Q(composite_type=self.composite_type)
         if self.component_type_name:
@@ -375,7 +522,6 @@ class Component(models.Model):
 
 
         duplicate_query = Q(
-            name=self.name,
             proprietary=self.proprietary,
             smiles=self.smiles,
             composite_type=self.composite_type,
@@ -393,7 +539,8 @@ class Component(models.Model):
         naming_set_query = Q(
             composite_type_name=self.composite_type_name,
             component_type_name=self.component_type_name,
-            notes_name=self.notes_name,
+            proprietary_name=self.proprietary_name,
+            smiles_name=self.smiles_name,
             coating_lot_name=self.coating_lot_name,
             particle_size_name=self.particle_size_name,
             single_crystal_name=self.single_crystal_name,
@@ -403,78 +550,62 @@ class Component(models.Model):
         )
 
 
-        if self.proprietary or self.component_type != ACTIVE_MATERIAL:
-            print("was proprietary or not active: {}, {}".format(self.proprietary, self.composite_type))
-            set_of_candidates = Component.objects.filter(wrt_query)
-            set_of_valid_duplicates = Component.objects.filter(duplicate_query & naming_set_query)
+        if atoms is None:
+            atoms = []
+        all_ids = list(map(lambda x: x['atom'], atoms))
+        if len(set(all_ids)) != len(all_ids):
+            print('atoms were not unique')
+            return None
+        else:
+            tolerance = 0.01
+            my_stochiometry_components = []
+            for atom in atoms:
+                actual_atom = atom['atom']
+                stochiometry = atom['stochiometry']
+
+                if stochiometry is not None:
+                    stochiometry_components = ElectrodeMaterialStochiometry.objects.filter(
+                        atom=actual_atom,
+                        stochiometry__range=(stochiometry - tolerance, stochiometry + tolerance))
+                    if stochiometry_components.exists():
+                        selected_stochiometry_component = stochiometry_components.annotate(
+                            distance=Func(F('stochiometry') - stochiometry, function='ABS')).order_by('distance')[0]
+                    else:
+                        selected_stochiometry_component = ElectrodeMaterialStochiometry.objects.create(
+                            atom=actual_atom,
+                            stochiometry=stochiometry
+                        )
+                else:
+                    stochiometry_components = ElectrodeMaterialStochiometry.objects.filter(
+                        atom=actual_atom,
+                        stochiometry=None)
+                    if stochiometry_components.exists():
+                        selected_stochiometry_component = stochiometry_components.order_by('id')[0]
+                    else:
+                        selected_stochiometry_component = ElectrodeMaterialStochiometry.objects.create(
+                            atom=actual_atom,
+                            stochiometry=None
+                        )
+
+                my_stochiometry_components.append(selected_stochiometry_component)
+
+            print('gathered the following stochiometry:', my_stochiometry_components)
+            set_with_valid_stoc = Component.objects.annotate(
+                count_stochiometry=Count('stochiometry')
+            ).filter(count_stochiometry=len(my_stochiometry_components)
+                     ).annotate(
+                count_valid_stochiometry=Count('stochiometry', filter=Q(stochiometry__in=my_stochiometry_components))
+            ).filter(count_valid_stochiometry=len(my_stochiometry_components))
+
+            set_of_candidates = set_with_valid_stoc.filter(wrt_query)
+            set_of_valid_duplicates = set_with_valid_stoc.filter(duplicate_query & naming_set_query)
 
             return helper_return(
                 set_of_candidates=set_of_candidates,
                 set_of_valid_duplicates=set_of_valid_duplicates,
-                my_self=self)
-
-
-        #TODO(sam):
-        # we currently assume that if we create a stochiometry,
-        # then we will create an active material.
-        # if this becomes false, it will be necessary to cleanup after we are done.
-        #TODO(sam): maybe we want uniform scaling of stochiometry to mean nothing.
-        # In such a case, there will be an issue.
-        else:
-            all_ids = list(map(lambda x: x['atom'], atoms))
-            if len(set(all_ids)) != len(all_ids):
-                print('atoms were not unique')
-                return None
-            else:
-                tolerance = 0.01
-                my_stochiometry_components = []
-                for atom in atoms:
-                    actual_atom = atom['atom']
-                    stochiometry = atom['stochiometry']
-
-                    if stochiometry is not None:
-                        stochiometry_components = ElectrodeMaterialStochiometry.objects.filter(
-                            atom=actual_atom,
-                            stochiometry__range=(stochiometry - tolerance, stochiometry + tolerance))
-                        if stochiometry_components.exists():
-                            selected_stochiometry_component = stochiometry_components.annotate(
-                                distance=Func(F('stochiometry') - stochiometry, function='ABS')).order_by('distance')[0]
-                        else:
-                            selected_stochiometry_component = ElectrodeMaterialStochiometry.objects.create(
-                                atom=actual_atom,
-                                stochiometry=stochiometry
-                            )
-                    else:
-                        stochiometry_components = ElectrodeMaterialStochiometry.objects.filter(
-                            atom=actual_atom,
-                            stochiometry=None)
-                        if stochiometry_components.exists():
-                            selected_stochiometry_component = stochiometry_components.order_by('id')[0]
-                        else:
-                            selected_stochiometry_component = ElectrodeMaterialStochiometry.objects.create(
-                                atom=actual_atom,
-                                stochiometry=None
-                            )
-
-                    my_stochiometry_components.append(selected_stochiometry_component)
-
-                print('gathered the following stochiometry:', my_stochiometry_components)
-                set_with_valid_stoc = Component.objects.annotate(
-                    count_stochiometry=Count('stochiometry')
-                ).filter(count_stochiometry=len(my_stochiometry_components)
-                         ).annotate(
-                    count_valid_stochiometry=Count('stochiometry', filter=Q(stochiometry__in=my_stochiometry_components))
-                ).filter(count_valid_stochiometry=len(my_stochiometry_components))
-
-                set_of_candidates = set_with_valid_stoc.filter(wrt_query)
-                set_of_valid_duplicates = set_with_valid_stoc.filter(duplicate_query & naming_set_query)
-
-                return helper_return(
-                    set_of_candidates=set_of_candidates,
-                    set_of_valid_duplicates=set_of_valid_duplicates,
-                    my_self=self,
-                    my_stochiometry_components=my_stochiometry_components
-                )
+                my_self=self,
+                my_stochiometry_components=my_stochiometry_components
+            )
 
 
     def print_stochiometry(self):
@@ -486,16 +617,30 @@ class Component(models.Model):
             return ''
 
     def __str__(self):
-        if self.proprietary:
-            printed_name = "PROPRIETARY:{}".format(self.name)
-        elif self.component_type != ACTIVE_MATERIAL:
-            printed_name = self.name
-        else:
+        printed_name = ''
+        if self.component_type == ACTIVE_MATERIAL:
             printed_name = self.print_stochiometry()
 
+        if self.notes_name:
+            if printed_name == '':
+                printed_name = self.notes
+            else:
+                printed_name = '{} ({})'.format(printed_name,self.notes)
+
+
         extras = []
+        if self.proprietary_name:
+            if self.proprietary:
+                secret = "SECRET"
+            else:
+                secret = "NOT SECRET"
+            extras.append(secret)
+
         if self.particle_size_name:
             extras.append('SIZE={:2.2f}'.format(self.particle_size))
+
+        if self.smiles_name:
+            extras.append('SMILES={}'.format(self.smiles))
 
         if self.single_crystal_name:
             if self.single_crystal:
@@ -510,16 +655,10 @@ class Component(models.Model):
             else:
                 natural = 'ART'
             extras.append(natural)
-
-
         if self.preparation_temperature_name:
             extras.append('TEMP={:4.0f}'.format(self.preparation_temperature))
-
         if self.turbostratic_misalignment_name:
             extras.append('TURBO={:3.3f}'.format(self.turbostratic_misalignment))
-
-        if self.notes_name:
-            extras.append('NOTES={}'.format(self.notes))
 
         if self.coating_lot_name:
             if self.coating_lot is None:
@@ -551,11 +690,7 @@ class ComponentLot(models.Model):
     lot_info = models.OneToOneField(LotInfo, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
-        if self.lot_info is None:
-            return self.component.__str__()
-        else:
-            return "{}({})".format(self.lot_info.lot_name, self.component.__str__())
-
+        return print_lot(self, type='component')
 
 
 class RatioComponent(models.Model):
@@ -576,9 +711,13 @@ class RatioComponent(models.Model):
 
     def pretty_print(self, digits=None):
         my_string = '{}%{}'
-        pd = print_digits(self.ratio, digits)
-        if self.component_lot.component.component_type == SALT:
-            my_string = '{}m{}'
+        if self.ratio is None:
+            pd = '?'
+        else:
+            pd = print_digits(self.ratio, digits)
+            if self.component_lot.component.component_type == SALT:
+                my_string = '{}m{}'
+
             if pd == '':
                 pd = '1'
         return my_string.format(pd, self.component_lot.__str__())
@@ -598,10 +737,16 @@ def helper_component_group(x, type=None):
     else:
         return x == type
 
+def helper_null_to_zero(val):
+    if val is None:
+        return 0.
+    else:
+        return val
+
 def helper_total(fil=None, my_list=None, type_component=None, type_group=None):
     if fil is None:
         fil = lambda x: helper_component_group(helper_component_type(x, type_component), type_group)
-    return sum(map(lambda x: x['ratio'],
+    return sum(map(lambda x: helper_null_to_zero(x['ratio']),
          filter(fil, my_list)),0.)
 
 
@@ -616,18 +761,24 @@ def helper_total_complete(components=None, components_lot=None, type_group=None)
 
 class Composite(models.Model):
     '''
-        TODO(sam): define if possible for electrolyte
-        TODO(sam): define if possible for electrode
+        TODO(sam): Add notes to define if possible.
+         add notes to everything!!!!
+
         electrolyte: separate solvent, salt, additive. no name unless proprietary. no other property
         anode & cathode: separate Active materials and inactive materials, then give geometry info
         separator: separator material, then give geometry info
     '''
 
     proprietary = models.BooleanField(default=False, blank=True)
-    name = models.CharField(max_length=100, null=True, blank=True)
+    proprietary_name = models.BooleanField(default=False, blank=True)
 
     composite_type = models.CharField(max_length=2, choices=COMPOSITE_TYPES, blank=True)
     composite_type_name = models.BooleanField(default=False, blank=True)
+
+    notes = models.CharField(max_length=1000, null=True, blank=True)
+    @property
+    def notes_name(self):
+        return self.notes is not None
 
     electrode_geometry = models.OneToOneField(ElectrodeGeometry, on_delete=models.SET_NULL, null=True, blank=True)
     separator_geometry = models.OneToOneField(SeparatorGeometry, on_delete=models.SET_NULL, null=True, blank=True)
@@ -644,13 +795,6 @@ class Composite(models.Model):
         :return:
         """
         if self.composite_type is None:
-            return False
-
-        if self.proprietary:
-            if self.name is None:
-                return False
-
-        elif self.name is not None:
             return False
 
         if self.composite_type in [ANODE,CATHODE]:
@@ -687,11 +831,20 @@ class Composite(models.Model):
            value fields DO exist and same naming subset:
            return Instance
         """
+        print(components)
+        print(components_lot)
         if not self.is_valid(electrode_geometry=electrode_geometry, separator_geometry=separator_geometry):
             return None
-        wrt_query = Q(name=self.name, proprietary=self.proprietary)
+        wrt_query = Q()
         if self.composite_type_name:
             wrt_query = wrt_query & Q(composite_type=self.composite_type)
+
+        if self.notes_name:
+            wrt_query = wrt_query & Q(notes=self.notes)
+
+
+        if self.proprietary_name:
+            wrt_query = wrt_query & Q(proprietary=self.proprietary)
 
         if self.composite_type in [ANODE,CATHODE]:
             wrt_query = wrt_query & (Q(composite_type=ANODE)|Q(composite_type=CATHODE))
@@ -710,9 +863,10 @@ class Composite(models.Model):
                 wrt_query = wrt_query & Q(electrode_geometry__thickness=electrode_geometry.thickness)
 
         duplicate_query = Q(
-            name=self.name,
             proprietary=self.proprietary,
-            composite_type=self.composite_type,)
+            composite_type=self.composite_type,
+            notes = self.notes,
+        )
         if self.composite_type in [ANODE, CATHODE]:
             duplicate_query = duplicate_query & Q(
                 electrode_geometry__loading=electrode_geometry.loading,
@@ -727,6 +881,7 @@ class Composite(models.Model):
 
         naming_set_query = Q(
             composite_type_name=self.composite_type_name,
+            proprietary_name=self.proprietary_name,
         )
         if self.composite_type in [ANODE, CATHODE]:
             naming_set_query = naming_set_query & Q(
@@ -742,87 +897,94 @@ class Composite(models.Model):
 
 
 
-        if self.proprietary:
-            set_of_candidates = Composite.objects.filter(wrt_query)
-            set_of_valid_duplicates = Composite.objects.filter(duplicate_query & naming_set_query)
+        if components is None:
+            components = []
 
-            return helper_return(
-                set_of_candidates=set_of_candidates,
-                set_of_valid_duplicates=set_of_valid_duplicates,
-                my_self=self,
-                electrode_geometry=electrode_geometry,
-                separator_geometry=separator_geometry,
-            )
+        if components_lot is None:
+            components_lot = []
 
-
-        #TODO(sam):
-        # we currently assume that if we create a ratio,
-        # then we will create a composite.
-        # if this becomes false, it will be necessary to cleanup after we are done.
-        else:
-            #TODO(sam): electrolytes
-            # check if there is a problem with the molecules/molecules_lot
-            all_ids = list(map(lambda x: x['component'].id, components)) + list(
-                map(lambda x: x['component_lot'].component.id, components_lot))
-            if len(set(all_ids)) == len(all_ids):
-                # normalize things.
-                if self.composite_type == ELECTROLYTE:
-                    total_complete = helper_total_complete(
-                        components=components,
-                        components_lot=components_lot,
-                        type_group=SOLVENT
-                    )
-                    total_extra = helper_total_complete(
-                        components=components,
-                        components_lot=components_lot,
-                        type_group=ADDITIVE
-                    )
+        all_ids = list(map(lambda x: x['component'].id, components)) + list(
+            map(lambda x: x['component_lot'].component.id, components_lot))
+        if len(set(all_ids)) == len(all_ids):
+            # normalize things.
+            if self.composite_type == ELECTROLYTE:
+                total_complete = helper_total_complete(
+                    components=components,
+                    components_lot=components_lot,
+                    type_group=SOLVENT
+                )
+                total_extra = helper_total_complete(
+                    components=components,
+                    components_lot=components_lot,
+                    type_group=ADDITIVE
+                )
 
 
-                if self.composite_type in [ANODE,CATHODE]:
-                    total_complete = helper_total_complete(
-                        components=components,
-                        components_lot=components_lot,
-                        type_group=ACTIVE_MATERIAL
-                    )
-                    total_extra = helper_total_complete(
-                        components=components,
-                        components_lot=components_lot,
-                        type_group="INACTIVE"
-                    )
-                if self.composite_type == SEPARATOR:
-                    total_complete = helper_total_complete(
-                        components=components,
-                        components_lot=components_lot,
-                        type_group=SEPARATOR_MATERIAL
-                    )
-                    total_extra = 0.
+            if self.composite_type in [ANODE,CATHODE]:
+                total_complete = helper_total_complete(
+                    components=components,
+                    components_lot=components_lot,
+                    type_group=ACTIVE_MATERIAL
+                )
+                total_extra = helper_total_complete(
+                    components=components,
+                    components_lot=components_lot,
+                    type_group="INACTIVE"
+                )
+            if self.composite_type == SEPARATOR:
+                total_complete = helper_total_complete(
+                    components=components,
+                    components_lot=components_lot,
+                    type_group=SEPARATOR_MATERIAL
+                )
+                total_extra = 0.
 
-                if total_extra < 100. and total_extra > 0. and total_complete > 0.:
-                    # create or get each RatioComponent.
-                    my_ratio_components = []
-                    for ms, kind in [(components, 'component'), (components_lot, 'component_lot')]:
-                        for component in ms:
-                            if kind == 'component':
-                                actual_component = component['component']
-                            elif kind == 'component_lot':
-                                actual_component = component['component_lot'].component
+            if total_complete == 0.:
+                total_complete = 100.
 
-                            if actual_component.component_type in [SOLVENT,ACTIVE_MATERIAL,SEPARATOR_MATERIAL]:
+            print(total_extra, total_complete)
+
+            if total_extra < 100. and total_extra >= 0. and total_complete > 0.:
+                # create or get each RatioComponent.
+                print(components)
+                my_ratio_components = []
+                for ms, kind in [(components, 'component'), (components_lot, 'component_lot')]:
+                    for component in ms:
+                        if kind == 'component':
+                            actual_component = component['component']
+                        elif kind == 'component_lot':
+                            actual_component = component['component_lot'].component
+
+                        if actual_component.component_type in [SOLVENT,ACTIVE_MATERIAL,SEPARATOR_MATERIAL]:
+                            if component['ratio'] is None:
+                                ratio = None
+                            else:
                                 ratio = component['ratio'] * 100. / total_complete
-                                tolerance = 0.25
-                            elif actual_component.component_type in [CONDUCTIVE_ADDITIVE,BINDER,SALT, ADDITIVE]:
-                                ratio = component['ratio']
-                                tolerance = 0.01
+                            tolerance = 0.25
+                        elif actual_component.component_type in [CONDUCTIVE_ADDITIVE,BINDER,SALT, ADDITIVE]:
+                            ratio = component['ratio']
+                            tolerance = 0.01
 
-                            if kind == 'component':
-                                comp_lot, _ = ComponentLot.objects.get_or_create(
-                                    lot_info=None,
-                                    component=component['component']
+                        if kind == 'component':
+                            comp_lot, _ = ComponentLot.objects.get_or_create(
+                                lot_info=None,
+                                component=component['component']
+                            )
+                        elif kind == 'component_lot':
+                            comp_lot = component['component_lot']
+
+                        if ratio is None:
+                            ratio_components = RatioComponent.objects.filter(
+                                component_lot=comp_lot,
+                                ratio=None)
+                            if ratio_components.exists():
+                                selected_ratio_component = ratio_components.order_by('id')[0]
+                            else:
+                                selected_ratio_component = RatioComponent.objects.create(
+                                    component_lot=comp_lot,
+                                    ratio=None
                                 )
-                            elif kind == 'component_lot':
-                                comp_lot = component['component_lot']
-
+                        else:
                             ratio_components = RatioComponent.objects.filter(
                                 component_lot=comp_lot,
                                 ratio__range=(ratio - tolerance, ratio + tolerance))
@@ -835,31 +997,29 @@ class Composite(models.Model):
                                     ratio=ratio
                                 )
 
-                            my_ratio_components.append(selected_ratio_component)
+                        my_ratio_components.append(selected_ratio_component)
 
-                    set_with_valid_comp = Composite.objects.annotate(
-                        count_components=Count('components')
-                    ).filter(count_components=len(my_ratio_components)).annotate(
-                        count_valid_components=Count('components', filter=Q(components__in=my_ratio_components))
-                    ).filter(count_valid_components=len(my_ratio_components))
+                print(my_ratio_components)
+                set_with_valid_comp = Composite.objects.annotate(
+                    count_components=Count('components')
+                ).filter(count_components=len(my_ratio_components)).annotate(
+                    count_valid_components=Count('components', filter=Q(components__in=my_ratio_components))
+                ).filter(count_valid_components=len(my_ratio_components))
 
-                    set_of_candidates = set_with_valid_comp.filter(wrt_query)
-                    set_of_valid_duplicates = set_with_valid_comp.filter(duplicate_query & naming_set_query)
+                set_of_candidates = set_with_valid_comp.filter(wrt_query)
+                set_of_valid_duplicates = set_with_valid_comp.filter(duplicate_query & naming_set_query)
 
-                    return helper_return(
-                        set_of_candidates=set_of_candidates,
-                        set_of_valid_duplicates=set_of_valid_duplicates,
-                        my_self=self,
-                        electrode_geometry=electrode_geometry,
-                        separator_geometry=separator_geometry,
-                        my_ratio_components=my_ratio_components
-                    )
+                return helper_return(
+                    set_of_candidates=set_of_candidates,
+                    set_of_valid_duplicates=set_of_valid_duplicates,
+                    my_self=self,
+                    electrode_geometry=electrode_geometry,
+                    separator_geometry=separator_geometry,
+                    my_ratio_components=my_ratio_components
+                )
 
     def __str__(self):
         printed_name = ''
-        if self.proprietary:
-            printed_name = "PROPRIETARY:{}".format(self.name)
-            return printed_name
 
         if self.composite_type == ELECTROLYTE:
             lists_of_lists = [
@@ -881,10 +1041,6 @@ class Composite(models.Model):
             ]
             printed_name = " + ".join([ll for ll in lists_of_lists if ll is not None])
 
-            if self.composite_type_name:
-                printed_name = "{} [{}]".format(printed_name, self.get_composite_type_display)
-
-            return printed_name
 
         elif self.composite_type == ANODE or self.composite_type == CATHODE:
             lists_of_lists = [
@@ -901,35 +1057,56 @@ class Composite(models.Model):
             ]
             printed_name = " + ".join([ll for ll in lists_of_lists if ll is not None])
 
-
-            extras = []
-            if self.electrode_geometry is not None:
-                if self.electrode_geometry.loading_name:
-                    extras.append('LOADING={:2.2f}'.format(self.electrode_geometry.loading))
-                if self.electrode_geometry.density_name:
-                    extras.append('DENSITY={:2.2f}'.format(self.electrode_geometry.density))
-                if self.electrode_geometry.thickness_name:
-                    extras.append('THICKNESS={:2.2f}'.format(self.electrode_geometry.thickness))
-            if self.composite_type_name:
-                extras.append(
-                    self.get_composite_type_display()
-                )
-            if len(extras) != 0:
-                return "{} [{}]".format(printed_name, ','.join(extras))
-            else:
-                return printed_name
-
         elif self.composite_type == SEPARATOR:
-            return 'not yet implemented'
+            printed_name = print_components(
+                    list(self.components.order_by('-ratio')),
+                    complete=True, prefix=None
+                )
+
+        extras = []
+        if self.notes_name:
+            if printed_name == '':
+                printed_name = self.notes
+            else:
+                printed_name = '{} ({})'.format(printed_name,self.notes)
+
+        if self.proprietary_name:
+            if self.proprietary:
+                secret = "SECRET"
+            else:
+                secret = "NOT SECRET"
+            extras.append(secret)
+        if self.electrode_geometry is not None:
+            if self.electrode_geometry.loading_name:
+                extras.append('LOADING={:2.2f}'.format(self.electrode_geometry.loading))
+            if self.electrode_geometry.density_name:
+                extras.append('DENSITY={:2.2f}'.format(self.electrode_geometry.density))
+            if self.electrode_geometry.thickness_name:
+                extras.append('THICKNESS={:2.2f}'.format(self.electrode_geometry.thickness))
+
+        if self.separator_geometry is not None:
+            if self.separator_geometry.thickness_name:
+                extras.append('THICKNESS={:2.2f}'.format(self.separator_geometry.thickness))
+            if self.separator_geometry.width_name:
+                extras.append('WIDTH={:2.2f}'.format(self.separator_geometry.width))
+
+
+        if self.composite_type_name:
+            extras.append(
+                self.get_composite_type_display()
+            )
+        if len(extras) != 0:
+            return "{} [{}]".format(printed_name, ','.join(extras))
+        else:
+            return printed_name
+
 
 class CompositeLot(models.Model):
     composite = models.ForeignKey(Composite, on_delete=models.CASCADE, blank=True)
     lot_info = models.OneToOneField(LotInfo, on_delete=models.SET_NULL, null=True, blank=True)
+
     def __str__(self):
-        if self.lot_info is None:
-            return self.composite.__str__()
-        else:
-            return "{}({})".format(self.lot_info.lot_name, self.composite.__str__())
+        return print_lot(self, type='composite')
 
 
 
@@ -1009,6 +1186,8 @@ class DryCell(models.Model):
 class DryCellLot(models.Model):
     dry_cell = models.ForeignKey(DryCell, on_delete=models.CASCADE, blank=True)
     lot_info = models.OneToOneField(LotInfo, on_delete=models.SET_NULL, null=True, blank=True)
+    def __str__(self):
+        return print_lot(self, type='dry_cell')
 
 
 def get_lot(content, lot, type=None):

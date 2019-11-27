@@ -126,8 +126,8 @@ DONE - streamline the various definitions into much simpler and unique flows.
 DONE    - electrolyte definition (molecule, electrolyte)
 DONE    - electrode definition (coating, active, inactive, electrode)
 DONE    - separator definition (coating, separator material, separator)
-    - dry cell definition
-    - wet cell definition
+DONE    - dry cell definition
+DONE    - wet cell definition
 - create SOP for entering info (especially incomplete info)
 - allow modifications
 DONE - allow unknown values

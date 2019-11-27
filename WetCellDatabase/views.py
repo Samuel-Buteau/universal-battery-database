@@ -17,98 +17,80 @@ DONE - test uniqueness check
 DONE - streamline the various definitions into much simpler and unique flows.
 - make the processing specific to machine learning optional.
 - bake a tensor instead of having to use the database all the time.
-
 '''
 
-#TODO(sam): name proposal
-'''
-basically, if proprietary, name is specified. 
-Otherwise, name is generated based on data itself.
-make sure the *visible* data is unique. 
-(i.e., given the set of visible data, there should not exist another element 
-which coincides with the candidate on this set.)
-
-In order not to drown in tons of text, allow opt-out of various fields.
-
-SIZE=
-SINGLE/POLY
-P=
-T=
-NAT/ART
-CORE-SHELL
-(Notes)
-COAT=
-
-Li1 Ni.5 Mn.3 Co.2 O2
-
-'''
-
-def define_page(request):
-    ActiveMaterialCompositionFormset = formset_factory(
-        ElectrodeMaterialStochiometryForm,
-        extra=10
-    )
-
-    ElectrolyteCompositionFormset = formset_factory(
-        ElectrolyteCompositionForm,
-        extra=10
-    )
-
-    ElectrodeCompositionFormset = formset_factory(
-        ElectrodeCompositionForm,
-        extra=10
-    )
 
 
-    SeparatorCompositionFormset = formset_factory(
-        SeparatorCompositionForm,
-        extra=10
-    )
 
 
-    active_material_composition_formset = ActiveMaterialCompositionFormset(prefix='active-material-composition-formset')
-    electrolyte_composition_formset = ElectrolyteCompositionFormset(prefix='electrolyte-composition-formset')
-    electrode_composition_formset = ElectrodeCompositionFormset(prefix='electrode-composition-formset')
-    separator_composition_formset = SeparatorCompositionFormset(prefix='separator-composition-formset')
+def define_page(request, mode=None):
+    ar = {'mode':mode}
 
-    ar = {}
-    ar['active_material_composition_formset'] = active_material_composition_formset
-    ar['electrolyte_composition_formset'] = electrolyte_composition_formset
-    ar['electrode_composition_formset'] = electrode_composition_formset
-    ar['separator_composition_formset'] = separator_composition_formset
+    if mode=='electrode':
+        ActiveMaterialCompositionFormset = formset_factory(
+            ElectrodeMaterialStochiometryForm,
+            extra=10
+        )
+        active_material_composition_formset = ActiveMaterialCompositionFormset(
+            prefix='active-material-composition-formset')
+        ar['active_material_composition_formset'] = active_material_composition_formset
 
-    ar['define_molecule_form'] = ElectrolyteMoleculeForm(prefix='electrolyte-molecule-form')
-    ar['define_molecule_lot_form'] = ElectrolyteMoleculeLotForm(prefix='electrolyte-molecule-lot-form')
+        ElectrodeCompositionFormset = formset_factory(
+            ElectrodeCompositionForm,
+            extra=10
+        )
+        electrode_composition_formset = ElectrodeCompositionFormset(prefix='electrode-composition-formset')
+        ar['electrode_composition_formset'] = electrode_composition_formset
 
-    ar['define_coating_form'] = CoatingForm(prefix='coating-form')
-    ar['define_coating_lot_form'] = CoatingLotForm(prefix='coating-lot-form')
+        ar['define_coating_form'] = CoatingForm(prefix='coating-form')
+        ar['define_coating_lot_form'] = CoatingLotForm(prefix='coating-lot-form')
 
-    ar['define_inactive_form'] = ElectrodeInactiveForm(prefix='electrode-inactive-form')
-    ar['define_inactive_lot_form'] = ElectrodeInactiveLotForm(prefix='electrode-inactive-lot-form')
+        ar['define_inactive_form'] = ElectrodeInactiveForm(prefix='electrode-inactive-form')
+        ar['define_inactive_lot_form'] = ElectrodeInactiveLotForm(prefix='electrode-inactive-lot-form')
 
-    ar['define_active_material_form'] = ElectrodeActiveMaterialForm(prefix='electrode-active-material-form')
-    ar['define_active_material_lot_form'] = ElectrodeActiveMaterialLotForm(prefix='electrode-active-material-lot-form')
+        ar['define_active_material_form'] = ElectrodeActiveMaterialForm(prefix='electrode-active-material-form')
+        ar['define_active_material_lot_form'] = ElectrodeActiveMaterialLotForm(
+            prefix='electrode-active-material-lot-form')
+        ar['define_electrode_form'] = ElectrodeForm(prefix='electrode-form')
+        ar['define_electrode_lot_form'] = ElectrodeLotForm(prefix='electrode-lot-form')
+        ar['define_electrode_geometry_form'] = ElectrodeGeometryForm(prefix='electrode-geometry-form')
+
+    if mode =='electrolyte':
+        ElectrolyteCompositionFormset = formset_factory(
+            ElectrolyteCompositionForm,
+            extra=10
+        )
+        electrolyte_composition_formset = ElectrolyteCompositionFormset(prefix='electrolyte-composition-formset')
+        ar['electrolyte_composition_formset'] = electrolyte_composition_formset
 
 
-    ar['define_separator_material_form'] = SeparatorMaterialForm(prefix='separator-material-form')
-    ar['define_separator_material_lot_form'] = SeparatorMaterialLotForm(prefix='separator-material-lot-form')
+        ar['define_molecule_form'] = ElectrolyteMoleculeForm(prefix='electrolyte-molecule-form')
+        ar['define_molecule_lot_form'] = ElectrolyteMoleculeLotForm(prefix='electrolyte-molecule-lot-form')
 
-    ar['define_electrolyte_form'] = ElectrolyteForm(prefix='electrolyte-form')
-    ar['define_electrolyte_lot_form'] = ElectrolyteLotForm(prefix='electrolyte-lot-form')
+        ar['define_electrolyte_form'] = ElectrolyteForm(prefix='electrolyte-form')
+        ar['define_electrolyte_lot_form'] = ElectrolyteLotForm(prefix='electrolyte-lot-form')
 
-    ar['define_electrode_form'] = ElectrodeForm(prefix='electrode-form')
-    ar['define_electrode_lot_form'] = ElectrodeLotForm(prefix='electrode-lot-form')
-    ar['define_electrode_geometry_form'] = ElectrodeGeometryForm(prefix='electrode-geometry-form')
+    if mode == 'separator':
+        SeparatorCompositionFormset = formset_factory(
+            SeparatorCompositionForm,
+            extra=10
+        )
 
-    ar['define_separator_form'] = SeparatorForm(prefix='separator-form')
-    ar['define_separator_lot_form'] = SeparatorLotForm(prefix='separator-lot-form')
-    ar['define_separator_geometry_form'] = SeparatorGeometryForm(prefix='separator-geometry-form')
+        separator_composition_formset = SeparatorCompositionFormset(prefix='separator-composition-formset')
+        ar['separator_composition_formset'] = separator_composition_formset
+        ar['define_separator_material_form'] = SeparatorMaterialForm(prefix='separator-material-form')
+        ar['define_separator_material_lot_form'] = SeparatorMaterialLotForm(prefix='separator-material-lot-form')
+        ar['define_separator_form'] = SeparatorForm(prefix='separator-form')
+        ar['define_separator_lot_form'] = SeparatorLotForm(prefix='separator-lot-form')
+        ar['define_separator_geometry_form'] = SeparatorGeometryForm(prefix='separator-geometry-form')
 
-    ar['define_dry_cell_form'] = DryCellForm()
-    ar['define_dry_cell_lot_form'] = DryCellLotForm()
-    ar['define_dry_cell_geometry_form'] = DryCellGeometryForm()
+    if mode == 'dry_cell':
+        ar['define_dry_cell_form'] = DryCellForm()
+        ar['define_dry_cell_lot_form'] = DryCellLotForm()
+        ar['define_dry_cell_geometry_form'] = DryCellGeometryForm()
 
-    ar['define_wet_cell_form'] = WetCellForm()
+    if mode == 'wet_cell':
+        ar['define_wet_cell_form'] = WetCellForm()
 
     def define_simple(post, content=None):
         if content in ['electrolyte', 'electrode', 'separator']:
@@ -295,6 +277,7 @@ def define_page(request):
                         simple_form.cleaned_data['coating_lot'],
                         type='coating'
                     )
+                    my_component.coating_lot_unknown = simple_form.cleaned_data['coating_lot_unknown']
                     my_component.particle_size = simple_form.cleaned_data['particle_size']
                     my_component.particle_size_name = simple_form.cleaned_data['particle_size_name']
                     my_component.preparation_temperature = simple_form.cleaned_data['preparation_temperature']
@@ -428,44 +411,59 @@ def define_page(request):
                 )
                 if content == 'molecule' or content == 'separator_material' or content == 'inactive' or content == 'active_material':
                     type = 'component'
+                    lot = ComponentLot(component = my_content)
                 elif content == 'coating':
                     type = 'coating'
+                    lot = CoatingLot(coating = my_content)
                 elif content == 'electrolyte' or content == 'electrode' or content == 'separator':
                     type = 'composite'
+                    lot = CompositeLot(composite = my_content)
                 else:
                     raise('not yet implemented {}'.format(content))
 
-                define_if_possible(my_content, lot_info=lot_info, type=type)
+
+                define_if_possible(lot, lot_info=lot_info, type=type)
 
     if request.method == 'POST':
-        for m in ['molecule', 'coating', 'inactive', 'electrolyte', 'active_material', 'separator_material','electrode','separator']:
-            if ('define_{}'.format(m) in request.POST) or ('define_{}_lot'.format(m) in request.POST):
-                if 'define_{}'.format(m) in request.POST:
-                    print(define_simple(request.POST, content=m))
-                if 'define_{}_lot'.format(m) in request.POST:
-                    define_lot(request.POST, content=m)
+        for m,context in [
+            ('molecule','electrolyte'),
+            ('coating','electrode'),
+            ('inactive','electrode'),
+            ('electrolyte','electrolyte'),
+            ('active_material','electrode'),
+            ('separator_material','separator'),
+            ('electrode','electrode'),
+            ('separator','separator')]:
+            if context == mode:
+                if ('define_{}'.format(m) in request.POST) or ('define_{}_lot'.format(m) in request.POST):
+                    if 'define_{}'.format(m) in request.POST:
+                        print(define_simple(request.POST, content=m))
+                    if 'define_{}_lot'.format(m) in request.POST:
+                        define_lot(request.POST, content=m)
 
-        if ('define_dry_cell' in request.POST) or ('define_dry_cell_lot' in request.POST):
-            define_dry_cell_form = DryCellForm(request.POST)
-            if define_dry_cell_form.is_valid():
-                print(define_dry_cell_form.cleaned_data)
-                ar['define_dry_cell_form'] = define_dry_cell_form
-            define_dry_cell_geometry_form = DryCellGeometry(request.POST)
-            if define_dry_cell_geometry_form.is_valid():
-                print(define_dry_cell_geometry_form.cleaned_data)
-                ar['define_dry_cell_geometry_form'] = define_dry_cell_geometry_form
+        if mode == 'dry_cell':
+            if ('define_dry_cell' in request.POST) or ('define_dry_cell_lot' in request.POST):
+                define_dry_cell_form = DryCellForm(request.POST)
+                if define_dry_cell_form.is_valid():
+                    print(define_dry_cell_form.cleaned_data)
+                    ar['define_dry_cell_form'] = define_dry_cell_form
+                define_dry_cell_geometry_form = DryCellGeometry(request.POST)
+                if define_dry_cell_geometry_form.is_valid():
+                    print(define_dry_cell_geometry_form.cleaned_data)
+                    ar['define_dry_cell_geometry_form'] = define_dry_cell_geometry_form
 
-            if 'define_dry_cell_lot' in request.POST:
-                define_dry_cell_lot_form = DryCellLotForm(request.POST)
-                if define_dry_cell_lot_form.is_valid():
-                    print(define_dry_cell_lot_form.cleaned_data)
-                    ar['define_dry_cell_lot_form'] = define_dry_cell_lot_form
+                if 'define_dry_cell_lot' in request.POST:
+                    define_dry_cell_lot_form = DryCellLotForm(request.POST)
+                    if define_dry_cell_lot_form.is_valid():
+                        print(define_dry_cell_lot_form.cleaned_data)
+                        ar['define_dry_cell_lot_form'] = define_dry_cell_lot_form
 
-        elif ('define_wet_cell' in request.POST) :
-            define_wet_cell_form = WetCellForm(request.POST)
-            if define_wet_cell_form.is_valid():
-                print(define_wet_cell_form.cleaned_data)
-                ar['define_wet_cell_form'] = define_wet_cell_form
+        if mode == 'wet_cell':
+            if ('define_wet_cell' in request.POST) :
+                define_wet_cell_form = WetCellForm(request.POST)
+                if define_wet_cell_form.is_valid():
+                    print(define_wet_cell_form.cleaned_data)
+                    ar['define_wet_cell_form'] = define_wet_cell_form
 
     return render(request, 'WetCellDatabase/define_page.html', ar)
 

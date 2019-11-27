@@ -102,9 +102,14 @@ here accuracy_in_seconds is a boolean variable saying whether datetime1
  
  
 # TODO(Samuel):
+DONE - add units to all important quantities.
+DONE - add unknown to all important quantities
+DONE    - for each quantity, determine if unknown/known/NA is appropriate.
+DONE - date widgets
 
 - print the temperature and turbostratic misalignment in a nicer way. (i.e. too many sig. figs.) 
 
+DONE - lots names are now minimal
 DONE - make unknown ratios behave the same as unknown stochiometry.
 DONE - for things that are normalized to 100%, take the sum of everything except the None,
   and if the total is 0, set to 1 for purposes of renormalization
@@ -118,13 +123,14 @@ DONE - streamline the various definitions into much simpler and unique flows.
 
 
 - create a separate page for:
-    - electrolyte definition
-    - electrode definition
+DONE    - electrolyte definition (molecule, electrolyte)
+DONE    - electrode definition (coating, active, inactive, electrode)
+DONE    - separator definition (coating, separator material, separator)
     - dry cell definition
     - wet cell definition
 - create SOP for entering info (especially incomplete info)
 - allow modifications
-- allow unknown values
+DONE - allow unknown values
 - machine learning postprocess:
 DONE    - make the processing specific to machine learning on-demand.
 DONE    - bake a numpy structured array instead of having to use the database all the time.

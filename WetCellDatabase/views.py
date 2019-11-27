@@ -168,13 +168,15 @@ def define_page(request):
 
                 my_composite = Composite(
                     proprietary=simple_form.cleaned_data['proprietary'],
-                    name=simple_form.cleaned_data['name']
+                    proprietary_name=simple_form.cleaned_data['proprietary_name'],
+                    notes=simple_form.cleaned_data['notes'],
                 )
                 if content == 'electrolyte':
                     my_composite.composite_type = ELECTROLYTE
                 elif content == 'electrode':
                     my_composite.composite_type = simple_form.cleaned_data['composite_type']
                     my_composite.composite_type_name = simple_form.cleaned_data['composite_type_name']
+
                 if content == 'separator':
                     my_composite.composite_type = SEPARATOR
 
@@ -199,22 +201,37 @@ def define_page(request):
                             print(form.cleaned_data)
                             if not component_string in form.cleaned_data.keys() or not component_lot_string in form.cleaned_data.keys():
                                 continue
-                            if form.cleaned_data['ratio'] is None or form.cleaned_data['ratio'] <= 0:
-                                continue
+
+                            print('didnot fail')
+                            print(component_string)
+                            print(component_lot_string)
+                            print(form.cleaned_data[component_string].composite_type)
                             if form.cleaned_data[component_string] is not None and form.cleaned_data[component_string].composite_type==my_composite.composite_type:
-                                components.append(
-                                    {
-                                        'component': form.cleaned_data[component_string],
-                                        'ratio': form.cleaned_data['ratio']
-                                    }
-                                )
+                                print('recognised')
+                                value, unknown = unknown_numerical(form.cleaned_data['ratio'])
+                                if not unknown and value is None:
+                                    continue
+                                else:
+                                    components.append(
+                                        {
+                                            'component': form.cleaned_data[component_string],
+                                            'ratio': value
+                                        }
+                                    )
+
                             elif form.cleaned_data[component_lot_string] is not None and form.cleaned_data[component_lot_string].composite.composite_type==my_composite.composite_type:
-                                components_lot.append(
-                                    {
-                                        'component_lot': form.cleaned_data[component_lot_string],
-                                        'ratio': form.cleaned_data['ratio']
-                                    }
-                                )
+                                print('recognised lot')
+                                value, unknown = unknown_numerical(form.cleaned_data['ratio'])
+                                if not unknown and value is None:
+                                    continue
+                                else:
+
+                                    components_lot.append(
+                                        {
+                                            'component_lot': form.cleaned_data[component_lot_string],
+                                            'ratio': value
+                                        }
+                                    )
 
             return my_composite.define_if_possible(
                 components=components,
@@ -264,7 +281,8 @@ def define_page(request):
 
                 my_component = Component(
                     proprietary = simple_form.cleaned_data['proprietary'],
-                    name = simple_form.cleaned_data['name'],
+                    proprietary_name=simple_form.cleaned_data['proprietary_name'],
+                    notes=simple_form.cleaned_data['notes'],
                     component_type=component_type,
                     component_type_name=component_type_name,
                     composite_type=composite_type,
@@ -282,8 +300,6 @@ def define_page(request):
                     my_component.preparation_temperature = simple_form.cleaned_data['preparation_temperature']
                     my_component.preparation_temperature_name = simple_form.cleaned_data[
                                                        'preparation_temperature_name']
-                    my_component.notes = simple_form.cleaned_data['notes']
-                    my_component.notes_name = simple_form.cleaned_data['notes_name']
                     my_component.coating_lot_name = simple_form.cleaned_data['coating_lot_name']
 
 
@@ -298,6 +314,7 @@ def define_page(request):
 
                 if content!='active_material':
                     my_component.smiles = simple_form.cleaned_data['smiles']
+                    my_component.smiles_name = simple_form.cleaned_data['smiles_name']
 
                 if not my_component.proprietary and content=='active_material':
                     active_material_composition_formset = ActiveMaterialCompositionFormset(request.POST,
@@ -396,73 +413,29 @@ def define_page(request):
             else:
                 my_content = define_simple(post, content=content)
 
-            if define_lot_form.cleaned_data['lot_name'] is not None and my_content is not None:
-                if content == 'molecule':
-                    base_query = ComponentLot.objects.filter(component__composite_type=ELECTROLYTE)
-                elif content == 'coating':
-                    base_query = CoatingLot.objects
-                elif content == 'inactive':
-                    base_query = ComponentLot.objects.filter(Q(composite__composite_type=CONDUCTIVE_ADDITIVE)|Q(composite__composite_type=BINDER))
-                elif content == 'separator_material':
-                    base_query = ComponentLot.objects.filter(component__component_type=SEPARATOR_MATERIAL,
-                                                            component__composite_type=SEPARATOR)
-                elif content == 'electrolyte':
-                    base_query = CompositeLot.objects.filter(composite__composite_type=ELECTROLYTE)
-                elif content == 'electrode':
-                    base_query = CompositeLot.objects.filter(Q(composite__composite_type=ANODE)|Q(composite__composite_type=CATHODE))
-                elif content == 'active_material':
-                    base_query = ComponentLot.objects.filter(component__component_type=ACTIVE_MATERIAL)
-                elif content == 'separator':
-                    base_query = CompositeLot.objects.filter(composite__composite_type=SEPARATOR)
+            if my_content is not None:
+                lot_info = LotInfo(
+                    notes=define_lot_form.cleaned_data['notes'],
+                    creator=define_lot_form.cleaned_data['creator'],
+                    creator_name=define_lot_form.cleaned_data['creator_name'],
 
-                if not base_query.exclude(lot_info=None).filter(
-                        lot_info__lot_name=define_lot_form.cleaned_data['lot_name']).exists():
-                    lot_info = LotInfo(
-                        lot_name=define_lot_form.cleaned_data['lot_name'],
-                        creator=define_lot_form.cleaned_data['creator'],
-                        vendor=define_lot_form.cleaned_data['vendor'],
-                    )
-                    lot_info.save()
-                    if content == 'molecule':
-                        ComponentLot.objects.create(
-                            component=my_content,
-                            lot_info=lot_info
-                        )
-                    elif content == 'coating':
-                        CoatingLot.objects.create(
-                            coating=my_content,
-                            lot_info=lot_info
-                        )
-                    if content == 'inactive':
-                        ComponentLot.objects.create(
-                            component=my_content,
-                            lot_info=lot_info
-                        )
-                    if content == 'separator_material':
-                        ComponentLot.objects.create(
-                            component=my_content,
-                            lot_info=lot_info
-                        )
-                    if content == 'electrolyte':
-                        CompositeLot.objects.create(
-                            composite=my_content,
-                            lot_info=lot_info
-                        )
-                    if content == 'electrode':
-                        CompositeLot.objects.create(
-                            composite=my_content,
-                            lot_info=lot_info
-                        )
-                    if content == 'active_material':
-                        ComponentLot.objects.create(
-                            component=my_content,
-                            lot_info=lot_info
-                        )
-                    if content == 'separator':
-                        CompositeLot.objects.create(
-                            composite=my_content,
-                            lot_info=lot_info
-                        )
+                    date=define_lot_form.cleaned_data['date'],
+                    date_name=define_lot_form.cleaned_data['date_name'],
+
+                    vendor=define_lot_form.cleaned_data['vendor'],
+                    vendor_name=define_lot_form.cleaned_data['vendor_name'],
+
+                )
+                if content == 'molecule' or content == 'separator_material' or content == 'inactive' or content == 'active_material':
+                    type = 'component'
+                elif content == 'coating':
+                    type = 'coating'
+                elif content == 'electrolyte' or content == 'electrode' or content == 'separator':
+                    type = 'composite'
+                else:
+                    raise('not yet implemented {}'.format(content))
+
+                define_if_possible(my_content, lot_info=lot_info, type=type)
 
     if request.method == 'POST':
         for m in ['molecule', 'coating', 'inactive', 'electrolyte', 'active_material', 'separator_material','electrode','separator']:

@@ -102,6 +102,13 @@ here accuracy_in_seconds is a boolean variable saying whether datetime1
  
  
 # TODO(Samuel):
+
+- print the temperature and turbostratic misalignment in a nicer way. (i.e. too many sig. figs.) 
+
+DONE - make unknown ratios behave the same as unknown stochiometry.
+DONE - for things that are normalized to 100%, take the sum of everything except the None,
+  and if the total is 0, set to 1 for purposes of renormalization
+
 DONE - remove all the fields that I don't currently care about.
 DONE - good name generation
 DONE - good uniqueness check.(library)

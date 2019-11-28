@@ -818,11 +818,13 @@ def train_step(params, fit_args):
 
                         # DONE: figure out what way the max discharge voltage
                         # should vary and enforce monotonicity in predictions :)
-                        + tf.reduce_mean(tf.nn.relu(-r))
-                        + tf.reduce_mean(tf.nn.relu(-eq_vol))
-                        + tf.reduce_mean(tf.nn.relu(-r_der['dCyc'])) #resistance should not decrease.
-                        + tf.reduce_mean(tf.square(eq_vol_der['dCyc'])) #equilibrium voltage should not change much
-                        + tf.reduce_mean(tf.square(eq_vol_der['dRates']))  # equilibrium voltage should not change much
+                        + 10.* (
+                                tf.reduce_mean(tf.nn.relu(-r))
+                                + tf.reduce_mean(tf.nn.relu(-eq_vol))
+                                + 10  * tf.reduce_mean(tf.abs(r_der['dCyc'])) #resistance should not decrease.
+                                + 10. * tf.reduce_mean(tf.abs(eq_vol_der['dCyc'])) #equilibrium voltage should not change much
+                                + 10. * tf.reduce_mean(tf.abs(eq_vol_der['dRates']))  # equilibrium voltage should not change much
+                           )
                 )
 
                 + fit_args['smooth_coeff'] * (
@@ -833,10 +835,12 @@ def train_step(params, fit_args):
                     + 0.02 * tf.square(tf.nn.relu(-cap_der['d2Rates'])))
 
                         #this enforces smoothness of resistance. it is more ok to accelerate UPWARDS
-                        + tf.reduce_mean(tf.square(tf.nn.relu(-r_der['d2Cyc']))
-                                         + 0.02 * tf.square(tf.nn.relu(r_der['d2Cyc'])))
-                        + tf.reduce_mean(
+                        + 10. * tf.reduce_mean(tf.square(tf.nn.relu(-r_der['d2Cyc']))
+                                         + 0.5 * tf.square(tf.nn.relu(r_der['d2Cyc'])))
+                        + 1.* tf.reduce_mean(
                     tf.square((eq_vol_der['d2Rates'])))
+                        + 1.* tf.reduce_mean(
+                    tf.square((eq_vol_der['d2Cyc'])))
                 )
 
 
@@ -1160,7 +1164,7 @@ class Command(BaseCommand):
         parser.add_argument('--path_to_plots', required=True)
         parser.add_argument('--kl_coeff', type=float, default=0.00001)
         parser.add_argument('--mono_coeff', type=float, default=.005)
-        parser.add_argument('--smooth_coeff', type=float, default=.005)
+        parser.add_argument('--smooth_coeff', type=float, default=.05)
         parser.add_argument('--const_f_coeff', type=float, default=.0)
         parser.add_argument('--smooth_f_coeff', type=float, default=.01)
         parser.add_argument('--depth', type=int, default=3)

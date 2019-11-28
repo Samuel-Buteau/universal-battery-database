@@ -134,7 +134,7 @@ class DegradationModel(Model):
 
         cap = NeuralNetwork(depth, width)
         eq_vol = NeuralNetwork(depth, width)
-        resistance = NeuralNetwork(depth, width)
+        r = NeuralNetwork(depth, width)
 
         self.neural_network = {
             'cap': {
@@ -147,10 +147,10 @@ class DegradationModel(Model):
                 'bulk': eq_vol.bulk,
                 'final': eq_vol.final
             },
-            'resistance': {
-                'initial': resistance.initial,
-                'bulk': resistance.bulk,
-                'final': resistance.final
+            'r': {
+                'initial': r.initial,
+                'bulk': r.bulk,
+                'final': r.final
             },
         }
 
@@ -165,17 +165,22 @@ class DegradationModel(Model):
         # the keyword 'max_discharge_voltage' calls the networks
         # with the right inputs and plumbing
         if nn == 'max_dchg_vol':
-            rates_eq = rates[:, 0:1]
             dchg_rate = rates[:, 1:2]
-            v_eq = self.apply_nn(cycles, rates_eq, features, 'eq_vol')
-            r = self.apply_nn(cycles, None, features, 'resistance')
+            eq_vol = self.apply_nn(cycles, rates, features, 'eq_vol')
+            r = self.apply_nn(cycles, None, features, 'r')
             return {
-                "max_dchg_vol": v_eq - (dchg_rate * r),
-                "v_eq": v_eq,
+                "max_dchg_vol": eq_vol - (dchg_rate * r),
+                "eq_vol": eq_vol,
                 "r": r
             }
 
         else:
+
+            if nn == 'eq_vol':
+                rates = rates[:, 0:1]
+            if nn == 'r':
+                rates = None
+
             if rates is None:
                 centers = self.neural_network[nn]['initial'](
                     tf.concat(
@@ -291,6 +296,16 @@ class DegradationModel(Model):
                 cycles, rates, features, 'max_dchg_vol')
             max_dchg_vol = tf.reshape(max_dchg_vol, [-1])
 
+            '''resistance derivatives '''
+            r, r_der = self.create_derivatives(
+                cycles, rates, features, 'r')
+            r = tf.reshape(r, [-1])
+
+            '''eq_vol derivatives '''
+            eq_vol, eq_vol_der = self.create_derivatives(
+                cycles, rates, features, 'eq_vol')
+            eq_vol = tf.reshape(eq_vol, [-1])
+
             pred_max_dchg_vol = (
                     max_dchg_vol + tf.reshape(max_dchg_vol_der['dCyc'], [-1])
                     * tf.reshape(var_cyc, [-1])
@@ -301,10 +316,14 @@ class DegradationModel(Model):
             return {
                 "pred_cap": pred_cap,
                 "pred_max_dchg_vol": tf.reshape(pred_max_dchg_vol, [-1]),
+                "pred_eq_vol": tf.reshape(eq_vol, [-1]),
+                "pred_r": tf.reshape(r, [-1]),
                 "mean": mean,
                 "log_sig": log_sig,
                 "cap_der": cap_derivatives,
-                "max_dchg_vol_der": max_dchg_vol_der
+                "max_dchg_vol_der": max_dchg_vol_der,
+                "r_der": r_der,
+                "eq_vol_der": eq_vol_der,
             }
 
         else:
@@ -316,7 +335,7 @@ class DegradationModel(Model):
                         cycles_flat, rates_flat, features_flat, 'cap'),
                     [-1, vol_tensor.shape[0]]),
                 "pred_max_dchg_vol": nn_results["max_dchg_vol"],
-                "pred_eq_vol": nn_results["v_eq"],
+                "pred_eq_vol": nn_results["eq_vol"],
                 "pred_r": nn_results["r"]
             }
 
@@ -775,6 +794,10 @@ def train_step(params, fit_args):
         log_sig = train_results["log_sig"]
         cap_der = train_results["cap_der"]
         max_dchg_vol_der = train_results["max_dchg_vol_der"]
+        r = train_results["pred_r"]
+        eq_vol = train_results["pred_eq_vol"]
+        r_der = train_results["r_der"]
+        eq_vol_der = train_results["eq_vol_der"]
 
         loss = (
                 tf.reduce_mean(ws2_cap * ws_cap * tf.square(cap - pred_cap))
@@ -790,14 +813,16 @@ def train_step(params, fit_args):
 
                 + fit_args['mono_coeff'] * (
                         tf.reduce_mean(tf.nn.relu(-cap))  # penalizes negative capacities
-                        + tf.reduce_mean(tf.nn.relu(cap_der['dCyc']))
-                        + tf.reduce_mean(tf.nn.relu(cap_der['dRates']))
+                        + tf.reduce_mean(tf.nn.relu(cap_der['dCyc'])) # should not increase
+                        + tf.reduce_mean(tf.nn.relu(cap_der['dRates'])) # should not increase
 
                         # DONE: figure out what way the max discharge voltage
                         # should vary and enforce monotonicity in predictions :)
-                        + tf.reduce_mean(tf.nn.relu(-cap))
-                        + tf.reduce_mean(tf.nn.relu(max_dchg_vol_der['dCyc']))
-                        + tf.reduce_mean(tf.nn.relu(max_dchg_vol_der['dRates']))
+                        + tf.reduce_mean(tf.nn.relu(-r))
+                        + tf.reduce_mean(tf.nn.relu(-eq_vol))
+                        + tf.reduce_mean(tf.nn.relu(-r_der['dCyc'])) #resistance should not decrease.
+                        + tf.reduce_mean(tf.square(eq_vol_der['dCyc'])) #equilibrium voltage should not change much
+                        + tf.reduce_mean(tf.square(eq_vol_der['dRates']))  # equilibrium voltage should not change much
                 )
 
                 + fit_args['smooth_coeff'] * (
@@ -807,31 +832,24 @@ def train_step(params, fit_args):
                     tf.square(tf.nn.relu(cap_der['d2Rates']))
                     + 0.02 * tf.square(tf.nn.relu(-cap_der['d2Rates'])))
 
-                        # DONE: Do you understand what this is doing?
-                        # it is enforcing smoothness, but it cares much less when the
-                        # predictions accelerate downwards.
-                        # you must figure out the equivalent for
-                        # voltage predictions and enforce it.
-                        + tf.reduce_mean(tf.square(tf.nn.relu(max_dchg_vol_der['d2Cyc']))
-                                         + 0.02 * tf.square(tf.nn.relu(-max_dchg_vol_der['d2Cyc'])))
+                        #this enforces smoothness of resistance. it is more ok to accelerate UPWARDS
+                        + tf.reduce_mean(tf.square(tf.nn.relu(-r_der['d2Cyc']))
+                                         + 0.02 * tf.square(tf.nn.relu(r_der['d2Cyc'])))
                         + tf.reduce_mean(
-                    tf.square(tf.nn.relu(max_dchg_vol_der['d2Rates']))
-                    + 0.02
-                    * tf.square(tf.nn.relu(-max_dchg_vol_der['d2Rates'])))
+                    tf.square((eq_vol_der['d2Rates'])))
                 )
 
-                # DONE: right now, the capacity function depends well
-                # on cell features.
-                # we also want the voltage function to depend well on cell
-                # features. Do you know how to do it?
+
                 + fit_args['const_f_coeff'] * (
                         tf.reduce_mean(tf.square(cap_der['dFeatures']))
-                        + tf.reduce_mean(tf.square(max_dchg_vol_der['dFeatures']))
+                        + tf.reduce_mean(tf.square(r_der['dFeatures']))
+                        + tf.reduce_mean(tf.square(eq_vol_der['dFeatures']))
                 )
 
                 + fit_args['smooth_f_coeff'] * (
                         tf.reduce_mean(tf.square(cap_der['d2Features']))
-                        + tf.reduce_mean(tf.square(max_dchg_vol_der['d2Features']))
+                        + tf.reduce_mean(tf.square(r_der['d2Features']))
+                        + tf.reduce_mean(tf.square(eq_vol_der['d2Features']))
                 )
         )
 

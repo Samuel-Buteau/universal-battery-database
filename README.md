@@ -102,6 +102,9 @@ here accuracy_in_seconds is a boolean variable saying whether datetime1
  
  
 # TODO(Samuel):
+- cleanup separator
+- make drycell functional
+
 DONE - add units to all important quantities.
 DONE - add unknown to all important quantities
 DONE    - for each quantity, determine if unknown/known/NA is appropriate.

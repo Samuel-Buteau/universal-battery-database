@@ -159,20 +159,24 @@ class DegradationModel(Model):
         self.width = width
         self.num_keys = num_keys
 
-    def apply_nn(self, cycles, others, features, nn):
-        # Note(sam):in order to properly implement the equation for discharge voltage, one must call two neural networks.
-        # therefore, I create a keyword 'max_discharge_voltage', which will call the right networks with the right
-        # inputs and then do the plumbing.
+    def apply_nn(self, cycles, rates, features, nn):
+
+        # two nn's are needed to implement the equation for discharge voltage
+        # the keyword 'max_discharge_voltage' calls the networks
+        # with the right inputs and plumbing
         if nn == 'max_dchg_vol':
-            # others will contain [[charge_rate, discharge_rate]]
-            others_eq = others[:, 0:1]
-            rate_discharge = others[:, 1:2]
-            v_eq = self.apply_nn(cycles, others_eq, features, 'eq_vol')
+            rates_eq = rates[:, 0:1]
+            dchg_rate = rates[:, 1:2]
+            v_eq = self.apply_nn(cycles, rates_eq, features, 'eq_vol')
             r = self.apply_nn(cycles, None, features, 'resistance')
-            return v_eq - (rate_discharge * r)
+            return {
+                "max_dchg_vol": v_eq - (dchg_rate * r),
+                "v_eq": v_eq,
+                "r": r
+            }
 
         else:
-            if others is None:
+            if rates is None:
                 centers = self.neural_network[nn]['initial'](
                     tf.concat(
                         (
@@ -187,7 +191,7 @@ class DegradationModel(Model):
                         (
                             # readjust the cycles
                             cycles * (1e-10 + tf.exp(-features[:, 0:1])),
-                            others,
+                            rates,
                             features[:, 1:]),
                         axis=1))
             for d in self.neural_network[nn]['bulk']:
@@ -206,8 +210,12 @@ class DegradationModel(Model):
                 tape2.watch(rates)
                 tape2.watch(features)
 
-                res = tf.reshape(
-                    self.apply_nn(cycles, rates, features, nn), [-1, 1])
+                if nn == 'max_dchg_vol':
+                    nn_results = self.apply_nn(cycles, rates, features, nn)
+                    res = tf.reshape(nn_results["max_dchg_vol"], [-1, 1])
+                else:
+                    res = tf.reshape(
+                        self.apply_nn(cycles, rates, features, nn), [-1, 1])
 
             derivatives['dCyc'] = tape2.batch_jacobian(
                 source=cycles, target=res)[:, 0, :]
@@ -300,14 +308,16 @@ class DegradationModel(Model):
             }
 
         else:
+            nn_results = self.apply_nn(cycles, rates, features, 'max_dchg_vol')
 
             return {
                 "pred_cap": tf.reshape(
                     self.apply_nn(
                         cycles_flat, rates_flat, features_flat, 'cap'),
                     [-1, vol_tensor.shape[0]]),
-                "pred_max_dchg_vol": self.apply_nn(
-                    cycles, rates, features, 'max_dchg_vol'),
+                "pred_max_dchg_vol": nn_results["max_dchg_vol"],
+                "pred_eq_vol": nn_results["v_eq"],
+                "pred_r": nn_results["r"]
             }
 
 
@@ -342,7 +352,7 @@ NEIGH_FLOAT_CHG_RATE = 1
 NEIGH_FLOAT_DCHG_RATE = 2
 
 
-def initial_processing(my_data, my_barcodes, fit_args):
+def initial_processing(my_data, barcodes, fit_args):
     all_cells_neigh_data_int, all_cycle_nums, all_dchg_vol = [], [], []
     all_cells_neigh_data_float, all_vq_curves, all_vq_curves_masks = [], [], []
 
@@ -354,7 +364,7 @@ def initial_processing(my_data, my_barcodes, fit_args):
     - things are split up this way to sample each group equally
     - each barcode corresponds to a single cell
     '''
-    for barcode_count, barcode in enumerate(my_barcodes):
+    for barcode_count, barcode in enumerate(barcodes):
 
         test_object[barcode_count] = {}
 
@@ -590,7 +600,7 @@ def initial_processing(my_data, my_barcodes, fit_args):
             train_ds_)
 
         degradation_model = DegradationModel(
-            num_keys=len(my_barcodes),
+            num_keys=len(barcodes),
             width=fit_args['width'],
             depth=fit_args['depth'])
 
@@ -621,7 +631,7 @@ def initial_processing(my_data, my_barcodes, fit_args):
 
 # === Begin: train =============================================================
 
-def train_and_evaluate(init_returns, my_barcodes, fit_args):
+def train_and_evaluate(init_returns, barcodes, fit_args):
     mirrored_strategy = init_returns["mirrored_strategy"]
 
     EPOCHS = 100000
@@ -656,13 +666,14 @@ def train_and_evaluate(init_returns, my_barcodes, fit_args):
                         print(template.format(epoch + 1, count, ))
 
                     plot_params = {
-                        "my_barcodes": my_barcodes,
+                        "barcodes": barcodes,
                         "count": count,
                         "fit_args": fit_args,
                     }
 
                     if (count % fit_args['visualize_fit_every']) == 0:
                         plot_capacity(plot_params, init_returns)
+                        plot_eq_vol(plot_params, init_returns)
 
                     if (count % fit_args['visualize_vq_every']) == 0:
                         plot_vq(plot_params, init_returns)
@@ -851,7 +862,7 @@ def get_nearest_point(xys, y):
 
 
 def plot_vq(plot_params, init_returns):
-    my_barcodes = plot_params["my_barcodes"]
+    barcodes = plot_params["barcodes"]
     count = plot_params["count"]
     fit_args = plot_params["fit_args"]
 
@@ -864,7 +875,7 @@ def plot_vq(plot_params, init_returns):
     voltage_vector = init_returns["voltage_vector"]
 
     print(Colour.BLUE + "plot vq" + Colour.END)
-    for barcode_count, barcode in enumerate(my_barcodes):
+    for barcode_count, barcode in enumerate(barcodes):
         fig = plt.figure()
         ax = fig.add_subplot(1, 2, 1)
         colors = ['k', 'r', 'b', 'g', 'm', 'c']
@@ -894,7 +905,7 @@ def plot_vq(plot_params, init_returns):
             cycles = [0, 2000, 4000, 6000]
             for i, cyc in enumerate(cycles):
                 cycle = ((float(cyc) - cycles_m) / tf.sqrt(cycles_v))
-                pred_cap, pred_max_dchg_vol = test_all_voltages(
+                pred_cap, pred_max_dchg_vol, _, _ = test_all_voltages(
                     cycle, k, barcode_count, degradation_model, vol_tensor)
 
                 mult = (i + 4) / (len(cycles) + 5)
@@ -919,7 +930,7 @@ def plot_vq(plot_params, init_returns):
 
 
 def plot_test_rate_voltage(plot_params, init_returns):
-    my_barcodes = plot_params["my_barcodes"]
+    barcodes = plot_params["barcodes"]
     count = plot_params["count"]
     fit_args = plot_params["fit_args"]
 
@@ -927,10 +938,10 @@ def plot_test_rate_voltage(plot_params, init_returns):
     vol_tensor = init_returns["vol_tensor"]
 
     print(Colour.BLUE + "plot capacity" + Colour.END)
-    for barcode_count, barcode in enumerate(my_barcodes):
+    for barcode_count, barcode in enumerate(barcodes):
         results = []
         for k in [[0.1, x / 10.] for x in range(40)]:
-            _, pred_max_dchg_vol = test_single_voltage([0.], vol_tensor[0],
+            _, pred_max_dchg_vol, _,_ = test_single_voltage([0.], vol_tensor[0],
                                                        k, barcode_count,
                                                        degradation_model)
             results.append([k[1], pred_max_dchg_vol])
@@ -949,7 +960,7 @@ def plot_test_rate_voltage(plot_params, init_returns):
 
 
 def plot_capacity(plot_params, init_returns):
-    my_barcodes = plot_params["my_barcodes"]
+    barcodes = plot_params["barcodes"]
     count = plot_params["count"]
     fit_args = plot_params["fit_args"]
 
@@ -961,7 +972,7 @@ def plot_capacity(plot_params, init_returns):
     vol_tensor = init_returns["vol_tensor"]
 
     print(Colour.BLUE + "plot capacity" + Colour.END)
-    for barcode_count, barcode in enumerate(my_barcodes):
+    for barcode_count, barcode in enumerate(barcodes):
         fig = plt.figure()
         ax1 = fig.add_subplot(1, 2, 1)
         ax2 = fig.add_subplot(1, 2, 2)
@@ -992,12 +1003,12 @@ def plot_capacity(plot_params, init_returns):
             max_c = max(cycles)
             cycles = [
                 float(min_c) + float(max_c - min_c)
-                * x for x in numpy.arange(0., 1.1, 0.1)]
+                * x for x in numpy.arange(0., 1.1, 0.02)]
 
             my_cycles = [
                 (cyc - cycles_m) / tf.sqrt(cycles_v) for cyc in cycles]
 
-            pred_cap, pred_max_dchg_vol = test_single_voltage(
+            pred_cap, pred_max_dchg_vol, _, _ = test_single_voltage(
                 my_cycles, vol_tensor[0], k, barcode_count, degradation_model)
 
             ax1.plot(cycles, pred_cap, c=colors[k_count])
@@ -1009,16 +1020,73 @@ def plot_capacity(plot_params, init_returns):
         plt.close(fig)
 
 
+def plot_eq_vol(plot_params, init_returns):
+    barcodes = plot_params["barcodes"]
+    count = plot_params["count"]
+    fit_args = plot_params["fit_args"]
+
+    degradation_model = init_returns["degradation_model"]
+    test_object = init_returns["test_object"]
+    cycles_m = init_returns["cycles_m"]
+    cycles_v = init_returns["cycles_v"]
+    vol_tensor = init_returns["vol_tensor"]
+
+    for barcode_count, barcode in enumerate(barcodes):
+        fig = plt.figure(figsize=[7., 5.])
+        ax1 = fig.add_subplot(1, 2, 1)
+        ax2 = fig.add_subplot(1, 2, 2)
+        for axis in ['top', 'bottom', 'left', 'right']:
+            ax1.spines[axis].set_linewidth(2.)
+            ax2.spines[axis].set_linewidth(2.)
+
+        colors = ['k', 'r', 'b', 'g', 'm', 'c']
+
+        for k_count, k in enumerate(test_object[barcode_count].keys()):
+
+            cycles = test_object[barcode_count][k]
+            min_c = min(cycles)
+            max_c = max(cycles)
+            cycles = [
+                float(min_c) + float(max_c - min_c)
+                * x for x in numpy.arange(0., 1.1, 0.02)]
+
+            my_cycles = [
+                (cyc - cycles_m) / tf.sqrt(cycles_v) for cyc in cycles]
+
+            pred_cap, pred_max_dchg_vol, pred_eq_vol, pred_r = test_single_voltage(
+                my_cycles, vol_tensor[0], k, barcode_count, degradation_model)
+
+            ax1.plot(cycles, pred_eq_vol, c=colors[k_count])
+            ax1.plot(cycles, [4.3 for _ in cycles], c='0.5')
+            ax1.tick_params(direction='in', length=3, width=1, labelsize=12, bottom=True, top=True, left=True,
+                           right=True)
+            ax2.plot(cycles, pred_r, c=colors[k_count])
+            ax2.plot(cycles, [0.05 for _ in cycles], c='0.5')
+            ax2.tick_params(direction='in', length=3, width=1, labelsize=12, bottom=True, top=True, left=True,
+                           right=True)
+        plt.tight_layout(pad=0.1)
+        plt.savefig(os.path.join(
+            fit_args['path_to_plots'],
+            'Eq_{}_Count_{}.png'.format(barcode, count)), dpi=300)
+        plt.close(fig)
+
+
 def test_all_voltages(cycle, k, barcode_count, degradation_model, voltages):
     centers = tf.expand_dims(tf.concat(
         (tf.expand_dims(cycle, axis=0), k), axis=0), axis=0)
     indecies = tf.reshape(barcode_count, [1])
     measured_cycles = tf.reshape(cycle, [1, 1])
+
     evals = degradation_model(
         (centers, indecies, measured_cycles, voltages), training=False)
 
-    pred_cap = tf.reshape(evals["pred_cap"], shape=[-1])
-    return pred_cap, evals["pred_max_dchg_vol"]
+    return (
+        tf.reshape(evals["pred_cap"], shape=[-1]),
+        evals["pred_max_dchg_vol"],
+        evals["pred_eq_vol"],
+        evals["pred_r"]
+    )
+
 
 
 def test_single_voltage(cycles, v, k, barcode_count, degradation_model):
@@ -1030,12 +1098,17 @@ def test_single_voltage(cycles, v, k, barcode_count, degradation_model):
         axis=1)
     indecies = tf.tile(tf.expand_dims(barcode_count, axis=0), [len(cycles)])
     measured_cycles = tf.expand_dims(cycles, axis=1)
+
     evals = degradation_model(
         (centers, indecies, measured_cycles, tf.expand_dims(v, axis=0)),
         training=False)
-    pred_cap = tf.reshape(evals["pred_cap"], shape=[len(cycles)])
 
-    return pred_cap, evals["pred_max_dchg_vol"]
+    return (
+        tf.reshape(evals["pred_cap"], shape=[-1]),
+        evals["pred_max_dchg_vol"],
+        evals["pred_eq_vol"],
+        evals["pred_r"]
+    )
 
 
 def ml_smoothing(fit_args):
@@ -1048,17 +1121,17 @@ def ml_smoothing(fit_args):
     with open(os.path.join(fit_args['path_to_dataset'], 'dataset_ver_{}.file'.format(fit_args['dataset_version'])), 'rb') as f:
         my_data = pickle.load(f)
 
-    my_barcodes = list(my_data['all_data'].keys())
+    barcodes = list(my_data['all_data'].keys())
     if len(fit_args['wanted_barcodes']) !=0:
-        my_barcodes = list(set(my_barcodes).intersection(set(fit_args['wanted_barcodes'])))
+        barcodes = list(set(barcodes).intersection(set(fit_args['wanted_barcodes'])))
 
-    if len(my_barcodes) == 0:
+    if len(barcodes) == 0:
         return
 
 
 
     train_and_evaluate(
-        initial_processing(my_data, my_barcodes, fit_args), my_barcodes, fit_args)
+        initial_processing(my_data, barcodes, fit_args), barcodes, fit_args)
 
 
 class Command(BaseCommand):
@@ -1077,11 +1150,11 @@ class Command(BaseCommand):
         parser.add_argument('--batch_size', type=int, default=2 * 16)
         parser.add_argument('--print_loss_every', type=int, default=1000)
         parser.add_argument(
-            '--visualize_fit_every', type=int, default=5000)
+            '--visualize_fit_every', type=int, default=10000)
         parser.add_argument(
-            '--visualize_vq_every', type=int, default=5000)
+            '--visualize_vq_every', type=int, default=10000)
 
-        parser.add_argument('--stop_count', type=int, default=40000)
+        parser.add_argument('--stop_count', type=int, default=80000)
         parser.add_argument('--wanted_barcodes', type=int, nargs='+', default=[83220, 83083])
 
     def handle(self, *args, **options):

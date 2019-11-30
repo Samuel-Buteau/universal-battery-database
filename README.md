@@ -98,8 +98,37 @@ here accuracy_in_seconds is a boolean variable saying whether datetime1
  Note(Samuel): by the way I know this is a bit ducktapy, please feel free to use pandas or whatever you kids use these days ;P
  
  
+# Theoretical Overview 
+ Most abstractly, we have cells and we have experimental observations, and the goal is to learn the mapping between the two.
+ 
+ For simplicity, take the case where all experimental observations are of long term cycling. 
+ 
+ we can imagine each distinct cell has some hidden feature vector F. Then, for every observed cycle number, we have many observed voltages for which the capacity is observed (it becomes our prediction target).
+ The mapping from F, cyc, V to Cap depends on two factors:
+  - the general cumulative cycling conditions, such as the average current used for charge/discharge, the average depth of charge/discharge, as well as the average temperature.
+  - the specific conditions for the given cycle (the actual currents for this cycle, actual depth of discharge, actual temperature, etc.)
+ 
+ This mapping, though a black box at first, can be broken down into more structured sub-components (we call this "mechanism-level").
+ 
+ Also, the feature representation of a cell F itself can be broken down. First, a cell has subcomponents: Electrolyte, DryCell.
+ Therefore, each component can be represented by feature vectors E, D, and a mapping from (E,D) to F may be learned.
+ This level of description (level 1) forces some generalization since the number of dry cells is much smaller than the number of cells.
+ 
+- We can break down further DryCell as a combination of Anode, Cathode, Separator, and Geometry.
+- We can also break down further Electrolyte as a weighted combination of Molecules. This is a great help to generalization since 700 electrolytes can be expressed as a combination of 30 molecules, with 500 electrolytes using less than 10, and generally the combinations are sparse.
+- Similarly, the Anode and Cathode has some ElectrodeGeometry, as well as a weighted combination of Materials (either ActiveMaterials or InactiveMaterials).
+- The Separator has some SeparatorGeometry as well as a weighted combination of Materials.
+- The ActiveMaterials have some numerical features as well as a weighted combination of atoms.
+- The Molecules have a graph of Atoms. 
+- the Geometry can be characterised numerically.
+
+In this way, there is a directed acyclic graph connecting these various entities, and we can have multiple levels of descriptions.
+In turn, each level of description is limited in the kinds of generalizations possible. For instance, if we stop at F, we can't know anything about what would happed to a different cell, even if the dataset was rich enough to take a good guess.
+Whereas if we stop at (D,E), then we can make predictions for combinations of electrolytes with drycells that were not directly within the dataset. 
  
  
+Given the generic cycling conditions (the sufficient statistics of cycling protocol SSCP) and a cycle number, we can compute a universal representation of the accumulated stress (URAS) the cell has experienced.
+Furthermore, the predicted Capacity can only depend on the cycle number *through* URAS. This allows apples-to-apples comparison of different cells, as well as some generalization of the results to counter-factual scenarios where a cell would have been cycled under different conditions.
  
 # TODO(Samuel):
 - cleanup separator

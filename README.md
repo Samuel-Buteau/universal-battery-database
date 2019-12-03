@@ -131,6 +131,15 @@ Given the generic cycling conditions (the sufficient statistics of cycling proto
 Furthermore, the predicted Capacity can only depend on the cycle number *through* URAS. This allows apples-to-apples comparison of different cells, as well as some generalization of the results to counter-factual scenarios where a cell would have been cycled under different conditions.
  
 # TODO(Samuel):
+(DONE in one place. Go through and change code everywhere!!!)
+- Instead of Field, FieldLot ModelChoiceField, create a choice field with structure (id,printed string)
+(("id_lot"),printed string)
+
+
+DONE- Bulk Electrolytes
+    - first, a form with 10 fields of molecule/molecule-lot, and 10 fields of defaults.
+    - then, a formset with 10 fields of amounts. (plus proprietary, proprietary name, notes), intialized with the defaults
+
 - cleanup separator
 - make drycell functional
 

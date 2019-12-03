@@ -467,6 +467,127 @@ def define_page(request, mode=None):
 
     return render(request, 'WetCellDatabase/define_page.html', ar)
 
+def decode_lot_string(s):
+    print(s)
+    if s is None or s == '':
+        return None
+    if s.endswith('_lot'):
+        return (int(s.split('_lot')[0]), True)
+    else:
+        return (int(s), False)
+
+def define_bulk_electrolyte(request):
+    ar = {}
+    messages = []
+    ar['bulk_parameters_form'] = ElectrolyteBulkParametersForm(prefix='bulk-parameters-form')
+    print( ar['bulk_parameters_form'])
+    if request.method == 'POST':
+        if ('bulk_parameters_update' in request.POST) or ('bulk_process_entries' in request.POST) :
+            bulk_parameters_form = ElectrolyteBulkParametersForm(request.POST, prefix='bulk-parameters-form')
+            if bulk_parameters_form.is_valid():
+                ar['bulk_parameters_form']=bulk_parameters_form
+                BulkEntriesFormset = formset_factory(
+                    ElectrolyteBulkSingleEntryForm,
+                    extra=0
+                )
+
+                if ('bulk_parameters_update' in request.POST):
+                    initial = {}
+                    for i in range(10):
+                        initial['value_{}'.format(i)] = bulk_parameters_form.cleaned_data['value_{}'.format(i)]
+                    for s in ['proprietary', 'proprietary_name','notes','dry_cell','dry_cell_lot']:
+                        initial[s] = bulk_parameters_form.cleaned_data[s]
+
+                    start_barcode = bulk_parameters_form.cleaned_data['start_barcode']
+                    end_barcode = bulk_parameters_form.cleaned_data['end_barcode']
+
+                    if start_barcode is not None and end_barcode is not None:
+
+                        initials = []
+                        for bc in range(start_barcode, end_barcode + 1):
+                            init = {'barcode':bc}
+                            for k in initial.keys():
+                                init[k] = initial[k]
+                            initials.append(init)
+                        bulk_entries_formset = BulkEntriesFormset(
+                            initial = initials,
+                            prefix='bulk-entries-formset')
+                        ar['bulk_entries_formset'] = bulk_entries_formset
+
+                if ('bulk_process_entries' in request.POST) :
+                    bulk_entries_formset = BulkEntriesFormset(
+                        request.POST,
+                        prefix='bulk-entries-formset')
+                    ar['bulk_entries_formset'] = bulk_entries_formset
+
+                    header = []
+                    for i in range(10):
+                        mol_s = bulk_parameters_form.cleaned_data['molecule_{}'.format(i)]
+
+                        mol = decode_lot_string(mol_s)
+                        if mol is None:
+                            continue
+
+                        my_id, is_lot = mol
+
+                        print(my_id, is_lot)
+                        if is_lot:
+                            header.append({'index': i, 'molecule_lot': ComponentLot.objects.get(id=my_id)})
+                            continue
+
+                        else:
+                            header.append({'index': i, 'molecule': Component.objects.get(id=my_id)})
+                            continue
+
+                    for entry in bulk_entries_formset:
+                        if entry.is_valid():
+
+                            my_composite = Composite(
+                                proprietary = entry.cleaned_data['proprietary'],
+                                proprietary_name=entry.cleaned_data['proprietary_name'],
+                                notes=entry.cleaned_data['notes'],
+                                composite_type = ELECTROLYTE)
+
+                            if not my_composite.proprietary:
+
+                                components = []
+                                components_lot = []
+                                for h in header:
+                                    value, unknown = unknown_numerical(entry.cleaned_data['value_{}'.format(h['index'])])
+                                    if not unknown and value is None:
+                                        continue
+                                    else:
+                                        if 'molecule' in h.keys():
+                                            print('recognised molecule')
+                                            components.append(
+                                                {
+                                                    'component': h['molecule'],
+                                                    'ratio': value
+                                                }
+                                            )
+                                        elif 'molecule_lot' in h.keys():
+                                            print('recognised lot')
+                                            components_lot.append(
+                                                {
+                                                    'component_lot':h['molecule_lot'],
+                                                    'ratio': value
+                                                }
+                                            )
+
+                            messages.append(my_composite.define_if_possible(
+                                components=components,
+                                components_lot=components_lot,
+
+                            ))
+                        else:
+                            messages.append(None)
+
+                    ar['messages'] = messages
+
+    return render(request, 'WetCellDatabase/define_bulk_electrolyte.html', ar)
+
+
+
 
 
 def search_page(request):

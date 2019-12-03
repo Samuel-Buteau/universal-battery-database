@@ -263,6 +263,58 @@ class WetCellForm(ModelForm):
         fields = ['cell_id']
 
 
+def initialize_mini_electrolyte(self, value=False, molecule=False, number=10):
+    if value:
+        self.fields['dry_cell'] = forms.ModelChoiceField(
+            queryset=DryCell.objects.all(), required=False)
+        self.fields['dry_cell_lot'] = forms.ModelChoiceField(
+            queryset=DryCellLot.objects.exclude(lot_info=None),
+            required=False)
+    if molecule:
+        choices_molecule = ([(None, '-----')] +
+                [(str(c.id), c.__str__()) for c in Component.objects.filter(composite_type=ELECTROLYTE)]
+                +
+                [('{}_lot'.format(c.id), c.__str__()) for c in ComponentLot.objects.filter(component__composite_type=ELECTROLYTE).exclude(lot_info=None)]
+        )
+    for i in range(number):
+        if molecule:
+            self.fields['molecule_{}'.format(i)] = forms.ChoiceField(choices = choices_molecule, required=False)
+        if value:
+            self.fields['value_{}'.format(i)] = forms.CharField(
+                required=False,
+                max_length=7,
+                widget=forms.TextInput(attrs={'size':7})
+            )
+
+
+class ElectrolyteBulkParametersForm(ElectrolyteForm):
+    start_barcode = forms.IntegerField(required=False)
+    end_barcode = forms.IntegerField(required=False)
+
+    def __init__(self, *args, **kwargs):
+        super(ElectrolyteBulkParametersForm, self).__init__(*args, **kwargs)
+        initialize_mini_electrolyte(self, value=True, molecule=True)
+
+    def get_molecule_fields(self):
+        for i in range(10):
+            yield self['molecule_{}'.format(i)]
+    def get_value_fields(self):
+        for i in range(10):
+            yield self['value_{}'.format(i)]
+
+
+class ElectrolyteBulkSingleEntryForm(ElectrolyteForm):
+    barcode = forms.IntegerField(required=False)
+
+    def __init__(self, *args, **kwargs):
+        super(ElectrolyteBulkSingleEntryForm, self).__init__(*args, **kwargs)
+        initialize_mini_electrolyte(self, value=True)
+
+    def get_value_fields(self):
+        for i in range(10):
+            yield self['value_{}'.format(i)]
+
+
 
 class SearchElectrolyteForm(Form):
     complete_salt = forms.BooleanField(initial=True, required=False)

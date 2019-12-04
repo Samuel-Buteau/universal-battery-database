@@ -26,71 +26,7 @@ DONE - streamline the various definitions into much simpler and unique flows.
 def define_page(request, mode=None):
     ar = {'mode':mode}
 
-    if mode=='electrode':
-        ActiveMaterialCompositionFormset = formset_factory(
-            ElectrodeMaterialStochiometryForm,
-            extra=10
-        )
-        active_material_composition_formset = ActiveMaterialCompositionFormset(
-            prefix='active-material-composition-formset')
-        ar['active_material_composition_formset'] = active_material_composition_formset
 
-        ElectrodeCompositionFormset = formset_factory(
-            ElectrodeCompositionForm,
-            extra=10
-        )
-        electrode_composition_formset = ElectrodeCompositionFormset(prefix='electrode-composition-formset')
-        ar['electrode_composition_formset'] = electrode_composition_formset
-
-        ar['define_coating_form'] = CoatingForm(prefix='coating-form')
-        ar['define_coating_lot_form'] = CoatingLotForm(prefix='coating-lot-form')
-
-        ar['define_inactive_form'] = ElectrodeInactiveForm(prefix='electrode-inactive-form')
-        ar['define_inactive_lot_form'] = ElectrodeInactiveLotForm(prefix='electrode-inactive-lot-form')
-
-        ar['define_active_material_form'] = ElectrodeActiveMaterialForm(prefix='electrode-active-material-form')
-        ar['define_active_material_lot_form'] = ElectrodeActiveMaterialLotForm(
-            prefix='electrode-active-material-lot-form')
-        ar['define_electrode_form'] = ElectrodeForm(prefix='electrode-form')
-        ar['define_electrode_lot_form'] = ElectrodeLotForm(prefix='electrode-lot-form')
-        ar['define_electrode_geometry_form'] = ElectrodeGeometryForm(prefix='electrode-geometry-form')
-
-    if mode =='electrolyte':
-        ElectrolyteCompositionFormset = formset_factory(
-            ElectrolyteCompositionForm,
-            extra=10
-        )
-        electrolyte_composition_formset = ElectrolyteCompositionFormset(prefix='electrolyte-composition-formset')
-        ar['electrolyte_composition_formset'] = electrolyte_composition_formset
-
-
-        ar['define_molecule_form'] = ElectrolyteMoleculeForm(prefix='electrolyte-molecule-form')
-        ar['define_molecule_lot_form'] = ElectrolyteMoleculeLotForm(prefix='electrolyte-molecule-lot-form')
-
-        ar['define_electrolyte_form'] = ElectrolyteForm(prefix='electrolyte-form')
-        ar['define_electrolyte_lot_form'] = ElectrolyteLotForm(prefix='electrolyte-lot-form')
-
-    if mode == 'separator':
-        SeparatorCompositionFormset = formset_factory(
-            SeparatorCompositionForm,
-            extra=10
-        )
-
-        separator_composition_formset = SeparatorCompositionFormset(prefix='separator-composition-formset')
-        ar['separator_composition_formset'] = separator_composition_formset
-        ar['define_separator_material_form'] = SeparatorMaterialForm(prefix='separator-material-form')
-        ar['define_separator_material_lot_form'] = SeparatorMaterialLotForm(prefix='separator-material-lot-form')
-        ar['define_separator_form'] = SeparatorForm(prefix='separator-form')
-        ar['define_separator_lot_form'] = SeparatorLotForm(prefix='separator-lot-form')
-        ar['define_separator_geometry_form'] = SeparatorGeometryForm(prefix='separator-geometry-form')
-
-    if mode == 'dry_cell':
-        ar['define_dry_cell_form'] = DryCellForm()
-        ar['define_dry_cell_lot_form'] = DryCellLotForm()
-        ar['define_dry_cell_geometry_form'] = DryCellGeometryForm()
-
-    if mode == 'wet_cell':
-        ar['define_wet_cell_form'] = WetCellForm()
 
     def define_simple(post, content=None):
         if content in ['electrolyte', 'electrode', 'separator']:
@@ -100,13 +36,25 @@ def define_page(request, mode=None):
             components_lot = None
 
             if content == 'electrolyte':
+                ElectrolyteCompositionFormset = formset_factory(
+                    ElectrolyteCompositionForm,
+                    extra=10
+                )
                 simple_form = ElectrolyteForm(request.POST, prefix='electrolyte-form')
                 component_string = 'molecule'
             elif content == 'electrode':
+                ElectrodeCompositionFormset = formset_factory(
+                    ElectrodeCompositionForm,
+                    extra=10
+                )
                 simple_form = ElectrodeForm(request.POST, prefix='electrode-form')
                 component_string = 'material'
                 define_electrode_geometry_form = ElectrodeGeometryForm(request.POST, prefix='electrode-geometry-form')
             elif content == 'separator':
+                SeparatorCompositionFormset = formset_factory(
+                    SeparatorCompositionForm,
+                    extra=10
+                )
                 simple_form = SeparatorForm(request.POST, prefix='separator-form')
                 component_string = 'material'
                 define_separator_geometry_form = SeparatorGeometryForm(request.POST, prefix='separator-geometry-form')
@@ -114,7 +62,6 @@ def define_page(request, mode=None):
 
             simple_form_string = 'define_{}_form'.format(content)
             composition_formset_string = '{}_composition_formset'.format(content)
-            component_lot_string = '{}_lot'.format(component_string)
 
             if not simple_form.is_valid():
                 return None
@@ -181,39 +128,22 @@ def define_page(request, mode=None):
                         validation_step = form.is_valid()
                         if validation_step:
                             print(form.cleaned_data)
-                            if not component_string in form.cleaned_data.keys() or not component_lot_string in form.cleaned_data.keys():
+                            if not component_string in form.cleaned_data.keys():
                                 continue
-
-                            print('didnot fail')
-                            print(component_string)
-                            print(component_lot_string)
-                            print(form.cleaned_data[component_string].composite_type)
-                            if form.cleaned_data[component_string] is not None and form.cleaned_data[component_string].composite_type==my_composite.composite_type:
-                                print('recognised')
-                                value, unknown = unknown_numerical(form.cleaned_data['ratio'])
-                                if not unknown and value is None:
-                                    continue
-                                else:
-                                    components.append(
-                                        {
-                                            'component': form.cleaned_data[component_string],
-                                            'ratio': value
-                                        }
-                                    )
-
-                            elif form.cleaned_data[component_lot_string] is not None and form.cleaned_data[component_lot_string].composite.composite_type==my_composite.composite_type:
-                                print('recognised lot')
-                                value, unknown = unknown_numerical(form.cleaned_data['ratio'])
-                                if not unknown and value is None:
-                                    continue
-                                else:
-
-                                    components_lot.append(
-                                        {
-                                            'component_lot': form.cleaned_data[component_lot_string],
-                                            'ratio': value
-                                        }
-                                    )
+                            mol_s = form.cleaned_data[component_string]
+                            my_id, lot_type = decode_lot_string(mol_s)
+                            if lot_type == LotTypes.none:
+                                continue
+                            value, unknown = unknown_numerical(form.cleaned_data['ratio'])
+                            if not unknown and value is None:
+                                continue
+                            h = {'ratio': value}
+                            if lot_type == LotTypes.lot:
+                                h['component_lot']= ComponentLot.objects.get(id=my_id)
+                                components_lot.append(h)
+                            if lot_type == LotTypes.no_lot:
+                                h['component']=ComponentLot.objects.get(id=my_id)
+                                components.append(h)
 
             return my_composite.define_if_possible(
                 components=components,
@@ -225,6 +155,10 @@ def define_page(request, mode=None):
         if content in ['active_material','molecule','inactive','separator_material']:
             atoms = None
             if content == 'active_material':
+                ActiveMaterialCompositionFormset = formset_factory(
+                    ElectrodeMaterialStochiometryForm,
+                    extra=10
+                )
                 simple_form = ElectrodeActiveMaterialForm(request.POST, prefix='electrode-active-material-form')
             elif content == 'molecule':
                 simple_form = ElectrolyteMoleculeForm(post, prefix='electrolyte-molecule-form')
@@ -272,12 +206,25 @@ def define_page(request, mode=None):
                 )
 
                 if content != 'molecule':
-                    my_component.coating_lot = get_lot(
-                        simple_form.cleaned_data['coating'],
-                        simple_form.cleaned_data['coating_lot'],
-                        type='coating'
+                    my_id, lot_type = decode_lot_string(
+                        simple_form.cleaned_data['coating']
                     )
-                    my_component.coating_lot_unknown = simple_form.cleaned_data['coating_lot_unknown']
+
+                    my_component.coating_lot_unknown = False
+                    my_component.coating_lot = None
+
+                    if lot_type == LotTypes.unknown:
+                        my_component.coating_lot_unknown = False
+                    else:
+                        if lot_type == LotTypes.no_lot:
+                            my_component.coating_lot = get_lot(
+                                Coating.objects.get(id=my_id),
+                                None,
+                                type='coating'
+                            )
+                        elif lot_type == LotTypes.lot:
+                            my_component.coating_lot = CoatingLot.objects.get(id=my_id)
+
                     my_component.particle_size = simple_form.cleaned_data['particle_size']
                     my_component.particle_size_name = simple_form.cleaned_data['particle_size_name']
                     my_component.preparation_temperature = simple_form.cleaned_data['preparation_temperature']
@@ -465,16 +412,167 @@ def define_page(request, mode=None):
                     print(define_wet_cell_form.cleaned_data)
                     ar['define_wet_cell_form'] = define_wet_cell_form
 
-    return render(request, 'WetCellDatabase/define_page.html', ar)
+    def conditional_register(name, content):
+        if name not in ar.keys():
+            ar[name] = content
 
-def decode_lot_string(s):
-    print(s)
-    if s is None or s == '':
-        return None
-    if s.endswith('_lot'):
-        return (int(s.split('_lot')[0]), True)
-    else:
-        return (int(s), False)
+    if mode == 'electrode':
+        ActiveMaterialCompositionFormset = formset_factory(
+            ElectrodeMaterialStochiometryForm,
+            extra=10
+        )
+
+        ElectrodeCompositionFormset = formset_factory(
+            ElectrodeCompositionForm,
+            extra=10
+        )
+
+    if mode == 'electrolyte':
+        ElectrolyteCompositionFormset = formset_factory(
+            ElectrolyteCompositionForm,
+            extra=10
+        )
+
+    if mode == 'separator':
+        SeparatorCompositionFormset = formset_factory(
+            SeparatorCompositionForm,
+            extra=10
+        )
+
+    if mode=='electrode':
+        conditional_register(
+            'active_material_composition_formset',
+            ActiveMaterialCompositionFormset(
+                prefix='active-material-composition-formset')
+        )
+
+        conditional_register(
+            'electrode_composition_formset',
+            ElectrodeCompositionFormset(prefix='electrode-composition-formset')
+        )
+
+        conditional_register(
+            'define_coating_form',
+            CoatingForm(prefix='coating-form')
+        )
+
+
+        conditional_register(
+            'define_coating_lot_form',
+            CoatingLotForm(prefix='coating-lot-form')
+        )
+
+        conditional_register(
+            'define_inactive_form',
+            ElectrodeInactiveForm(prefix='electrode-inactive-form')
+        )
+
+        conditional_register(
+            'define_inactive_lot_form',
+            ElectrodeInactiveLotForm(prefix='electrode-inactive-lot-form')
+        )
+
+        conditional_register(
+            'define_active_material_form',
+            ElectrodeActiveMaterialForm(prefix='electrode-active-material-form')
+        )
+
+        conditional_register(
+            'define_active_material_lot_form',
+            ElectrodeActiveMaterialLotForm(
+                prefix='electrode-active-material-lot-form')
+        )
+
+        conditional_register(
+            'define_electrode_form',
+            ElectrodeForm(prefix='electrode-form')
+        )
+
+        conditional_register(
+            'define_electrode_lot_form',
+            ElectrodeLotForm(prefix='electrode-lot-form')
+        )
+
+        conditional_register(
+            'define_electrode_geometry_form',
+            ElectrodeGeometryForm(prefix='electrode-geometry-form')
+        )
+
+    if mode =='electrolyte':
+
+        conditional_register(
+            'electrolyte_composition_formset',
+            ElectrolyteCompositionFormset(prefix='electrolyte-composition-formset')
+        )
+
+        conditional_register(
+            'define_molecule_form',
+            ElectrolyteMoleculeForm(prefix='electrolyte-molecule-form')
+        )
+
+        conditional_register(
+            'define_molecule_lot_form',
+            ElectrolyteMoleculeLotForm(prefix='electrolyte-molecule-lot-form')
+        )
+
+        conditional_register(
+            'define_electrolyte_form',
+            ElectrolyteForm(prefix='electrolyte-form')
+        )
+        conditional_register(
+            'define_electrolyte_lot_form',
+            ElectrolyteLotForm(prefix='electrolyte-lot-form')
+        )
+
+    if mode == 'separator':
+
+        conditional_register(
+            'separator_composition_formset',
+            SeparatorCompositionFormset(prefix='separator-composition-formset')
+        )
+        conditional_register(
+            'define_separator_material_form',
+            SeparatorMaterialForm(prefix='separator-material-form')
+        )
+        conditional_register(
+            'define_separator_material_lot_form',
+            SeparatorMaterialLotForm(prefix='separator-material-lot-form')
+        )
+        conditional_register(
+            'define_separator_form',
+            SeparatorForm(prefix='separator-form')
+        )
+        conditional_register(
+            'define_separator_lot_form',
+            SeparatorLotForm(prefix='separator-lot-form')
+        )
+        conditional_register(
+            'define_separator_geometry_form',
+            SeparatorGeometryForm(prefix='separator-geometry-form')
+        )
+
+    if mode == 'dry_cell':
+        conditional_register(
+            'define_dry_cell_form',
+            DryCellForm()
+        )
+        conditional_register(
+            'define_dry_cell_lot_form',
+            DryCellLotForm()
+        )
+        conditional_register(
+            'define_dry_cell_geometry_form',
+            DryCellGeometryForm()
+        )
+
+    if mode == 'wet_cell':
+        conditional_register(
+            'define_wet_cell_form',
+            WetCellForm()
+        )
+
+
+    return render(request, 'WetCellDatabase/define_page.html', ar)
 
 def define_bulk_electrolyte(request):
     ar = {}
@@ -495,7 +593,7 @@ def define_bulk_electrolyte(request):
                     initial = {}
                     for i in range(10):
                         initial['value_{}'.format(i)] = bulk_parameters_form.cleaned_data['value_{}'.format(i)]
-                    for s in ['proprietary', 'proprietary_name','notes','dry_cell','dry_cell_lot']:
+                    for s in ['proprietary', 'proprietary_name','notes','dry_cell']:
                         initial[s] = bulk_parameters_form.cleaned_data[s]
 
                     start_barcode = bulk_parameters_form.cleaned_data['start_barcode']
@@ -523,19 +621,13 @@ def define_bulk_electrolyte(request):
                     header = []
                     for i in range(10):
                         mol_s = bulk_parameters_form.cleaned_data['molecule_{}'.format(i)]
-
-                        mol = decode_lot_string(mol_s)
-                        if mol is None:
+                        my_id, lot_type = decode_lot_string(mol_s)
+                        if lot_type == LotTypes.none:
                             continue
-
-                        my_id, is_lot = mol
-
-                        print(my_id, is_lot)
-                        if is_lot:
+                        if lot_type == LotTypes.lot :
                             header.append({'index': i, 'molecule_lot': ComponentLot.objects.get(id=my_id)})
                             continue
-
-                        else:
+                        if lot_type == LotTypes.no_lot:
                             header.append({'index': i, 'molecule': Component.objects.get(id=my_id)})
                             continue
 

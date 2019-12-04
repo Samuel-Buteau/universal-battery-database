@@ -69,14 +69,14 @@ table, th, td {
                 {{ electrolyte_composition_formset.management_form }}
                 <table>
                     <tr>
-                        <td>Molecule</td><td>Lot</td><td>Amount</td>
+                        <td>Molecule</td><td>Amount</td>
                     </tr>
                     {% for form in electrolyte_composition_formset%}
                         {% for hid in form.hidden_fields %}
                             {{ hid }}
                         {% endfor %}
                         <tr>
-                            <td>{{ form.molecule}}</td><td>{{ form.molecule_lot}}</td><td>{{ form.ratio}}</td>
+                            <td>{{ form.molecule}}</td><td>{{ form.ratio}}</td>
                         </tr>
                     {% endfor %}
                 </table>
@@ -137,11 +137,11 @@ table, th, td {
                 {{ electrode_composition_formset.management_form }}
                 <table>
                     <tr>
-                        <td>Material</td><td>Lot</td><td>Amount</td>
+                        <td>Material</td><td>Amount</td>
                     </tr>
                     {% for form in electrode_composition_formset%}
                         <tr>
-                            <td>{{ form.material}}</td><td>{{ form.material_lot}}</td><td>{{ form.ratio}}</td>
+                            <td>{{ form.material}}</td><td>{{ form.ratio}}</td>
                         </tr>
                     {% endfor %}
                 </table>
@@ -184,11 +184,11 @@ table, th, td {
                 {{ separator_composition_formset.management_form }}
                 <table>
                     <tr>
-                        <td>Material</td><td>Lot</td><td>Amount</td>
+                        <td>Material</td><td>Amount</td>
                     </tr>
                     {% for form in separator_composition_formset%}
                         <tr>
-                            <td>{{ form.material}}</td><td>{{ form.material_lot}}</td><td>{{ form.ratio}}</td>
+                            <td>{{ form.material}}</td><td>{{ form.ratio}}</td>
                         </tr>
                     {% endfor %}
                 </table>

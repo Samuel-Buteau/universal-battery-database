@@ -32,7 +32,7 @@ table, th, td {
         <table>
             <tr>
                 <th></th>
-                <th>Dry Cell or Lot</th>
+                <th>Dry Cell Model</th>
                 <th>Proprietary?</th>
                 <th>Use Proprietary in Name?</th>
                 <th>Notes</th>
@@ -44,7 +44,7 @@ table, th, td {
             </tr>
             <tr>
                 <th>Defaults:</th>
-                <td>{{bulk_parameters_form.dry_cell}}<br>{{bulk_parameters_form.dry_cell_lot}}</td>
+                <td>{{bulk_parameters_form.dry_cell}}</td>
                 <td>{{bulk_parameters_form.proprietary}}</td>
                 <td>{{bulk_parameters_form.proprietary_name}}</td>
                 <td>{{bulk_parameters_form.notes}}</td>
@@ -63,7 +63,7 @@ table, th, td {
                 {%for entry in bulk_entries_formset %}
                     <tr>
                         <td>{{entry.barcode}}</td>
-                        <td>{{entry.dry_cell}}<br>{{entry.dry_cell_lot}}</td>
+                        <td>{{entry.dry_cell}}</td>
                         <td>{{entry.proprietary}}</td>
                         <td>{{entry.proprietary_name}}</td>
                         <td>{{entry.notes}}</td>

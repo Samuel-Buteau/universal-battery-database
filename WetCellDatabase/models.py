@@ -4,6 +4,63 @@ import datetime
 import numpy
 import re
 
+from enum import Enum
+
+
+class LotTypes(Enum):
+    none = 0
+    unknown = 1
+    no_lot = 2
+    lot = 3
+
+
+def decode_lot_string(s):
+    print(s)
+    if s is None or s == '':
+        return (None, LotTypes.none)
+    if s == '?':
+        return (None, LotTypes.unknown)
+    if s.endswith('_lot'):
+        return (int(s.split('_lot')[0]), LotTypes.lot)
+    else:
+        return (int(s), LotTypes.no_lot)
+
+
+def encode_lot_string(ob, lot_type):
+    if (lot_type == LotTypes.none) or (lot_type == LotTypes.lot and ob is None) or (
+            lot_type == LotTypes.no_lot and ob is None):
+        return None
+
+    if lot_type == LotTypes.unknown:
+        return '?'
+    if lot_type == LotTypes.lot:
+        return '{}_lot'.format(ob.id)
+    if lot_type == LotTypes.no_lot:
+        return '{}'.format(ob.id)
+
+
+def make_choices(no_lots=None, lots=None, none=False, unknown=False):
+    res = []
+    print(res)
+    if none:
+        res.append((encode_lot_string(None, LotTypes.none), '-----'))
+    print(res)
+
+    if unknown:
+        res.append((encode_lot_string(None, LotTypes.unknown), 'UNKNOWN'))
+    print(res)
+
+    if no_lots is not None:
+        res = res + [(encode_lot_string(c, LotTypes.no_lot), c.__str__()) for c in no_lots]
+
+    print(res)
+
+    if lots is not None:
+        res = res + [(encode_lot_string(c, LotTypes.lot), c.__str__()) for c in lots]
+
+    print(res)
+
+    return res
 
 def unknown_numerical(num_string):
     if num_string is None or num_string == '':

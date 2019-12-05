@@ -1,7 +1,7 @@
 absl-py==0.8.0
 astor==0.8.0
 cycler==0.10.0
-Django==2.2.6
+Django==2.2.8
 django-background-tasks==1.2.0
 django-compat==1.0.15
 django-pgcrypto-fields==2.5.1

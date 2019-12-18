@@ -102,29 +102,32 @@ class DictionaryLayer(Layer):
 # Begin: Degradation Model
 ################################################################################
 
-class NeuralNetwork:
+class FeedforwardNeuralNetwork:
 
     def __init__(self, depth, width):
         self.initial = Dense(
             width,
-            activation='relu',
-            use_bias=True,
-            bias_initializer='zeros')
+            activation = 'relu',
+            use_bias = True,
+            bias_initializer = 'zeros'
+        )
 
         self.bulk = [
             Dense(
                 width,
-                activation='relu',
-                use_bias=True,
-                bias_initializer='zeros')
-            for _ in range(depth)]
+                activation = 'relu',
+                use_bias = True,
+                bias_initializer = 'zeros'
+            ) for _ in range(depth)
+        ]
 
         self.final = Dense(
             1,
-            activation=None,
-            use_bias=True,
-            bias_initializer='zeros',
-            kernel_initializer='zeros')
+            activation = None,
+            use_bias = True,
+            bias_initializer = 'zeros',
+            kernel_initializer = 'zeros'
+        )
 
 
 class DegradationModel(Model):
@@ -132,9 +135,9 @@ class DegradationModel(Model):
     def __init__(self, num_keys, depth, width):
         super(DegradationModel, self).__init__()
 
-        cap = NeuralNetwork(depth, width)
-        eq_vol = NeuralNetwork(depth, width)
-        r = NeuralNetwork(depth, width)
+        cap = FeedforwardNeuralNetwork(depth, width)
+        eq_vol = FeedforwardNeuralNetwork(depth, width)
+        r = FeedforwardNeuralNetwork(depth, width)
 
         self.neural_network = {
             'cap': {

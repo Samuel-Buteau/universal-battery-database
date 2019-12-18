@@ -718,8 +718,6 @@ def train_step(params, fit_args):
     vq_curves_mask = params["vq_curves_mask"]
     voltage_vector = params["voltage_vector"]
 
-    print(Colour.BLUE + "train step" + Colour.END)
-
     # need to split the range
     batch_size2 = neigh_int.shape[0]
 
@@ -751,12 +749,13 @@ def train_step(params, fit_args):
             neigh_int[:, NEIGH_INT_MAX_CYC_INDEX]
             + neigh_int[:, NEIGH_INT_ABSOLUTE_INDEX],
             tf.float32),
-        tf.int32)
+        tf.int32
+    )
 
     meas_cycles = tf.gather(
         cycles_tensor, indices=cycle_indecies, axis=0)
     model_eval_cycles = (
-            meas_cycles + center_cycle_offsets * neigh_float[:, NEIGH_FLOAT_DELTA])
+        meas_cycles + center_cycle_offsets * neigh_float[:, NEIGH_FLOAT_DELTA])
 
     cap = tf.gather(vq_curves, indices=cycle_indecies)
 
@@ -764,8 +763,10 @@ def train_step(params, fit_args):
     ws2_cap = tf.tile(
         tf.reshape(
             1. / (tf.cast(neigh_int[:, NEIGH_INT_VALID_CYC_INDEX], tf.float32)),
-            [batch_size2, 1]),
-        [1, len(voltage_vector)])
+            [batch_size2, 1]
+        ),
+        [1, len(voltage_vector)]
+    )
 
     ''' maximum discharge voltage '''
 
@@ -856,7 +857,6 @@ def train_step(params, fit_args):
         loss = cap_loss + kl_loss + mono_loss + smooth_loss
         loss += const_f_loss + smooth_f_loss
 
-    # train_loss(loss)
     gradients = tape.gradient(loss, degradation_model.trainable_variables)
     optimizer.apply_gradients(
         zip(gradients, degradation_model.trainable_variables))

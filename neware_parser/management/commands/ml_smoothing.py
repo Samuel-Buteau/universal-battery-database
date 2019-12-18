@@ -799,63 +799,62 @@ def train_step(params, fit_args):
         r_der = train_results["r_der"]
         eq_vol_der = train_results["eq_vol_der"]
 
-        loss = (
-                tf.reduce_mean(ws2_cap * ws_cap * tf.square(cap - pred_cap))
-                / (1e-10 + tf.reduce_mean(ws2_cap * ws_cap))
+        cap_loss = tf.reduce_mean(ws2_cap * ws_cap * tf.square(cap - pred_cap))
+            / (1e-10 + tf.reduce_mean(ws2_cap * ws_cap))
+            + tf.reduce_mean(ws2_max_dchg_vol
+            * tf.square(meas_max_dchg_vol - pred_max_dchg_vol))
+            / (1e-10 + tf.reduce_mean(ws2_max_dchg_vol))
 
-                + tf.reduce_mean(ws2_max_dchg_vol
-                                 * tf.square(meas_max_dchg_vol - pred_max_dchg_vol))
-                / (1e-10 + tf.reduce_mean(ws2_max_dchg_vol))
+        kl_loss = fit_args['kl_coeff'] * tf.reduce_mean(
+            0.5 * (tf.exp(log_sig) + tf.square(mean) - 1. - log_sig))
 
-                + fit_args['kl_coeff'] * tf.reduce_mean(
-            0.5 * (tf.exp(log_sig) + tf.square(mean) - 1. - log_sig)
+        mono_loss = fit_args['mono_coeff'] * (
+            tf.reduce_mean(tf.nn.relu(-cap))  # penalizes negative capacities
+            + tf.reduce_mean(tf.nn.relu(cap_der['dCyc'])) # shouldn't increase
+            + tf.reduce_mean(tf.nn.relu(cap_der['dRates'])) # shouldn't increase
+
+            + 10.* (
+                tf.reduce_mean(tf.nn.relu(-r))
+                + tf.reduce_mean(tf.nn.relu(-eq_vol))
+                # resistance should not decrease.
+                + 10  * tf.reduce_mean(tf.abs(r_der['dCyc']))
+                # equilibrium voltage should not change much
+                + 10. * tf.reduce_mean(tf.abs(eq_vol_der['dCyc']))
+                # equilibrium voltage should not change much
+                + 10. * tf.reduce_mean(tf.abs(eq_vol_der['dRates']))
+            )
         )
 
-                + fit_args['mono_coeff'] * (
-                        tf.reduce_mean(tf.nn.relu(-cap))  # penalizes negative capacities
-                        + tf.reduce_mean(tf.nn.relu(cap_der['dCyc'])) # should not increase
-                        + tf.reduce_mean(tf.nn.relu(cap_der['dRates'])) # should not increase
+        smooth_loss = fit_args['smooth_coeff'] * (
+            tf.reduce_mean(tf.square(tf.nn.relu(cap_der['d2Cyc']))
+            + 0.02 * tf.square(tf.nn.relu(-cap_der['d2Cyc'])))
+            + tf.reduce_mean(
+                tf.square(tf.nn.relu(cap_der['d2Rates']))
+                + 0.02 * tf.square(tf.nn.relu(-cap_der['d2Rates']))
+            )
 
-                        # DONE: figure out what way the max discharge voltage
-                        # should vary and enforce monotonicity in predictions :)
-                        + 10.* (
-                                tf.reduce_mean(tf.nn.relu(-r))
-                                + tf.reduce_mean(tf.nn.relu(-eq_vol))
-                                + 10  * tf.reduce_mean(tf.abs(r_der['dCyc'])) #resistance should not decrease.
-                                + 10. * tf.reduce_mean(tf.abs(eq_vol_der['dCyc'])) #equilibrium voltage should not change much
-                                + 10. * tf.reduce_mean(tf.abs(eq_vol_der['dRates']))  # equilibrium voltage should not change much
-                           )
-                )
-
-                + fit_args['smooth_coeff'] * (
-                        tf.reduce_mean(tf.square(tf.nn.relu(cap_der['d2Cyc']))
-                                       + 0.02 * tf.square(tf.nn.relu(-cap_der['d2Cyc'])))
-                        + tf.reduce_mean(
-                    tf.square(tf.nn.relu(cap_der['d2Rates']))
-                    + 0.02 * tf.square(tf.nn.relu(-cap_der['d2Rates'])))
-
-                        #this enforces smoothness of resistance. it is more ok to accelerate UPWARDS
-                        + 10. * tf.reduce_mean(tf.square(tf.nn.relu(-r_der['d2Cyc']))
-                                         + 0.5 * tf.square(tf.nn.relu(r_der['d2Cyc'])))
-                        + 1.* tf.reduce_mean(
-                    tf.square((eq_vol_der['d2Rates'])))
-                        + 1.* tf.reduce_mean(
-                    tf.square((eq_vol_der['d2Cyc'])))
-                )
-
-
-                + fit_args['const_f_coeff'] * (
-                        tf.reduce_mean(tf.square(cap_der['dFeatures']))
-                        + tf.reduce_mean(tf.square(r_der['dFeatures']))
-                        + tf.reduce_mean(tf.square(eq_vol_der['dFeatures']))
-                )
-
-                + fit_args['smooth_f_coeff'] * (
-                        tf.reduce_mean(tf.square(cap_der['d2Features']))
-                        + tf.reduce_mean(tf.square(r_der['d2Features']))
-                        + tf.reduce_mean(tf.square(eq_vol_der['d2Features']))
-                )
+            # this enforces smoothness of resistance;
+            # it is more ok to accelerate UPWARDS
+            + 10. * tf.reduce_mean(tf.square(tf.nn.relu(-r_der['d2Cyc']))
+            + 0.5 * tf.square(tf.nn.relu(r_der['d2Cyc'])))
+            + 1.* tf.reduce_mean(tf.square((eq_vol_der['d2Rates'])))
+            + 1.* tf.reduce_mean(tf.square((eq_vol_der['d2Cyc'])))
         )
+
+        const_f_loss = fit_args['const_f_coeff'] * (
+            tf.reduce_mean(tf.square(cap_der['dFeatures']))
+            + tf.reduce_mean(tf.square(r_der['dFeatures']))
+            + tf.reduce_mean(tf.square(eq_vol_der['dFeatures']))
+        )
+
+        smooth_f_loss = fit_args['smooth_f_coeff'] * (
+            tf.reduce_mean(tf.square(cap_der['d2Features']))
+            + tf.reduce_mean(tf.square(r_der['d2Features']))
+            + tf.reduce_mean(tf.square(eq_vol_der['d2Features']))
+        )
+
+        loss = cap_loss + kl_loss + mono_loss + smooth_loss
+        loss += const_f_loss + smooth_f_loss
 
     # train_loss(loss)
     gradients = tape.gradient(loss, degradation_model.trainable_variables)

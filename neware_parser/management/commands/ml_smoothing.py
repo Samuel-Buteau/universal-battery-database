@@ -354,20 +354,6 @@ class DegradationModel(Model):
 # End: Degradation Model
 ################################################################################
 
-# === Begin: clamp =============================================================
-
-def clamp(a, x, b):
-    print(Colour.PINK + "clamp" + Colour.END)
-
-    x = min(x, b)
-    x = max(x, a)
-    print(Colour.GREEN + "clamp" + Colour.END)
-    return x
-
-
-# === End: clamp ===============================================================
-
-
 # ==== Begin: initial processing ===============================================
 
 NEIGH_INT_MIN_CYC_INDEX = 0

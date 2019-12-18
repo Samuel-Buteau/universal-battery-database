@@ -802,11 +802,13 @@ def train_step(params, fit_args):
         r_der = train_results["r_der"]
         eq_vol_der = train_results["eq_vol_der"]
 
-        cap_loss = tf.reduce_mean(ws2_cap * ws_cap * tf.square(cap - pred_cap))
+        cap_loss = (
+            tf.reduce_mean(ws2_cap * ws_cap * tf.square(cap - pred_cap))
             / (1e-10 + tf.reduce_mean(ws2_cap * ws_cap))
             + tf.reduce_mean(ws2_max_dchg_vol
             * tf.square(meas_max_dchg_vol - pred_max_dchg_vol))
             / (1e-10 + tf.reduce_mean(ws2_max_dchg_vol))
+        )
 
         kl_loss = fit_args['kl_coeff'] * tf.reduce_mean(
             0.5 * (tf.exp(log_sig) + tf.square(mean) - 1. - log_sig))

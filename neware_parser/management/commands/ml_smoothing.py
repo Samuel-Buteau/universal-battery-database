@@ -135,25 +135,25 @@ class DegradationModel(Model):
     def __init__(self, num_keys, depth, width):
         super(DegradationModel, self).__init__()
 
-        cap = FeedforwardNeuralNetwork(depth, width)
-        eq_vol = FeedforwardNeuralNetwork(depth, width)
-        r = FeedforwardNeuralNetwork(depth, width)
+        cap_nn = FeedforwardNeuralNetwork(depth, width)
+        eq_vol_nn = FeedforwardNeuralNetwork(depth, width)
+        r_nn = FeedforwardNeuralNetwork(depth, width)
 
-        self.neural_network = {
+        self.feedforward_nn = {
             'cap': {
-                'initial': cap.initial,
-                'bulk': cap.bulk,
-                'final': cap.final
+                'initial': cap_nn.initial,
+                'bulk': cap_nn.bulk,
+                'final': cap_nn.final
             },
             'eq_vol': {
-                'initial': eq_vol.initial,
-                'bulk': eq_vol.bulk,
-                'final': eq_vol.final
+                'initial': eq_vol_nn.initial,
+                'bulk': eq_vol_nn.bulk,
+                'final': eq_vol_nn.final
             },
             'r': {
-                'initial': r.initial,
-                'bulk': r.bulk,
-                'final': r.final
+                'initial': r_nn.initial,
+                'bulk': r_nn.bulk,
+                'final': r_nn.final
             },
         }
 
@@ -185,7 +185,7 @@ class DegradationModel(Model):
                 rates = None
 
             if rates is None:
-                centers = self.neural_network[nn]['initial'](
+                centers = self.feedforward_nn[nn]['initial'](
                     tf.concat(
                         (
                             # readjust the cycles
@@ -197,7 +197,7 @@ class DegradationModel(Model):
                 )
 
             else:
-                centers = self.neural_network[nn]['initial'](
+                centers = self.feedforward_nn[nn]['initial'](
                     tf.concat(
                         (
                             # readjust the cycles
@@ -208,9 +208,9 @@ class DegradationModel(Model):
                         axis=1
                     )
                 )
-            for d in self.neural_network[nn]['bulk']:
+            for d in self.feedforward_nn[nn]['bulk']:
                 centers = d(centers)
-            return self.neural_network[nn]['final'](centers)
+            return self.feedforward_nn[nn]['final'](centers)
 
     def create_derivatives(self, cycles, rates, features, nn):
         derivatives = {}

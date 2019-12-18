@@ -418,7 +418,7 @@ def initial_processing(my_data, barcodes, fit_args):
 
             # normalize capacity_vector with max_cap
             my_data['all_data'][barcode][k]['capacity_vector'] = (
-                    1. / max_cap * cyc_grp_dict[k]['capacity_vector'])
+                1. / max_cap * cyc_grp_dict[k]['capacity_vector'])
 
             print("k:", k)
 
@@ -444,7 +444,8 @@ def initial_processing(my_data, barcodes, fit_args):
             # the centers of neighborhoods we will try to create
             all_neigh_center_cycles = list(filter(
                 lambda x: x > min_cyc - 100,
-                range(20, int(max_cyc + 50), 40)))
+                range(20, int(max_cyc + 50), 40))
+            )
 
             neigh_data_int, neigh_data_float = [], []
 
@@ -479,7 +480,8 @@ def initial_processing(my_data, barcodes, fit_args):
                 # [below_cyc, above_cyc] interval
                 mask = numpy.logical_and(
                     below_cyc <= cyc_grp_dict[k]['cycle_number'],
-                    cyc_grp_dict[k]['cycle_number'] <= above_cyc)
+                    cyc_grp_dict[k]['cycle_number'] <= above_cyc
+                )
 
                 # the indecies for the cyc_grp_dict[k] array which correspond
                 # to a True mask
@@ -521,7 +523,8 @@ def initial_processing(my_data, barcodes, fit_args):
 
                 neigh_data_int.append(
                     [min_cyc_index, max_cyc_index, k_count, barcode_count,
-                     len(all_cycle_nums), 0])
+                     len(all_cycle_nums), 0]
+                )
                 neigh_data_float.append([combined_delta, k[0], k[1]])
 
             if valid_cycles != 0:
@@ -557,7 +560,8 @@ def initial_processing(my_data, barcodes, fit_args):
 
                 all_dchg_vol = numpy.concatenate((
                     all_dchg_vol,
-                    cyc_grp_dict[k]['dchg_maximum_voltage']))
+                    cyc_grp_dict[k]['dchg_maximum_voltage'])
+                )
 
             else:
                 all_cycle_nums = cyc_grp_dict[k]['cycle_number']
@@ -573,8 +577,9 @@ def initial_processing(my_data, barcodes, fit_args):
 
     neigh_data_int = tf.constant(numpy.concatenate(
         [numpy.concatenate(cell_neigh_data_int, axis=0)
-         for cell_neigh_data_int in all_cells_neigh_data_int],
-        axis=0))
+            for cell_neigh_data_int in all_cells_neigh_data_int],
+        axis=0)
+    )
 
     # cycles go from 0 to 6000, but nn prefers normally distributed variables
     # so cycle numbers is normalized with mean and variance
@@ -598,12 +603,13 @@ def initial_processing(my_data, barcodes, fit_args):
         [numpy.concatenate(neigh_data_float_full, axis=0)
          for neigh_data_float_full
          in all_cells_neigh_data_float],
-        axis=0))
+        axis=0)
+    )
 
     # onvert the delta_cycles of each neighborhoods to the normalized units
     # (divide by standard deviation)
     neigh_data_float[:, NEIGH_FLOAT_DELTA] = (
-            (neigh_data_float[:, NEIGH_FLOAT_DELTA]) / numpy.sqrt(cycles_v))
+        (neigh_data_float[:, NEIGH_FLOAT_DELTA]) / numpy.sqrt(cycles_v))
 
     neigh_data_float = tf.constant(neigh_data_float)
 

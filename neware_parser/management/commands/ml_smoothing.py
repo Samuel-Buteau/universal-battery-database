@@ -187,8 +187,11 @@ class DegradationModel(Model):
                         (
                             # readjust the cycles
                             cycles * (1e-10 + tf.exp(-features[:, 0:1])),
-                            features[:, 1:]),
-                        axis=1))
+                            features[:, 1:]
+                        ),
+                        axis=1
+                    )
+                )
 
             else:
                 centers = self.neural_network[nn]['initial'](
@@ -197,8 +200,11 @@ class DegradationModel(Model):
                             # readjust the cycles
                             cycles * (1e-10 + tf.exp(-features[:, 0:1])),
                             rates,
-                            features[:, 1:]),
-                        axis=1))
+                            features[:, 1:]
+                        ),
+                        axis=1
+                    )
+                )
             for d in self.neural_network[nn]['bulk']:
                 centers = d(centers)
             return self.neural_network[nn]['final'](centers)
@@ -262,7 +268,8 @@ class DegradationModel(Model):
         voltages_tiled = tf.tile(
             tf.expand_dims(
                 tf.expand_dims(vol_tensor, axis=1), axis=0),
-            [cycles.shape[0], 1, 1])
+            [cycles.shape[0], 1, 1]
+        )
 
         rates_concat = tf.concat((rates_tiled, voltages_tiled), axis=2)
 
@@ -283,13 +290,11 @@ class DegradationModel(Model):
             cap = tf.reshape(cap, [-1, vol_tensor.shape[0]])
 
             pred_cap = (
-                    cap
-                    + tf.reshape(
-                cap_derivatives['dCyc'], [-1, vol_tensor.shape[0]])
-                    * var_cyc
-                    + tf.reshape(
-                cap_derivatives['d2Cyc'], [-1, vol_tensor.shape[0]])
-                    * var_cyc_squared)
+                cap + var_cyc * tf.reshape(
+                    cap_derivatives['dCyc'], [-1, vol_tensor.shape[0]])
+                + var_cyc_squared * tf.reshape(
+                    cap_derivatives['d2Cyc'], [-1, vol_tensor.shape[0]])
+            )
 
             ''' discharge max voltage '''
             max_dchg_vol, max_dchg_vol_der = self.create_derivatives(
@@ -307,10 +312,11 @@ class DegradationModel(Model):
             eq_vol = tf.reshape(eq_vol, [-1])
 
             pred_max_dchg_vol = (
-                    max_dchg_vol + tf.reshape(max_dchg_vol_der['dCyc'], [-1])
-                    * tf.reshape(var_cyc, [-1])
-                    + tf.reshape(max_dchg_vol_der['d2Cyc'], [-1])
-                    * tf.reshape(var_cyc_squared, [-1]))
+                max_dchg_vol + tf.reshape(max_dchg_vol_der['dCyc'], [-1])
+                * tf.reshape(var_cyc, [-1])
+                + tf.reshape(max_dchg_vol_der['d2Cyc'], [-1])
+                * tf.reshape(var_cyc_squared, [-1])
+            )
 
 
             return {
@@ -333,7 +339,8 @@ class DegradationModel(Model):
                 "pred_cap": tf.reshape(
                     self.apply_nn(
                         cycles_flat, rates_flat, features_flat, 'cap'),
-                    [-1, vol_tensor.shape[0]]),
+                    [-1, vol_tensor.shape[0]]
+                ),
                 "pred_max_dchg_vol": nn_results["max_dchg_vol"],
                 "pred_eq_vol": nn_results["eq_vol"],
                 "pred_r": nn_results["r"]

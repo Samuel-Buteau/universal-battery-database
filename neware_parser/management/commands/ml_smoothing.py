@@ -1172,20 +1172,26 @@ def ml_smoothing(fit_args):
     if not os.path.exists(fit_args['path_to_plots']):
         os.mkdir(fit_args['path_to_plots'])
 
-    if not os.path.exists(os.path.join(fit_args['path_to_dataset'], 'dataset_ver_{}.file'.format(fit_args['dataset_version']))):
+    dataset_path = os.path.join(
+        fit_args['path_to_dataset'],
+        'dataset_ver_{}.file'.format(fit_args['dataset_version'])
+    )
+
+    if not os.path.exists(dataset_path):
+        print("Path \"" + dataset_path + "\" does not exist.")
         return
 
-    with open(os.path.join(fit_args['path_to_dataset'], 'dataset_ver_{}.file'.format(fit_args['dataset_version'])), 'rb') as f:
+    with open(dataset_path, 'rb') as f:
         my_data = pickle.load(f)
 
     barcodes = list(my_data['all_data'].keys())
+
     if len(fit_args['wanted_barcodes']) !=0:
-        barcodes = list(set(barcodes).intersection(set(fit_args['wanted_barcodes'])))
+        barcodes = list(
+            set(barcodes).intersection(set(fit_args['wanted_barcodes'])))
 
     if len(barcodes) == 0:
         return
-
-
 
     train_and_evaluate(
         initial_processing(my_data, barcodes, fit_args), barcodes, fit_args)
@@ -1212,7 +1218,8 @@ class Command(BaseCommand):
             '--visualize_vq_every', type=int, default=10000)
 
         parser.add_argument('--stop_count', type=int, default=80000)
-        parser.add_argument('--wanted_barcodes', type=int, nargs='+', default=[83220, 83083])
+        parser.add_argument(
+            '--wanted_barcodes', type=int, nargs='+', default=[83220, 83083])
 
     def handle(self, *args, **options):
         ml_smoothing(options)

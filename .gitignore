@@ -14,6 +14,10 @@ neware_parser/config.ini
 full_reload_private_prefix.bat
 compiled*
 
+##### HARVEY ONLY #####
+
+neware_parser/settings.py
+neware_parser/urls.py
 
 out.ps
 

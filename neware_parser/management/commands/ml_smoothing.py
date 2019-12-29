@@ -33,30 +33,6 @@ Shortened Variable Names:
     eq -    equillibrium
 '''
 
-
-class Colour:
-    PINK = '\033[95m'
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-    END = '\033[0m'
-
-
-def cprint(c, s):
-    print(c + str(s) + Colour.END)
-
-
-def bprint(c, s):
-    cprint(c + Colour.bold, s)
-
-
-def print_type(x):
-    bprint(type(x))
-
-
 class Data:
 
     def __init__(self, vector):

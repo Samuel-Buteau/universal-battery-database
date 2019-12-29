@@ -8,15 +8,13 @@ class Print:
     UNDERLINE = '\033[4m'
     END = '\033[0m'
 
-
     def colour(c, s):
-        print(c + str(s) + Colour.END)
+        print(c + str(s) + Print.END)
 
 
     def bold(c, s):
-        cprint(c + Colour.bold, s)
+        color(c + Print.BOLD, s)
 
 
     def type(x):
-        bprint(type(x))
-
+        bold(type(x))

@@ -1,7 +1,10 @@
+import os
 
-################################################################################
-# Begin: Plot and Test Functions
-################################################################################
+import numpy as np
+import matplotlib.pyplot as plt
+import tensorflow as tf
+
+from .colour_print import Print
 
 def plot_vq(plot_params, init_returns):
     barcodes = plot_params["barcodes"]
@@ -16,7 +19,7 @@ def plot_vq(plot_params, init_returns):
     vol_tensor = init_returns["vol_tensor"]
     voltage_vector = init_returns["voltage_vector"]
 
-    print(Colour.BLUE + "plot vq" + Colour.END)
+    Print.colour(Print.BLUE, "plot vq")
 
     colors = [(1., 1., 1.), (1., 0., 0.), (0., 0., 1.),
               (0., 1., 0.), (1., 0., 1.), (0., 1., 1.)]
@@ -35,7 +38,7 @@ def plot_vq(plot_params, init_returns):
                 ax.plot(vq, voltage_vector, c=colors[k_count])
 
                 if vq_count % int(n_samples / 10) == 0:
-                    fused_vector = numpy.stack([vq, voltage_vector], axis=1)
+                    fused_vector = np.stack([vq, voltage_vector], axis=1)
                     target_voltage = all_data[barcode][k][
                         'dchg_maximum_voltage'][vq_count]
                     best_point = get_nearest_point(fused_vector, target_voltage)
@@ -69,7 +72,7 @@ def plot_vq(plot_params, init_returns):
                     )
                 )
 
-                fused_vector = numpy.stack([pred_cap, voltage_vector], axis=1)
+                fused_vector = np.stack([pred_cap, voltage_vector], axis=1)
                 target_voltage = pred_max_dchg_vol[0]
                 best_point = get_nearest_point(fused_vector, target_voltage)
 
@@ -102,7 +105,7 @@ def plot_test_rate_voltage(plot_params, init_returns):
     degradation_model = init_returns["degradation_model"]
     vol_tensor = init_returns["vol_tensor"]
 
-    print(Colour.BLUE + "plot capacity" + Colour.END)
+    Print.colour(Print.BLUE, "plot capacity")
     for barcode_count, barcode in enumerate(barcodes):
         results = []
         for k in [[0.1, x / 10.] for x in range(40)]:
@@ -114,7 +117,7 @@ def plot_test_rate_voltage(plot_params, init_returns):
         fig = plt.figure()
         ax = fig.add_subplot(1, 1, 1)
 
-        results = numpy.array(results)
+        results = np.array(results)
         ax.scatter(results[:, 0],
                    results[:, 1])
 
@@ -136,7 +139,7 @@ def plot_capacity(plot_params, init_returns):
     cycles_v = init_returns["cycles_v"]
     vol_tensor = init_returns["vol_tensor"]
 
-    print(Colour.BLUE + "plot capacity" + Colour.END)
+    Print.colour(Print.BLUE, "plot capacity")
     for barcode_count, barcode in enumerate(barcodes):
         fig = plt.figure()
         ax1 = fig.add_subplot(1, 2, 1)
@@ -168,7 +171,7 @@ def plot_capacity(plot_params, init_returns):
             max_c = max(cycles)
             cycles = [
                 float(min_c) + float(max_c - min_c)
-                * x for x in numpy.arange(0., 1.1, 0.02)]
+                * x for x in np.arange(0., 1.1, 0.02)]
 
             my_cycles = [
                 (cyc - cycles_m) / tf.sqrt(cycles_v) for cyc in cycles]
@@ -213,7 +216,7 @@ def plot_eq_vol(plot_params, init_returns):
             max_c = max(cycles)
             cycles = [
                 float(min_c) + float(max_c - min_c)
-                * x for x in numpy.arange(0., 1.1, 0.02)]
+                * x for x in np.arange(0., 1.1, 0.02)]
 
             my_cycles = [
                 (cyc - cycles_m) / tf.sqrt(cycles_v) for cyc in cycles]
@@ -277,8 +280,13 @@ def test_single_voltage(cycles, v, k, barcode_count, degradation_model):
         evals["pred_r"]
     )
 
-################################################################################
-# End: Plot and Test Functions
-################################################################################
+def get_nearest_point(xys, y):
+    best = xys[0, :]
+    best_distance = (best[1] - y) ** 2.
+    for i in range(len(xys)):
+        new_distance = (xys[i, 1] - y) ** 2.
+        if best_distance > new_distance:
+            best_distance = new_distance
+            best = xys[i, :]
 
-
+    return best

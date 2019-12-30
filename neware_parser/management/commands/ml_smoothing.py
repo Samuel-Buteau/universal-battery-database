@@ -1,24 +1,23 @@
-import argparse
 import os
 import pickle
 import numpy
-import math
-import re
-import copy
-from neware_parser.models import *
-from django.core.management.base import BaseCommand
+#import argparse
+#import math
+#import re
+#import copy
+
 import tensorflow as tf
 
-from .plot import plot_vq, plot_test_rate_voltage, plot_capacity, plot_eq_vol
-
+from django.core.management.base import BaseCommand
+from tensorflow.keras import Model
 from tensorflow.keras.layers import (
     Dense, Flatten, Conv2D, GlobalAveragePooling1D,
     BatchNormalization, Conv1D, Layer
 )
-from tensorflow.keras import Model
-
 from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.pyplot as plt
+
+from neware_parser.models import *
+from .plot import plot_vq, plot_test_rate_voltage, plot_capacity, plot_eq_vol
 
 '''
 Shortened Variable Names:
@@ -850,18 +849,6 @@ def train_step(params, fit_args):
 def dist_train_step(mirrored_strategy, train_step_params, fit_args):
     mirrored_strategy.experimental_run_v2(
         train_step, args=(train_step_params, fit_args))
-
-
-def get_nearest_point(xys, y):
-    best = xys[0, :]
-    best_distance = (best[1] - y) ** 2.
-    for i in range(len(xys)):
-        new_distance = (xys[i, 1] - y) ** 2.
-        if best_distance > new_distance:
-            best_distance = new_distance
-            best = xys[i, :]
-
-    return best
 
 def ml_smoothing(fit_args):
     if not os.path.exists(fit_args['path_to_plots']):

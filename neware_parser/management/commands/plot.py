@@ -261,8 +261,13 @@ def plot_eq_vol(plot_params, init_returns):
         plt.close(fig)
 
 def test_all_voltages(cycle, k, barcode_count, degradation_model, voltages):
-    centers = tf.expand_dims(tf.concat(
-        (tf.expand_dims(cycle, axis=0), k), axis=0), axis=0)
+    centers = tf.expand_dims(
+        tf.concat(
+            (tf.expand_dims(cycle, axis=0), k),
+            axis=0
+        ),
+        axis=0
+    )
     indecies = tf.reshape(barcode_count, [1])
     measured_cycles = tf.reshape(cycle, [1, 1])
 
@@ -284,13 +289,15 @@ def test_single_voltage(cycles, v, k, barcode_count, degradation_model):
             tf.expand_dims(cycles, axis=1),
             tf.tile(tf.expand_dims(k, axis=0), [len(cycles), 1])
         ),
-        axis=1)
+        axis=1
+    )
     indecies = tf.tile(tf.expand_dims(barcode_count, axis=0), [len(cycles)])
     measured_cycles = tf.expand_dims(cycles, axis=1)
 
     evals = degradation_model(
         (centers, indecies, measured_cycles, tf.expand_dims(v, axis=0)),
-        training=False)
+        training=False
+    )
 
     return (
         tf.reshape(evals["pred_cap"], shape=[-1]),

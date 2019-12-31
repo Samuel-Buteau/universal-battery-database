@@ -136,32 +136,32 @@ def plot_capacity(plot_params, init_returns):
         ax2 = fig.add_subplot(1, 2, 2)
 
         colors = ['k', 'r', 'b', 'g', 'm', 'c']
-        for k_count, k in enumerate(
-                test_object[barcode_count].keys()):
+        for k_count, k in enumerate(test_object[barcode_count].keys()):
 
             ax1.scatter(
                 all_data[barcode][k]['cycle_number'],
                 all_data[barcode][k]['capacity_vector'][:, 0],
-                c=colors[k_count])
-
+                c=colors[k_count]
+            )
             ax2.scatter(
                 all_data[barcode][k]['cycle_number'],
                 all_data[barcode][k]['dchg_maximum_voltage'],
-                c=colors[k_count])
+                c=colors[k_count]
+            )
 
             for cyc_i in [0, -1]:
                 cyc = test_object[barcode_count][k][cyc_i]
                 ax1.axvline(
                     x=cyc, color=colors[k_count], linestyle='--')
 
-        for k_count, k in enumerate(
-                test_object[barcode_count].keys()):
+        for k_count, k in enumerate(test_object[barcode_count].keys()):
             cycles = test_object[barcode_count][k]
             min_c = min(cycles)
             max_c = max(cycles)
             cycles = [
                 float(min_c) + float(max_c - min_c)
-                * x for x in np.arange(0., 1.1, 0.02)]
+                * x for x in np.arange(0., 1.1, 0.02)
+            ]
 
             my_cycles = [
                 (cyc - cycles_m) / tf.sqrt(cycles_v) for cyc in cycles]
@@ -172,9 +172,12 @@ def plot_capacity(plot_params, init_returns):
             ax1.plot(cycles, pred_cap, c=colors[k_count])
             ax2.plot(cycles, pred_max_dchg_vol, c=colors[k_count])
 
-        plt.savefig(os.path.join(
-            fit_args['path_to_plots'],
-            'Cap_{}_Count_{}.png'.format(barcode, count)))
+        plt.savefig(
+            os.path.join(
+                fit_args['path_to_plots'],
+                'Cap_{}_Count_{}.png'.format(barcode, count)
+            )
+        )
         plt.close(fig)
 
 

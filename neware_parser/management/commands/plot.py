@@ -209,7 +209,8 @@ def plot_eq_vol(plot_params, init_returns):
             max_c = max(cycles)
             cycles = [
                 float(min_c) + float(max_c - min_c)
-                * x for x in np.arange(0., 1.1, 0.02)]
+                * x for x in np.arange(0., 1.1, 0.02)
+            ]
 
             my_cycles = [
                 (cyc - cycles_m) / tf.sqrt(cycles_v) for cyc in cycles]
@@ -219,20 +220,45 @@ def plot_eq_vol(plot_params, init_returns):
 
             ax1.plot(cycles, pred_eq_vol, c=colors[k_count])
             ax1.plot(cycles, [4.3 for _ in cycles], c='0.5')
-            ax1.tick_params(direction='in', length=3, width=1, labelsize=12, bottom=True, top=True, left=True,
-                           right=True)
-            ax2.plot(cycles, pred_r, c=colors[k_count])
-            ax2.plot(cycles, [0.05 for _ in cycles], c='0.5')
-            ax2.tick_params(direction='in', length=3, width=1, labelsize=12, bottom=True, top=True, left=True,
-                           right=True)
+            ax1.tick_params(
+                direction='in',
+                length=3,
+                width=1,
+                labelsize=12,
+                bottom=True,
+                top=True,
+                left=True,
+                right=True
+            )
+            ax2.plot(
+                cycles,
+                pred_r,
+                c=colors[k_count]
+            )
+            ax2.plot(
+                cycles,
+                [0.05 for _ in cycles],
+                c='0.5'
+            )
+            ax2.tick_params(
+                direction='in',
+                length=3,
+                width=1,
+                labelsize=12,
+                bottom=True,
+                top=True,
+                left=True,
+                right=True
+            )
         plt.tight_layout(pad=0.1)
-        plt.savefig(os.path.join(
-            fit_args['path_to_plots'],
-            'Eq_{}_Count_{}.png'.format(barcode, count)), dpi=300)
+        plt.savefig(
+            os.path.join(
+                fit_args['path_to_plots'],
+                'Eq_{}_Count_{}.png'.format(barcode, count)
+            ),
+            dpi=300
+        )
         plt.close(fig)
-
-
-
 
 def test_all_voltages(cycle, k, barcode_count, degradation_model, voltages):
     centers = tf.expand_dims(tf.concat(

@@ -99,21 +99,22 @@ def plot_test_rate_voltage(plot_params, init_returns):
     for barcode_count, barcode in enumerate(barcodes):
         results = []
         for k in [[0.1, x / 10.] for x in range(40)]:
-            _, pred_max_dchg_vol, _,_ = test_single_voltage([0.], vol_tensor[0],
-                                                       k, barcode_count,
-                                                       degradation_model)
+            _, pred_max_dchg_vol, _,_ = test_single_voltage(
+                [0.], vol_tensor[0], k, barcode_count, degradation_model)
             results.append([k[1], pred_max_dchg_vol])
 
         fig = plt.figure()
         ax = fig.add_subplot(1, 1, 1)
 
         results = np.array(results)
-        ax.scatter(results[:, 0],
-                   results[:, 1])
+        ax.scatter(results[:, 0], results[:, 1])
 
-        plt.savefig(os.path.join(
-            fit_args['path_to_plots'],
-            'Cap_{}_Count_{}.png'.format(barcode, count)))
+        plt.savefig(
+            os.path.join(
+                fit_args['path_to_plots'],
+                'Cap_{}_Count_{}.png'.format(barcode, count)
+            )
+        )
         plt.close(fig)
 
 

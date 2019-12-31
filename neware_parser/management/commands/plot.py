@@ -44,32 +44,46 @@ def plot_vq(plot_params, init_returns):
         colors = [(1., 1., 1.), (1., 0., 0.), (0., 0., 1.),
                   (0., 1., 0.), (1., 0., 1.), (0., 1., 1.)]
 
-        for k_count, k in enumerate(
-                test_object[barcode_count].keys()):
+        for k_count, k in enumerate(test_object[barcode_count].keys()):
             cycles = [0, 2000, 4000, 6000]
+
             for i, cyc in enumerate(cycles):
                 cycle = ((float(cyc) - cycles_m) / tf.sqrt(cycles_v))
                 pred_cap, pred_max_dchg_vol, _, _ = test_all_voltages(
                     cycle, k, barcode_count, degradation_model, vol_tensor)
 
                 mult = (i + 4) / (len(cycles) + 5)
-                ax.plot(pred_cap, voltage_vector, c=(
-                    mult * colors[k_count][0],
-                    mult * colors[k_count][1],
-                    mult * colors[k_count][2]))
-                fused_vector = np.stack(
-                    [pred_cap, voltage_vector], axis=1)
+                ax.plot(
+                    pred_cap,
+                    voltage_vector,
+                    c = (
+                        mult * colors[k_count][0],
+                        mult * colors[k_count][1],
+                        mult * colors[k_count][2]
+                    )
+                )
+
+                fused_vector = np.stack([pred_cap, voltage_vector], axis=1)
                 target_voltage = pred_max_dchg_vol[0]
                 best_point = get_nearest_point(fused_vector, target_voltage)
-                ax.scatter([best_point[0]], [best_point[1]], marker='x', s=100,
-                           c=(
-                               mult * colors[k_count][0],
-                               mult * colors[k_count][1],
-                               mult * colors[k_count][2]))
+                ax.scatter(
+                    [best_point[0]],
+                    [best_point[1]],
+                    marker = 'x',
+                    s = 100,
+                    c = (
+                        mult * colors[k_count][0],
+                        mult * colors[k_count][1],
+                        mult * colors[k_count][2]
+                    )
+                )
 
-        plt.savefig(os.path.join(
-            fit_args['path_to_plots'],
-            'VQ_{}_Count_{}.png'.format(barcode, count)))
+        plt.savefig(
+            os.path.join(
+                fit_args['path_to_plots'],
+                'VQ_{}_Count_{}.png'.format(barcode, count)
+            )
+        )
         plt.close(fig)
 
 
@@ -115,7 +129,6 @@ def plot_capacity(plot_params, init_returns):
     cycles_v = init_returns["cycles_v"]
     vol_tensor = init_returns["vol_tensor"]
 
-    Print.colour(Print.BLUE, "plot capacity")
     for barcode_count, barcode in enumerate(barcodes):
         fig = plt.figure()
         ax1 = fig.add_subplot(1, 2, 1)

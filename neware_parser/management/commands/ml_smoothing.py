@@ -905,6 +905,3 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         ml_smoothing(options)
-
-
-

@@ -1,18 +1,13 @@
 import os
 import pickle
 import numpy
-#import argparse
-#import math
-#import re
-#import copy
 
 import tensorflow as tf
 
+from tensorflow.keras.layers import Flatten, Conv1D, Conv2D
+from tensorflow.keras.layers import GlobalAveragePooling1D, BatchNormalization
+
 from django.core.management.base import BaseCommand
-from tensorflow.keras.layers import (
-    Flatten, Conv2D, GlobalAveragePooling1D,
-    BatchNormalization, Conv1D
-)
 from mpl_toolkits.mplot3d import Axes3D
 
 from neware_parser.models import *

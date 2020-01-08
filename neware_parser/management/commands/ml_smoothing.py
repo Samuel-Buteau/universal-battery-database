@@ -32,21 +32,6 @@ Shortened Variable Names:
     eq -    equillibrium
 '''
 
-class Data:
-
-    def __init__(self, vector):
-        self.val = tf.cast(tf.constant(vector), dtype=tf.float32)
-        self.len = len(vector)
-        self.mean, self.var = tf.nn.moments(self.val, axes=[0])
-        self.val = (self.val - self.mean) / tf.sqrt(self.var)
-
-    def __call__(self):
-        return self.val
-
-
-
-# ==== Begin: initial processing ===============================================
-
 NEIGH_INT_MIN_CYC_INDEX = 0
 NEIGH_INT_MAX_CYC_INDEX = 1
 NEIGH_INT_RATE_INDEX = 2
@@ -57,6 +42,8 @@ NEIGH_FLOAT_DELTA = 0
 NEIGH_FLOAT_CHG_RATE = 1
 NEIGH_FLOAT_DCHG_RATE = 2
 
+
+# ==== Begin: initial processing ===============================================
 
 def initial_processing(my_data, barcodes, fit_args):
     all_cells_neigh_data_int, all_cycle_nums, all_dchg_vol = [], [], []

@@ -131,8 +131,54 @@ Given the generic cycling conditions (the sufficient statistics of cycling proto
 Furthermore, the predicted Capacity can only depend on the cycle number *through* URAS. This allows apples-to-apples comparison of different cells, as well as some generalization of the results to counter-factual scenarios where a cell would have been cycled under different conditions.
  
 # TODO(Samuel):
-(DONE in one place. Go through and change code everywhere!!!)
-- Instead of Field, FieldLot ModelChoiceField, create a choice field with structure (id,printed string)
+
+We want two objects to never have the same name.
+we want two names to never have the same object. 
+
+if an object is a list of pairs of labels and objects or it is just a "leaf" object
+so 
+data Obj = Leaf x | Collection [(label, Bool, Obj)]
+
+and we want to define a relationship of equality between objects which is the induced relationship from the equality on strings.
+however, we want to do this without computing strings.
+The only thing we need is the following:
+- equality defined on the leaf objects.
+- we need to know EQNulls = (Visible, Null) == (Invisible, Null) or not. Maybe safer to never allow this. 
+- then, 
+eq (Visible, x) (Visible, y) = eq x y
+eq (Invisible, x) (Visible, y) = if EQNulls then ((x is Null) and (y is Null)) else False
+eq (Visible, x) (Invisible, y) = if EQNulls then ((x is Null) and (y is Null)) else False
+eq (Invisible, x) (Invisible, y) = True
+
+eq {x1,x2, x3} {y1,y2, y3}= all {x1==y1, x2==y2, x3==y3} 
+
+We also have a notion of equality which is Object equality without the visibility constraints.
+i.e. 
+eq2 (a, x) (b, y) = eq2 x y
+
+Based on these two properties, we always want to maintain the propriety that the list of objects in the database is unique with respect to eq and to eq2.
+
+## object creation
+We never want to create an object if there is another object satisfying object equality (eq2) in the database.
+if given such an object, we return one of the equality set (eq2) and don't create anything.
+
+From this point, assume eq2 does not hold.
+We never want to create an object if there is another object satisfying string equality (eq) in the database. 
+However, this needs a modification of the visibility fields, 
+so we can create the object with full top level visibility and give a warning. 
+If string equality is satisfied before, and this object is not object equal to anything,
+ then at least one of the subobjects must be not object equal, but if that object is not object equal, 
+ then it is not string equal. So visibility will distinguish them. 
+ This is why you only need to set to visible at top level. 
+
+Then, when TODO...
+
+- The name should be unique
+- allow modification of the naming fields. 
+- allow general modification (define if possible with optional argument of the id)
+
+
+DONE - Instead of Field, FieldLot ModelChoiceField, create a choice field with structure (id,printed string)
 (("id_lot"),printed string)
 
 

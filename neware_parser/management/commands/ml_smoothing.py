@@ -591,9 +591,9 @@ class Command(BaseCommand):
         parser.add_argument('--batch_size', type=int, default=2 * 16)
         parser.add_argument('--print_loss_every', type=int, default=1000)
         parser.add_argument(
-            '--visualize_fit_every', type=int, default=10000)
+            '--visualize_fit_every', type=int, default=1000)
         parser.add_argument(
-            '--visualize_vq_every', type=int, default=10000)
+            '--visualize_vq_every', type=int, default=1000)
 
         parser.add_argument('--stop_count', type=int, default=80000)
         parser.add_argument(

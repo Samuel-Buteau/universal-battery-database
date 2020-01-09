@@ -3,31 +3,46 @@ import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Dense, Layer
 
+
+
+def feedforward_nn_parameters(depth, width):
+    initial = Dense(
+        width,
+        activation = 'relu',
+        use_bias = True,
+        bias_initializer = 'zeros'
+    )
+
+    bulk = [
+        Dense(
+            width,
+            activation = 'relu',
+            use_bias = True,
+            bias_initializer = 'zeros'
+        ) for _ in range(depth)
+    ]
+
+    final = Dense(
+        1,
+        activation = None,
+        use_bias = True,
+        bias_initializer = 'zeros',
+        kernel_initializer = 'zeros'
+    )
+    return {'initial':initial, 'bulk':bulk, 'final':final}
+
+
+
 class DegradationModel(Model):
 
     def __init__(self, num_keys, depth, width):
         super(DegradationModel, self).__init__()
 
-        cap_nn = FeedforwardNeuralNetwork(depth, width)
-        eq_vol_nn = FeedforwardNeuralNetwork(depth, width)
-        r_nn = FeedforwardNeuralNetwork(depth, width)
 
         self.feedforward_nn = {
-            'cap': {
-                'initial': cap_nn.initial,
-                'bulk': cap_nn.bulk,
-                'final': cap_nn.final
-            },
-            'eq_vol': {
-                'initial': eq_vol_nn.initial,
-                'bulk': eq_vol_nn.bulk,
-                'final': eq_vol_nn.final
-            },
-            'r': {
-                'initial': r_nn.initial,
-                'bulk': r_nn.bulk,
-                'final': r_nn.final
-            },
+            'cap': feedforward_nn_parameters(depth, width),
+            'eq_vol': feedforward_nn_parameters(depth, width),
+            'r': feedforward_nn_parameters(depth, width),
         }
 
         self.dictionary = DictionaryLayer(num_features=width, num_keys=num_keys)
@@ -36,29 +51,48 @@ class DegradationModel(Model):
         self.num_keys = num_keys
 
     def apply_nn(self, cycles, rates, features, nn):
+        # Convention: any nn always gets called with all the inputs if possible.
+        # and is responsible for only using the appropriate ones.
+        # For instance, nn 'r' doesn't use rates, so it will be called with the rates
+        # and set it to None before running the neural net code.
 
         # two nn's are needed to implement the equation for discharge voltage
         # the keyword 'max_discharge_voltage' calls the networks
         # with the right inputs and plumbing
-        if nn == 'max_dchg_vol':
-            dchg_rate = rates[:, 1:2]
-            eq_vol = self.apply_nn(cycles, rates, features, 'eq_vol')
-            r = self.apply_nn(cycles, None, features, 'r')
-            return {
-                "max_dchg_vol": eq_vol - (dchg_rate * r),
-                "eq_vol": eq_vol,
-                "r": r
-            }
+
+        # First, if the symbol refers to other symbols, first load the other symbols
+
+        dependencies = {
+            'max_dchg_vol': ['dchg_rate', 'eq_vol', 'r']
+        }
+        equations = {
+            'max_dchg_vol': lambda: preloaded['eq_vol'] - (preloaded['dchg_rate'] * preloaded['r']),
+        }
+
+
+        #This code runs
+        preloaded = {}
+        if nn in dependencies.keys():
+            for arg in dependencies[nn]:
+                preloaded[arg] = self.apply_nn(cycles, rates, features, arg)
+        #this evaluates compound expressions and returns the result.
+        if nn in equations.keys():
+            return equations[nn]()
 
         else:
 
+            #primitive (no-nn)
+            if nn == "dchg_rate":
+                return rates[:,1:2]
+
+            #primitive (with a nn)
             if nn == 'eq_vol':
                 rates = rates[:, 0:1]
             if nn == 'r':
                 rates = None
 
             if rates is None:
-                centers = self.feedforward_nn[nn]['initial'](
+                centers = (self.feedforward_nn[nn]['initial'])(
                     tf.concat(
                         (
                             # readjust the cycles
@@ -70,7 +104,7 @@ class DegradationModel(Model):
                 )
 
             else:
-                centers = self.feedforward_nn[nn]['initial'](
+                centers = (self.feedforward_nn[nn]['initial'])(
                     tf.concat(
                         (
                             # readjust the cycles
@@ -83,7 +117,7 @@ class DegradationModel(Model):
                 )
             for d in self.feedforward_nn[nn]['bulk']:
                 centers = d(centers)
-            return self.feedforward_nn[nn]['final'](centers)
+            return (self.feedforward_nn[nn]['final'])(centers)
 
     def create_derivatives(self, cycles, rates, features, nn):
         derivatives = {}
@@ -97,12 +131,9 @@ class DegradationModel(Model):
                 tape2.watch(rates)
                 tape2.watch(features)
 
-                if nn == 'max_dchg_vol':
-                    nn_results = self.apply_nn(cycles, rates, features, nn)
-                    res = tf.reshape(nn_results["max_dchg_vol"], [-1, 1])
-                else:
-                    res = tf.reshape(
-                        self.apply_nn(cycles, rates, features, nn), [-1, 1])
+
+                res = tf.reshape(
+                    self.apply_nn(cycles, rates, features, nn), [-1, 1])
 
             derivatives['dCyc'] = tape2.batch_jacobian(
                 source=cycles, target=res)[:, 0, :]
@@ -209,7 +240,9 @@ class DegradationModel(Model):
             }
 
         else:
-            nn_results = self.apply_nn(cycles, rates, features, 'max_dchg_vol')
+            pred_max_dchg_vol = self.apply_nn(cycles, rates, features, 'max_dchg_vol')
+            pred_eq_vol = self.apply_nn(cycles, rates, features, 'eq_vol')
+            pred_r = self.apply_nn(cycles, rates, features, 'r')
 
             return {
                 "pred_cap": tf.reshape(
@@ -217,38 +250,12 @@ class DegradationModel(Model):
                         cycles_flat, rates_flat, features_flat, 'cap'),
                     [-1, vol_tensor.shape[0]]
                 ),
-                "pred_max_dchg_vol": nn_results["max_dchg_vol"],
-                "pred_eq_vol": nn_results["eq_vol"],
-                "pred_r": nn_results["r"]
+                "pred_max_dchg_vol": pred_max_dchg_vol,
+                "pred_eq_vol": pred_eq_vol,
+                "pred_r": pred_r
             }
 
 
-class FeedforwardNeuralNetwork:
-
-    def __init__(self, depth, width):
-        self.initial = Dense(
-            width,
-            activation = 'relu',
-            use_bias = True,
-            bias_initializer = 'zeros'
-        )
-
-        self.bulk = [
-            Dense(
-                width,
-                activation = 'relu',
-                use_bias = True,
-                bias_initializer = 'zeros'
-            ) for _ in range(depth)
-        ]
-
-        self.final = Dense(
-            1,
-            activation = None,
-            use_bias = True,
-            bias_initializer = 'zeros',
-            kernel_initializer = 'zeros'
-        )
 
 
 # stores cell features

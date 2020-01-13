@@ -130,6 +130,8 @@ def print_unknown(val):
     else:
         ret = val
 
+    return ret
+
 class LotInfo(models.Model):
     notes = models.CharField(max_length=100, null=True, blank=True)
 
@@ -190,67 +192,65 @@ class LotInfo(models.Model):
 
 def define_if_possible(lot, lot_info=None, type =None):
     """
-    There are two things defining an object here:
-    - value fields
-    - naming subset
-    :return:
-    if value fields DONT exist and not unique w.r.t. naming subset OR
-       value fields DO exist and different naming subset:
-       return None
-    if value fields DONT exist and unique w.r.t. naming subset OR
-       value fields DO exist and same naming subset:
-       return Instance
+        The objects are made of subobjects and visibility flags.
+        we want to make sure that among the objects created, no two (object,visibility) have the same (object projection)
+        furthermore, no two objects can have the same string.
+
+        If there is an object clash, return the preexisting object.
+        Else: if there is a string clash, set all visibility flags to True.
     """
     print('entered define if possible')
     if lot_info is None or not lot_info.is_valid():
         print('was invalid')
         return None
     if type == 'coating':
-        wrt_query = Q(coating=lot.coating)
+        object_equality_query = Q(coating=lot.coating)
     elif type == 'component':
-        wrt_query = Q(component=lot.component)
+        object_equality_query = Q(component=lot.component)
     elif type == 'composite':
-        wrt_query = Q(composite=lot.composite)
+        object_equality_query = Q(composite=lot.composite)
     elif type == 'dry_cell':
-        wrt_query = Q(dry_cell=lot.dry_cell)
+        object_equality_query = Q(dry_cell=lot.dry_cell)
     else:
         raise('not yet implemented {}'.format(type))
 
-    wrt_query = wrt_query & Q(lot_info__notes=lot_info.notes)
+    object_equality_query = object_equality_query & Q(
+        lot_info__notes=lot_info.notes,
+        lot_info__creator=lot_info.creator,
+        lot_info__date=lot_info.date,
+        lot_info__vendor=lot_info.vendor
+    )
 
-
-    if lot_info.creator_name:
-        wrt_query = wrt_query & Q(lot_info__creator=lot_info.creator)
-    if lot_info.date_name:
-        wrt_query = wrt_query & Q(lot_info__date=lot_info.date)
-    if lot_info.vendor_name:
-        wrt_query = wrt_query & Q(lot_info__vendor=lot_info.vendor)
+    string_equality_query = Q(lot_info__notes=lot_info.notes)
 
     if type == 'coating':
-        duplicate_query = Q(coating=lot.coating)
+        string_equality_query = string_equality_query & Q(coating=lot.coating)
     elif type == 'component':
-        duplicate_query = Q(component=lot.component)
+        string_equality_query = string_equality_query & Q(component=lot.component)
     elif type == 'composite':
-        duplicate_query = Q(composite=lot.composite)
+        string_equality_query = string_equality_query & Q(composite=lot.composite)
     elif type == 'dry_cell':
-        duplicate_query = Q(dry_cell=lot.dry_cell)
+        string_equality_query = string_equality_query & Q(dry_cell=lot.dry_cell)
     else:
         raise ('not yet implemented {}'.format(type))
 
-    duplicate_query = duplicate_query & Q(lot_info__notes=lot_info.notes)
 
-    duplicate_query = duplicate_query & Q(
-        lot_info__creator=lot_info.creator,
-        lot_info__date=lot_info.date,
-        lot_info__vendor=lot_info.vendor,
-    )
+    if lot_info.creator_name:
+        string_equality_query = string_equality_query & Q(lot_info__creator=lot_info.creator,
+                                                          lot_info__creator_name=True)
+    else:
+        string_equality_query = string_equality_query & Q(lot_info__creator_name=False)
+    if lot_info.date_name:
+        string_equality_query = string_equality_query & Q(lot_info__date=lot_info.date,
+                                                          lot_info__date_name=True)
+    else:
+        string_equality_query = string_equality_query & Q(lot_info__date_name=False)
+    if lot_info.vendor_name:
+        string_equality_query = string_equality_query & Q(lot_info__vendor=lot_info.vendor,
+                                                          lot_info__vendor_name=True)
+    else:
+        string_equality_query = string_equality_query & Q(lot_info__vendor_name=False)
 
-
-    naming_set_query = Q(
-        lot_info__creator_name=lot_info.creator_name,
-        lot_info__date_name=lot_info.date_name,
-        lot_info__vendor_name=lot_info.vendor_name,
-    )
 
     if type == 'coating':
         objs = CoatingLot.objects
@@ -264,12 +264,16 @@ def define_if_possible(lot, lot_info=None, type =None):
         raise ('not yet implemented {}'.format(type))
 
     objs = objs.exclude(lot_info=None)
-    set_of_candidates = objs.filter(wrt_query)
-    set_of_valid_duplicates = objs.filter(duplicate_query & naming_set_query)
+    set_of_object_equal = objs.filter(object_equality_query)
+    string_equals = objs.filter(string_equality_query).exists()
+
+    if (not set_of_object_equal.exists()) and string_equals:
+        lot_info.creator_name = True
+        lot_info.date_name = True
+        lot_info.vendor_name = True
 
     return helper_return(
-        set_of_candidates=set_of_candidates,
-        set_of_valid_duplicates=set_of_valid_duplicates,
+        set_of_object_equal=set_of_object_equal,
         my_self=lot,
         lot_info=lot_info
     )
@@ -437,8 +441,7 @@ class ElectrodeMaterialStochiometry(models.Model):
         return self.pretty_print()
 
 def helper_return(
-        set_of_candidates=None,
-        set_of_valid_duplicates=None,
+        set_of_object_equals=None,
         my_self=None,
         electrode_geometry=None,
         separator_geometry=None,
@@ -446,7 +449,9 @@ def helper_return(
         my_ratio_components=None,
         lot_info=None
 ):
-    if not set_of_candidates.exists():
+    if not set_of_object_equals.exists():
+        # if string equals, we take care of it before passing it here.
+
         # we know for a fact that value fields don't exist.
         # so we can create it as it is.
         if electrode_geometry is not None:
@@ -472,14 +477,7 @@ def helper_return(
         return my_self
 
     else:
-        if set_of_valid_duplicates.exists():
-            # VF DO, same naming set.
-            # don't create anything, just return object.
-            return set_of_valid_duplicates[0]
-        else:
-            # could be VF DONT, not unique wrt
-            # could be VF DO, different wrt
-            return None
+        return set_of_object_equals[0]
 
 
 
@@ -577,55 +575,26 @@ class Component(models.Model):
 
     def define_if_possible(self, atoms=None):
         """
-        There are two things defining an object here:
-        - value fields
-        - naming subset
-        :return:
-        if value fields DONT exist and not unique w.r.t. naming subset OR
-           value fields DO exist and different naming subset:
-           return None
-        if value fields DONT exist and unique w.r.t. naming subset OR
-           value fields DO exist and same naming subset:
-           return Instance
+        The objects are made of subobjects and visibility flags.
+        we want to make sure that among the objects created, no two (object,visibility) have the same (object projection)
+        furthermore, no two objects can have the same string.
+
+        If there is an object clash, return the preexisting object.
+        Else: if there is a string clash, set all visibility flags to True.
         """
         print('entered define if possible')
         if not self.is_valid():
             print('was invalid')
             return None
-        wrt_query = Q()
 
-        if self.proprietary_name:
-            wrt_query = wrt_query & Q(proprietary=self.proprietary)
-        if self.smiles_name:
-            wrt_query = wrt_query & Q(smiles=self.smiles)
-        if self.composite_type_name:
-            wrt_query = wrt_query & Q(composite_type=self.composite_type)
-        if self.component_type_name:
-            wrt_query = wrt_query & Q(component_type=self.component_type)
-        if self.notes_name:
-            wrt_query = wrt_query & Q(notes=self.notes)
-        if self.coating_lot_name:
-            wrt_query = wrt_query & Q(coating_lot=self.coating_lot, coating_lot_unknown=self.coating_lot_unknown)
-        if self.particle_size_name:
-            wrt_query = wrt_query & Q(particle_size=self.particle_size)
-        if self.single_crystal_name:
-            wrt_query = wrt_query & Q(single_crystal=self.single_crystal)
-        if self.turbostratic_misalignment_name:
-            wrt_query = wrt_query & Q(turbostratic_misalignment=self.turbostratic_misalignment)
-        if self.preparation_temperature_name:
-            wrt_query = wrt_query & Q(preparation_temperature=self.preparation_temperature)
-        if self.natural_name:
-            wrt_query = wrt_query & Q(natural=self.natural)
-
-
-        duplicate_query = Q(
+        object_equality_query = Q(
             proprietary=self.proprietary,
             smiles=self.smiles,
             composite_type=self.composite_type,
             component_type=self.component_type,
             notes=self.notes,
             coating_lot=self.coating_lot,
-            coating_lot_unknown = self.coating_lot_unknown,
+            coating_lot_unknown=self.coating_lot_unknown,
             particle_size=self.particle_size,
             single_crystal=self.single_crystal,
             turbostratic_misalignment=self.turbostratic_misalignment,
@@ -634,18 +603,63 @@ class Component(models.Model):
         )
 
 
-        naming_set_query = Q(
-            composite_type_name=self.composite_type_name,
-            component_type_name=self.component_type_name,
-            proprietary_name=self.proprietary_name,
-            smiles_name=self.smiles_name,
-            coating_lot_name=self.coating_lot_name,
-            particle_size_name=self.particle_size_name,
-            single_crystal_name=self.single_crystal_name,
-            turbostratic_misalignment_name=self.turbostratic_misalignment_name,
-            preparation_temperature_name=self.preparation_temperature_name,
-            natural_name=self.natural_name
-        )
+        string_equality_query = Q()
+        if self.proprietary_name:
+            string_equality_query = string_equality_query & Q(proprietary=self.proprietary,
+                                                              proprietary_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(proprietary_name=False)
+        if self.smiles_name:
+            string_equality_query = string_equality_query & Q(smiles=self.smiles,
+                                                              smiles_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(smiles_name=False)
+        if self.composite_type_name:
+            string_equality_query = string_equality_query & Q(composite_type=self.composite_type,
+                                                              composite_type_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(composite_type_name=False)
+        if self.component_type_name:
+            string_equality_query = string_equality_query & Q(component_type=self.component_type,
+                                                              component_type_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(component_type_name=False)
+        if self.notes_name:
+            string_equality_query = string_equality_query & Q(notes=self.notes,
+                                                              notes_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(notes_name=False)
+        if self.coating_lot_name:
+            string_equality_query = string_equality_query & Q(coating_lot=self.coating_lot,
+                                                              coating_lot_unknown=self.coating_lot_unknown,
+                                                              coating_lot_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(coating_lot_name=False)
+        if self.particle_size_name:
+            string_equality_query = string_equality_query & Q(particle_size=self.particle_size,
+                                                              particle_size_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(particle_size_name=False)
+        if self.single_crystal_name:
+            string_equality_query = string_equality_query & Q(single_crystal=self.single_crystal,
+                                                              single_crystal_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(single_crystal_name=False)
+        if self.turbostratic_misalignment_name:
+            string_equality_query = string_equality_query & Q(turbostratic_misalignment=self.turbostratic_misalignment,
+                                                              turbostratic_misalignment_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(turbostratic_misalignment_name=False)
+        if self.preparation_temperature_name:
+            string_equality_query = string_equality_query & Q(preparation_temperature=self.preparation_temperature,
+                                                              preparation_temperature_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(preparation_temperature_name=False)
+        if self.natural_name:
+            string_equality_query = string_equality_query & Q(natural=self.natural,
+                                                              natural_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(natural_name=False)
 
 
         if atoms is None:
@@ -695,12 +709,24 @@ class Component(models.Model):
                 count_valid_stochiometry=Count('stochiometry', filter=Q(stochiometry__in=my_stochiometry_components))
             ).filter(count_valid_stochiometry=len(my_stochiometry_components))
 
-            set_of_candidates = set_with_valid_stoc.filter(wrt_query)
-            set_of_valid_duplicates = set_with_valid_stoc.filter(duplicate_query & naming_set_query)
+            set_of_object_equal = set_with_valid_stoc.filter(object_equality_query)
+            string_equals = set_with_valid_stoc.filter(string_equality_query).exists()
+
+            if (not set_of_object_equal.exists()) and string_equals:
+                self.proprietary_name = True
+                self.smiles_name = True
+                self.composite_type_name = True
+                self.component_type_name = True
+                self.notes_name = True
+                self.coating_lot_name = True
+                self.particle_size_name = True
+                self.single_crystal_name = True
+                self.turbostratic_misalignment_name = True
+                self.preparation_temperature_name = True
+                self.natural_name = True
 
             return helper_return(
-                set_of_candidates=set_of_candidates,
-                set_of_valid_duplicates=set_of_valid_duplicates,
+                set_of_object_equal=set_of_object_equal,
                 my_self=self,
                 my_stochiometry_components=my_stochiometry_components
             )
@@ -931,80 +957,97 @@ class Composite(models.Model):
 
     def define_if_possible(self, components=None,components_lot=None, electrode_geometry=None,separator_geometry=None):
         """
-        There are two things defining an object here:
-        - value fields
-        - naming subset
-        :return:
-        if value fields DONT exist and not unique w.r.t. naming subset OR
-           value fields DO exist and different naming subset:
-           return None
-        if value fields DONT exist and unique w.r.t. naming subset OR
-           value fields DO exist and same naming subset:
-           return Instance
+        The objects are made of subobjects and visibility flags.
+        we want to make sure that among the objects created, no two (object,visibility) have the same (object projection)
+        furthermore, no two objects can have the same string.
+
+        If there is an object clash, return the preexisting object.
+        Else: if there is a string clash, set all visibility flags to True.
+        TODO: revamp this with the new abstraction.
         """
-        print(components)
-        print(components_lot)
         if not self.is_valid(electrode_geometry=electrode_geometry, separator_geometry=separator_geometry):
             return None
-        wrt_query = Q()
-        if self.composite_type_name:
-            wrt_query = wrt_query & Q(composite_type=self.composite_type)
 
-        if self.notes_name:
-            wrt_query = wrt_query & Q(notes=self.notes)
-
-
-        if self.proprietary_name:
-            wrt_query = wrt_query & Q(proprietary=self.proprietary)
-
-        if self.composite_type in [ANODE,CATHODE]:
-            wrt_query = wrt_query & (Q(composite_type=ANODE)|Q(composite_type=CATHODE))
-            if electrode_geometry.loading_name:
-                wrt_query = wrt_query & Q(electrode_geometry__loading=electrode_geometry.loading)
-            if electrode_geometry.density_name:
-                wrt_query = wrt_query & Q(electrode_geometry__density=electrode_geometry.density)
-            if electrode_geometry.thickness_name:
-                wrt_query = wrt_query & Q(electrode_geometry__thickness=electrode_geometry.thickness)
-
-        elif self.composite_type == SEPARATOR:
-            wrt_query = wrt_query & Q(composite_type=SEPARATOR)
-            if electrode_geometry.width_name:
-                wrt_query = wrt_query & Q(electrode_geometry__width=electrode_geometry.width)
-            if electrode_geometry.thickness_name:
-                wrt_query = wrt_query & Q(electrode_geometry__thickness=electrode_geometry.thickness)
-
-        duplicate_query = Q(
+        object_equality_query = Q(
             proprietary=self.proprietary,
             composite_type=self.composite_type,
-            notes = self.notes,
+            notes=self.notes,
         )
         if self.composite_type in [ANODE, CATHODE]:
-            duplicate_query = duplicate_query & Q(
+            object_equality_query = object_equality_query & Q(
                 electrode_geometry__loading=electrode_geometry.loading,
                 electrode_geometry__density=electrode_geometry.density,
                 electrode_geometry__thickness=electrode_geometry.thickness,
             )
         elif self.composite_type == SEPARATOR:
-            duplicate_query = duplicate_query & Q(
-                electrode_geometry__width=electrode_geometry.width,
-                electrode_geometry__thickness=electrode_geometry.thickness,
+            object_equality_query = object_equality_query & Q(
+                separator_geometry__width=separator_geometry.width,
+                separator_geometry__thickness=separator_geometry.thickness,
             )
 
-        naming_set_query = Q(
-            composite_type_name=self.composite_type_name,
-            proprietary_name=self.proprietary_name,
-        )
-        if self.composite_type in [ANODE, CATHODE]:
-            naming_set_query = naming_set_query & Q(
-                electrode_geometry__loading_name=electrode_geometry.loading_name,
-                electrode_geometry__density_name=electrode_geometry.density_name,
-                electrode_geometry__thickness_name=electrode_geometry.thickness_name,
-            )
+        string_equality_query = Q()
+        if self.composite_type_name:
+            string_equality_query = string_equality_query & Q(composite_type=self.composite_type,
+                                                              composite_type_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(composite_type_name=False)
+
+
+        if self.notes_name:
+            string_equality_query = string_equality_query & Q(notes=self.notes,
+                                                              notes_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(notes_name=False)
+
+
+        if self.proprietary_name:
+            string_equality_query = string_equality_query & Q(proprietary=self.proprietary,
+                                                              proprietary_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(proprietary_name=False)
+
+
+        if self.composite_type in [ANODE,CATHODE]:
+            string_equality_query = string_equality_query & (Q(composite_type=ANODE)|Q(composite_type=CATHODE))
+
+            if electrode_geometry.loading_name:
+                string_equality_query = string_equality_query & Q(electrode_geometry__loading=electrode_geometry.loading,
+                                                                  electrode_geometry__loading_name=True)
+            else:
+                string_equality_query = string_equality_query & Q(electrode_geometry__loading_name=False)
+
+
+            if electrode_geometry.density_name:
+                string_equality_query = string_equality_query & Q(
+                    electrode_geometry__density=electrode_geometry.density,
+                    electrode_geometry__density_name=True)
+            else:
+                string_equality_query = string_equality_query & Q(electrode_geometry__density_name=False)
+
+            if electrode_geometry.thickness_name:
+                string_equality_query = string_equality_query & Q(electrode_geometry__thickness=electrode_geometry.thickness,
+                                                                  electrode_geometry__thickness_name=True)
+            else:
+                string_equality_query = string_equality_query & Q(electrode_geometry__thickness_name=False)
+
+
         elif self.composite_type == SEPARATOR:
-            naming_set_query = naming_set_query & Q(
-                electrode_geometry__width_name=electrode_geometry.width_name,
-                electrode_geometry__thickness_name=electrode_geometry.thickness_name,
-            )
+            string_equality_query = string_equality_query & Q(composite_type=SEPARATOR)
+
+            if separator_geometry.width_name:
+                string_equality_query = string_equality_query & Q(
+                    separator_geometry__width=separator_geometry.width,
+                    separator_geometry__width_name=True)
+            else:
+                string_equality_query = string_equality_query & Q(separator_geometry__width_name=False)
+
+            if separator_geometry.thickness_name:
+                string_equality_query = string_equality_query & Q(separator_geometry__thickness=separator_geometry.thickness,
+                                                                  separator_geometry__thickness_name=True)
+            else:
+                string_equality_query = string_equality_query & Q(separator_geometry__thickness_name=False)
+
+
 
 
 
@@ -1117,12 +1160,23 @@ class Composite(models.Model):
                     count_valid_components=Count('components', filter=Q(components__in=my_ratio_components))
                 ).filter(count_valid_components=len(my_ratio_components))
 
-                set_of_candidates = set_with_valid_comp.filter(wrt_query)
-                set_of_valid_duplicates = set_with_valid_comp.filter(duplicate_query & naming_set_query)
+                set_of_object_equal = set_with_valid_comp.filter(object_equality_query)
+                string_equals = set_with_valid_comp.filter(string_equality_query).exists()
 
-                return helper_return(
-                    set_of_candidates=set_of_candidates,
-                    set_of_valid_duplicates=set_of_valid_duplicates,
+                if (not set_of_object_equal.exists()) and string_equals:
+                    self.proprietary_name = True
+                    self.composite_type_name = True
+                    self.notes_name = True
+                    if self.composite_type in [ANODE, CATHODE]:
+                        electrode_geometry.loading_name = True
+                        electrode_geometry.density_name = True
+                        electrode_geometry.thickness_name = True
+                    if self.composite_type == SEPARATOR:
+                        separator_geometry.width_name = True
+                        separator_geometry.thickness_name = True
+
+            return helper_return(
+                    set_of_object_equal=set_of_object_equal,
                     my_self=self,
                     electrode_geometry=electrode_geometry,
                     separator_geometry=separator_geometry,

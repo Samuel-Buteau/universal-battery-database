@@ -150,6 +150,15 @@ eq (Invisible, x) (Visible, y) = if EQNulls then ((x is Null) and (y is Null)) e
 eq (Visible, x) (Invisible, y) = if EQNulls then ((x is Null) and (y is Null)) else False
 eq (Invisible, x) (Invisible, y) = True
 
+
+eq (Visible, x) (Visible, y) = eq x y
+eq (Visible, x) (Invisible, y) = False
+
+eq (Invisible, x) (Invisible, y) = True
+eq (Invisible, x) (Visible, y) =  False
+
+
+
 eq {x1,x2, x3} {y1,y2, y3}= all {x1==y1, x2==y2, x3==y3} 
 
 We also have a notion of equality which is Object equality without the visibility constraints.

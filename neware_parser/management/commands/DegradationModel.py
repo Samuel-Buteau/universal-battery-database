@@ -61,17 +61,6 @@ class DegradationModel(Model):
         if nn == 'eq_vol':
             return self.eq_vol(rates, cycles, features)
 
-        # Convention: any nn always gets called with all the inputs if possible.
-        # and is responsible for only using the appropriate ones.
-        # For instance, nn 'r' doesn't use rates, so it will be called with the rates
-        # and set it to None before running the neural net code.
-
-        # two nn's are needed to implement the equation for discharge voltage
-        # the keyword 'max_discharge_voltage' calls the networks
-        # with the right inputs and plumbing
-
-        # First, if the symbol refers to other symbols, first load the other symbols
-
         dependencies = {
             'max_dchg_vol': ['dchg_rate', 'eq_vol', 'r']
         }

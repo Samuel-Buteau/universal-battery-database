@@ -92,21 +92,9 @@ class DegradationModel(Model):
             if nn == 'eq_vol':
                 rates = rates[:, 0:1]
             if nn == 'r':
-                rates = None
+                return self.r(cycles, features)
 
-            if rates is None:
-                centers = (self.feedforward_nn[nn]['initial'])(
-                    tf.concat(
-                        (
-                            # readjust the cycles
-                            cycles * (1e-10 + tf.exp(-features[:, 0:1])),
-                            features[:, 1:]
-                        ),
-                        axis=1
-                    )
-                )
-
-            else:
+            if rates is not None:
                 centers = (self.feedforward_nn[nn]['initial'])(
                     tf.concat(
                         (
@@ -121,6 +109,22 @@ class DegradationModel(Model):
             for d in self.feedforward_nn[nn]['bulk']:
                 centers = d(centers)
             return (self.feedforward_nn[nn]['final'])(centers)
+
+    def r(self, cycles, features):
+        centers = (self.feedforward_nn['r']['initial'])(
+            tf.concat(
+                (
+                    # readjust the cycles
+                    cycles * (1e-10 + tf.exp(-features[:, 0:1])),
+                    features[:, 1:]
+                ),
+                axis=1
+            )
+        )
+        for d in self.feedforward_nn['r']['bulk']:
+            centers = d(centers)
+        return (self.feedforward_nn['r']['final'])(centers)
+
 
     def create_derivatives(self, cycles, rates, features, nn):
         derivatives = {}

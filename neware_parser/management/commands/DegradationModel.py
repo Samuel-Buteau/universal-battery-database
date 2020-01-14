@@ -58,6 +58,8 @@ class DegradationModel(Model):
             return self.dchg_rate(rates)
         if nn == 'r':
             return self.r(cycles, features)
+        if nn == 'eq_vol':
+            return self.eq_vol(rates, cycles, features)
 
         # Convention: any nn always gets called with all the inputs if possible.
         # and is responsible for only using the appropriate ones.
@@ -87,10 +89,6 @@ class DegradationModel(Model):
             return equations[nn]()
 
         else:
-            #primitive (with a nn)
-            if nn == 'eq_vol':
-                rates = rates[:, 0:1]
-
             centers = (self.feedforward_nn[nn]['initial'])(
                 tf.concat(
                     (
@@ -105,6 +103,23 @@ class DegradationModel(Model):
             for d in self.feedforward_nn[nn]['bulk']:
                 centers = d(centers)
             return (self.feedforward_nn[nn]['final'])(centers)
+
+    def eq_vol(self, rates, cycles, features):
+        rates = rates[:, 0:1]
+        centers = (self.feedforward_nn['eq_vol']['initial'])(
+            tf.concat(
+                (
+                    # readjust the cycles
+                    cycles * (1e-10 + tf.exp(-features[:, 0:1])),
+                    rates,
+                    features[:, 1:]
+                ),
+                axis=1
+            )
+        )
+        for d in self.feedforward_nn['eq_vol']['bulk']:
+            centers = d(centers)
+        return (self.feedforward_nn['eq_vol']['final'])(centers)
 
     def r(self, cycles, features):
         centers = (self.feedforward_nn['r']['initial'])(

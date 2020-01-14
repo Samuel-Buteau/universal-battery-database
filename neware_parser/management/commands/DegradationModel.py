@@ -50,6 +50,9 @@ class DegradationModel(Model):
         self.width = width
         self.num_keys = num_keys
 
+    def dchg_rate(self, rates):
+        return rates[:, 1:2]
+
     def apply_nn(self, cycles, rates, features, nn):
         # Convention: any nn always gets called with all the inputs if possible.
         # and is responsible for only using the appropriate ones.
@@ -83,7 +86,7 @@ class DegradationModel(Model):
 
             #primitive (no-nn)
             if nn == "dchg_rate":
-                return rates[:,1:2]
+                return self.dchg_rate(rates)
 
             #primitive (with a nn)
             if nn == 'eq_vol':

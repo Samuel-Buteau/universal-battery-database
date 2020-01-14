@@ -54,6 +54,11 @@ class DegradationModel(Model):
         return rates[:, 1:2]
 
     def apply_nn(self, cycles, rates, features, nn):
+        if nn == "dchg_rate":
+            return self.dchg_rate(rates)
+        if nn == 'r':
+            return self.r(cycles, features)
+
         # Convention: any nn always gets called with all the inputs if possible.
         # and is responsible for only using the appropriate ones.
         # For instance, nn 'r' doesn't use rates, so it will be called with the rates
@@ -72,7 +77,6 @@ class DegradationModel(Model):
             'max_dchg_vol': lambda: preloaded['eq_vol'] - (preloaded['dchg_rate'] * preloaded['r']),
         }
 
-
         #This code runs
         preloaded = {}
         if nn in dependencies.keys():
@@ -83,29 +87,21 @@ class DegradationModel(Model):
             return equations[nn]()
 
         else:
-
-            #primitive (no-nn)
-            if nn == "dchg_rate":
-                return self.dchg_rate(rates)
-
             #primitive (with a nn)
             if nn == 'eq_vol':
                 rates = rates[:, 0:1]
-            if nn == 'r':
-                return self.r(cycles, features)
 
-            if rates is not None:
-                centers = (self.feedforward_nn[nn]['initial'])(
-                    tf.concat(
-                        (
-                            # readjust the cycles
-                            cycles * (1e-10 + tf.exp(-features[:, 0:1])),
-                            rates,
-                            features[:, 1:]
-                        ),
-                        axis=1
-                    )
+            centers = (self.feedforward_nn[nn]['initial'])(
+                tf.concat(
+                    (
+                        # readjust the cycles
+                        cycles * (1e-10 + tf.exp(-features[:, 0:1])),
+                        rates,
+                        features[:, 1:]
+                    ),
+                    axis=1
                 )
+            )
             for d in self.feedforward_nn[nn]['bulk']:
                 centers = d(centers)
             return (self.feedforward_nn[nn]['final'])(centers)

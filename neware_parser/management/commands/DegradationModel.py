@@ -60,38 +60,40 @@ class DegradationModel(Model):
             return self.r(cycles, features)
         if nn == 'eq_vol':
             return self.eq_vol(rates, cycles, features)
+        if nn == 'cap':
+            return self.cap(rates, cycles, features)
 
         dependencies = {
             'max_dchg_vol': ['dchg_rate', 'eq_vol', 'r']
         }
         equations = {
-            'max_dchg_vol': lambda: preloaded['eq_vol'] - (preloaded['dchg_rate'] * preloaded['r']),
+            'max_dchg_vol': lambda: preloaded['eq_vol'] - (preloaded['dchg_rate'] * preloaded['r'])
         }
 
-        #This code runs
         preloaded = {}
         if nn in dependencies.keys():
             for arg in dependencies[nn]:
                 preloaded[arg] = self.apply_nn(cycles, rates, features, arg)
+
         #this evaluates compound expressions and returns the result.
         if nn in equations.keys():
             return equations[nn]()
 
-        else:
-            centers = (self.feedforward_nn[nn]['initial'])(
-                tf.concat(
-                    (
-                        # readjust the cycles
-                        cycles * (1e-10 + tf.exp(-features[:, 0:1])),
-                        rates,
-                        features[:, 1:]
-                    ),
-                    axis=1
-                )
+    def cap(self, rates, cycles, features):
+        centers = (self.feedforward_nn['cap']['initial'])(
+            tf.concat(
+                (
+                    # readjust the cycles
+                    cycles * (1e-10 + tf.exp(-features[:, 0:1])),
+                    rates,
+                    features[:, 1:]
+                ),
+                axis=1
             )
-            for d in self.feedforward_nn[nn]['bulk']:
-                centers = d(centers)
-            return (self.feedforward_nn[nn]['final'])(centers)
+        )
+        for d in self.feedforward_nn['cap']['bulk']:
+            centers = d(centers)
+        return (self.feedforward_nn['cap']['final'])(centers)
 
     def eq_vol(self, rates, cycles, features):
         rates = rates[:, 0:1]

@@ -50,8 +50,7 @@ class DegradationModel(Model):
         self.width = width
         self.num_keys = num_keys
 
-    def dchg_rate(self, rates):
-        return rates[:, 1:2]
+    # Begin: nn application functions ==========================================
 
     def apply_nn(self, cycles, rates, features, nn):
         if nn == "dchg_rate":
@@ -62,22 +61,20 @@ class DegradationModel(Model):
             return self.eq_vol(rates, cycles, features)
         if nn == 'cap':
             return self.cap(rates, cycles, features)
+        if nn == 'max_dchg_vol':
+            return self.max_dchg_vol(rates, cycles, features)
 
-        dependencies = {
-            'max_dchg_vol': ['dchg_rate', 'eq_vol', 'r']
-        }
-        equations = {
-            'max_dchg_vol': lambda: preloaded['eq_vol'] - (preloaded['dchg_rate'] * preloaded['r'])
-        }
+        raise Exception("Unknown nn")
 
-        preloaded = {}
-        if nn in dependencies.keys():
-            for arg in dependencies[nn]:
-                preloaded[arg] = self.apply_nn(cycles, rates, features, arg)
+    def dchg_rate(self, rates):
+        return rates[:, 1:2]
 
-        #this evaluates compound expressions and returns the result.
-        if nn in equations.keys():
-            return equations[nn]()
+    def max_dchg_vol(self, rates, cycles, features):
+        dchg_rate = self.dchg_rate(rates)
+        eq_vol = self.eq_vol(rates, cycles, features)
+        r = self.r(cycles, features)
+
+        return eq_vol - (dchg_rate * r)
 
     def cap(self, rates, cycles, features):
         centers = (self.feedforward_nn['cap']['initial'])(
@@ -126,6 +123,8 @@ class DegradationModel(Model):
         for d in self.feedforward_nn['r']['bulk']:
             centers = d(centers)
         return (self.feedforward_nn['r']['final'])(centers)
+
+    # End: nn application functions ============================================
 
 
     def create_derivatives(self, cycles, rates, features, nn):

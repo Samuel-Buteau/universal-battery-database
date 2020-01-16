@@ -403,7 +403,8 @@ def train_step(params, fit_args):
 
     # offset center cycles so the model is never evaluated at the same cycle
     center_cycle_offsets = tf.random.uniform(
-        [batch_size2], minval=-1., maxval=1., dtype=tf.float32)
+        [batch_size2], minval=-1., maxval=1., dtype=tf.float32
+    )
 
     '''
     if you have the minimum cycle and maximum cycle for a neighborhood,
@@ -418,22 +419,24 @@ def train_step(params, fit_args):
     cycle_indecies = tf.cast(
         (1. - cycle_indecies_lerp) * tf.cast(
             neigh_int[:, NEIGH_INT_MIN_CYC_INDEX]
-            + neigh_int[:, NEIGH_INT_ABSOLUTE_INDEX],
-            tf.float32)
-        + (cycle_indecies_lerp) * tf.cast(
+                + neigh_int[:, NEIGH_INT_ABSOLUTE_INDEX],
+            tf.float32
+        ) + (cycle_indecies_lerp) * tf.cast(
             neigh_int[:, NEIGH_INT_MAX_CYC_INDEX]
-            + neigh_int[:, NEIGH_INT_ABSOLUTE_INDEX],
-            tf.float32),
+                + neigh_int[:, NEIGH_INT_ABSOLUTE_INDEX],
+            tf.float32
+        ),
         tf.int32
     )
 
     meas_cycles = tf.gather(
-        cycles_tensor, indices=cycle_indecies, axis=0)
+        cycles_tensor, indices=cycle_indecies, axis=0
+    )
     model_eval_cycles = (
-        meas_cycles + center_cycle_offsets * neigh_float[:, NEIGH_FLOAT_DELTA])
+        meas_cycles + center_cycle_offsets * neigh_float[:, NEIGH_FLOAT_DELTA]
+    )
 
     cap = tf.gather(vq_curves, indices=cycle_indecies)
-
     ws_cap = tf.gather(vq_curves_mask, indices=cycle_indecies)
     ws2_cap = tf.tile(
         tf.reshape(
@@ -443,26 +446,27 @@ def train_step(params, fit_args):
         [1, len(voltage_vector)]
     )
 
-    ''' maximum discharge voltage '''
+    meas_max_dchg_vol = tf.reshape(
+        tf.gather(
+            params["max_dchg_vol_tensor"], indices=cycle_indecies, axis=0
+        ),
+        [-1]
+    )
+    # Weight for prediction error
+    # (The more measurements you have for a cell, the less each one is worth,
+    # so that in expectation, you "care" about every cell equally)
+    ws2_max_dchg_vol = 1. / (
+        tf.cast(neigh_int[:, NEIGH_INT_VALID_CYC_INDEX], tf.float32)
+    )
 
-    meas_max_dchg_vol = tf.reshape(tf.gather(
-        params["max_dchg_vol_tensor"], indices=cycle_indecies, axis=0), [-1])
-
-    # weight for the prediction error
-    # the more measurements you have for a cell, then less each one is worth
-    # So that in expectation, you "care" about every cell equally.
-    ws2_max_dchg_vol = 1. / (tf.cast(
-        neigh_int[:, NEIGH_INT_VALID_CYC_INDEX], tf.float32))
-
-    # the indecies are referring to the cell indecies
-    indecies = neigh_int[:, NEIGH_INT_BARCODE_INDEX]
+    cell_indecies = neigh_int[:, NEIGH_INT_BARCODE_INDEX]
 
     centers = tf.concat(
         (tf.expand_dims(model_eval_cycles, axis=1), neigh_float[:, 1:]), axis=1)
 
     with tf.GradientTape() as tape:
         train_results = degradation_model(
-            (centers, indecies, meas_cycles, vol_tensor), training=True)
+            (centers, cell_indecies, meas_cycles, vol_tensor), training=True)
 
         pred_cap = train_results["pred_cap"]
         pred_max_dchg_vol = train_results["pred_max_dchg_vol"]

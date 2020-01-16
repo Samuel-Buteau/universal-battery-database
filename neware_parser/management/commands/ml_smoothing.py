@@ -25,6 +25,7 @@ Shortened Variable Names:
     meas -  measured
     eval -  evaluation
     eq -    equillibrium
+    res -   result
 '''
 
 NEIGH_INT_MIN_CYC_INDEX = 0
@@ -268,12 +269,12 @@ def initial_processing(my_data, barcodes, fit_args):
     # max voltage is NOT normalized
     max_dchg_vol_tensor = tf.constant(all_dchg_vol)
 
-    neigh_data_float = (numpy.concatenate(
+    neigh_data_float = numpy.concatenate(
         [numpy.concatenate(neigh_data_float_full, axis=0)
-         for neigh_data_float_full
-         in all_cells_neigh_data_float],
-        axis=0)
+            for neigh_data_float_full in all_cells_neigh_data_float],
+        axis=0
     )
+
 
     # onvert the delta_cycles of each neighborhoods to the normalized units
     # (divide by standard deviation)
@@ -462,11 +463,16 @@ def train_step(params, fit_args):
     cell_indecies = neigh_int[:, NEIGH_INT_BARCODE_INDEX]
 
     centers = tf.concat(
-        (tf.expand_dims(model_eval_cycles, axis=1), neigh_float[:, 1:]), axis=1)
+        (tf.expand_dims(model_eval_cycles, axis=1), neigh_float[:, 1:]),
+        axis=1
+    )
 
     with tf.GradientTape() as tape:
+
         train_results = degradation_model(
-            (centers, cell_indecies, meas_cycles, vol_tensor), training=True)
+            (centers, cell_indecies, meas_cycles, vol_tensor),
+            training = True
+        )
 
         pred_cap = train_results["pred_cap"]
         pred_max_dchg_vol = train_results["pred_max_dchg_vol"]
@@ -488,14 +494,15 @@ def train_step(params, fit_args):
         )
 
         kl_loss = fit_args['kl_coeff'] * tf.reduce_mean(
-            0.5 * (tf.exp(log_sig) + tf.square(mean) - 1. - log_sig))
+            0.5 * (tf.exp(log_sig) + tf.square(mean) - 1. - log_sig)
+        )
 
         mono_loss = fit_args['mono_coeff'] * (
             tf.reduce_mean(tf.nn.relu(-cap))  # penalizes negative capacities
             + tf.reduce_mean(tf.nn.relu(cap_der['dCyc'])) # shouldn't increase
             + tf.reduce_mean(tf.nn.relu(cap_der['dRates'])) # shouldn't increase
 
-            + 10.* (
+            + 10. * (
                 tf.reduce_mean(tf.nn.relu(-r))
                 + tf.reduce_mean(tf.nn.relu(-eq_vol))
                 # resistance should not decrease.
@@ -515,8 +522,8 @@ def train_step(params, fit_args):
                 + 0.02 * tf.square(tf.nn.relu(-cap_der['d2Rates']))
             )
 
-            # this enforces smoothness of resistance;
-            # it is more ok to accelerate UPWARDS
+            # enforces smoothness of resistance;
+            # more ok to accelerate UPWARDS
             + 10. * tf.reduce_mean(tf.square(tf.nn.relu(-r_der['d2Cyc']))
             + 0.5 * tf.square(tf.nn.relu(r_der['d2Cyc'])))
             + 1.* tf.reduce_mean(tf.square((eq_vol_der['d2Rates'])))
@@ -540,8 +547,8 @@ def train_step(params, fit_args):
 
     gradients = tape.gradient(loss, degradation_model.trainable_variables)
     optimizer.apply_gradients(
-        zip(gradients, degradation_model.trainable_variables))
-
+        zip(gradients, degradation_model.trainable_variables)
+    )
 
 # === End : train step =========================================================
 

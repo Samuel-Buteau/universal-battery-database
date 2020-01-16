@@ -67,6 +67,8 @@ class DegradationModel(Model):
             return self.cap(rates, cycles, features)
         if nn == 'max_dchg_vol':
             return self.max_dchg_vol(rates, cycles, features)
+        if nn == 'theoretical_cap':
+            return self.theoretical_cap(rates, cycles, features)
 
         raise Exception("Unknown nn")
 
@@ -80,6 +82,23 @@ class DegradationModel(Model):
         return eq_vol - (dchg_rate * r)
 
     # Unstructured variables ---------------------------------------------------
+
+    # V dependence? How to test? Loss function necessary?
+    def theoretical_cap(self, rates, cycles, features):
+        centers = (self.feedforward_nn['theoretical_cap']['initial'])(
+            tf.concat(
+                (
+                    # readjust the cycles
+                    cycles * (1e-10 + tf.exp(-features[:, 0:1])),
+                    rates,
+                    features[:, 1:]
+                ),
+                axis=1
+            )
+        )
+        for d in self.feedforward_nn['theoretical_cap']['bulk']:
+            centers = d(centers)
+        return (self.feedforward_nn['theoretical_cap']['final'])(centers)
 
     def cap(self, rates, cycles, features):
         centers = (self.feedforward_nn['cap']['initial'])(

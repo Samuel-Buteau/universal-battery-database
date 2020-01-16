@@ -66,8 +66,7 @@ class DegradationModel(Model):
 
         raise Exception("Unknown nn")
 
-    def dchg_rate(self, rates):
-        return rates[:, 1:2]
+    # Structured variables -----------------------------------------------------
 
     def max_dchg_vol(self, rates, cycles, features):
         dchg_rate = self.dchg_rate(rates)
@@ -75,6 +74,8 @@ class DegradationModel(Model):
         r = self.r(cycles, features)
 
         return eq_vol - (dchg_rate * r)
+
+    # Unstructured variables ---------------------------------------------------
 
     def cap(self, rates, cycles, features):
         centers = (self.feedforward_nn['cap']['initial'])(
@@ -123,6 +124,11 @@ class DegradationModel(Model):
         for d in self.feedforward_nn['r']['bulk']:
             centers = d(centers)
         return (self.feedforward_nn['r']['final'])(centers)
+
+    # Primitive variables ------------------------------------------------------
+
+    def dchg_rate(self, rates):
+        return rates[:, 1:2]
 
     # End: nn application functions ============================================
 

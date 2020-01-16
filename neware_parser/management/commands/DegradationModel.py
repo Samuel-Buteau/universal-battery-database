@@ -43,6 +43,10 @@ class DegradationModel(Model):
             'cap': feedforward_nn_parameters(depth, width),
             'eq_vol': feedforward_nn_parameters(depth, width),
             'r': feedforward_nn_parameters(depth, width),
+
+            'theoretical_cap': feedforward_nn_parameters(depth, width),
+            'soc': feedforward_nn_parameters(depth, width),
+            'init_soc': feedforward_nn_parameters(depth, width)
         }
 
         self.dictionary = DictionaryLayer(num_features=width, num_keys=num_keys)

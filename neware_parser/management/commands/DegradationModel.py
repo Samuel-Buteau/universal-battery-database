@@ -104,7 +104,6 @@ class DegradationModel(Model):
         centers = (self.feedforward_nn['cap']['initial'])(
             tf.concat(
                 (
-                    # readjust the cycles
                     cycles * (1e-10 + tf.exp(-features[:, 0:1])),
                     rates,
                     features[:, 1:]
@@ -121,7 +120,6 @@ class DegradationModel(Model):
         centers = (self.feedforward_nn['eq_vol']['initial'])(
             tf.concat(
                 (
-                    # readjust the cycles
                     cycles * (1e-10 + tf.exp(-features[:, 0:1])),
                     rates,
                     features[:, 1:]
@@ -137,7 +135,6 @@ class DegradationModel(Model):
         centers = (self.feedforward_nn['r']['initial'])(
             tf.concat(
                 (
-                    # readjust the cycles
                     cycles * (1e-10 + tf.exp(-features[:, 0:1])),
                     features[:, 1:]
                 ),
@@ -204,14 +201,19 @@ class DegradationModel(Model):
         # duplicate cycles and others for all the voltages
         # dimensions are now [batch, voltages, features]
         cycles_tiled = tf.tile(
-            tf.expand_dims(cycles, axis=1), [1, vol_tensor.shape[0], 1])
+            tf.expand_dims(cycles, axis=1),
+            [1, vol_tensor.shape[0], 1]
+        )
         rates_tiled = tf.tile(
-            tf.expand_dims(rates, axis=1), [1, vol_tensor.shape[0], 1])
+            tf.expand_dims(rates, axis=1),
+            [1, vol_tensor.shape[0], 1]
+        )
         features_tiled = tf.tile(
-            tf.expand_dims(features, axis=1), [1, vol_tensor.shape[0], 1])
+            tf.expand_dims(features, axis=1),
+            [1, vol_tensor.shape[0], 1]
+        )
         voltages_tiled = tf.tile(
-            tf.expand_dims(
-                tf.expand_dims(vol_tensor, axis=1), axis=0),
+            tf.expand_dims(tf.expand_dims(vol_tensor, axis=1), axis=0),
             [cycles.shape[0], 1, 1]
         )
 
@@ -262,7 +264,6 @@ class DegradationModel(Model):
                 * tf.reshape(var_cyc_squared, [-1])
             )
 
-
             return {
                 "pred_cap": pred_cap,
                 "pred_max_dchg_vol": tf.reshape(pred_max_dchg_vol, [-1]),
@@ -277,7 +278,8 @@ class DegradationModel(Model):
             }
 
         else:
-            pred_max_dchg_vol = self.apply_nn(cycles, rates, features, 'max_dchg_vol')
+            pred_max_dchg_vol = self.apply_nn(
+                cycles, rates, features, 'max_dchg_vol')
             pred_eq_vol = self.apply_nn(cycles, rates, features, 'eq_vol')
             pred_r = self.apply_nn(cycles, rates, features, 'r')
 

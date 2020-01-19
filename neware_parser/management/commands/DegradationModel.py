@@ -57,24 +57,6 @@ class DegradationModel(Model):
 
     # Begin: nn application functions ==========================================
 
-    def apply_nn(self, params, nn):
-        if nn == "dchg_rate":
-            return self.dchg_rate(params)
-        if nn == 'r':
-            return self.r(params)
-        if nn == 'eq_vol':
-            return self.eq_vol(params)
-        if nn == 'cap':
-            return self.cap(params)
-        if nn == 'max_dchg_vol':
-            return self.max_dchg_vol(params)
-        if nn == 'theoretical_cap':
-            return self.theoretical_cap(params)
-        if nn == 'soc_0':
-            return self.soc_0(params)
-
-        raise Exception("Unknown nn")
-
     def norm_cycle(self, params):
         return params["cycles"] * (1e-10 + tf.exp(-params["features"][:, 0:1]))
 

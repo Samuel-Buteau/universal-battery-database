@@ -75,6 +75,12 @@ class DegradationModel(Model):
 
         raise Exception("Unknown nn")
 
+    def norm_cycle_flat(self, params):
+        return params["cycles_flat"] * (1e-10 + tf.exp(-params["features_flat"][:, 0:1]))
+
+    def cell_feat_flat(self, params):
+        return params["features_flat"][:, 1:]
+
     # Structured variables -----------------------------------------------------
 
     def max_dchg_vol(self, rates, cycles, features):
@@ -86,13 +92,14 @@ class DegradationModel(Model):
 
     # Unstructured variables ---------------------------------------------------
 
-    def cap(self, rates, cycles, features):
+    def cap(self, params):
         centers = (self.feedforward_nn['cap']['initial'])(
             tf.concat(
                 (
+                    self.norm_cycle_flat(params),
                     cycles * (1e-10 + tf.exp(-features[:, 0:1])),
-                    rates,
-                    features[:, 1:]
+                    params["rates_flat"],
+                    self.cell_feat_flat(params)
                 ),
                 axis=1
             )
@@ -217,8 +224,7 @@ class DegradationModel(Model):
             var_cyc_squared = tf.square(var_cyc)
 
             ''' discharge capacity '''
-            cap, cap_derivatives = self.create_derivatives(
-                cycles_flat, rates_flat, features_flat, 'cap')
+            cap, cap_derivatives = self.create_derivatives(params, 'cap')
             cap = tf.reshape(cap, [-1, vol_tensor.shape[0]])
 
             pred_cap = (

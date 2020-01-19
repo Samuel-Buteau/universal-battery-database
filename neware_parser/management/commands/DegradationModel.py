@@ -146,36 +146,43 @@ class DegradationModel(Model):
     # End: nn application functions ============================================
 
 
-    def create_derivatives(self, cycles, rates, features, nn):
+    def create_derivatives(self, params, nn):
         derivatives = {}
+
         with tf.GradientTape(persistent=True) as tape3:
-            tape3.watch(cycles)
-            tape3.watch(rates)
-            tape3.watch(features)
+            tape3.watch(params)
 
             with tf.GradientTape(persistent=True) as tape2:
-                tape2.watch(cycles)
-                tape2.watch(rates)
-                tape2.watch(features)
+                tape2.watch(params)
 
-
-                res = tf.reshape(
-                    self.apply_nn(cycles, rates, features, nn), [-1, 1])
+                res = tf.reshape(self.apply_nn(params), [-1, 1])
 
             derivatives['dCyc'] = tape2.batch_jacobian(
-                source=cycles, target=res)[:, 0, :]
+                source=params["cycles"],
+                target=res
+            )[:, 0, :]
             derivatives['dRates'] = tape2.batch_jacobian(
-                source=rates, target=res)[:, 0, :]
+                source=rates,
+                target=res
+            )[:, 0, :]
             derivatives['dFeatures'] = tape2.batch_jacobian(
-                source=features, target=res)[:, 0, :]
+                source=features,
+                target=res
+            )[:, 0, :]
             del tape2
 
         derivatives['d2Cyc'] = tape3.batch_jacobian(
-            source=cycles, target=derivatives['dCyc'])[:, 0, :]
+            source=params["cycles"],
+            target=derivatives['dCyc']
+        )[:, 0, :]
         derivatives['d2Rates'] = tape3.batch_jacobian(
-            source=rates, target=derivatives['dRates'])
+            source=rates,
+            target=derivatives['dRates']
+        )
         derivatives['d2Features'] = tape3.batch_jacobian(
-            source=features, target=derivatives['dFeatures'])
+            source=features,
+            target=derivatives['dFeatures']
+        )
 
         del tape3
         return res, derivatives

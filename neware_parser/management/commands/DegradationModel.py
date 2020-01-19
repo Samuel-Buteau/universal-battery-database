@@ -3,7 +3,7 @@ import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Dense, Layer
 
-
+from .colour_print import Print
 
 def feedforward_nn_parameters(depth, width):
     initial = Dense(
@@ -103,7 +103,6 @@ class DegradationModel(Model):
             tf.concat(
                 (
                     self.norm_cycle_flat(params),
-                    cycles * (1e-10 + tf.exp(-features[:, 0:1])),
                     params["rates_flat"],
                     self.cell_feat_flat(params)
                 ),
@@ -114,14 +113,14 @@ class DegradationModel(Model):
             centers = d(centers)
         return (self.feedforward_nn['cap']['final'])(centers)
 
-    def eq_vol(self, rates, cycles, features):
-        rates = rates[:, 0:1]
+    def eq_vol(self, params):
+        rates = params["rates"][:, 0:1]
         centers = (self.feedforward_nn['eq_vol']['initial'])(
             tf.concat(
                 (
-                    cycles * (1e-10 + tf.exp(-features[:, 0:1])),
+                    self.norm_cycle(params),
                     rates,
-                    features[:, 1:]
+                    self.cell_feat(params)
                 ),
                 axis=1
             )
@@ -130,12 +129,12 @@ class DegradationModel(Model):
             centers = d(centers)
         return (self.feedforward_nn['eq_vol']['final'])(centers)
 
-    def r(self, cycles, features):
+    def r(self, params):
         centers = (self.feedforward_nn['r']['initial'])(
             tf.concat(
                 (
-                    cycles * (1e-10 + tf.exp(-features[:, 0:1])),
-                    features[:, 1:]
+                    self.norm_cycle(params),
+                    self.cell_feat(params)
                 ),
                 axis=1
             )
@@ -146,8 +145,8 @@ class DegradationModel(Model):
 
     # Primitive variables ------------------------------------------------------
 
-    def dchg_rate(self, rates):
-        return rates[:, 1:2]
+    def dchg_rate(self, params):
+        return params["rates"][:, 1:2]
 
     # End: nn application functions ============================================
 
@@ -161,18 +160,18 @@ class DegradationModel(Model):
             with tf.GradientTape(persistent=True) as tape2:
                 tape2.watch(params)
 
-                res = tf.reshape(self.apply_nn(params), [-1, 1])
+                res = tf.reshape(self.apply_nn(params, nn), [-1, 1])
 
             derivatives['dCyc'] = tape2.batch_jacobian(
                 source=params["cycles"],
                 target=res
             )[:, 0, :]
             derivatives['dRates'] = tape2.batch_jacobian(
-                source=rates,
+                source=params["rates"],
                 target=res
             )[:, 0, :]
             derivatives['dFeatures'] = tape2.batch_jacobian(
-                source=features,
+                source=params["features"],
                 target=res
             )[:, 0, :]
             del tape2
@@ -182,11 +181,52 @@ class DegradationModel(Model):
             target=derivatives['dCyc']
         )[:, 0, :]
         derivatives['d2Rates'] = tape3.batch_jacobian(
-            source=rates,
+            source=params["rates"],
             target=derivatives['dRates']
         )
         derivatives['d2Features'] = tape3.batch_jacobian(
-            source=features,
+            source=params["features"],
+            target=derivatives['dFeatures']
+        )
+
+        del tape3
+        return res, derivatives
+
+    def create_derivatives_flat(self, params, nn):
+        derivatives = {}
+
+        with tf.GradientTape(persistent=True) as tape3:
+            tape3.watch(params)
+
+            with tf.GradientTape(persistent=True) as tape2:
+                tape2.watch(params)
+
+                res = tf.reshape(self.apply_nn(params, nn), [-1, 1])
+
+            derivatives['dCyc'] = tape2.batch_jacobian(
+                source=params["cycles_flat"],
+                target=res
+            )[:, 0, :]
+            derivatives['dRates'] = tape2.batch_jacobian(
+                source=params["rates_flat"],
+                target=res
+            )[:, 0, :]
+            derivatives['dFeatures'] = tape2.batch_jacobian(
+                source=params["features_flat"],
+                target=res
+            )[:, 0, :]
+            del tape2
+
+        derivatives['d2Cyc'] = tape3.batch_jacobian(
+            source=params["cycles_flat"],
+            target=derivatives['dCyc']
+        )[:, 0, :]
+        derivatives['d2Rates'] = tape3.batch_jacobian(
+            source=params["rates_flat"],
+            target=derivatives['dRates']
+        )
+        derivatives['d2Features'] = tape3.batch_jacobian(
+            source=params["features_flat"],
             target=derivatives['dFeatures']
         )
 
@@ -243,14 +283,14 @@ class DegradationModel(Model):
             var_cyc_squared = tf.square(var_cyc)
 
             ''' discharge capacity '''
-            cap, cap_derivatives = self.create_derivatives(params, 'cap')
+            cap, cap_der = self.create_derivatives_flat(params, 'cap')
             cap = tf.reshape(cap, [-1, vol_tensor.shape[0]])
 
             pred_cap = (
                 cap + var_cyc * tf.reshape(
-                    cap_derivatives['dCyc'], [-1, vol_tensor.shape[0]])
+                    cap_der['dCyc'], [-1, vol_tensor.shape[0]])
                 + var_cyc_squared * tf.reshape(
-                    cap_derivatives['d2Cyc'], [-1, vol_tensor.shape[0]])
+                    cap_der['d2Cyc'], [-1, vol_tensor.shape[0]])
             )
 
             ''' discharge max voltage '''
@@ -259,13 +299,11 @@ class DegradationModel(Model):
             max_dchg_vol = tf.reshape(max_dchg_vol, [-1])
 
             '''resistance derivatives '''
-            r, r_der = self.create_derivatives(
-                cycles, rates, features, 'r')
+            r, r_der = self.create_derivatives(params, 'r')
             r = tf.reshape(r, [-1])
 
             '''eq_vol derivatives '''
-            eq_vol, eq_vol_der = self.create_derivatives(
-                cycles, rates, features, 'eq_vol')
+            eq_vol, eq_vol_der = self.create_derivatives(params, 'eq_vol')
             eq_vol = tf.reshape(eq_vol, [-1])
 
             pred_max_dchg_vol = (
@@ -282,22 +320,20 @@ class DegradationModel(Model):
                 "pred_r": tf.reshape(r, [-1]),
                 "mean": mean,
                 "log_sig": log_sig,
-                "cap_der": cap_derivatives,
+                "cap_der": cap_der,
                 "max_dchg_vol_der": max_dchg_vol_der,
                 "r_der": r_der,
                 "eq_vol_der": eq_vol_der,
             }
 
         else:
-            pred_max_dchg_vol = self.apply_nn(
-                cycles, rates, features, 'max_dchg_vol')
-            pred_eq_vol = self.apply_nn(cycles, rates, features, 'eq_vol')
-            pred_r = self.apply_nn(cycles, rates, features, 'r')
+            pred_max_dchg_vol = self.apply_nn(params, 'max_dchg_vol')
+            pred_eq_vol = self.apply_nn(params, 'eq_vol')
+            pred_r = self.apply_nn(params, 'r')
 
             return {
                 "pred_cap": tf.reshape(
-                    self.apply_nn(
-                        cycles_flat, rates_flat, features_flat, 'cap'),
+                    self.apply_nn(params, 'cap'),
                     [-1, vol_tensor.shape[0]]
                 ),
                 "pred_max_dchg_vol": pred_max_dchg_vol,

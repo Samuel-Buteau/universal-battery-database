@@ -212,11 +212,17 @@ class DegradationModel(Model):
 
         rates_concat = tf.concat((rates_tiled, voltages_tiled), axis=2)
 
-        cycles_flat = tf.reshape(cycles_tiled, [-1, 1])
-        rates_flat = tf.reshape(rates_concat, [-1, 3])
-        features_flat = tf.reshape(features_tiled, [-1, self.width])
-
         # now every dimension works for concatenation
+
+        params = {
+            "cycles_flat": tf.reshape(cycles_tiled, [-1, 1]),
+            "rates_flat": tf.reshape(rates_concat, [-1, 3]),
+            "features_flat": tf.reshape(features_tiled, [-1, self.width]),
+
+            "cycles": cycles,
+            "rates": rates,
+            "features": features
+        }
 
         if training:
 

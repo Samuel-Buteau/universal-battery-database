@@ -77,11 +77,6 @@ class DegradationModel(Model):
 
     # Structured variables -----------------------------------------------------
 
-    def struct_dchg_cap():
-        soc_0 = self.soc_0(rates, cycles, features)
-        soc_1 = self.soc(eq_vol_1, features)
-        return - theoretical_cap * (soc1 − soc0)
-
     def max_dchg_vol(self, rates, cycles, features):
         dchg_rate = self.dchg_rate(rates)
         eq_vol = self.eq_vol(rates, cycles, features)
@@ -90,59 +85,6 @@ class DegradationModel(Model):
         return eq_vol - (dchg_rate * r)
 
     # Unstructured variables ---------------------------------------------------
-
-    # TODO: How to test? Loss function necessary?
-    def theoretical_cap(self, rates, cycles, features):
-        centers = (self.feedforward_nn['theoretical_cap']['initial'])(
-            tf.concat(
-                (
-                    # readjust the cycles
-                    cycles * (1e-10 + tf.exp(-features[:, 0:1])),
-                    rates,
-                    features[:, 1:]
-                ),
-                axis=1
-            )
-        )
-        for d in self.feedforward_nn['theoretical_cap']['bulk']:
-            centers = d(centers)
-        return (self.feedforward_nn['theoretical_cap']['final'])(centers)
-
-    # TODO: How to get volt?
-    def eq_v_1(self, volt, rates, cycles, features):
-        return volt + self.dchg_rate(rates) * self.r(cycles, features)
-
-    # NOTE: Not tested
-    def soc(self, eq_vol_1, features):
-        centers = (self.feedforward_nn['soc_0']['initial'])(
-            tf.concat(
-                (
-                    eq_vol_1,
-                    features[:, 1:]
-                ),
-                axis=1
-            )
-        )
-        for d in self.feedforward_nn['soc_0']['bulk']:
-            centers = d(centers)
-        return (self.feedforward_nn['soc_0']['final'])(centers)
-
-
-    # NOTE: Not tested
-    def soc_0(self, rates, cycles, features):
-        centers = (self.feedforward_nn['soc_0']['initial'])(
-            tf.concat(
-                (
-                    cycles * (1e-10 + tf.exp(-features[:, 0:1])),
-                    rates,
-                    features[:, 1:]
-                ),
-                axis=1
-            )
-        )
-        for d in self.feedforward_nn['soc_0']['bulk']:
-            centers = d(centers)
-        return (self.feedforward_nn['soc_0']['final'])(centers)
 
     def cap(self, rates, cycles, features):
         centers = (self.feedforward_nn['cap']['initial'])(

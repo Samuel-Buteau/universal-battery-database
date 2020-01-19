@@ -57,21 +57,21 @@ class DegradationModel(Model):
 
     # Begin: nn application functions ==========================================
 
-    def apply_nn(self, cycles, rates, features, nn):
+    def apply_nn(self, params, nn):
         if nn == "dchg_rate":
-            return self.dchg_rate(rates)
+            return self.dchg_rate(params)
         if nn == 'r':
-            return self.r(cycles, features)
+            return self.r(params)
         if nn == 'eq_vol':
-            return self.eq_vol(rates, cycles, features)
+            return self.eq_vol(params)
         if nn == 'cap':
-            return self.cap(rates, cycles, features)
+            return self.cap(params)
         if nn == 'max_dchg_vol':
-            return self.max_dchg_vol(rates, cycles, features)
+            return self.max_dchg_vol(params)
         if nn == 'theoretical_cap':
-            return self.theoretical_cap(rates, cycles, features)
+            return self.theoretical_cap(params)
         if nn == 'soc_0':
-            return self.soc_0(rates, cycles, features)
+            return self.soc_0(params)
 
         raise Exception("Unknown nn")
 

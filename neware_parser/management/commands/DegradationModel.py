@@ -83,10 +83,10 @@ class DegradationModel(Model):
 
     # Structured variables -----------------------------------------------------
 
-    def max_dchg_vol(self, rates, cycles, features):
-        dchg_rate = self.dchg_rate(rates)
-        eq_vol = self.eq_vol(rates, cycles, features)
-        r = self.r(cycles, features)
+    def max_dchg_vol(self, params):
+        dchg_rate = self.dchg_rate(params)
+        eq_vol = self.eq_vol(params)
+        r = self.r(params)
 
         return eq_vol - (dchg_rate * r)
 
@@ -249,7 +249,7 @@ class DegradationModel(Model):
 
             ''' discharge max voltage '''
             max_dchg_vol, max_dchg_vol_der = self.create_derivatives(
-                cycles, rates, features, 'max_dchg_vol')
+                params, 'max_dchg_vol')
             max_dchg_vol = tf.reshape(max_dchg_vol, [-1])
 
             '''resistance derivatives '''

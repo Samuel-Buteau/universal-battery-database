@@ -142,7 +142,7 @@ class DegradationModel(Model):
             with tf.GradientTape(persistent=True) as tape2:
                 tape2.watch(params)
 
-                res = tf.reshape(self.apply_nn(params, nn), [-1, 1])
+                res = tf.reshape(nn(params), [-1, 1])
 
             derivatives['dCyc'] = tape2.batch_jacobian(
                 source=params["cycles"],
@@ -183,7 +183,7 @@ class DegradationModel(Model):
             with tf.GradientTape(persistent=True) as tape2:
                 tape2.watch(params)
 
-                res = tf.reshape(self.apply_nn(params, nn), [-1, 1])
+                res = tf.reshape(nn(params), [-1, 1])
 
             derivatives['dCyc'] = tape2.batch_jacobian(
                 source=params["cycles_flat"],
@@ -265,7 +265,7 @@ class DegradationModel(Model):
             var_cyc_squared = tf.square(var_cyc)
 
             ''' discharge capacity '''
-            cap, cap_der = self.create_derivatives_flat(params, 'cap')
+            cap, cap_der = self.create_derivatives_flat(params, self.cap)
             cap = tf.reshape(cap, [-1, vol_tensor.shape[0]])
 
             pred_cap = (
@@ -277,15 +277,17 @@ class DegradationModel(Model):
 
             ''' discharge max voltage '''
             max_dchg_vol, max_dchg_vol_der = self.create_derivatives(
-                params, 'max_dchg_vol')
+                params,
+                self.max_dchg_vol
+            )
             max_dchg_vol = tf.reshape(max_dchg_vol, [-1])
 
             '''resistance derivatives '''
-            r, r_der = self.create_derivatives(params, 'r')
+            r, r_der = self.create_derivatives(params, self.r)
             r = tf.reshape(r, [-1])
 
             '''eq_vol derivatives '''
-            eq_vol, eq_vol_der = self.create_derivatives(params, 'eq_vol')
+            eq_vol, eq_vol_der = self.create_derivatives(params, self.eq_vol)
             eq_vol = tf.reshape(eq_vol, [-1])
 
             pred_max_dchg_vol = (
@@ -309,13 +311,13 @@ class DegradationModel(Model):
             }
 
         else:
-            pred_max_dchg_vol = self.apply_nn(params, 'max_dchg_vol')
-            pred_eq_vol = self.apply_nn(params, 'eq_vol')
-            pred_r = self.apply_nn(params, 'r')
+            pred_max_dchg_vol = self.max_dchg_vol(params)
+            pred_eq_vol = self.eq_vol(params)
+            pred_r = self.r(params)
 
             return {
                 "pred_cap": tf.reshape(
-                    self.apply_nn(params, 'cap'),
+                    self.cap(params),
                     [-1, vol_tensor.shape[0]]
                 ),
                 "pred_max_dchg_vol": pred_max_dchg_vol,

@@ -13,7 +13,7 @@ class Print:
 
 
     def bold(c, s):
-        color(c + Print.BOLD, s)
+        colour(c + Print.BOLD, s)
 
 
     def type(x):

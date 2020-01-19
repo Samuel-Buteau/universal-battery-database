@@ -75,6 +75,12 @@ class DegradationModel(Model):
 
         raise Exception("Unknown nn")
 
+    def norm_cycle(self, params):
+        return params["cycles"] * (1e-10 + tf.exp(-params["features"][:, 0:1]))
+
+    def cell_feat(self, params):
+        return params["features"][:, 1:]
+
     def norm_cycle_flat(self, params):
         return params["cycles_flat"] * (1e-10 + tf.exp(-params["features_flat"][:, 0:1]))
 

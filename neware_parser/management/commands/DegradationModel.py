@@ -75,11 +75,10 @@ class DegradationModel(Model):
     # Structured variables -----------------------------------------------------
 
     def max_dchg_vol(self, params):
-        dchg_rate = self.dchg_rate(params)
         eq_vol = self.eq_vol(params)
         r = self.r(params)
 
-        return eq_vol - (dchg_rate * r)
+        return eq_vol - (params["dchg_rate"] * r)
 
     # Unstructured variables ---------------------------------------------------
 

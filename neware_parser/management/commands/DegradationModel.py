@@ -64,7 +64,10 @@ class DegradationModel(Model):
         return params["features"][:, 1:]
 
     def norm_cycle_flat(self, params):
-        return params["cycles_flat"] * (1e-10 + tf.exp(-params["features_flat"][:, 0:1]))
+        return (
+            params["cycles_flat"]
+            * (1e-10 + tf.exp(-params["features_flat"][:, 0:1]))
+        )
 
     def cell_feat_flat(self, params):
         return params["features_flat"][:, 1:]

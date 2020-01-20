@@ -99,12 +99,11 @@ class DegradationModel(Model):
         return (self.feedforward_nn['cap']['final'])(centers)
 
     def eq_vol(self, params):
-        rates = params["rates"][:, 0:1]
         centers = (self.feedforward_nn['eq_vol']['initial'])(
             tf.concat(
                 (
                     self.norm_cycle(params),
-                    rates,
+                    params["chg_rate"],
                     self.cell_feat(params)
                 ),
                 axis=1
@@ -128,13 +127,7 @@ class DegradationModel(Model):
             centers = d(centers)
         return (self.feedforward_nn['r']['final'])(centers)
 
-    # Primitive variables ------------------------------------------------------
-
-    def dchg_rate(self, params):
-        return params["rates"][:, 1:2]
-
     # End: nn application functions ============================================
-
 
     def create_derivatives(self, params, nn):
         derivatives = {}
@@ -259,7 +252,8 @@ class DegradationModel(Model):
             "features_flat": tf.reshape(features_tiled, [-1, self.width]),
 
             "cycles": cycles,
-            "rates": rates,
+            "chg_rate": rates[:, 0:1],
+            "dchg_rate": rates[:, 1:2],
             "features": features
         }
 

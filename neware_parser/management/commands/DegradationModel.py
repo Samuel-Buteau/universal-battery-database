@@ -140,12 +140,17 @@ class DegradationModel(Model):
 
                 res = tf.reshape(nn(params), [-1, 1])
 
+            # NOTE: why do some have `[:, 0, :]` and others don't?
             derivatives['dCyc'] = tape2.batch_jacobian(
                 source=params["cycles"],
                 target=res
             )[:, 0, :]
-            derivatives['dRates'] = tape2.batch_jacobian(
-                source=params["rates"],
+            derivatives['d_chg_rate'] = tape2.batch_jacobian(
+                source=params["chg_rate"],
+                target=res
+            )[:, 0, :]
+            derivatives['d_dchg_rate'] = tape2.batch_jacobian(
+                source=params["dchg_rate"],
                 target=res
             )[:, 0, :]
             derivatives['dFeatures'] = tape2.batch_jacobian(
@@ -158,9 +163,13 @@ class DegradationModel(Model):
             source=params["cycles"],
             target=derivatives['dCyc']
         )[:, 0, :]
-        derivatives['d2Rates'] = tape3.batch_jacobian(
-            source=params["rates"],
-            target=derivatives['dRates']
+        derivatives['d2_chg_rate'] = tape3.batch_jacobian(
+            source=params["chg_rate"],
+            target=derivatives['d_chg_rate']
+        )
+        derivatives['d2_dchg_rate'] = tape3.batch_jacobian(
+            source=params["dchg_rate"],
+            target=derivatives['d_dchg_rate']
         )
         derivatives['d2Features'] = tape3.batch_jacobian(
             source=params["features"],

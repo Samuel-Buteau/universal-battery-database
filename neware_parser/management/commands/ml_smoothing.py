@@ -507,10 +507,13 @@ def train_step(params, fit_args):
                 + tf.reduce_mean(tf.nn.relu(-eq_vol))
                 # resistance should not decrease.
                 + 10  * tf.reduce_mean(tf.abs(r_der['dCyc']))
-                # equilibrium voltage should not change much
-                + 10. * tf.reduce_mean(tf.abs(eq_vol_der['dCyc']))
-                # equilibrium voltage should not change much
-                + 10. * tf.reduce_mean(tf.abs(eq_vol_der['dRates']))
+                + 10. * (
+                    tf.reduce_mean(tf.abs(eq_vol_der['dCyc']))
+                    # equilibrium voltage should not change much
+                    # TODO is this correct?
+                    + tf.reduce_mean(tf.abs(eq_vol_der["d_chg_rate"]))
+                    + tf.reduce_mean(tf.abs(eq_vol_der["d_dchg_rate"]))
+                )
             )
         )
 
@@ -526,8 +529,9 @@ def train_step(params, fit_args):
             # more ok to accelerate UPWARDS
             + 10. * tf.reduce_mean(tf.square(tf.nn.relu(-r_der['d2Cyc']))
             + 0.5 * tf.square(tf.nn.relu(r_der['d2Cyc'])))
-            + 1.* tf.reduce_mean(tf.square((eq_vol_der['d2Rates'])))
-            + 1.* tf.reduce_mean(tf.square((eq_vol_der['d2Cyc'])))
+            + 1. * tf.reduce_mean(tf.square((eq_vol_der["d_chg_rate"])))
+            + 1. * tf.reduce_mean(tf.square((eq_vol_der["d_dchg_rate"])))
+            + 1. * tf.reduce_mean(tf.square((eq_vol_der['d2Cyc'])))
         )
 
         const_f_loss = fit_args['const_f_coeff'] * (

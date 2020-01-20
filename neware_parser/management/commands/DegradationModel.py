@@ -252,8 +252,6 @@ class DegradationModel(Model):
         # TODO wtf does rates_concat contain dchg_rate, chg_rate, and voltage?!
         rates_concat = tf.concat((rates_tiled, voltages_tiled), axis=2)
 
-        # now every dimension works for concatenation
-
         params = {
             "cycles_flat": tf.reshape(cycles_tiled, [-1, 1]),
             "rates_flat": tf.reshape(rates_concat, [-1, 3]),

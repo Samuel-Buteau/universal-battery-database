@@ -38,17 +38,14 @@ class DegradationModel(Model):
     def __init__(self, num_keys, depth, width):
         super(DegradationModel, self).__init__()
 
+        self.nn_cap = feedforward_nn_parameters(depth, width)
+        self.nn_eq_vol = feedforward_nn_parameters(depth, width)
+        self.nn_r = feedforward_nn_parameters(depth, width)
 
-        self.feedforward_nn = {
-            'cap': feedforward_nn_parameters(depth, width),
-            'eq_vol': feedforward_nn_parameters(depth, width),
-            'r': feedforward_nn_parameters(depth, width),
-
-            'theoretical_cap': feedforward_nn_parameters(depth, width),
-            'soc': feedforward_nn_parameters(depth, width),
-            'soc_0': feedforward_nn_parameters(depth, width),
-            'init_soc': feedforward_nn_parameters(depth, width)
-        }
+        self.nn_theoretical_cap = feedforward_nn_parameters(depth, width)
+        self.nn_soc = feedforward_nn_parameters(depth, width)
+        self.nn_soc_0 = feedforward_nn_parameters(depth, width)
+        self.nn_init_soc = feedforward_nn_parameters(depth, width)
 
         self.dictionary = DictionaryLayer(num_features=width, num_keys=num_keys)
 
@@ -83,7 +80,7 @@ class DegradationModel(Model):
     # Unstructured variables ---------------------------------------------------
 
     def cap(self, params):
-        centers = (self.feedforward_nn['cap']['initial'])(
+        centers = self.nn_cap['initial'](
             tf.concat(
                 (
                     self.norm_cycle_flat(params),
@@ -93,12 +90,12 @@ class DegradationModel(Model):
                 axis=1
             )
         )
-        for d in self.feedforward_nn['cap']['bulk']:
+        for d in self.nn_cap['bulk']:
             centers = d(centers)
-        return (self.feedforward_nn['cap']['final'])(centers)
+        return self.nn_cap['final'](centers)
 
     def eq_vol(self, params):
-        centers = (self.feedforward_nn['eq_vol']['initial'])(
+        centers = self.nn_eq_vol['initial'](
             tf.concat(
                 (
                     self.norm_cycle(params),
@@ -108,12 +105,12 @@ class DegradationModel(Model):
                 axis=1
             )
         )
-        for d in self.feedforward_nn['eq_vol']['bulk']:
+        for d in self.nn_eq_vol['bulk']:
             centers = d(centers)
-        return (self.feedforward_nn['eq_vol']['final'])(centers)
+        return self.nn_eq_vol['final'](centers)
 
     def r(self, params):
-        centers = (self.feedforward_nn['r']['initial'])(
+        centers = self.nn_r['initial'](
             tf.concat(
                 (
                     self.norm_cycle(params),
@@ -122,9 +119,9 @@ class DegradationModel(Model):
                 axis=1
             )
         )
-        for d in self.feedforward_nn['r']['bulk']:
+        for d in self.nn_r['bulk']:
             centers = d(centers)
-        return (self.feedforward_nn['r']['final'])(centers)
+        return self.nn_r['final'](centers)
 
     # End: nn application functions ============================================
 

@@ -6,6 +6,9 @@ import tensorflow as tf
 
 from .colour_print import Print
 
+from matplotlib.axes._axes import _log as matplotlib_axes_logger
+matplotlib_axes_logger.setLevel('ERROR')
+
 def plot_vq(plot_params, init_returns):
     barcodes = plot_params["barcodes"]
     count = plot_params["count"]

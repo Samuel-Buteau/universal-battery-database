@@ -58,10 +58,10 @@ class DegradationModel(Model):
     # Begin: nn application functions ==========================================
 
     def norm_cycle(self, params):
-        return params["cycles"] * (1e-10 + tf.exp(-params["features"][:, 0:1]))
+        return params["cycles"]
 
     def cell_feat(self, params):
-        return params["features"][:, 1:]
+        return params["features"]
 
     def norm_cycle_flat(self, params):
         return (
@@ -257,10 +257,11 @@ class DegradationModel(Model):
             "rates_flat": tf.reshape(rates_concat, [-1, 3]),
             "features_flat": tf.reshape(features_tiled, [-1, self.width]),
 
-            "cycles": cycles,
+            # TODO is this correct?!
+            "cycles": cycles * (1e-10 + tf.exp(-features[:, 0:1])),
             "chg_rate": rates[:, 0:1],
             "dchg_rate": rates[:, 1:2],
-            "features": features
+            "features": features[:, 1:]
         }
 
         if training:

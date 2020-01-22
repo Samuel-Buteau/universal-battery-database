@@ -29,7 +29,7 @@ def feedforward_nn_parameters(depth, width):
         bias_initializer = 'zeros',
         kernel_initializer = 'zeros'
     )
-    return {'initial':initial, 'bulk':bulk, 'final':final}
+    return {'initial': initial, 'bulk': bulk, 'final': final}
 
 
 
@@ -71,6 +71,13 @@ class DegradationModel(Model):
 
     # Structured variables -----------------------------------------------------
 
+    # TODO Not tested
+    def struct_dchg_cap(self, params):
+        theoretical_cap = self.theoretical_cap(params)
+        soc_0 = self.soc_0(params)
+        soc_1 = self.soc(params)
+        return - theoretical_cap * (soc1 − soc0)
+
     def max_dchg_vol(self, params):
         eq_vol = self.eq_vol(params)
         r = self.r(params)
@@ -78,6 +85,59 @@ class DegradationModel(Model):
         return eq_vol - (params["dchg_rate"] * r)
 
     # Unstructured variables ---------------------------------------------------
+
+    # TODO How to test? Loss function necessary?
+    def theoretical_cap(self, params):
+        centers = self.nn_theoretical_cap['initial'](
+            tf.concat(
+                (
+                    self.norm_cycle(params),
+                    params["chg_rate"],
+                    params["dchg_rate"],
+                    self.cell_feat(params)
+                ),
+                axis=1
+            )
+        )
+        for d in self.nn_theoretical_cap['bulk']:
+            centers = d(centers)
+        return self.nn_theoretical_cap['final'](centers)
+
+    # TODO Not tested
+    def eq_v_1(self, params):
+        return params["volt"] + params["dchg_rate"] * self.r(params)
+
+    # TODO Not tested
+    def soc(self, params):
+        centers = self.nn_soc_0['initial'](
+            tf.concat(
+                (
+                    self.eq_vol_1(params),
+                    self.cell_feat(params)
+                ),
+                axis=1
+            )
+        )
+        for d in self.nn_soc_0['bulk']:
+            centers = d(centers)
+        return self.nn_soc_0['final'](centers)
+
+    # TODO Not tested
+    def soc_0(self, params):
+        centers = self.nn_soc_0['initial'](
+            tf.concat(
+                (
+                    self.norm_cycle(params),
+                    params["chg_rate"],
+                    params["dchg_rate"],
+                    self.cell_feat(params)
+                ),
+                axis=1
+            )
+        )
+        for d in self.nn_soc_0['bulk']:
+            centers = d(centers)
+        return self.nn_soc_0['final'](centers)
 
     def cap(self, params):
         centers = self.nn_cap['initial'](

@@ -62,11 +62,9 @@ class DegradationModel(Model):
             cycles += "_flat"
         return params[cycles] * (1e-10 + tf.exp(-params[norm_constant]))
 
-    # Special variables --------------------------------------------------------
+    # TODO DOES NOT WORK
+    # Begin: Part 1 ============================================================
 
-    # Structured variables -----------------------------------------------------
-
-    # TODO Not tested
     def struct_dchg_cap(self, params):
         theoretical_cap = self.embed_cycle(
             self.theoretical_cap(params), # scalar
@@ -83,7 +81,6 @@ class DegradationModel(Model):
         soc_1 = self.soc(params, self.eq_v_1(params), scalar = False)
         return theoretical_cap * (soc_1 - soc_0 * 0)
 
-    # TODO Not tested
     def eq_v_1(self, params):
         r_flat = self.embed_cycle(
             self.r(params),
@@ -92,6 +89,39 @@ class DegradationModel(Model):
             params["voltage_count"]
         )
         return params["voltage_flat"] + params["dchg_rate_flat"] * r_flat * 0
+
+    def theoretical_cap(self, params):
+        params_tuple = (
+            self.norm_cycle(params),
+            params["chg_rate"],
+            params["dchg_rate"],
+            params["cell_feat"]
+        )
+        return self.nn_call(self.nn_theoretical_cap, params_tuple)
+
+    def soc(self, params, voltage, scalar = True):
+        cell_feat = "cell_feat"
+        if not scalar:
+            cell_feat = "cell_feat_flat"
+        params_tuple = (
+            voltage,
+            params[cell_feat]
+        )
+        return self.nn_call(self.nn_soc, params_tuple)
+
+    def soc_0(self, params):
+        params_tuple = (
+            self.norm_cycle(params),
+            params["chg_rate"],
+            params["dchg_rate"],
+            params["cell_feat"]
+        )
+        return self.nn_call(self.nn_soc_0, params_tuple)
+
+
+    # End: Part 1 ==============================================================
+
+    # Structured variables -----------------------------------------------------
 
     def max_dchg_vol(self, params):
         eq_vol = self.eq_vol(params)
@@ -109,38 +139,6 @@ class DegradationModel(Model):
             centers = d(centers)
         return nn_func['final'](centers)
 
-    # TODO How to test? Loss function necessary?
-    def theoretical_cap(self, params):
-        params_tuple = (
-            self.norm_cycle(params),
-            params["chg_rate"],
-            params["dchg_rate"],
-            params["cell_feat"]
-        )
-        return self.nn_call(self.nn_theoretical_cap, params_tuple)
-
-    # TODO Not tested
-    def soc(self, params, voltage, scalar = True):
-        cell_feat = "cell_feat"
-        if not scalar:
-            cell_feat = "cell_feat_flat"
-        params_tuple = (
-            voltage,
-            params[cell_feat]
-        )
-        return self.nn_call(self.nn_soc, params_tuple)
-
-    # TODO Not tested
-    def soc_0(self, params):
-        params_tuple = (
-            self.norm_cycle(params),
-            params["chg_rate"],
-            params["dchg_rate"],
-            params["cell_feat"]
-        )
-        return self.nn_call(self.nn_soc_0, params_tuple)
-
-    '''
     def cap(self, params):
         params_tuple = (
             self.norm_cycle(params, scalar = False),
@@ -150,7 +148,6 @@ class DegradationModel(Model):
             params["cell_feat_flat"]
         )
         return self.nn_call(self.nn_cap, params_tuple)
-    '''
 
     def eq_vol(self, params):
         params_tuple = (

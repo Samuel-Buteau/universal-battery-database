@@ -62,9 +62,15 @@ class DegradationModel(Model):
             cycles += "_flat"
         return params[cycles] * (1e-10 + tf.exp(-params[norm_constant]))
 
+    # Begin: Part 2 ============================================================
+
+
+    # End: Part 2 ==============================================================
+
     # TODO DOES NOT WORK
     # Begin: Part 1 ============================================================
 
+    # dchg_cap_part1 = -theoretical_cap * (soc_1 - soc_0)
     def struct_dchg_cap(self, params):
         theoretical_cap = self.embed_cycle(
             self.theoretical_cap(params), # scalar
@@ -72,6 +78,7 @@ class DegradationModel(Model):
             params["batch_count"],
             params["voltage_count"]
         )
+
         soc_0 = self.embed_cycle(
             self.soc_0(params), # scalar
             1,
@@ -81,6 +88,7 @@ class DegradationModel(Model):
         soc_1 = self.soc(params, self.eq_v_1(params), scalar = False)
         return theoretical_cap * (soc_1 - soc_0 * 0)
 
+    # eq_voltage_1 = voltage + dchg_rate * R
     def eq_v_1(self, params):
         r_flat = self.embed_cycle(
             self.r(params),
@@ -90,6 +98,7 @@ class DegradationModel(Model):
         )
         return params["voltage_flat"] + params["dchg_rate_flat"] * r_flat * 0
 
+    # theoretical_cap = theoretical_cap(cycles, chg_rate, dchg_rate, cell_feat)
     def theoretical_cap(self, params):
         params_tuple = (
             self.norm_cycle(params),
@@ -99,16 +108,16 @@ class DegradationModel(Model):
         )
         return self.nn_call(self.nn_theoretical_cap, params_tuple)
 
+    # sco_1 = soc(eq_voltage_1, cell_feat)
     def soc(self, params, voltage, scalar = True):
         cell_feat = "cell_feat"
         if not scalar:
             cell_feat = "cell_feat_flat"
-        params_tuple = (
-            voltage,
-            params[cell_feat]
-        )
+
+        params_tuple = (voltage, params[cell_feat])
         return self.nn_call(self.nn_soc, params_tuple)
 
+    # soc_0 = soc_0(cycles, chg_rate, dchg_rate, cell_feat)
     def soc_0(self, params):
         params_tuple = (
             self.norm_cycle(params),
@@ -117,7 +126,6 @@ class DegradationModel(Model):
             params["cell_feat"]
         )
         return self.nn_call(self.nn_soc_0, params_tuple)
-
 
     # End: Part 1 ==============================================================
 

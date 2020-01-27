@@ -500,7 +500,9 @@ def train_step(params, fit_args):
         mono_loss = fit_args['mono_coeff'] * (
             tf.reduce_mean(tf.nn.relu(-cap))  # penalizes negative capacities
             + tf.reduce_mean(tf.nn.relu(cap_der['dCyc'])) # shouldn't increase
-            + tf.reduce_mean(tf.nn.relu(cap_der['dRates'])) # shouldn't increase
+            + tf.reduce_mean(tf.nn.relu(cap_der['d_chg_rate']))
+            + tf.reduce_mean(tf.nn.relu(cap_der['d_dchg_rate']))
+            + tf.reduce_mean(tf.nn.relu(cap_der['dVol']))
 
             + 10. * (
                 tf.reduce_mean(tf.nn.relu(-r))
@@ -521,8 +523,12 @@ def train_step(params, fit_args):
             tf.reduce_mean(tf.square(tf.nn.relu(cap_der['d2Cyc']))
             + 0.02 * tf.square(tf.nn.relu(-cap_der['d2Cyc'])))
             + tf.reduce_mean(
-                tf.square(tf.nn.relu(cap_der['d2Rates']))
-                + 0.02 * tf.square(tf.nn.relu(-cap_der['d2Rates']))
+                tf.square(tf.nn.relu(cap_der['d2_chg_rate']))
+                + 0.02 * tf.square(tf.nn.relu(-cap_der['d2_chg_rate']))
+                + tf.square(tf.nn.relu(cap_der['d2_dchg_rate']))
+                + 0.02 * tf.square(tf.nn.relu(-cap_der['d2_dchg_rate']))
+                + tf.square(tf.nn.relu(cap_der['d2Vol']))
+                + 0.02 * tf.square(tf.nn.relu(-cap_der['d2Vol']))
             )
 
             # enforces smoothness of resistance;

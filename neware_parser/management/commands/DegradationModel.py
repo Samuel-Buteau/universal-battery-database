@@ -54,29 +54,44 @@ class DegradationModel(Model):
 
     # Begin: nn application functions ==========================================
 
-    def norm_cycle(self, params):
-        return params["cycles"]
+    def norm_cycle(self, params, scalar = True):
+        cycles = "cycles"
+        norm_constant = "norm_constant"
+        if not scalar:
+            norm_constant += "_flat"
+            cycles += "_flat"
+        return params[cycles] * (1e-10 + tf.exp(-params[norm_constant]))
 
-    def cell_feat(self, params):
-        return params["features"]
-
-    def norm_cycle_flat(self, params):
-        return (
-            params["cycles_flat"]
-            * (1e-10 + tf.exp(-params["features_flat"][:, 0:1]))
-        )
-
-    def cell_feat_flat(self, params):
-        return params["features_flat"][:, 1:]
+    # Special variables --------------------------------------------------------
 
     # Structured variables -----------------------------------------------------
 
     # TODO Not tested
     def struct_dchg_cap(self, params):
-        theoretical_cap = self.theoretical_cap(params)
-        soc_0 = self.soc_0(params)
-        soc_1 = self.soc(params)
-        return - theoretical_cap * (soc1 − soc0)
+        theoretical_cap = self.embed_cycle(
+            self.theoretical_cap(params), # scalar
+            1,
+            params["batch_count"],
+            params["voltage_count"]
+        )
+        soc_0 = self.embed_cycle(
+            self.soc_0(params), # scalar
+            1,
+            params["batch_count"],
+            params["voltage_count"]
+        )
+        soc_1 = self.soc(params, self.eq_v_1(params), scalar = False)
+        return theoretical_cap * (soc_1 - soc_0 * 0)
+
+    # TODO Not tested
+    def eq_v_1(self, params):
+        r_flat = self.embed_cycle(
+            self.r(params),
+            1,
+            params["batch_count"],
+            params["voltage_count"]
+        )
+        return params["voltage_flat"] + params["dchg_rate_flat"] * r_flat * 0
 
     def max_dchg_vol(self, params):
         eq_vol = self.eq_vol(params)
@@ -86,239 +101,236 @@ class DegradationModel(Model):
 
     # Unstructured variables ---------------------------------------------------
 
+    def nn_call(self, nn_func, params_tuple):
+        centers = nn_func['initial'](
+            tf.concat(params_tuple, axis=1)
+        )
+        for d in nn_func['bulk']:
+            centers = d(centers)
+        return nn_func['final'](centers)
+
     # TODO How to test? Loss function necessary?
     def theoretical_cap(self, params):
-        centers = self.nn_theoretical_cap['initial'](
-            tf.concat(
-                (
-                    self.norm_cycle(params),
-                    params["chg_rate"],
-                    params["dchg_rate"],
-                    self.cell_feat(params)
-                ),
-                axis=1
-            )
+        params_tuple = (
+            self.norm_cycle(params),
+            params["chg_rate"],
+            params["dchg_rate"],
+            params["cell_feat"]
         )
-        for d in self.nn_theoretical_cap['bulk']:
-            centers = d(centers)
-        return self.nn_theoretical_cap['final'](centers)
+        return self.nn_call(self.nn_theoretical_cap, params_tuple)
 
     # TODO Not tested
-    def eq_v_1(self, params):
-        return params["volt"] + params["dchg_rate"] * self.r(params)
-
-    # TODO Not tested
-    def soc(self, params):
-        centers = self.nn_soc_0['initial'](
-            tf.concat(
-                (
-                    self.eq_vol_1(params),
-                    self.cell_feat(params)
-                ),
-                axis=1
-            )
+    def soc(self, params, voltage, scalar = True):
+        cell_feat = "cell_feat"
+        if not scalar:
+            cell_feat = "cell_feat_flat"
+        params_tuple = (
+            voltage,
+            params[cell_feat]
         )
-        for d in self.nn_soc_0['bulk']:
-            centers = d(centers)
-        return self.nn_soc_0['final'](centers)
+        return self.nn_call(self.nn_soc, params_tuple)
 
     # TODO Not tested
     def soc_0(self, params):
-        centers = self.nn_soc_0['initial'](
-            tf.concat(
-                (
-                    self.norm_cycle(params),
-                    params["chg_rate"],
-                    params["dchg_rate"],
-                    self.cell_feat(params)
-                ),
-                axis=1
-            )
+        params_tuple = (
+            self.norm_cycle(params),
+            params["chg_rate"],
+            params["dchg_rate"],
+            params["cell_feat"]
         )
-        for d in self.nn_soc_0['bulk']:
-            centers = d(centers)
-        return self.nn_soc_0['final'](centers)
+        return self.nn_call(self.nn_soc_0, params_tuple)
 
+    '''
     def cap(self, params):
-        centers = self.nn_cap['initial'](
-            tf.concat(
-                (
-                    self.norm_cycle_flat(params),
-                    params["rates_flat"],
-                    self.cell_feat_flat(params)
-                ),
-                axis=1
-            )
+        params_tuple = (
+            self.norm_cycle(params, scalar = False),
+            params["chg_rate_flat"],
+            params["dchg_rate_flat"],
+            params["voltage_flat"],
+            params["cell_feat_flat"]
         )
-        for d in self.nn_cap['bulk']:
-            centers = d(centers)
-        return self.nn_cap['final'](centers)
+        return self.nn_call(self.nn_cap, params_tuple)
+    '''
 
     def eq_vol(self, params):
-        centers = self.nn_eq_vol['initial'](
-            tf.concat(
-                (
-                    self.norm_cycle(params),
-                    params["chg_rate"],
-                    self.cell_feat(params)
-                ),
-                axis=1
-            )
+        params_tuple = (
+            self.norm_cycle(params),
+            params["chg_rate"],
+            params["cell_feat"]
         )
-        for d in self.nn_eq_vol['bulk']:
-            centers = d(centers)
-        return self.nn_eq_vol['final'](centers)
+        return self.nn_call(self.nn_eq_vol, params_tuple)
 
     def r(self, params):
-        centers = self.nn_r['initial'](
-            tf.concat(
-                (
-                    self.norm_cycle(params),
-                    self.cell_feat(params)
-                ),
-                axis=1
-            )
+        params_tuple = (
+            self.norm_cycle(params),
+            params["cell_feat"]
         )
-        for d in self.nn_r['bulk']:
-            centers = d(centers)
-        return self.nn_r['final'](centers)
+        return self.nn_call(self.nn_r, params_tuple)
 
     # End: nn application functions ============================================
 
-    def create_derivatives(self, params, nn):
+    def create_derivatives(self, params, nn, scalar = True):
         derivatives = {}
 
+        cycles = "cycles"
+        chg_rate = "chg_rate"
+        dchg_rate = "dchg_rate"
+        cell_feat = "cell_feat"
+        if not scalar:
+            cycles = "cycles_flat"
+            chg_rate = "chg_rate_flat"
+            dchg_rate = "dchg_rate_flat"
+            cell_feat = "cell_feat_flat"
+
+
         with tf.GradientTape(persistent=True) as tape3:
-            tape3.watch(params)
+            tape3.watch(params[cycles])
+            tape3.watch(params[chg_rate])
+            tape3.watch(params[dchg_rate])
+            tape3.watch(params[cell_feat])
+            if not scalar:
+                tape3.watch(params["voltage_flat"])
 
             with tf.GradientTape(persistent=True) as tape2:
-                tape2.watch(params)
+                tape2.watch(params[cycles])
+                tape2.watch(params[chg_rate])
+                tape2.watch(params[dchg_rate])
+                tape2.watch(params[cell_feat])
+                if not scalar:
+                    tape2.watch(params["voltage_flat"])
 
                 res = tf.reshape(nn(params), [-1, 1])
 
             # NOTE: why do some have `[:, 0, :]` and others don't?
             derivatives['dCyc'] = tape2.batch_jacobian(
-                source=params["cycles"],
+                source=params[cycles],
                 target=res
             )[:, 0, :]
             derivatives['d_chg_rate'] = tape2.batch_jacobian(
-                source=params["chg_rate"],
+                source=params[chg_rate],
                 target=res
             )[:, 0, :]
             derivatives['d_dchg_rate'] = tape2.batch_jacobian(
-                source=params["dchg_rate"],
+                source=params[dchg_rate],
                 target=res
             )[:, 0, :]
             derivatives['dFeatures'] = tape2.batch_jacobian(
-                source=params["features"],
+                source=params[cell_feat],
                 target=res
             )[:, 0, :]
+            if not scalar:
+                derivatives['dVol'] = tape2.batch_jacobian(
+                    source=params["voltage_flat"],
+                    target=res
+                )[:, 0, :]
+
             del tape2
 
         derivatives['d2Cyc'] = tape3.batch_jacobian(
-            source=params["cycles"],
+            source=params[cycles],
             target=derivatives['dCyc']
         )[:, 0, :]
         derivatives['d2_chg_rate'] = tape3.batch_jacobian(
-            source=params["chg_rate"],
+            source=params[chg_rate],
             target=derivatives['d_chg_rate']
-        )
-        derivatives['d2_dchg_rate'] = tape3.batch_jacobian(
-            source=params["dchg_rate"],
-            target=derivatives['d_dchg_rate']
-        )
-        derivatives['d2Features'] = tape3.batch_jacobian(
-            source=params["features"],
-            target=derivatives['dFeatures']
-        )
-
-        del tape3
-        return res, derivatives
-
-    def create_derivatives_flat(self, params, nn):
-        derivatives = {}
-
-        with tf.GradientTape(persistent=True) as tape3:
-            tape3.watch(params)
-
-            with tf.GradientTape(persistent=True) as tape2:
-                tape2.watch(params)
-
-                res = tf.reshape(nn(params), [-1, 1])
-
-            derivatives['dCyc'] = tape2.batch_jacobian(
-                source=params["cycles_flat"],
-                target=res
-            )[:, 0, :]
-            derivatives['dRates'] = tape2.batch_jacobian(
-                source=params["rates_flat"],
-                target=res
-            )[:, 0, :]
-            derivatives['dFeatures'] = tape2.batch_jacobian(
-                source=params["features_flat"],
-                target=res
-            )[:, 0, :]
-            del tape2
-
-        derivatives['d2Cyc'] = tape3.batch_jacobian(
-            source=params["cycles_flat"],
-            target=derivatives['dCyc']
         )[:, 0, :]
-        derivatives['d2Rates'] = tape3.batch_jacobian(
-            source=params["rates_flat"],
-            target=derivatives['dRates']
-        )
+        derivatives['d2_dchg_rate'] = tape3.batch_jacobian(
+            source=params[dchg_rate],
+            target=derivatives['d_dchg_rate']
+        )[:, 0, :]
         derivatives['d2Features'] = tape3.batch_jacobian(
-            source=params["features_flat"],
+            source=params[cell_feat],
             target=derivatives['dFeatures']
         )
+        if not scalar:
+            derivatives['d2Vol'] = tape3.batch_jacobian(
+                source=params["voltage_flat"],
+                target=derivatives['dVol']
+            )[:, 0, :]
 
         del tape3
         return res, derivatives
+
+    def embed_cycle(self, thing, dim_thing, dim_cyc, dim_vol):
+        return tf.reshape(
+            tf.tile(
+                tf.expand_dims(
+                    thing,
+                    axis=1
+                ),
+                [1, dim_vol,1]
+            ),
+            [dim_cyc*dim_vol, dim_thing]
+        )
+
+    def embed_voltage(self, thing, dim_thing, dim_cyc, dim_vol):
+        return tf.reshape(
+            tf.tile(
+                tf.expand_dims(
+                    thing,
+                    axis=0
+                ),
+                [dim_cyc, 1,1]
+            ),
+            [dim_cyc*dim_vol, dim_thing]
+        )
 
     def call(self, x, training=False):
 
-        centers = x[0]  # batch of [cyc, k[0], k[1]]
-        indecies = x[1]  # batch of index
-        meas_cycles = x[2]  # batch of cycles
-        vol_tensor = x[3]
+        centers = x[0]  # batch of [cyc, k[0], k[1]]; dim: [batch, 3]
+        indecies = x[1]  # batch of index; dim: [batch]
+        meas_cycles = x[2]  # batch of cycles; dim: [batch]
+        vol_vector = x[3] # dim: [voltages]
 
         features, mean, log_sig = self.dictionary(indecies, training=training)
-        cycles = centers[:, 0:1]
-        rates = centers[:, 1:]
+        cycles = centers[:, 0:1] # matrix; dim: [batch, 1]
+        rates = centers[:, 1:] # dim: [batch, 2]
 
+        batch_count = cycles.shape[0]
+        voltage_count = vol_vector.shape[0]
         # duplicate cycles and others for all the voltages
         # dimensions are now [batch, voltages, features]
-        cycles_tiled = tf.tile(
-            tf.expand_dims(cycles, axis=1),
-            [1, vol_tensor.shape[0], 1]
-        )
-        rates_tiled = tf.tile(
-            tf.expand_dims(rates, axis=1),
-            [1, vol_tensor.shape[0], 1]
-        )
-        features_tiled = tf.tile(
-            tf.expand_dims(features, axis=1),
-            [1, vol_tensor.shape[0], 1]
-        )
-        voltages_tiled = tf.tile(
-            tf.expand_dims(tf.expand_dims(vol_tensor, axis=1), axis=0),
-            [cycles.shape[0], 1, 1]
-        )
-
-        # TODO wtf does rates_concat contain dchg_rate, chg_rate, and voltage?!
-        rates_concat = tf.concat((rates_tiled, voltages_tiled), axis=2)
 
         params = {
-            "cycles_flat": tf.reshape(cycles_tiled, [-1, 1]),
-            "rates_flat": tf.reshape(rates_concat, [-1, 3]),
-            "features_flat": tf.reshape(features_tiled, [-1, self.width]),
+            "batch_count": batch_count,
+            "voltage_count": voltage_count,
+            "cycles_flat": self.embed_cycle(cycles, 1, batch_count, voltage_count),
+            "chg_rate_flat": self.embed_cycle(
+                rates[:, 0:1],
+                1,
+                batch_count,
+                voltage_count
+            ),
+            "dchg_rate_flat": self.embed_cycle(
+                rates[:, 1:2],
+                1,
+                batch_count,
+                voltage_count
+            ),
+            "cell_feat_flat": self.embed_cycle(
+                features[:, 1:],
+                self.width - 1,
+                batch_count,
+                voltage_count
+            ),
+            "voltage_flat": self.embed_voltage(
+                tf.expand_dims(vol_vector, axis = 1),
+                1,
+                batch_count,
+                voltage_count
+            ),
+            "norm_constant_flat": self.embed_cycle(
+                features[:, 0:1],
+                1,
+                batch_count,
+                voltage_count
+            ),
 
-            # TODO is this correct?!
-            "cycles": cycles * (1e-10 + tf.exp(-features[:, 0:1])),
+            "norm_constant": features[:, 0:1],
+            "cycles": cycles,
             "chg_rate": rates[:, 0:1],
             "dchg_rate": rates[:, 1:2],
-            "features": features[:, 1:]
+            "cell_feat": features[:, 1:]
         }
 
         if training:
@@ -327,14 +339,14 @@ class DegradationModel(Model):
             var_cyc_squared = tf.square(var_cyc)
 
             ''' discharge capacity '''
-            cap, cap_der = self.create_derivatives_flat(params, self.cap)
-            cap = tf.reshape(cap, [-1, vol_tensor.shape[0]])
+            cap, cap_der = self.create_derivatives(params, self.struct_dchg_cap, scalar = False)
+            cap = tf.reshape(cap, [-1, voltage_count])
 
             pred_cap = (
                 cap + var_cyc * tf.reshape(
-                    cap_der['dCyc'], [-1, vol_tensor.shape[0]])
+                    cap_der['dCyc'], [-1, voltage_count])
                 + var_cyc_squared * tf.reshape(
-                    cap_der['d2Cyc'], [-1, vol_tensor.shape[0]])
+                    cap_der['d2Cyc'], [-1, voltage_count])
             )
 
             ''' discharge max voltage '''
@@ -379,16 +391,13 @@ class DegradationModel(Model):
 
             return {
                 "pred_cap": tf.reshape(
-                    self.cap(params),
-                    [-1, vol_tensor.shape[0]]
+                    self.struct_dchg_cap(params),
+                    [-1, vol_vector.shape[0]]
                 ),
                 "pred_max_dchg_vol": pred_max_dchg_vol,
                 "pred_eq_vol": pred_eq_vol,
                 "pred_r": pred_r
             }
-
-
-
 
 # stores cell features
 # key: index

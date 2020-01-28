@@ -47,6 +47,9 @@ class DegradationModel(Model):
         self.nn_soc_0 = feedforward_nn_parameters(depth, width)
         self.nn_init_soc = feedforward_nn_parameters(depth, width)
 
+        self.nn_soc_part2 = feedforward_nn_parameters(depth, width)
+        self.nn_eq_voltage_0 = feedforward_nn_parameters(depth, width)
+
         self.dictionary = DictionaryLayer(num_features=width, num_keys=num_keys)
 
         self.width = width
@@ -62,16 +65,60 @@ class DegradationModel(Model):
             cycles += "_flat"
         return params[cycles] * (1e-10 + tf.exp(-params[norm_constant]))
 
+    # TODO Does not work
     # Begin: Part 2 ============================================================
 
+    # Structured variables ---------------------------------------------------
+
+    # dchg_cap_part2 = -theoretical_cap * (soc_1 - soc_0)
+    def dchg_cap_part2(self, params):
+        theoretical_cap = self.embed_cycle(
+            self.theoretical_cap(params), # scalar
+            1,
+            params["batch_count"],
+            params["voltage_count"]
+        )
+        soc_0 = self.embed_cycle(
+            self.soc_part2(params),
+            1,
+            params["batch_count"],
+            params["voltage_count"]
+        )
+        soc_1 = self.embed_cycle(
+            self.soc_part2(params),
+            1,
+            params["batch_count"],
+            params["voltage_count"]
+        )
+        return - theoretical_cap * (soc_1 - soc_0)
+
+    # Unstructured variables ---------------------------------------------------
+
+    # soc_0 = soc(eq_voltage_1, cell_feat)
+    def soc_part2(self, params):
+        params_tuple = (
+            self.eq_voltage_0(params),
+            params["cell_feat"]
+        )
+        return self.nn_call(self.nn_soc_part2, params_tuple)
+
+    # eq_voltage_1 = eq_voltage_0(cycle, cell_feat)
+    def eq_voltage_0(self, params):
+        params_tuple = (
+            self.norm_cycle(params),
+            params["cell_feat"]
+        )
+        return self.nn_call(self.nn_eq_voltage_0, params_tuple)
 
     # End: Part 2 ==============================================================
 
     # TODO DOES NOT WORK
     # Begin: Part 1 ============================================================
 
+    # Structured variables -----------------------------------------------------
+
     # dchg_cap_part1 = -theoretical_cap * (soc_1 - soc_0)
-    def struct_dchg_cap(self, params):
+    def dchg_cap_part1(self, params):
         theoretical_cap = self.embed_cycle(
             self.theoretical_cap(params), # scalar
             1,
@@ -97,6 +144,8 @@ class DegradationModel(Model):
             params["voltage_count"]
         )
         return params["voltage_flat"] + params["dchg_rate_flat"] * r_flat * 0
+
+    # Unstructured variables ---------------------------------------------------
 
     # theoretical_cap = theoretical_cap(cycles, chg_rate, dchg_rate, cell_feat)
     def theoretical_cap(self, params):
@@ -351,7 +400,7 @@ class DegradationModel(Model):
             ''' discharge capacity '''
             cap, cap_der = self.create_derivatives(
                 params,
-                self.struct_dchg_cap,
+                self.dchg_cap_part2,
                 scalar = False
             )
             cap = tf.reshape(cap, [-1, voltage_count])
@@ -405,7 +454,7 @@ class DegradationModel(Model):
 
             return {
                 "pred_cap": tf.reshape(
-                    self.struct_dchg_cap(params),
+                    self.dchg_cap_part2(params),
                     [-1, vol_vector.shape[0]]
                 ),
                 "pred_max_dchg_vol": pred_max_dchg_vol,

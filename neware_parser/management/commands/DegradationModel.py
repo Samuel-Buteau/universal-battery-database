@@ -68,7 +68,7 @@ class DegradationModel(Model):
     # TODO Does not work
     # Begin: Part 2 ============================================================
 
-    # Structured variables ---------------------------------------------------
+    # Structured variables -----------------------------------------------------
 
     # dchg_cap_part2 = -theoretical_cap * (soc_1 - soc_0)
     def dchg_cap_part2(self, params):
@@ -96,19 +96,19 @@ class DegradationModel(Model):
 
     # soc_0 = soc(eq_voltage_1, cell_feat)
     def soc_part2(self, params):
-        params_tuple = (
+        dependencies = (
             self.eq_voltage_0(params),
             params["cell_feat"]
         )
-        return self.nn_call(self.nn_soc_part2, params_tuple)
+        return self.nn_call(self.nn_soc_part2, dependencies)
 
     # eq_voltage_1 = eq_voltage_0(cycle, cell_feat)
     def eq_voltage_0(self, params):
-        params_tuple = (
+        dependencies = (
             self.norm_cycle(params),
             params["cell_feat"]
         )
-        return self.nn_call(self.nn_eq_voltage_0, params_tuple)
+        return self.nn_call(self.nn_eq_voltage_0, dependencies)
 
     # End: Part 2 ==============================================================
 
@@ -149,13 +149,13 @@ class DegradationModel(Model):
 
     # theoretical_cap = theoretical_cap(cycles, chg_rate, dchg_rate, cell_feat)
     def theoretical_cap(self, params):
-        params_tuple = (
+        dependencies = (
             self.norm_cycle(params),
             params["chg_rate"],
             params["dchg_rate"],
             params["cell_feat"]
         )
-        return self.nn_call(self.nn_theoretical_cap, params_tuple)
+        return self.nn_call(self.nn_theoretical_cap, dependencies)
 
     # sco_1 = soc(eq_voltage_1, cell_feat)
     def soc(self, params, voltage, scalar = True):
@@ -163,18 +163,18 @@ class DegradationModel(Model):
         if not scalar:
             cell_feat = "cell_feat_flat"
 
-        params_tuple = (voltage, params[cell_feat])
-        return self.nn_call(self.nn_soc, params_tuple)
+        dependencies = (voltage, params[cell_feat])
+        return self.nn_call(self.nn_soc, dependencies)
 
     # soc_0 = soc_0(cycles, chg_rate, dchg_rate, cell_feat)
     def soc_0(self, params):
-        params_tuple = (
+        dependencies = (
             self.norm_cycle(params),
             params["chg_rate"],
             params["dchg_rate"],
             params["cell_feat"]
         )
-        return self.nn_call(self.nn_soc_0, params_tuple)
+        return self.nn_call(self.nn_soc_0, dependencies)
 
     # End: Part 1 ==============================================================
 
@@ -188,38 +188,38 @@ class DegradationModel(Model):
 
     # Unstructured variables ---------------------------------------------------
 
-    def nn_call(self, nn_func, params_tuple):
+    def nn_call(self, nn_func, dependencies):
         centers = nn_func['initial'](
-            tf.concat(params_tuple, axis=1)
+            tf.concat(dependencies, axis=1)
         )
         for d in nn_func['bulk']:
             centers = d(centers)
         return nn_func['final'](centers)
 
     def cap(self, params):
-        params_tuple = (
+        dependencies = (
             self.norm_cycle(params, scalar = False),
             params["chg_rate_flat"],
             params["dchg_rate_flat"],
             params["voltage_flat"],
             params["cell_feat_flat"]
         )
-        return self.nn_call(self.nn_cap, params_tuple)
+        return self.nn_call(self.nn_cap, dependencies)
 
     def eq_vol(self, params):
-        params_tuple = (
+        dependencies = (
             self.norm_cycle(params),
             params["chg_rate"],
             params["cell_feat"]
         )
-        return self.nn_call(self.nn_eq_vol, params_tuple)
+        return self.nn_call(self.nn_eq_vol, dependencies)
 
     def r(self, params):
-        params_tuple = (
+        dependencies = (
             self.norm_cycle(params),
             params["cell_feat"]
         )
-        return self.nn_call(self.nn_r, params_tuple)
+        return self.nn_call(self.nn_r, dependencies)
 
     # End: nn application functions ============================================
 

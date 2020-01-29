@@ -261,8 +261,8 @@ def initial_processing(my_data, barcodes, fit_args):
 
     # the voltages are also normalized
     vol_tensor = tf.cast(tf.constant(my_data['voltage_grid']), dtype=tf.float32)
-    voltages_m, voltages_v = tf.nn.moments(vol_tensor, axes=[0])
-    vol_tensor = (vol_tensor - voltages_m) / tf.sqrt(voltages_v)
+    #voltages_m, voltages_v = tf.nn.moments(vol_tensor, axes=[0])
+    #vol_tensor = (vol_tensor - voltages_m) / tf.sqrt(voltages_v)
     vq_curves = tf.constant(all_vq_curves)
     vq_curves_mask = tf.constant(all_vq_curves_masks)
 

@@ -159,13 +159,13 @@ class DegradationModel(Model):
         )
 
         soc_0 = self.embed_cycle(
-            self.soc_0(params), # scalar
+            self.soc_0_part1(params), # scalar
             1,
             params["batch_count"],
             params["voltage_count"]
         )
         soc_1 = self.soc(params, self.eq_voltage_1(params), scalar = False)
-        return theoretical_cap * (soc_1 - soc_0 * 0)
+        return theoretical_cap * (soc_1 - soc_0)
 
     # eq_voltage_1 = voltage + dchg_rate * R
     def eq_voltage_1(self, params):
@@ -175,7 +175,7 @@ class DegradationModel(Model):
             params["batch_count"],
             params["voltage_count"]
         )
-        return params["voltage_flat"] + params["dchg_rate_flat"] * r_flat * 0
+        return params["voltage_flat"] + params["dchg_rate_flat"] * r_flat
 
     # theoretical_cap = theoretical_cap(cycles, chg_rate, dchg_rate, cell_feat)
     def theoretical_cap(self, params):
@@ -197,7 +197,7 @@ class DegradationModel(Model):
         return self.nn_call(self.nn_soc, dependencies)
 
     # soc_0 = soc_0(cycles, chg_rate, dchg_rate, cell_feat)
-    def soc_0(self, params):
+    def soc_0_part1(self, params):
         dependencies = (
             self.norm_cycle(params),
             params["chg_rate"],
@@ -430,7 +430,7 @@ class DegradationModel(Model):
             ''' discharge capacity '''
             cap, cap_der = self.create_derivatives(
                 params,
-                self.dchg_cap_part2,
+                self.dchg_cap_part1,
                 scalar = False
             )
             cap = tf.reshape(cap, [-1, voltage_count])
@@ -484,7 +484,7 @@ class DegradationModel(Model):
 
             return {
                 "pred_cap": tf.reshape(
-                    self.dchg_cap_part2(params),
+                    self.dchg_cap_part1(params),
                     [-1, vol_vector.shape[0]]
                 ),
                 "pred_max_dchg_vol": pred_max_dchg_vol,

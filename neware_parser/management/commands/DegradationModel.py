@@ -50,6 +50,10 @@ class DegradationModel(Model):
         self.nn_soc_part2 = feedforward_nn_parameters(depth, width)
         self.nn_eq_voltage_0 = feedforward_nn_parameters(depth, width)
 
+        self.nn_shift = feedforward_nn_parameters(depth, width)
+        self.nn_soc_0_part3 = feedforward_nn_parameters(depth, width)
+        self.nn_soc_1_part3 = feedforward_nn_parameters(depth, width)
+
         self.dictionary = DictionaryLayer(num_features=width, num_keys=num_keys)
 
         self.width = width
@@ -64,6 +68,37 @@ class DegradationModel(Model):
             norm_constant += "_flat"
             cycles += "_flat"
         return params[cycles] * (1e-10 + tf.exp(-params[norm_constant]))
+
+    '''
+    # Begin: Part 3 ============================================================
+
+    def shift(self, params):
+        dependencies = (
+            self.norm_cycles(params),
+            params["chg_rate"],
+            params["dchg_rate"],
+            params["cell_feat"]
+        )
+        return self.nn_call(self.nn_shift, dependencies)
+
+    # NOTE soc_0 and soc_1 use the same nn by different eq_voltage?
+    def soc_0_part3(self, params):
+        dependencies = (
+            self.shift(params),
+            self.eq_voltage_0(params),
+            params["cell_feat"]
+        )
+        return self.nn_call(self.nn_soc_0_part3, dependencies)
+
+    def soc_1_part3(self, params):
+        dependencies = (
+            self.shift(params),
+            self.eq_voltage_1(params),
+            params["cell_feat"]
+        )
+        return self.nn_call(self.nn_soc_1_part3, dependecies)
+
+    # End: Part 3 ==============================================================
 
     # TODO Does not work
     # Begin: Part 2 ============================================================
@@ -92,8 +127,6 @@ class DegradationModel(Model):
         )
         return - theoretical_cap * (soc_1 - soc_0)
 
-    # Unstructured variables ---------------------------------------------------
-
     # soc_0 = soc(eq_voltage_1, cell_feat)
     def soc_part2(self, params):
         dependencies = (
@@ -111,11 +144,10 @@ class DegradationModel(Model):
         return self.nn_call(self.nn_eq_voltage_0, dependencies)
 
     # End: Part 2 ==============================================================
+    '''
 
     # TODO DOES NOT WORK
     # Begin: Part 1 ============================================================
-
-    # Structured variables -----------------------------------------------------
 
     # dchg_cap_part1 = -theoretical_cap * (soc_1 - soc_0)
     def dchg_cap_part1(self, params):
@@ -144,8 +176,6 @@ class DegradationModel(Model):
             params["voltage_count"]
         )
         return params["voltage_flat"] + params["dchg_rate_flat"] * r_flat * 0
-
-    # Unstructured variables ---------------------------------------------------
 
     # theoretical_cap = theoretical_cap(cycles, chg_rate, dchg_rate, cell_feat)
     def theoretical_cap(self, params):

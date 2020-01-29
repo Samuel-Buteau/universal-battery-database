@@ -185,7 +185,7 @@ class DegradationModel(Model):
             params["dchg_rate"],
             params["cell_feat"]
         )
-        return self.nn_call(self.nn_theoretical_cap, dependencies)
+        return tf.exp(self.nn_call(self.nn_theoretical_cap, dependencies))
 
     # sco_1 = soc(eq_voltage_1, cell_feat)
     def soc(self, params, voltage, scalar = True):
@@ -204,7 +204,7 @@ class DegradationModel(Model):
             params["dchg_rate"],
             params["cell_feat"]
         )
-        return self.nn_call(self.nn_soc_0, dependencies)
+        return tf.exp(self.nn_call(self.nn_soc_0, dependencies))
 
     # End: Part 1 ==============================================================
 
@@ -249,7 +249,7 @@ class DegradationModel(Model):
             self.norm_cycle(params),
             params["cell_feat"]
         )
-        return self.nn_call(self.nn_r, dependencies)
+        return tf.exp(self.nn_call(self.nn_r, dependencies))
 
     # End: nn application functions ============================================
 

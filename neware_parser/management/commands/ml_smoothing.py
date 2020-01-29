@@ -317,8 +317,7 @@ def initial_processing(my_data, barcodes, fit_args):
         "vq_curves_mask": vq_curves_mask,
         "optimizer": optimizer,
         "test_object": test_object,
-        "all_data": my_data['all_data'],
-        "voltage_vector": my_data['voltage_grid'],
+        "all_data": my_data['all_data']
     }
 
 
@@ -351,7 +350,6 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                     "optimizer": init_returns["optimizer"],
                     "vq_curves": init_returns["vq_curves"],
                     "vq_curves_mask": init_returns["vq_curves_mask"],
-                    "voltage_vector": init_returns["voltage_vector"]
                 }
 
                 dist_train_step(mirrored_strategy, train_step_params, fit_args)
@@ -392,7 +390,6 @@ def train_step(params, fit_args):
     optimizer = params["optimizer"]
     vq_curves = params["vq_curves"]
     vq_curves_mask = params["vq_curves_mask"]
-    voltage_vector = params["voltage_vector"]
 
     # need to split the range
     batch_size2 = neigh_int.shape[0]
@@ -444,7 +441,7 @@ def train_step(params, fit_args):
             1. / (tf.cast(neigh_int[:, NEIGH_INT_VALID_CYC_INDEX], tf.float32)),
             [batch_size2, 1]
         ),
-        [1, len(voltage_vector)]
+        [1, vol_tensor.shape[0]]
     )
 
     meas_max_dchg_vol = tf.reshape(

@@ -20,7 +20,6 @@ def plot_vq(plot_params, init_returns):
     cycles_m = init_returns["cycles_m"]
     cycles_v = init_returns["cycles_v"]
     vol_tensor = init_returns["vol_tensor"]
-    voltage_vector = init_returns["voltage_vector"]
 
     for barcode_count, barcode in enumerate(barcodes):
         fig = plt.figure()
@@ -32,10 +31,10 @@ def plot_vq(plot_params, init_returns):
             for vq_count, vq in enumerate(
                     all_data[barcode][k]['capacity_vector']):
 
-                ax.plot(vq, voltage_vector, c=colors[k_count])
+                ax.plot(vq, vol_tensor.numpy(), c=colors[k_count])
 
                 if vq_count % int(n_samples / 10) == 0:
-                    fused_vector = np.stack([vq, voltage_vector], axis=1)
+                    fused_vector = np.stack([vq, vol_tensor.numpy()], axis=1)
                     target_voltage = all_data[barcode][k][
                         'dchg_maximum_voltage'][vq_count]
                     best_point = get_nearest_point(fused_vector, target_voltage)
@@ -58,7 +57,7 @@ def plot_vq(plot_params, init_returns):
                 mult = (i + 4) / (len(cycles) + 5)
                 ax.plot(
                     pred_cap,
-                    voltage_vector,
+                    vol_tensor.numpy(),
                     c = (
                         mult * colors[k_count][0],
                         mult * colors[k_count][1],
@@ -66,7 +65,7 @@ def plot_vq(plot_params, init_returns):
                     )
                 )
 
-                fused_vector = np.stack([pred_cap, voltage_vector], axis=1)
+                fused_vector = np.stack([pred_cap, vol_tensor.numpy()], axis=1)
                 target_voltage = pred_max_dchg_vol[0]
                 best_point = get_nearest_point(fused_vector, target_voltage)
                 ax.scatter(

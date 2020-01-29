@@ -485,7 +485,10 @@ def train_step(params, fit_args):
         cap_loss = (
             tf.reduce_mean(ws2_cap * ws_cap * tf.square(cap - pred_cap))
             / (1e-10 + tf.reduce_mean(ws2_cap * ws_cap))
-            + tf.reduce_mean(ws2_max_dchg_vol
+        )
+
+        max_dchg_vol_loss = (
+            tf.reduce_mean(ws2_max_dchg_vol
             * tf.square(meas_max_dchg_vol - pred_max_dchg_vol))
             / (1e-10 + tf.reduce_mean(ws2_max_dchg_vol))
         )

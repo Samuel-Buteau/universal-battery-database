@@ -275,7 +275,6 @@ def initial_processing(my_data, barcodes, fit_args):
         axis=0
     )
 
-
     # onvert the delta_cycles of each neighborhoods to the normalized units
     # (divide by standard deviation)
     neigh_data_float[:, NEIGH_FLOAT_DELTA] = (

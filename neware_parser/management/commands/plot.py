@@ -182,7 +182,6 @@ def plot_capacity(plot_params, init_returns):
         )
         plt.close(fig)
 
-
 def plot_eq_vol(plot_params, init_returns):
     barcodes = plot_params["barcodes"]
     count = plot_params["count"]
@@ -282,8 +281,6 @@ def test_all_voltages(cycle, k, barcode_count, degradation_model, voltages):
         evals["pred_eq_vol"],
         evals["pred_r"]
     )
-
-
 
 def test_single_voltage(cycles, v, k, barcode_count, degradation_model):
     centers = tf.concat(

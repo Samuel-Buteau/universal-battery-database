@@ -552,8 +552,11 @@ def train_step(params, fit_args):
             + tf.reduce_mean(tf.square(eq_vol_der['d2Features']))
         )
 
-        loss = cap_loss + kl_loss + mono_loss + smooth_loss
-        loss += const_f_loss + smooth_f_loss
+        loss = (
+            cap_loss + max_dchg_vol_loss
+            + kl_loss + mono_loss + smooth_loss
+            + const_f_loss + smooth_f_loss
+        )
 
     gradients = tape.gradient(loss, degradation_model.trainable_variables)
     optimizer.apply_gradients(

@@ -177,11 +177,10 @@ class DegradationModel(Model):
         )
         return params["voltage_flat"] + params["dchg_rate_flat"] * r_flat
 
-    # theoretical_cap = theoretical_cap(cycles, chg_rate, dchg_rate, cell_feat)
+    # theoretical_cap = theoretical_cap(cycles, dchg_rate, cell_feat)
     def theoretical_cap(self, params):
         dependencies = (
             self.norm_cycle(params),
-            params["chg_rate"],
             params["dchg_rate"],
             params["cell_feat"]
         )
@@ -200,7 +199,7 @@ class DegradationModel(Model):
     def soc_0_part1(self, params):
         dependencies = (
             self.norm_cycle(params),
-            params["chg_rate"],
+            #params["chg_rate"],
             params["dchg_rate"],
             params["cell_feat"]
         )

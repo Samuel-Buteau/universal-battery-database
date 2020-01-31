@@ -146,7 +146,6 @@ class DegradationModel(Model):
     # End: Part 2 ==============================================================
     '''
 
-    # TODO DOES NOT WORK
     # Begin: Part 1 ============================================================
 
     # dchg_cap_part1 = -theoretical_cap * (soc_1 - soc_0)
@@ -284,7 +283,6 @@ class DegradationModel(Model):
 
                 res = tf.reshape(nn(params), [-1, 1])
 
-            # NOTE: why do some have `[:, 0, :]` and others don't?
             derivatives['dCyc'] = tape2.batch_jacobian(
                 source=params[cycles],
                 target=res
@@ -363,14 +361,14 @@ class DegradationModel(Model):
         centers = x[0]  # batch of [cyc, k[0], k[1]]; dim: [batch, 3]
         indecies = x[1]  # batch of index; dim: [batch]
         meas_cycles = x[2]  # batch of cycles; dim: [batch]
-        vol_vector = x[3] # dim: [voltages]
+        voltage_vector = x[3] # dim: [voltages]
 
         features, mean, log_sig = self.dictionary(indecies, training=training)
         cycles = centers[:, 0:1] # matrix; dim: [batch, 1]
         rates = centers[:, 1:] # dim: [batch, 2]
 
         batch_count = cycles.shape[0]
-        voltage_count = vol_vector.shape[0]
+        voltage_count = voltage_vector.shape[0]
         # duplicate cycles and others for all the voltages
         # dimensions are now [batch, voltages, features]
 
@@ -402,7 +400,7 @@ class DegradationModel(Model):
                 voltage_count
             ),
             "voltage_flat": self.embed_voltage(
-                tf.expand_dims(vol_vector, axis = 1),
+                tf.expand_dims(voltage_vector, axis = 1),
                 1,
                 batch_count,
                 voltage_count
@@ -484,7 +482,7 @@ class DegradationModel(Model):
             return {
                 "pred_cap": tf.reshape(
                     self.dchg_cap_part1(params),
-                    [-1, vol_vector.shape[0]]
+                    [-1, voltage_vector.shape[0]]
                 ),
                 "pred_max_dchg_vol": pred_max_dchg_vol,
                 "pred_eq_vol": pred_eq_vol,

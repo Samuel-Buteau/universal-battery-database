@@ -70,6 +70,7 @@ class DegradationModel(Model):
         return params[cycles] * (1e-10 + tf.exp(-params[norm_constant]))
 
     '''
+
     # Begin: Part 3 ============================================================
 
     def shift(self, params):
@@ -100,6 +101,8 @@ class DegradationModel(Model):
 
     # End: Part 3 ==============================================================
 
+    '''
+
     # TODO Does not work
     # Begin: Part 2 ============================================================
 
@@ -108,23 +111,13 @@ class DegradationModel(Model):
     # dchg_cap_part2 = -theoretical_cap * (soc_1 - soc_0)
     def dchg_cap_part2(self, params):
         theoretical_cap = self.embed_cycle(
-            self.theoretical_cap(params), # scalar
+            self.theoretical_cap(params),
             1,
-            params["batch_count"],
-            params["voltage_count"]
+            params
         )
-        soc_0 = self.embed_cycle(
-            self.soc_part2(params),
-            1,
-            params["batch_count"],
-            params["voltage_count"]
-        )
-        soc_1 = self.embed_cycle(
-            self.soc_part2(params),
-            1,
-            params["batch_count"],
-            params["voltage_count"]
-        )
+        soc_0 = self.embed_cycle(self.soc_part2(params), 1, params)
+        soc_1 = self.embed_cycle(self.soc_part2(params), 1, params)
+
         return - theoretical_cap * (soc_1 - soc_0)
 
     # soc_0 = soc(eq_voltage_1, cell_feat)
@@ -144,6 +137,7 @@ class DegradationModel(Model):
         return self.nn_call(self.nn_eq_voltage_0, dependencies)
 
     # End: Part 2 ==============================================================
+
     '''
 
     # Begin: Part 1 ============================================================
@@ -153,28 +147,20 @@ class DegradationModel(Model):
         theoretical_cap = self.embed_cycle(
             self.theoretical_cap(params), # scalar
             1,
-            params["batch_count"],
-            params["voltage_count"]
+            params
         )
-
-        soc_0 = self.embed_cycle(
-            self.soc_0_part1(params), # scalar
-            1,
-            params["batch_count"],
-            params["voltage_count"]
-        )
+        soc_0 = self.embed_cycle(self.soc_0_part1(params), 1, params)
         soc_1 = self.soc(params, self.eq_voltage_1(params), scalar = False)
+
         return -theoretical_cap * (soc_1 - soc_0)
 
     # eq_voltage_1 = voltage + dchg_rate * R
     def eq_voltage_1(self, params):
-        r_flat = self.embed_cycle(
-            self.r(params),
-            1,
-            params["batch_count"],
-            params["voltage_count"]
-        )
+        r_flat = self.embed_cycle(self.r(params), 1, params)
+
         return params["voltage_flat"] + params["dchg_rate_flat"] * r_flat
+
+    '''
 
     # theoretical_cap = theoretical_cap(cycles, dchg_rate, cell_feat)
     def theoretical_cap(self, params):
@@ -185,6 +171,8 @@ class DegradationModel(Model):
             params["cell_feat"]
         )
         return tf.exp(self.nn_call(self.nn_theoretical_cap, dependencies))
+
+    '''
 
     # sco_1 = soc(eq_voltage_1, cell_feat)
     def soc(self, params, voltage, scalar = True):
@@ -206,6 +194,8 @@ class DegradationModel(Model):
         return tf.exp(self.nn_call(self.nn_soc_0, dependencies))
 
     # End: Part 1 ==============================================================
+
+    '''
 
     # Structured variables -----------------------------------------------------
 
@@ -333,28 +323,28 @@ class DegradationModel(Model):
         del tape3
         return res, derivatives
 
-    def embed_cycle(self, thing, dim_thing, dim_cyc, dim_vol):
+    def embed_cycle(self, thing, dim_thing, params):
         return tf.reshape(
             tf.tile(
                 tf.expand_dims(
                     thing,
                     axis=1
                 ),
-                [1, dim_vol,1]
+                [1, params["voltage_count"],1]
             ),
-            [dim_cyc*dim_vol, dim_thing]
+            [params["batch_count"] * params["voltage_count"], dim_thing]
         )
 
-    def embed_voltage(self, thing, dim_thing, dim_cyc, dim_vol):
+    def embed_voltage(self, thing, dim_thing, params):
         return tf.reshape(
             tf.tile(
                 tf.expand_dims(
                     thing,
                     axis=0
                 ),
-                [dim_cyc, 1,1]
+                [params["batch_count"], 1,1]
             ),
-            [dim_cyc*dim_vol, dim_thing]
+            [params["batch_count"] * params["voltage_count"], dim_thing]
         )
 
     def call(self, x, training=False):
@@ -368,10 +358,14 @@ class DegradationModel(Model):
         cycles = centers[:, 0:1] # matrix; dim: [batch, 1]
         rates = centers[:, 1:] # dim: [batch, 2]
 
-        batch_count = cycles.shape[0]
-        voltage_count = voltage_vector.shape[0]
         # duplicate cycles and others for all the voltages
         # dimensions are now [batch, voltages, features]
+        batch_count = cycles.shape[0]
+        voltage_count = voltage_vector.shape[0]
+        count_dict = {
+            "batch_count": batch_count,
+            "voltage_count": voltage_count
+        }
 
         params = {
             "batch_count": batch_count,
@@ -379,38 +373,32 @@ class DegradationModel(Model):
             "cycles_flat": self.embed_cycle(
                 cycles,
                 1,
-                batch_count,
-                voltage_count
+                count_dict
             ),
             "chg_rate_flat": self.embed_cycle(
                 rates[:, 0:1],
                 1,
-                batch_count,
-                voltage_count
+                count_dict
             ),
             "dchg_rate_flat": self.embed_cycle(
                 rates[:, 1:2],
                 1,
-                batch_count,
-                voltage_count
+                count_dict
             ),
             "cell_feat_flat": self.embed_cycle(
                 features[:, 1:],
                 self.width - 1,
-                batch_count,
-                voltage_count
+                count_dict
             ),
             "voltage_flat": self.embed_voltage(
                 tf.expand_dims(voltage_vector, axis = 1),
                 1,
-                batch_count,
-                voltage_count
+                count_dict
             ),
             "norm_constant_flat": self.embed_cycle(
                 features[:, 0:1],
                 1,
-                batch_count,
-                voltage_count
+                count_dict
             ),
 
             "norm_constant": features[:, 0:1],
@@ -428,7 +416,7 @@ class DegradationModel(Model):
             ''' discharge capacity '''
             cap, cap_der = self.create_derivatives(
                 params,
-                self.dchg_cap_part1,
+                self.dchg_cap_part2,
                 scalar = False
             )
             cap = tf.reshape(cap, [-1, voltage_count])
@@ -482,7 +470,7 @@ class DegradationModel(Model):
 
             return {
                 "pred_cap": tf.reshape(
-                    self.dchg_cap_part1(params),
+                    self.dchg_cap_part2(params),
                     [-1, voltage_vector.shape[0]]
                 ),
                 "pred_max_dchg_vol": pred_max_dchg_vol,

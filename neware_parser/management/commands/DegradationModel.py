@@ -164,7 +164,7 @@ class DegradationModel(Model):
             params["voltage_count"]
         )
         soc_1 = self.soc(params, self.eq_voltage_1(params), scalar = False)
-        return theoretical_cap * (soc_1 - soc_0)
+        return -theoretical_cap * (soc_1 - soc_0)
 
     # eq_voltage_1 = voltage + dchg_rate * R
     def eq_voltage_1(self, params):
@@ -180,6 +180,7 @@ class DegradationModel(Model):
     def theoretical_cap(self, params):
         dependencies = (
             self.norm_cycle(params),
+            #params["chg_rate"],
             params["dchg_rate"],
             params["cell_feat"]
         )

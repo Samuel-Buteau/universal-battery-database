@@ -108,37 +108,31 @@ class DegradationModel(Model):
 
     # Structured variables -----------------------------------------------------
 
-    # dchg_cap_part2 = -theoretical_cap * (soc_1 - soc_0)
     def dchg_cap_part2(self, params):
         theoretical_cap = self.embed_cycle(
-            self.theoretical_cap(params),
+            self.theoretical_cap(params), # scalar
             1,
             params
         )
-        soc_0 = self.embed_cycle(self.soc_part2(params), 1, params)
-        soc_1 = self.embed_cycle(self.soc_part2(params), 1, params)
-
-        return - theoretical_cap * (soc_1 - soc_0)
-
-    # soc_0 = soc(eq_voltage_1, cell_feat)
-    def soc_part2(self, params):
-        dependencies = (
-            self.eq_voltage_0(params),
-            params["cell_feat"]
+        soc_0 = self.embed_cycle(
+            self.soc(params, self.eq_voltage_0(params), scalar = True),
+            1,
+            params
         )
-        return self.nn_call(self.nn_soc_part2, dependencies)
+        soc_1 = self.soc(params, self.eq_voltage_1(params), scalar = False)
+
+        return -theoretical_cap * (soc_1 - soc_0)
 
     # eq_voltage_1 = eq_voltage_0(cycle, cell_feat)
     def eq_voltage_0(self, params):
         dependencies = (
-            self.norm_cycle(params),
+            self.norm_cycle(params, scalar = True),
+            params["chg_rate"],
             params["cell_feat"]
         )
         return self.nn_call(self.nn_eq_voltage_0, dependencies)
 
     # End: Part 2 ==============================================================
-
-    '''
 
     # Begin: Part 1 ============================================================
 
@@ -160,8 +154,6 @@ class DegradationModel(Model):
 
         return params["voltage_flat"] + params["dchg_rate_flat"] * r_flat
 
-    '''
-
     # theoretical_cap = theoretical_cap(cycles, dchg_rate, cell_feat)
     def theoretical_cap(self, params):
         dependencies = (
@@ -172,8 +164,6 @@ class DegradationModel(Model):
         )
         return tf.exp(self.nn_call(self.nn_theoretical_cap, dependencies))
 
-    '''
-
     # sco_1 = soc(eq_voltage_1, cell_feat)
     def soc(self, params, voltage, scalar = True):
         cell_feat = "cell_feat"
@@ -183,7 +173,7 @@ class DegradationModel(Model):
         dependencies = (voltage, params[cell_feat])
         return self.nn_call(self.nn_soc, dependencies)
 
-    # soc_0 = soc_0(cycles, chg_rate, dchg_rate, cell_feat)
+    # soc_0 = soc_0(cycles, dchg_rate, cell_feat)
     def soc_0_part1(self, params):
         dependencies = (
             self.norm_cycle(params),
@@ -194,8 +184,6 @@ class DegradationModel(Model):
         return tf.exp(self.nn_call(self.nn_soc_0, dependencies))
 
     # End: Part 1 ==============================================================
-
-    '''
 
     # Structured variables -----------------------------------------------------
 
@@ -323,6 +311,7 @@ class DegradationModel(Model):
         del tape3
         return res, derivatives
 
+    # given a tensor,
     def embed_cycle(self, thing, dim_thing, params):
         return tf.reshape(
             tf.tile(

@@ -69,41 +69,59 @@ class DegradationModel(Model):
             cycles += "_flat"
         return params[cycles] * (1e-10 + tf.exp(-params[norm_constant]))
 
-    '''
-
     # Begin: Part 3 ============================================================
+
+    def dchg_cap_part3(self, params):
+        theoretical_cap = self.embed_cycle(
+            self.theoretical_cap(params), # scalar
+            1,
+            params
+        )
+
+        shift = self.shift(params)
+
+        soc_0 = self.embed_cycle(
+            self.soc_part3(
+                params,
+                shift,
+                self.eq_voltage_0(params),
+                scalar = True
+            ),
+            1,
+            params
+        )
+        soc_1 = self.soc_part3(
+            params,
+            self.embed_cycle(shift, 1, params),
+            self.eq_voltage_1(params),
+            scalar = False
+        )
+
+        return -theoretical_cap * (soc_1 - soc_0)
 
     def shift(self, params):
         dependencies = (
-            self.norm_cycles(params),
+            self.norm_cycle(params, scalar = True),
             params["chg_rate"],
             params["dchg_rate"],
             params["cell_feat"]
         )
         return self.nn_call(self.nn_shift, dependencies)
 
-    # NOTE soc_0 and soc_1 use the same nn by different eq_voltage?
-    def soc_0_part3(self, params):
+    def soc_part3(self, params, shift, voltage, scalar = True):
+        cell_feat = "cell_feat"
+        if not scalar:
+            cell_feat = "cell_feat_flat"
+
         dependencies = (
-            self.shift(params),
-            self.eq_voltage_0(params),
-            params["cell_feat"]
+            shift,
+            voltage,
+            params[cell_feat]
         )
         return self.nn_call(self.nn_soc_0_part3, dependencies)
 
-    def soc_1_part3(self, params):
-        dependencies = (
-            self.shift(params),
-            self.eq_voltage_1(params),
-            params["cell_feat"]
-        )
-        return self.nn_call(self.nn_soc_1_part3, dependecies)
-
     # End: Part 3 ==============================================================
 
-    '''
-
-    # TODO Does not work
     # Begin: Part 2 ============================================================
 
     # Structured variables -----------------------------------------------------
@@ -342,6 +360,7 @@ class DegradationModel(Model):
         indecies = x[1]  # batch of index; dim: [batch]
         meas_cycles = x[2]  # batch of cycles; dim: [batch]
         voltage_vector = x[3] # dim: [voltages]
+        # TODO get another input `shift_vector`
 
         features, mean, log_sig = self.dictionary(indecies, training=training)
         cycles = centers[:, 0:1] # matrix; dim: [batch, 1]
@@ -405,7 +424,7 @@ class DegradationModel(Model):
             ''' discharge capacity '''
             cap, cap_der = self.create_derivatives(
                 params,
-                self.dchg_cap_part2,
+                self.dchg_cap_part3,
                 scalar = False
             )
             cap = tf.reshape(cap, [-1, voltage_count])
@@ -459,7 +478,7 @@ class DegradationModel(Model):
 
             return {
                 "pred_cap": tf.reshape(
-                    self.dchg_cap_part2(params),
+                    self.dchg_cap_part3(params),
                     [-1, voltage_vector.shape[0]]
                 ),
                 "pred_max_dchg_vol": pred_max_dchg_vol,

@@ -88,7 +88,6 @@ def plot_vq(plot_params, init_returns):
         )
         plt.close(fig)
 
-
 def plot_test_rate_voltage(plot_params, init_returns):
     barcodes = plot_params["barcodes"]
     count = plot_params["count"]
@@ -97,7 +96,6 @@ def plot_test_rate_voltage(plot_params, init_returns):
     degradation_model = init_returns["degradation_model"]
     vol_tensor = init_returns["vol_tensor"]
 
-    Print.colour(Print.BLUE, "plot capacity")
     for barcode_count, barcode in enumerate(barcodes):
         results = []
         for k in [[0.1, x / 10.] for x in range(40)]:
@@ -114,11 +112,10 @@ def plot_test_rate_voltage(plot_params, init_returns):
         plt.savefig(
             os.path.join(
                 fit_args['path_to_plots'],
-                'Cap_{}_Count_{}.png'.format(barcode, count)
+                'Test_Rate_Voltage_{}_Count_{}.png'.format(barcode, count)
             )
         )
         plt.close(fig)
-
 
 def plot_capacity(plot_params, init_returns):
     barcodes = plot_params["barcodes"]
@@ -214,52 +211,50 @@ def plot_eq_vol(plot_params, init_returns):
             ]
 
             my_cycles = [
-                (cyc - cycles_m) / tf.sqrt(cycles_v) for cyc in cycles]
+                (cyc - cycles_m) / tf.sqrt(cycles_v) for cyc in cycles
+            ]
 
-            pred_cap, pred_max_dchg_vol, pred_eq_vol, pred_r = test_single_voltage(
-                my_cycles, vol_tensor[0], k, barcode_count, degradation_model)
+            (
+                pred_cap,
+                pred_max_dchg_vol,
+                pred_eq_vol,
+                pred_r
+            ) = test_single_voltage(
+                my_cycles, vol_tensor[0], k, barcode_count, degradation_model
+            )
 
             ax1.plot(cycles, pred_eq_vol, c=colors[k_count])
             ax1.plot(cycles, [4.3 for _ in cycles], c='0.5')
-            ax1.tick_params(
-                direction='in',
-                length=3,
-                width=1,
-                labelsize=12,
-                bottom=True,
-                top=True,
-                left=True,
-                right=True
-            )
-            ax2.plot(
-                cycles,
-                pred_r,
-                c=colors[k_count]
-            )
-            ax2.plot(
-                cycles,
-                [0.05 for _ in cycles],
-                c='0.5'
-            )
-            ax2.tick_params(
-                direction='in',
-                length=3,
-                width=1,
-                labelsize=12,
-                bottom=True,
-                top=True,
-                left=True,
-                right=True
-            )
+            set_tick_params(ax1)
+
+            ax2.plot(cycles, pred_r, c=colors[k_count])
+            ax2.plot(cycles, [0.05 for _ in cycles], c='0.5')
+            set_tick_params(ax2)
+
         plt.tight_layout(pad=0.1)
-        plt.savefig(
-            os.path.join(
-                fit_args['path_to_plots'],
-                'Eq_{}_Count_{}.png'.format(barcode, count)
-            ),
-            dpi=300
-        )
+        savefig('Eq_{}_Count_{}.png', fit_args, barcode, count)
         plt.close(fig)
+
+def savefig(figname, fit_args, barcode, count):
+    plt.savefig(
+        os.path.join(
+            fit_args['path_to_plots'],
+            figname.format(barcode, count)
+        ),
+        dpi=300
+    )
+
+def set_tick_params(ax):
+    ax.tick_params(
+        direction='in',
+        length=3,
+        width=1,
+        labelsize=12,
+        bottom=True,
+        top=True,
+        left=True,
+        right=True
+    )
 
 def test_all_voltages(cycle, k, barcode_count, degradation_model, voltages):
     centers = tf.expand_dims(

@@ -31,8 +31,6 @@ def feedforward_nn_parameters(depth, width):
     )
     return {'initial': initial, 'bulk': bulk, 'final': final}
 
-
-
 class DegradationModel(Model):
 
     def __init__(self, num_keys, depth, width):

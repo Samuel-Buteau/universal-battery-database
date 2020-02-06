@@ -74,28 +74,21 @@ class DegradationModel(Model):
     ''' Part 3 ------------------------------------------------------------- '''
 
     def dchg_cap_part3(self, params):
-        theoretical_cap = self.embed_cycle(
-            self.theoretical_cap(params), # scalar
-            1,
+        theoretical_cap = self.add_volt_dep(
+            self.theoretical_cap(params),
             params
         )
 
         shift = self.shift(params)
 
-        soc_0 = self.embed_cycle(
-            self.soc_part3(
-                params,
-                shift,
-                self.eq_voltage_0(params),
-                scalar = True
-            ),
-            1,
+        soc_0 = self.add_volt_dep(
+            self.soc_part3(params, shift, self.eq_voltage_0(params)),
             params
         )
         # "whereever you are in the voltage curve"
         soc_1 = self.soc_part3(
             params,
-            self.embed_cycle(shift, 1, params),
+            self.add_volt_dep(shift, params),
             self.eq_voltage_1(params),
             scalar = False
         )
@@ -126,14 +119,12 @@ class DegradationModel(Model):
     ''' Part 2 ------------------------------------------------------------- '''
 
     def dchg_cap_part2(self, params):
-        theoretical_cap = self.embed_cycle(
-            self.theoretical_cap(params), # scalar
-            1,
+        theoretical_cap = self.add_volt_dep(
+            self.theoretical_cap(params),
             params
         )
-        soc_0 = self.embed_cycle(
+        soc_0 = self.add_volt_dep(
             self.soc(params, self.eq_voltage_0(params), scalar = True),
-            1,
             params
         )
         soc_1 = self.soc(params, self.eq_voltage_1(params), scalar = False)
@@ -153,19 +144,18 @@ class DegradationModel(Model):
 
     # dchg_cap_part1 = -theoretical_cap * (soc_1 - soc_0)
     def dchg_cap_part1(self, params):
-        theoretical_cap = self.embed_cycle(
+        theoretical_cap = self.add_volt_dep(
             self.theoretical_cap(params), # scalar
-            1,
             params
         )
-        soc_0 = self.embed_cycle(self.soc_0_part1(params), 1, params)
+        soc_0 = self.add_volt_dep(self.soc_0_part1(params), params)
         soc_1 = self.soc(params, self.eq_voltage_1(params), scalar = False)
 
         return -theoretical_cap * (soc_1 - soc_0)
 
     # eq_voltage_1 = voltage + dchg_rate * R
     def eq_voltage_1(self, params):
-        r_flat = self.embed_cycle(self.r(params), 1, params)
+        r_flat = self.add_volt_dep(self.r(params), params)
 
         return params["voltage_flat"] + params["dchg_rate_flat"] * r_flat
 
@@ -325,8 +315,8 @@ class DegradationModel(Model):
         del tape3
         return res, derivatives
 
-    def embed_cycle(self, thing, dim_thing, params):
     # add voltage dependence ([cyc] -> [cyc, vol])
+    def add_volt_dep(self, thing, params, dim = 1):
         return tf.reshape(
             tf.tile(
                 tf.expand_dims(
@@ -335,11 +325,11 @@ class DegradationModel(Model):
                 ),
                 [1, params["voltage_count"],1]
             ),
-            [params["batch_count"] * params["voltage_count"], dim_thing]
+            [params["batch_count"] * params["voltage_count"], dim]
         )
 
-    def embed_voltage(self, thing, dim_thing, params):
     # add cycle dependence ([vol] -> [cyc, vol])
+    def add_cyc_dep(self, thing, params, dim = 1):
         return tf.reshape(
             tf.tile(
                 tf.expand_dims(
@@ -348,7 +338,7 @@ class DegradationModel(Model):
                 ),
                 [params["batch_count"], 1,1]
             ),
-            [params["batch_count"] * params["voltage_count"], dim_thing]
+            [params["batch_count"] * params["voltage_count"], dim]
         )
 
     def call(self, x, training=False):
@@ -377,34 +367,29 @@ class DegradationModel(Model):
         params = {
             "batch_count": batch_count,
             "voltage_count": voltage_count,
-            "cycles_flat": self.embed_cycle(
+            "cycles_flat": self.add_volt_dep(
                 cycles,
-                1,
                 count_dict
             ),
-            "chg_rate_flat": self.embed_cycle(
+            "chg_rate_flat": self.add_volt_dep(
                 rates[:, 0:1],
-                1,
                 count_dict
             ),
-            "dchg_rate_flat": self.embed_cycle(
+            "dchg_rate_flat": self.add_volt_dep(
                 rates[:, 1:2],
-                1,
                 count_dict
             ),
-            "cell_feat_flat": self.embed_cycle(
+            "cell_feat_flat": self.add_volt_dep(
                 features[:, 1:],
-                self.width - 1,
-                count_dict
+                count_dict,
+                dim = self.width - 1
             ),
-            "voltage_flat": self.embed_voltage(
+            "voltage_flat": self.add_cyc_dep(
                 tf.expand_dims(voltage_vector, axis = 1),
-                1,
                 count_dict
             ),
-            "norm_constant_flat": self.embed_cycle(
+            "norm_constant_flat": self.add_volt_dep(
                 features[:, 0:1],
-                1,
                 count_dict
             ),
 

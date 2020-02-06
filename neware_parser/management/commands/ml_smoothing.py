@@ -199,13 +199,15 @@ def initial_processing(my_data, barcodes, fit_args):
 
             if valid_cycles != 0:
                 neigh_data_int = numpy.array(
-                    neigh_data_int, dtype=numpy.int32)
+                    neigh_data_int, dtype=numpy.int32
+                )
 
                 # the empty slot becomes the count of added neighborhoods, which
                 # are used to counterbalance the bias toward longer cycle life
                 neigh_data_int[:, NEIGH_INT_VALID_CYC_INDEX] = valid_cycles
                 neigh_data_float = numpy.array(
-                    neigh_data_float, dtype=numpy.float32)
+                    neigh_data_float, dtype=numpy.float32
+                )
 
                 cell_neigh_data_int.append(neigh_data_int)
                 cell_neigh_data_float.append(neigh_data_float)
@@ -296,7 +298,8 @@ def initial_processing(my_data, barcodes, fit_args):
         degradation_model = DegradationModel(
             num_keys=len(barcodes),
             width=fit_args['width'],
-            depth=fit_args['depth'])
+            depth=fit_args['depth']
+        )
 
         optimizer = tf.keras.optimizers.Adam()
 

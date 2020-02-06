@@ -474,7 +474,6 @@ class DegradationModel(Model):
         else:
             pred_max_dchg_vol = self.max_dchg_vol(params)
             pred_eq_vol = self.eq_vol(params)
-            pred_r = self.r(params)
 
             return {
                 "pred_cap": tf.reshape(
@@ -483,7 +482,9 @@ class DegradationModel(Model):
                 ),
                 "pred_max_dchg_vol": pred_max_dchg_vol,
                 "pred_eq_vol": pred_eq_vol,
-                "pred_r": pred_r
+                "pred_r": self.r(params),
+
+                "shift": self.shift(params)
             }
 
 # stores cell features

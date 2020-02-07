@@ -176,6 +176,50 @@ def plot_capacity(plot_params, init_returns):
         savefig('Cap_{}_Count_{}.png', fit_args, barcode, count)
         plt.close(fig)
 
+def plot_shift(plot_params, init_returns):
+    barcodes = plot_params["barcodes"]
+    count = plot_params["count"]
+    fit_args = plot_params["fit_args"]
+
+    degradation_model = init_returns["degradation_model"]
+    test_object = init_returns["test_object"]
+    all_data = init_returns["all_data"]
+    cycles_m = init_returns["cycles_m"]
+    cycles_v = init_returns["cycles_v"]
+    vol_tensor = init_returns["vol_tensor"]
+
+    for barcode_count, barcode in enumerate(barcodes):
+        fig = plt.figure()
+        ax1 = fig.add_subplot(1, 2, 1)
+        ax2 = fig.add_subplot(1, 2, 2)
+
+        colors = ['k', 'r', 'b', 'g', 'm', 'c']
+
+        for k_count, k in enumerate(test_object[barcode_count].keys()):
+            cycles = test_object[barcode_count][k]
+            min_c = min(cycles)
+            max_c = max(cycles)
+            cycles = [
+                float(min_c) + float(max_c - min_c)
+                * x for x in np.arange(0., 1.1, 0.02)
+            ]
+
+            my_cycles = [
+                (cyc - cycles_m) / tf.sqrt(cycles_v) for cyc in cycles
+            ]
+
+            test_results = test_single_voltage(
+                my_cycles, vol_tensor[0], k, barcode_count, degradation_model
+            )
+
+            ax1.plot(cycles, test_results["shift"], c=colors[k_count])
+            ax1.set_ylabel("shift")
+            ax2.plot(cycles, test_results["pred_eq_vol"], c=colors[k_count])
+            ax2.set_ylabel("eq_voltage_0")
+
+        savefig('Shift_{}_Count_{}.png', fit_args, barcode, count)
+        plt.close(fig)
+
 def plot_eq_vol(plot_params, init_returns):
     barcodes = plot_params["barcodes"]
     count = plot_params["count"]

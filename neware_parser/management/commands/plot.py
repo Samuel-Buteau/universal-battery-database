@@ -25,34 +25,41 @@ def plot_vq(plot_params, init_returns):
         fig = plt.figure()
         ax = fig.add_subplot(1, 2, 1)
         colors = ['k', 'r', 'b', 'g', 'm', 'c']
+
         for k_count, k in enumerate(test_object[barcode_count].keys()):
 
-            n_samples = len(all_data[barcode][k]['capacity_vector'])
-            for vq_count, vq in enumerate(
-                    all_data[barcode][k]['capacity_vector']):
+            barcode_k = all_data[barcode][k]
+            n_samples = len(barcode_k['capacity_vector'])
+
+            for vq_count, vq in enumerate(barcode_k['capacity_vector']):
 
                 ax.plot(vq, vol_tensor.numpy(), c=colors[k_count])
 
                 if vq_count % int(n_samples / 10) == 0:
                     fused_vector = np.stack([vq, vol_tensor.numpy()], axis=1)
-                    target_voltage = all_data[barcode][k][
-                        'dchg_maximum_voltage'][vq_count]
+                    target_voltage = barcode_k['dchg_maximum_voltage'][vq_count]
                     best_point = get_nearest_point(fused_vector, target_voltage)
+
                     ax.scatter(
-                        [best_point[0]], [best_point[1]], c=colors[k_count],
-                        marker='o', s=100)
+                        [best_point[0]],
+                        [best_point[1]],
+                        c=colors[k_count],
+                        marker='o',
+                        s=100
+                    )
 
         ax = fig.add_subplot(1, 2, 2)
         colors = [(1., 1., 1.), (1., 0., 0.), (0., 0., 1.),
                   (0., 1., 0.), (1., 0., 1.), (0., 1., 1.)]
 
+        cycles = [0, 2000, 4000, 6000]
         for k_count, k in enumerate(test_object[barcode_count].keys()):
-            cycles = [0, 2000, 4000, 6000]
 
             for i, cyc in enumerate(cycles):
                 cycle = ((float(cyc) - cycles_m) / tf.sqrt(cycles_v))
                 test_results = test_all_voltages(
-                    cycle, k, barcode_count, degradation_model, vol_tensor)
+                    cycle, k, barcode_count, degradation_model, vol_tensor
+                )
 
                 pred_cap = tf.reshape(test_results["pred_cap"], shape = [-1])
 

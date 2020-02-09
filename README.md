@@ -168,6 +168,11 @@ eq2 (a, x) (b, y) = eq2 x y
 Based on these two properties, we always want to maintain the propriety that the list of objects in the database is unique with respect to eq and to eq2.
 
 ## object creation
+We have 3 modes of creation: 
+1. create new: if object already exists, don't do anything and return existing. Otherwise, create and return, but if string already exists, set to all visible
+2. override visibility: if object already exists, modify visibility flags. If new string already exists, keep old visibility flags, otherwise modify.
+3. modify a specific target. First, exclude the target id from the search and do the same thing as "create new" except modify rather than create and use the target id 
+
 We never want to create an object if there is another object satisfying object equality (eq2) in the database.
 if given such an object, we return one of the equality set (eq2) and don't create anything.
 

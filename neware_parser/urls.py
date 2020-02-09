@@ -24,5 +24,5 @@ urlpatterns = [
     path('', index, name='index'),
     path('admin/', admin.site.urls),
     path('FileNameHelper/', include('FileNameHelper.urls')),
-    #path('WetCellDatabase/', include('WetCellDatabase.urls')),
+    path('WetCellDatabase/', include('WetCellDatabase.urls')),
 ]

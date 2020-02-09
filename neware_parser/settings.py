@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'neware_parser',
     'FileNameHelper',
-    #'WetCellDatabase',
+    'WetCellDatabase',
     'background_task',
 ]
 

@@ -8,7 +8,7 @@ from .colour_print import Print
 def feedforward_nn_parameters(depth, width):
     initial = Dense(
         width,
-        activation = 'relu',
+        activation = 'elu',
         use_bias = True,
         bias_initializer = 'zeros'
     )
@@ -16,7 +16,7 @@ def feedforward_nn_parameters(depth, width):
     bulk = [
         Dense(
             width,
-            activation = 'relu',
+            activation = 'elu',
             use_bias = True,
             bias_initializer = 'zeros'
         ) for _ in range(depth)

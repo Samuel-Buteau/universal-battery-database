@@ -455,19 +455,25 @@ class DegradationModel(Model):
             }
 
         else:
+            pred_cap = tf.reshape(
+                self.dchg_cap_part3(params),
+                [-1, voltage_vector.shape[0]]
+            )
             pred_max_dchg_vol = self.max_dchg_vol(params)
             pred_eq_vol = self.eq_vol(params)
+            pred_r = self.r(params)
+
+            shift = self.shift(params)
+            pred_eq_voltage_0 = self.eq_voltage_0(params)
 
             return {
-                "pred_cap": tf.reshape(
-                    self.dchg_cap_part3(params),
-                    [-1, voltage_vector.shape[0]]
-                ),
+                "pred_cap": pred_cap,
                 "pred_max_dchg_vol": pred_max_dchg_vol,
                 "pred_eq_vol": pred_eq_vol,
-                "pred_r": self.r(params),
+                "pred_r": pred_r,
 
-                "shift": self.shift(params)
+                "shift": shift,
+                "pred_eq_voltage_0": pred_eq_voltage_0
             }
 
 # stores cell features

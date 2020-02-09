@@ -556,7 +556,7 @@ def train_step(params, fit_args):
         )
 
         loss = (
-            cap_loss + max_dchg_vol_loss
+            cap_loss# + max_dchg_vol_loss
             + kl_loss + mono_loss + smooth_loss
             + const_f_loss + smooth_f_loss
         )
@@ -615,14 +615,14 @@ class Command(BaseCommand):
         parser.add_argument('--smooth_f_coeff', type=float, default=.01)
         parser.add_argument('--depth', type=int, default=3)
         parser.add_argument('--width', type=int, default=32)
-        parser.add_argument('--batch_size', type=int, default=2 * 16)
-        parser.add_argument('--print_loss_every', type=int, default=1000)
+        parser.add_argument('--batch_size', type=int, default=2 * 32)
+        parser.add_argument('--print_loss_every', type=int, default=2000)
         parser.add_argument(
-            '--visualize_fit_every', type=int, default=1000)
+            '--visualize_fit_every', type=int, default=2000)
         parser.add_argument(
-            '--visualize_vq_every', type=int, default=1000)
+            '--visualize_vq_every', type=int, default=2000)
 
-        parser.add_argument('--stop_count', type=int, default=80000)
+        parser.add_argument('--stop_count', type=int, default=100000)
         parser.add_argument(
             '--wanted_barcodes', type=int, nargs='+', default=[83220, 83083])
 

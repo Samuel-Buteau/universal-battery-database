@@ -112,7 +112,7 @@ class DegradationModel(Model):
             voltage,
             params[cell_feat]
         )
-        return self.nn_call(self.nn_soc_0_part3, dependencies)
+        return tf.exp(self.nn_call(self.nn_soc_0_part3, dependencies))
 
     ''' Part 2 ------------------------------------------------------------- '''
 
@@ -136,7 +136,7 @@ class DegradationModel(Model):
             params["chg_rate"],
             params["cell_feat"]
         )
-        return self.nn_call(self.nn_eq_voltage_0, dependencies)
+        return tf.exp(self.nn_call(self.nn_eq_voltage_0, dependencies))
 
     ''' Part 1 ------------------------------------------------------------- '''
 

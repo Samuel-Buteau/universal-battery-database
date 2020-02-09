@@ -343,6 +343,14 @@ class Step(models.Model):
     minimum_current = models.FloatField(null=True)
     maximum_current = models.FloatField(null=True)
     duration = models.FloatField(null=True)
+
+    constant_voltage = models.FloatField(null=True)
+    end_voltage = models.FloatField(null=True)
+    end_voltage_prev = models.FloatField(null=True)
+    constant_current = models.FloatField(null=True)
+    end_current = models.FloatField(null=True)
+    end_current_prev = models.FloatField(null=True)
+
     '''
      numpy list, float, voltages (V)
      numpy list, float, currents (mA)

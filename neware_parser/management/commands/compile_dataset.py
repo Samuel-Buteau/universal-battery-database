@@ -123,6 +123,84 @@ def initial_processing(my_barcodes, fit_args):
         # - the rate of discharge (for previous cycle)
         # - cutoff rate of charge (for current cycle)
         # - cutoff rate of discharge (for previous cycle)
+        fs = get_files_for_barcode(barcode)
+        for f in fs:
+            steps = Step.objects.filter(cycle__cycling_file=f).order_by('cycle__cycle_number', 'step_number')
+            if len(steps) == 0:
+                continue
+            first_step = steps[0]
+
+            if 'CC_' in first_step.step_type:
+                sign = +1.
+                if 'DChg' in first_step.step_type:
+                    sign = -1.
+
+                first_step.end_current_prev = 0.
+                first_step.constant_current = sign * first_step.average_current_by_capacity
+                first_step.end_current = first_step.constant_current
+                if sign > 0:
+                    first_step.end_voltage = first_step.maximum_voltage
+                    first_step.end_voltage_prev = first_step.minimum_voltage
+                else:
+                    first_step.end_voltage = first_step.minimum_voltage
+                    first_step.end_voltage_prev = first_step.maximum_voltage
+
+            if 'CCCV_' in first_step.step_type:
+                sign = +1.
+                if 'DChg' in first_step.step_type:
+                    sign = -1.
+
+                first_step.end_current_prev = 0.
+                first_step.constant_current = sign * first_step.maximum_current
+                first_step.end_current = sign * first_step.minimum_current
+                if sign > 0:
+                    first_step.end_voltage = first_step.maximum_voltage
+                    first_step.constant_voltage = first_step.maximum_voltage
+                    first_step.end_voltage_prev = first_step.minimum_voltage
+
+                else:
+
+                    first_step.end_voltage = first_step.minimum_voltage
+                    first_step.constant_voltage = first_step.minimum_voltage
+                    first_step.end_voltage_prev = first_step.maximum_voltage
+
+            first_step.save()
+
+            if len(steps) == 1:
+                continue
+            for i in range(1, len(steps)):
+                step = steps[i]
+                if 'CC_' in step.step_type:
+                    sign = +1.
+                    if 'DChg' in step.step_type:
+                        sign = -1.
+                    step.end_current_prev = steps[i-1].end_current
+                    step.end_voltage_prev = steps[i-1].end_voltage
+                    step.constant_current = sign * step.average_current_by_capacity
+                    step.end_current = step.constant_current
+                    if sign > 0:
+                        step.end_voltage = step.maximum_voltage
+                    else:
+                        step.end_voltage = step.minimum_voltage
+
+                if 'CCCV_' in step.step_type:
+                    sign = +1.
+                    if 'DChg' in step.step_type:
+                        sign = -1.
+
+                    step.end_current_prev = steps[i - 1].end_current
+                    step.end_voltage_prev = steps[i - 1].end_voltage
+                    step.constant_current = sign * step.maximum_current
+                    step.end_current = sign * step.minimum_current
+                    if sign > 0:
+                        step.end_voltage = step.maximum_voltage
+                        step.constant_voltage = step.maximum_voltage
+
+                    else:
+
+                        step.end_voltage = step.minimum_voltage
+                        step.constant_voltage = step.minimum_voltage
+                step.save()
 
         for cyc_group in CycleGroup.objects.filter(
                 barcode=barcode
@@ -131,19 +209,17 @@ def initial_processing(my_barcodes, fit_args):
             for cyc in cyc_group.cycle_set.order_by(
                     'cycle_number'):
                 if cyc.valid_cycle:
-                    vq_curve, vq_mask = machine_learning_post_process_cycle(cyc, voltage_grid)
+                    vq_curve, vq_mask, step_info = machine_learning_post_process_cycle(cyc, voltage_grid)
                     if vq_curve is None:
                         continue
-
+                    #print(step_info)
                     result.append((
                         cyc.get_offset_cycle(),
                         vq_curve,
                         vq_mask,
-                        cyc.chg_minimum_voltage,
-                        cyc.chg_maximum_voltage,
-                        cyc.dchg_minimum_voltage,
-                        cyc.dchg_maximum_voltage,
-
+                        step_info['constant_current'],
+                        step_info['end_current_prev'],
+                        step_info['end_voltage_prev'],
                         cyc.get_temperature()
                     ))
             cyc_grp_dict[
@@ -154,14 +230,20 @@ def initial_processing(my_barcodes, fit_args):
                     ('cycle_number', 'f4'),
                     ('capacity_vector', 'f4', len(voltage_grid)),
                     ('vq_curve_mask', 'f4', len(voltage_grid)),
-                    ('chg_minimum_voltage', 'f4'),
-                    ('chg_maximum_voltage', 'f4'),
-                    ('dchg_minimum_voltage', 'f4'),
-                    ('dchg_maximum_voltage', 'f4'),
+                    ('constant_current', 'f4'),
+                    ('end_current_prev', 'f4'),
+                    ('end_voltage_prev', 'f4'),
 
                     ('temperature', 'f4'),
                 ])
 
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        for k in cyc_grp_dict.keys():
+            print(voltage_grid, numpy.average(cyc_grp_dict[k]['vq_curve_mask'], axis=0))
+            ax.plot(voltage_grid, numpy.average(cyc_grp_dict[k]['vq_curve_mask'], axis=0))
+        plt.savefig(os.path.join(fit_args['path_to_dataset'], 'masks_version_{}_barcode_{}.png'.format(fit_args['dataset_version'], barcode)))
+        plt.close(fig)
         all_data[barcode] = cyc_grp_dict
 
     return {'voltage_grid':voltage_grid, 'all_data':all_data}

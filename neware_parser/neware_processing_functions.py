@@ -947,9 +947,10 @@ def process_single_file(f,DEBUG=False):
 
 def machine_learning_post_process_cycle(cyc, voltage_grid):
     #TODO(sam): add option to compute the charge curve too.
-    steps = cyc.step_set.filter(step_type__contains='DChg').order_by('cycle__cycle_number','step_number')
+    #print(','.join([c.step_type for c in cyc.step_set.order_by('id')]))
+    steps = cyc.step_set.filter(step_type__contains='CC_DChg').order_by('cycle__cycle_number','step_number')
     if len(steps) == 0:
-        return None, None
+        return None, None, None
     else:
         first_step = steps[0]
         vcqt_curve = first_step.get_v_c_q_t_data()
@@ -965,7 +966,7 @@ def machine_learning_post_process_cycle(cyc, voltage_grid):
     never_added_up = True
     never_added_down = True
     if len(curve) < 3:
-        return None, None
+        return None, None, None
 
     while True:
         if cursor[0] + 1 >= cursor[1]:
@@ -1054,7 +1055,7 @@ def machine_learning_post_process_cycle(cyc, voltage_grid):
     valid_curve = curve[masks]
     invalid_curve = curve[~masks]
     if len(invalid_curve) > 5:
-        return None, None
+        return None, None, None
 
     # uniformly sample it
 
@@ -1069,22 +1070,45 @@ def machine_learning_post_process_cycle(cyc, voltage_grid):
 
     added_v = numpy.arange(last + 0.01, 4.6, 0.01)
     added_q = 0. * numpy.arange(last + 0.01, 4.6, 0.01)
-    v = numpy.concatenate((v, added_v), axis=0)
-    q = numpy.concatenate((q, added_q), axis=0)
-    spline = PchipInterpolator(v, q)
+    v1 = numpy.concatenate((v, added_v), axis=0)
+    q1 = numpy.concatenate((q, added_q), axis=0)
+    spline = PchipInterpolator(v1, q1)
     res = spline(voltage_grid)
 
     if not is_monotonically_decreasing(res):
-        return None, None
+        return None, None, None
 
-    return res, numpy.where(
+    mask1 = numpy.where(
                     numpy.logical_and(
-                        voltage_grid <= v_min,
-                        voltage_grid >= v_max
+                        voltage_grid >= v_min,
+                        voltage_grid <= v_max
                     ),
                     numpy.ones(len(voltage_grid), dtype=numpy.float32),
-                    0.001 * numpy.ones(len(voltage_grid), dtype=numpy.float32),
+                    0.01 * numpy.ones(len(voltage_grid), dtype=numpy.float32),
                 )
+
+
+    mask2 = numpy.minimum(
+        mask1,
+        numpy.sum(
+            numpy.exp(
+                -(.4/(voltage_grid[1]-voltage_grid[0])**2)*
+                numpy.square(
+                    numpy.tile(
+                        numpy.expand_dims(
+                            voltage_grid,
+                            axis=1
+                        ),
+                        (1, len(v))) -
+                    numpy.tile(
+                        numpy.expand_dims(
+                            v,
+                            axis=0),
+                        (len(voltage_grid),1))
+                )
+            ), axis=1)
+    )
+    return res, mask2, {'end_current_prev':first_step.end_current_prev, 'end_voltage_prev':first_step.end_voltage_prev,'constant_current':first_step.constant_current,}
 
 
 

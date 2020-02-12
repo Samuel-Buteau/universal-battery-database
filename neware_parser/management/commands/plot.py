@@ -10,6 +10,8 @@ from .colour_print import Print
 from matplotlib.axes._axes import _log as matplotlib_axes_logger
 matplotlib_axes_logger.setLevel('ERROR')
 
+FIGSIZE = [5, 5]
+
 def plot_vq(plot_params, init_returns):
     barcodes = plot_params["barcodes"]
     count = plot_params["count"]
@@ -21,6 +23,9 @@ def plot_vq(plot_params, init_returns):
     cycles_m = init_returns["cycles_m"]
     cycles_v = init_returns["cycles_v"]
     vol_tensor = init_returns["vol_tensor"]
+
+    x_lim = [-0.1, 1.1]
+    y_lim = [2.95, 4.35]
 
     for barcode_count, barcode in enumerate(barcodes):
         fig = plt.figure()
@@ -34,6 +39,8 @@ def plot_vq(plot_params, init_returns):
 
             for vq_count, vq in enumerate(barcode_k['capacity_vector']):
 
+                ax.set_xlim(x_lim)
+                ax.set_ylim(y_lim)
                 ax.plot(vq, vol_tensor.numpy(), c=colors[k_count])
 
                 if vq_count % int(n_samples / 10) == 0:
@@ -41,6 +48,7 @@ def plot_vq(plot_params, init_returns):
                     target_voltage = barcode_k['dchg_maximum_voltage'][vq_count]
                     best_point = get_nearest_point(fused_vector, target_voltage)
 
+                    '''
                     ax.scatter(
                         [best_point[0]],
                         [best_point[1]],
@@ -48,6 +56,7 @@ def plot_vq(plot_params, init_returns):
                         marker='o',
                         s=100
                     )
+                    '''
 
         ax = fig.add_subplot(1, 2, 2)
         colors = [(1., 1., 1.), (1., 0., 0.), (0., 0., 1.),
@@ -65,6 +74,9 @@ def plot_vq(plot_params, init_returns):
                 pred_cap = tf.reshape(test_results["pred_cap"], shape = [-1])
 
                 mult = (i + 4) / (len(cycles) + 5)
+
+                ax.set_xlim(x_lim)
+                ax.set_ylim(y_lim)
                 ax.plot(
                     pred_cap,
                     vol_tensor.numpy(),
@@ -78,6 +90,7 @@ def plot_vq(plot_params, init_returns):
                 fused_vector = np.stack([pred_cap, vol_tensor.numpy()], axis=1)
                 target_voltage = test_results["pred_max_dchg_vol"][0]
                 best_point = get_nearest_point(fused_vector, target_voltage)
+                '''
                 ax.scatter(
                     [best_point[0]],
                     [best_point[1]],
@@ -89,6 +102,7 @@ def plot_vq(plot_params, init_returns):
                         mult * colors[k_count][2]
                     )
                 )
+                '''
 
         savefig('VQ_{}_Count_{}.png', fit_args, barcode, count)
         plt.close(fig)
@@ -137,8 +151,10 @@ def plot_capacity(plot_params, init_returns):
 
     for barcode_count, barcode in enumerate(barcodes):
         fig = plt.figure()
+
         ax1 = fig.add_subplot(1, 2, 1)
         ax1.set_ylim([0.58, 1.03])
+
         ax2 = fig.add_subplot(1, 2, 2)
         ax2.set_ylim([4.1, 4.31])
         ax2.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
@@ -201,8 +217,12 @@ def plot_shift(plot_params, init_returns):
 
     for barcode_count, barcode in enumerate(barcodes):
         fig = plt.figure()
+        fig.subplots_adjust(wspace = 0.4)
+
         ax1 = fig.add_subplot(1, 2, 1)
         ax2 = fig.add_subplot(1, 2, 2)
+
+        #plt.subplots_adjust(hspace = 10)
 
         colors = ['k', 'r', 'b', 'g', 'm', 'c']
 
@@ -243,12 +263,9 @@ def plot_eq_vol(plot_params, init_returns):
     vol_tensor = init_returns["vol_tensor"]
 
     for barcode_count, barcode in enumerate(barcodes):
-        fig = plt.figure(figsize=[7., 5.])
+        fig = plt.figure()
         ax1 = fig.add_subplot(1, 2, 1)
         ax2 = fig.add_subplot(1, 2, 2)
-        for axis in ['top', 'bottom', 'left', 'right']:
-            ax1.spines[axis].set_linewidth(2.)
-            ax2.spines[axis].set_linewidth(2.)
 
         colors = ['k', 'r', 'b', 'g', 'm', 'c']
 
@@ -279,7 +296,6 @@ def plot_eq_vol(plot_params, init_returns):
             ax2.plot(cycles, [0.05 for _ in cycles], c='0.5')
             set_tick_params(ax2)
 
-        plt.tight_layout(pad=0.1)
         savefig('Eq_{}_Count_{}.png', fit_args, barcode, count)
         plt.close(fig)
 

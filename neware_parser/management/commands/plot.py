@@ -152,12 +152,9 @@ def plot_capacity(plot_params, init_returns):
     for barcode_count, barcode in enumerate(barcodes):
         fig = plt.figure()
 
-        ax1 = fig.add_subplot(1, 2, 1)
+        ax1 = fig.add_subplot(1, 1, 1)
+        ax1.set_ylabel("capacity")
         ax1.set_ylim([0.58, 1.03])
-
-        ax2 = fig.add_subplot(1, 2, 2)
-        ax2.set_ylim([4.1, 4.31])
-        ax2.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
 
         colors = ['k', 'r', 'b', 'g', 'm', 'c']
         for k_count, k in enumerate(test_object[barcode_count].keys()):
@@ -165,11 +162,6 @@ def plot_capacity(plot_params, init_returns):
             ax1.scatter(
                 all_data[barcode][k]['cycle_number'],
                 all_data[barcode][k]['capacity_vector'][:, 0],
-                c=colors[k_count]
-            )
-            ax2.scatter(
-                all_data[barcode][k]['cycle_number'],
-                all_data[barcode][k]['dchg_maximum_voltage'],
                 c=colors[k_count]
             )
 
@@ -195,10 +187,8 @@ def plot_capacity(plot_params, init_returns):
                 my_cycles, vol_tensor[0], k, barcode_count, degradation_model
             )
             pred_cap = tf.reshape(test_results["pred_cap"], shape = [-1])
-            pred_max_dchg_vol = test_results["pred_max_dchg_vol"]
 
             ax1.plot(cycles, pred_cap, c=colors[k_count])
-            ax2.plot(cycles, pred_max_dchg_vol, c=colors[k_count])
 
         savefig('Cap_{}_Count_{}.png', fit_args, barcode, count)
         plt.close(fig)

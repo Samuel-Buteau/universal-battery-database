@@ -465,6 +465,7 @@ class DegradationModel(Model):
 
             shift = self.shift(params)
             pred_eq_voltage_0 = self.eq_voltage_0(params)
+            pred_eq_voltage_1 = self.eq_voltage_1(params)
 
             return {
                 "pred_cap": pred_cap,
@@ -473,6 +474,7 @@ class DegradationModel(Model):
                 "pred_r": pred_r,
 
                 "shift": shift,
+                "pred_eq_voltage_1": pred_eq_voltage_1,
                 "pred_eq_voltage_0": pred_eq_voltage_0
             }
 

@@ -605,6 +605,7 @@ def ml_smoothing(fit_args):
 class Command(BaseCommand):
 
     def add_arguments(self, parser):
+
         parser.add_argument('--path_to_dataset', required=True)
         parser.add_argument('--dataset_version', required=True)
         parser.add_argument('--path_to_plots', required=True)
@@ -615,16 +616,17 @@ class Command(BaseCommand):
         parser.add_argument('--smooth_f_coeff', type=float, default=.01)
         parser.add_argument('--depth', type=int, default=3)
         parser.add_argument('--width', type=int, default=32)
-        parser.add_argument('--batch_size', type=int, default=2 * 32)
-        parser.add_argument('--print_loss_every', type=int, default=2000)
-        parser.add_argument(
-            '--visualize_fit_every', type=int, default=2000)
-        parser.add_argument(
-            '--visualize_vq_every', type=int, default=2000)
+        parser.add_argument('--batch_size', type=int, default=2 * 16)
+
+        vis = 1000
+        parser.add_argument('--print_loss_every', type=int, default=vis)
+        parser.add_argument('--visualize_fit_every', type=int, default=vis)
+        parser.add_argument('--visualize_vq_every', type=int, default=vis)
 
         parser.add_argument('--stop_count', type=int, default=100000)
         parser.add_argument(
-            '--wanted_barcodes', type=int, nargs='+', default=[83220, 83083])
+            '--wanted_barcodes', type=int, nargs='+', default=[83220, 83083]
+        )
 
     def handle(self, *args, **options):
         ml_smoothing(options)

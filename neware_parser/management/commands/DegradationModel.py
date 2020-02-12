@@ -8,7 +8,7 @@ from .colour_print import Print
 def feedforward_nn_parameters(depth, width):
     initial = Dense(
         width,
-        activation = 'elu',
+        activation = 'relu',
         use_bias = True,
         bias_initializer = 'zeros'
     )
@@ -16,7 +16,7 @@ def feedforward_nn_parameters(depth, width):
     bulk = [
         Dense(
             width,
-            activation = 'elu',
+            activation = 'relu',
             use_bias = True,
             bias_initializer = 'zeros'
         ) for _ in range(depth)
@@ -112,7 +112,7 @@ class DegradationModel(Model):
             voltage,
             params[cell_feat]
         )
-        return tf.exp(self.nn_call(self.nn_soc_0_part3, dependencies))
+        return self.nn_call(self.nn_soc_0_part3, dependencies)
 
     ''' Part 2 ------------------------------------------------------------- '''
 
@@ -136,7 +136,7 @@ class DegradationModel(Model):
             params["chg_rate"],
             params["cell_feat"]
         )
-        return tf.exp(self.nn_call(self.nn_eq_voltage_0, dependencies))
+        return self.nn_call(self.nn_eq_voltage_0, dependencies)
 
     ''' Part 1 ------------------------------------------------------------- '''
 

@@ -617,7 +617,7 @@ class Command(BaseCommand):
         parser.add_argument('--width', type=int, default=32)
         parser.add_argument('--batch_size', type=int, default=2 * 16)
 
-        vis = 1000
+        vis = 100
         parser.add_argument('--print_loss_every', type=int, default=vis)
         parser.add_argument('--visualize_fit_every', type=int, default=vis)
         parser.add_argument('--visualize_vq_every', type=int, default=vis)

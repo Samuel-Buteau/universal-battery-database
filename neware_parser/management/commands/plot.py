@@ -237,12 +237,15 @@ def plot_eq_voltage(plot_params, init_returns):
                 c=colors[k_count]
             )
             ax1.set_ylabel("eq_voltage_0")
+            ax1.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
+
             ax2.plot(
                 cycles,
                 test_results["pred_eq_voltage_1"],
                 c=colors[k_count]
             )
             ax2.set_ylabel("eq_voltage_1")
+            ax2.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
 
         savefig('Eq_vol_{}_Count_{}.png', fit_args, barcode, count)
         plt.close(fig)
@@ -335,6 +338,7 @@ def plot_eq_vol_and_r(plot_params, init_returns):
 
             ax2.plot(cycles, test_results["pred_r"], c=colors[k_count])
             ax2.set_ylabel("r")
+            ax2.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
             ax2.plot(cycles, [0.05 for _ in cycles], c='0.5')
             set_tick_params(ax2)
 

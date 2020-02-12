@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as tick
 import tensorflow as tf
 
 from .colour_print import Print
@@ -140,7 +141,7 @@ def plot_capacity(plot_params, init_returns):
         ax1.set_ylim([0.58, 1.03])
         ax2 = fig.add_subplot(1, 2, 2)
         ax2.set_ylim([4.1, 4.31])
-        ax2.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+        ax2.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
 
         colors = ['k', 'r', 'b', 'g', 'm', 'c']
         for k_count, k in enumerate(test_object[barcode_count].keys()):

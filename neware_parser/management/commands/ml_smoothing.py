@@ -11,7 +11,7 @@ from django.core.management.base import BaseCommand
 from mpl_toolkits.mplot3d import Axes3D
 
 from neware_parser.models import *
-from .plot import plot_vq, plot_capacity, plot_eq_vol, plot_shift
+from .plot import *
 from .DegradationModel import DegradationModel
 
 '''
@@ -369,9 +369,8 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                     if (count % fit_args['visualize_fit_every']) == 0:
                         plot_capacity(plot_params, init_returns)
                         plot_shift(plot_params, init_returns)
-                        plot_eq_vol(plot_params, init_returns)
-
-                    if (count % fit_args['visualize_vq_every']) == 0:
+                        plot_eq_voltage(plot_params, init_returns)
+                        plot_eq_vol_and_r(plot_params, init_returns)
                         plot_vq(plot_params, init_returns)
 
                 if count == fit_args['stop_count']:

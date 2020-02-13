@@ -570,7 +570,8 @@ def train_step(params, fit_args):
 @tf.function
 def dist_train_step(mirrored_strategy, train_step_params, fit_args):
     mirrored_strategy.experimental_run_v2(
-        train_step, args=(train_step_params, fit_args))
+        train_step, args=(train_step_params, fit_args)
+    )
 
 def ml_smoothing(fit_args):
     if not os.path.exists(fit_args['path_to_plots']):
@@ -617,7 +618,7 @@ class Command(BaseCommand):
         parser.add_argument('--width', type=int, default=32)
         parser.add_argument('--batch_size', type=int, default=2 * 16)
 
-        vis = 100
+        vis = 1000
         parser.add_argument('--print_loss_every', type=int, default=vis)
         parser.add_argument('--visualize_fit_every', type=int, default=vis)
         parser.add_argument('--visualize_vq_every', type=int, default=vis)

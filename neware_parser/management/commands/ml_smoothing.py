@@ -11,7 +11,7 @@ from django.core.management.base import BaseCommand
 from mpl_toolkits.mplot3d import Axes3D
 
 from neware_parser.models import *
-from .plot import plot_vq, plot_test_rate_voltage, plot_capacity, plot_eq_vol
+from .plot import *
 from .DegradationModel import DegradationModel
 
 '''
@@ -25,6 +25,7 @@ Shortened Variable Names:
     meas -  measured
     eval -  evaluation
     eq -    equillibrium
+    res -   result
 '''
 
 NEIGH_INT_MIN_CYC_INDEX = 0
@@ -198,13 +199,15 @@ def initial_processing(my_data, barcodes, fit_args):
 
             if valid_cycles != 0:
                 neigh_data_int = numpy.array(
-                    neigh_data_int, dtype=numpy.int32)
+                    neigh_data_int, dtype=numpy.int32
+                )
 
                 # the empty slot becomes the count of added neighborhoods, which
                 # are used to counterbalance the bias toward longer cycle life
                 neigh_data_int[:, NEIGH_INT_VALID_CYC_INDEX] = valid_cycles
                 neigh_data_float = numpy.array(
-                    neigh_data_float, dtype=numpy.float32)
+                    neigh_data_float, dtype=numpy.float32
+                )
 
                 cell_neigh_data_int.append(neigh_data_int)
                 cell_neigh_data_float.append(neigh_data_float)
@@ -260,19 +263,18 @@ def initial_processing(my_data, barcodes, fit_args):
 
     # the voltages are also normalized
     vol_tensor = tf.cast(tf.constant(my_data['voltage_grid']), dtype=tf.float32)
-    voltages_m, voltages_v = tf.nn.moments(vol_tensor, axes=[0])
-    vol_tensor = (vol_tensor - voltages_m) / tf.sqrt(voltages_v)
+    #voltages_m, voltages_v = tf.nn.moments(vol_tensor, axes=[0])
+    #vol_tensor = (vol_tensor - voltages_m) / tf.sqrt(voltages_v)
     vq_curves = tf.constant(all_vq_curves)
     vq_curves_mask = tf.constant(all_vq_curves_masks)
 
     # max voltage is NOT normalized
     max_dchg_vol_tensor = tf.constant(all_dchg_vol)
 
-    neigh_data_float = (numpy.concatenate(
+    neigh_data_float = numpy.concatenate(
         [numpy.concatenate(neigh_data_float_full, axis=0)
-         for neigh_data_float_full
-         in all_cells_neigh_data_float],
-        axis=0)
+            for neigh_data_float_full in all_cells_neigh_data_float],
+        axis=0
     )
 
     # onvert the delta_cycles of each neighborhoods to the normalized units
@@ -296,7 +298,8 @@ def initial_processing(my_data, barcodes, fit_args):
         degradation_model = DegradationModel(
             num_keys=len(barcodes),
             width=fit_args['width'],
-            depth=fit_args['depth'])
+            depth=fit_args['depth']
+        )
 
         optimizer = tf.keras.optimizers.Adam()
 
@@ -316,8 +319,7 @@ def initial_processing(my_data, barcodes, fit_args):
         "vq_curves_mask": vq_curves_mask,
         "optimizer": optimizer,
         "test_object": test_object,
-        "all_data": my_data['all_data'],
-        "voltage_vector": my_data['voltage_grid'],
+        "all_data": my_data['all_data']
     }
 
 
@@ -350,7 +352,6 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                     "optimizer": init_returns["optimizer"],
                     "vq_curves": init_returns["vq_curves"],
                     "vq_curves_mask": init_returns["vq_curves_mask"],
-                    "voltage_vector": init_returns["voltage_vector"]
                 }
 
                 dist_train_step(mirrored_strategy, train_step_params, fit_args)
@@ -367,9 +368,9 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
 
                     if (count % fit_args['visualize_fit_every']) == 0:
                         plot_capacity(plot_params, init_returns)
-                        plot_eq_vol(plot_params, init_returns)
-
-                    if (count % fit_args['visualize_vq_every']) == 0:
+                        plot_shift(plot_params, init_returns)
+                        plot_eq_voltage(plot_params, init_returns)
+                        plot_eq_vol_and_r(plot_params, init_returns)
                         plot_vq(plot_params, init_returns)
 
                 if count == fit_args['stop_count']:
@@ -391,7 +392,6 @@ def train_step(params, fit_args):
     optimizer = params["optimizer"]
     vq_curves = params["vq_curves"]
     vq_curves_mask = params["vq_curves_mask"]
-    voltage_vector = params["voltage_vector"]
 
     # need to split the range
     batch_size2 = neigh_int.shape[0]
@@ -403,7 +403,8 @@ def train_step(params, fit_args):
 
     # offset center cycles so the model is never evaluated at the same cycle
     center_cycle_offsets = tf.random.uniform(
-        [batch_size2], minval=-1., maxval=1., dtype=tf.float32)
+        [batch_size2], minval=-1., maxval=1., dtype=tf.float32
+    )
 
     '''
     if you have the minimum cycle and maximum cycle for a neighborhood,
@@ -418,51 +419,59 @@ def train_step(params, fit_args):
     cycle_indecies = tf.cast(
         (1. - cycle_indecies_lerp) * tf.cast(
             neigh_int[:, NEIGH_INT_MIN_CYC_INDEX]
-            + neigh_int[:, NEIGH_INT_ABSOLUTE_INDEX],
-            tf.float32)
-        + (cycle_indecies_lerp) * tf.cast(
+                + neigh_int[:, NEIGH_INT_ABSOLUTE_INDEX],
+            tf.float32
+        ) + (cycle_indecies_lerp) * tf.cast(
             neigh_int[:, NEIGH_INT_MAX_CYC_INDEX]
-            + neigh_int[:, NEIGH_INT_ABSOLUTE_INDEX],
-            tf.float32),
+                + neigh_int[:, NEIGH_INT_ABSOLUTE_INDEX],
+            tf.float32
+        ),
         tf.int32
     )
 
     meas_cycles = tf.gather(
-        cycles_tensor, indices=cycle_indecies, axis=0)
+        cycles_tensor, indices=cycle_indecies, axis=0
+    )
     model_eval_cycles = (
-        meas_cycles + center_cycle_offsets * neigh_float[:, NEIGH_FLOAT_DELTA])
+        meas_cycles + center_cycle_offsets * neigh_float[:, NEIGH_FLOAT_DELTA]
+    )
 
     cap = tf.gather(vq_curves, indices=cycle_indecies)
-
     ws_cap = tf.gather(vq_curves_mask, indices=cycle_indecies)
     ws2_cap = tf.tile(
         tf.reshape(
             1. / (tf.cast(neigh_int[:, NEIGH_INT_VALID_CYC_INDEX], tf.float32)),
             [batch_size2, 1]
         ),
-        [1, len(voltage_vector)]
+        [1, vol_tensor.shape[0]]
     )
 
-    ''' maximum discharge voltage '''
+    meas_max_dchg_vol = tf.reshape(
+        tf.gather(
+            params["max_dchg_vol_tensor"], indices=cycle_indecies, axis=0
+        ),
+        [-1]
+    )
+    # Weight for prediction error
+    # (The more measurements you have for a cell, the less each one is worth,
+    # so that in expectation, you "care" about every cell equally)
+    ws2_max_dchg_vol = 1. / (
+        tf.cast(neigh_int[:, NEIGH_INT_VALID_CYC_INDEX], tf.float32)
+    )
 
-    meas_max_dchg_vol = tf.reshape(tf.gather(
-        params["max_dchg_vol_tensor"], indices=cycle_indecies, axis=0), [-1])
-
-    # weight for the prediction error
-    # the more measurements you have for a cell, then less each one is worth
-    # So that in expectation, you "care" about every cell equally.
-    ws2_max_dchg_vol = 1. / (tf.cast(
-        neigh_int[:, NEIGH_INT_VALID_CYC_INDEX], tf.float32))
-
-    # the indecies are referring to the cell indecies
-    indecies = neigh_int[:, NEIGH_INT_BARCODE_INDEX]
+    cell_indecies = neigh_int[:, NEIGH_INT_BARCODE_INDEX]
 
     centers = tf.concat(
-        (tf.expand_dims(model_eval_cycles, axis=1), neigh_float[:, 1:]), axis=1)
+        (tf.expand_dims(model_eval_cycles, axis=1), neigh_float[:, 1:]),
+        axis=1
+    )
 
     with tf.GradientTape() as tape:
+
         train_results = degradation_model(
-            (centers, indecies, meas_cycles, vol_tensor), training=True)
+            (centers, cell_indecies, meas_cycles, vol_tensor),
+            training = True
+        )
 
         pred_cap = train_results["pred_cap"]
         pred_max_dchg_vol = train_results["pred_max_dchg_vol"]
@@ -478,28 +487,37 @@ def train_step(params, fit_args):
         cap_loss = (
             tf.reduce_mean(ws2_cap * ws_cap * tf.square(cap - pred_cap))
             / (1e-10 + tf.reduce_mean(ws2_cap * ws_cap))
-            + tf.reduce_mean(ws2_max_dchg_vol
+        )
+
+        max_dchg_vol_loss = (
+            tf.reduce_mean(ws2_max_dchg_vol
             * tf.square(meas_max_dchg_vol - pred_max_dchg_vol))
             / (1e-10 + tf.reduce_mean(ws2_max_dchg_vol))
         )
 
         kl_loss = fit_args['kl_coeff'] * tf.reduce_mean(
-            0.5 * (tf.exp(log_sig) + tf.square(mean) - 1. - log_sig))
+            0.5 * (tf.exp(log_sig) + tf.square(mean) - 1. - log_sig)
+        )
 
         mono_loss = fit_args['mono_coeff'] * (
             tf.reduce_mean(tf.nn.relu(-cap))  # penalizes negative capacities
             + tf.reduce_mean(tf.nn.relu(cap_der['dCyc'])) # shouldn't increase
-            + tf.reduce_mean(tf.nn.relu(cap_der['dRates'])) # shouldn't increase
+            + tf.reduce_mean(tf.nn.relu(cap_der['d_chg_rate']))
+            + tf.reduce_mean(tf.nn.relu(cap_der['d_dchg_rate']))
+            + tf.reduce_mean(tf.nn.relu(cap_der['dVol']))
 
-            + 10.* (
+            + 10. * (
                 tf.reduce_mean(tf.nn.relu(-r))
                 + tf.reduce_mean(tf.nn.relu(-eq_vol))
                 # resistance should not decrease.
                 + 10  * tf.reduce_mean(tf.abs(r_der['dCyc']))
-                # equilibrium voltage should not change much
-                + 10. * tf.reduce_mean(tf.abs(eq_vol_der['dCyc']))
-                # equilibrium voltage should not change much
-                + 10. * tf.reduce_mean(tf.abs(eq_vol_der['dRates']))
+                + 10. * (
+                    tf.reduce_mean(tf.abs(eq_vol_der['dCyc']))
+                    # equilibrium voltage should not change much
+                    # TODO is this correct?
+                    + tf.reduce_mean(tf.abs(eq_vol_der["d_chg_rate"]))
+                    + tf.reduce_mean(tf.abs(eq_vol_der["d_dchg_rate"]))
+                )
             )
         )
 
@@ -507,16 +525,21 @@ def train_step(params, fit_args):
             tf.reduce_mean(tf.square(tf.nn.relu(cap_der['d2Cyc']))
             + 0.02 * tf.square(tf.nn.relu(-cap_der['d2Cyc'])))
             + tf.reduce_mean(
-                tf.square(tf.nn.relu(cap_der['d2Rates']))
-                + 0.02 * tf.square(tf.nn.relu(-cap_der['d2Rates']))
+                tf.square(tf.nn.relu(cap_der['d2_chg_rate']))
+                + 0.02 * tf.square(tf.nn.relu(-cap_der['d2_chg_rate']))
+                + tf.square(tf.nn.relu(cap_der['d2_dchg_rate']))
+                + 0.02 * tf.square(tf.nn.relu(-cap_der['d2_dchg_rate']))
+                + tf.square(tf.nn.relu(cap_der['d2Vol']))
+                + 0.02 * tf.square(tf.nn.relu(-cap_der['d2Vol']))
             )
 
-            # this enforces smoothness of resistance;
-            # it is more ok to accelerate UPWARDS
+            # enforces smoothness of resistance;
+            # more ok to accelerate UPWARDS
             + 10. * tf.reduce_mean(tf.square(tf.nn.relu(-r_der['d2Cyc']))
             + 0.5 * tf.square(tf.nn.relu(r_der['d2Cyc'])))
-            + 1.* tf.reduce_mean(tf.square((eq_vol_der['d2Rates'])))
-            + 1.* tf.reduce_mean(tf.square((eq_vol_der['d2Cyc'])))
+            + 1. * tf.reduce_mean(tf.square((eq_vol_der["d_chg_rate"])))
+            + 1. * tf.reduce_mean(tf.square((eq_vol_der["d_dchg_rate"])))
+            + 1. * tf.reduce_mean(tf.square((eq_vol_der['d2Cyc'])))
         )
 
         const_f_loss = fit_args['const_f_coeff'] * (
@@ -531,20 +554,24 @@ def train_step(params, fit_args):
             + tf.reduce_mean(tf.square(eq_vol_der['d2Features']))
         )
 
-        loss = cap_loss + kl_loss + mono_loss + smooth_loss
-        loss += const_f_loss + smooth_f_loss
+        loss = (
+            cap_loss# + max_dchg_vol_loss
+            + kl_loss + mono_loss + smooth_loss
+            + const_f_loss + smooth_f_loss
+        )
 
     gradients = tape.gradient(loss, degradation_model.trainable_variables)
     optimizer.apply_gradients(
-        zip(gradients, degradation_model.trainable_variables))
-
+        zip(gradients, degradation_model.trainable_variables)
+    )
 
 # === End : train step =========================================================
 
 @tf.function
 def dist_train_step(mirrored_strategy, train_step_params, fit_args):
     mirrored_strategy.experimental_run_v2(
-        train_step, args=(train_step_params, fit_args))
+        train_step, args=(train_step_params, fit_args)
+    )
 
 def ml_smoothing(fit_args):
     if not os.path.exists(fit_args['path_to_plots']):
@@ -578,6 +605,7 @@ def ml_smoothing(fit_args):
 class Command(BaseCommand):
 
     def add_arguments(self, parser):
+
         parser.add_argument('--path_to_dataset', required=True)
         parser.add_argument('--dataset_version', required=True)
         parser.add_argument('--path_to_plots', required=True)
@@ -589,15 +617,16 @@ class Command(BaseCommand):
         parser.add_argument('--depth', type=int, default=3)
         parser.add_argument('--width', type=int, default=32)
         parser.add_argument('--batch_size', type=int, default=2 * 16)
-        parser.add_argument('--print_loss_every', type=int, default=1000)
-        parser.add_argument(
-            '--visualize_fit_every', type=int, default=1000)
-        parser.add_argument(
-            '--visualize_vq_every', type=int, default=1000)
 
-        parser.add_argument('--stop_count', type=int, default=80000)
+        vis = 1000
+        parser.add_argument('--print_loss_every', type=int, default=vis)
+        parser.add_argument('--visualize_fit_every', type=int, default=vis)
+        parser.add_argument('--visualize_vq_every', type=int, default=vis)
+
+        parser.add_argument('--stop_count', type=int, default=100000)
         parser.add_argument(
-            '--wanted_barcodes', type=int, nargs='+', default=[83220, 83083])
+            '--wanted_barcodes', type=int, nargs='+', default=[83220, 83083]
+        )
 
     def handle(self, *args, **options):
         ml_smoothing(options)

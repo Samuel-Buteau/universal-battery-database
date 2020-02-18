@@ -34,29 +34,19 @@ def plot_vq(plot_params, init_returns):
 
         for k_count, k in enumerate(test_object[barcode_count].keys()):
 
-            barcode_k = all_data[barcode][k]
-            n_samples = len(barcode_k['capacity_vector'])
+            if k[2] == 'dchg':
+                sign_change = -1.
+            else:
+                sign_change = +1.
+
+            barcode_k = all_data[barcode][k][0]
 
             for vq_count, vq in enumerate(barcode_k['capacity_vector']):
 
                 ax.set_xlim(x_lim)
                 ax.set_ylim(y_lim)
-                ax.plot(vq, vol_tensor.numpy(), c=colors[k_count])
+                ax.plot(sign_change * vq, vol_tensor.numpy(), c=colors[k_count])
 
-                if vq_count % int(n_samples / 10) == 0:
-                    fused_vector = np.stack([vq, vol_tensor.numpy()], axis=1)
-                    target_voltage = barcode_k['dchg_maximum_voltage'][vq_count]
-                    best_point = get_nearest_point(fused_vector, target_voltage)
-
-                    '''
-                    ax.scatter(
-                        [best_point[0]],
-                        [best_point[1]],
-                        c=colors[k_count],
-                        marker='o',
-                        s=100
-                    )
-                    '''
 
         ax = fig.add_subplot(1, 2, 2)
         colors = [(1., 1., 1.), (1., 0., 0.), (0., 0., 1.),
@@ -65,10 +55,19 @@ def plot_vq(plot_params, init_returns):
         cycles = [0, 2000, 4000, 6000]
         for k_count, k in enumerate(test_object[barcode_count].keys()):
 
+            if k[2] == 'dchg':
+                sign_change = -1.
+            else:
+                sign_change = +1.
+
             for i, cyc in enumerate(cycles):
                 cycle = ((float(cyc) - cycles_m) / tf.sqrt(cycles_v))
                 test_results = test_all_voltages(
-                    cycle, k, barcode_count, degradation_model, vol_tensor
+                    cycle,
+                    all_data[barcode][k][1]['avg_constant_current'],
+                    all_data[barcode][k][1]['avg_end_current_prev'],
+                    all_data[barcode][k][1]['avg_end_voltage_prev'],
+                    barcode_count, degradation_model, vol_tensor
                 )
 
                 pred_cap = tf.reshape(test_results["pred_cap"], shape = [-1])
@@ -77,8 +76,8 @@ def plot_vq(plot_params, init_returns):
 
                 ax.set_xlim(x_lim)
                 ax.set_ylim(y_lim)
-                ax.plot(
-                    pred_cap,
+                ax.scatter(
+                    sign_change*pred_cap,
                     vol_tensor.numpy(),
                     c = (
                         mult * colors[k_count][0],
@@ -87,22 +86,6 @@ def plot_vq(plot_params, init_returns):
                     )
                 )
 
-                fused_vector = np.stack([pred_cap, vol_tensor.numpy()], axis=1)
-                target_voltage = test_results["pred_max_dchg_vol"][0]
-                best_point = get_nearest_point(fused_vector, target_voltage)
-                '''
-                ax.scatter(
-                    [best_point[0]],
-                    [best_point[1]],
-                    marker = 'x',
-                    s = 100,
-                    c = (
-                        mult * colors[k_count][0],
-                        mult * colors[k_count][1],
-                        mult * colors[k_count][2]
-                    )
-                )
-                '''
 
         savefig('VQ_{}_Count_{}.png', fit_args, barcode, count)
         plt.close(fig)
@@ -154,14 +137,19 @@ def plot_capacity(plot_params, init_returns):
 
         ax1 = fig.add_subplot(1, 1, 1)
         ax1.set_ylabel("capacity")
-        ax1.set_ylim([0.58, 1.03])
+        #ax1.set_ylim([0.58, 1.03])
 
         colors = ['k', 'r', 'b', 'g', 'm', 'c']
         for k_count, k in enumerate(test_object[barcode_count].keys()):
 
+            if k[2] == 'dchg':
+                sign_change = -1.
+            else:
+                sign_change = +1.
+
             ax1.scatter(
-                all_data[barcode][k]['cycle_number'],
-                all_data[barcode][k]['capacity_vector'][:, 0],
+                all_data[barcode][k][0]['cycle_number'],
+                sign_change*all_data[barcode][k][0]['capacity_vector'][:, 0],
                 c=colors[k_count]
             )
 
@@ -171,6 +159,12 @@ def plot_capacity(plot_params, init_returns):
                     x=cyc, color=colors[k_count], linestyle='--')
 
         for k_count, k in enumerate(test_object[barcode_count].keys()):
+
+            if k[2] == 'dchg':
+                sign_change = -1.
+            else:
+                sign_change = +1.
+
             cycles = test_object[barcode_count][k]
             min_c = min(cycles)
             max_c = max(cycles)
@@ -184,73 +178,22 @@ def plot_capacity(plot_params, init_returns):
             ]
 
             test_results = test_single_voltage(
-                my_cycles, vol_tensor[0], k, barcode_count, degradation_model
+                my_cycles, vol_tensor[0],
+                all_data[barcode][k][1]['avg_constant_current'],
+                all_data[barcode][k][1]['avg_end_current_prev'],
+                all_data[barcode][k][1]['avg_end_voltage_prev'],
+                barcode_count, degradation_model
             )
             pred_cap = tf.reshape(test_results["pred_cap"], shape = [-1])
 
-            ax1.plot(cycles, pred_cap, c=colors[k_count])
+            ax1.plot(cycles, sign_change*pred_cap, c=colors[k_count])
 
         savefig('Cap_{}_Count_{}.png', fit_args, barcode, count)
         plt.close(fig)
 
-def plot_eq_voltage(plot_params, init_returns):
-    barcodes = plot_params["barcodes"]
-    count = plot_params["count"]
-    fit_args = plot_params["fit_args"]
-
-    degradation_model = init_returns["degradation_model"]
-    test_object = init_returns["test_object"]
-    all_data = init_returns["all_data"]
-    cycles_m = init_returns["cycles_m"]
-    cycles_v = init_returns["cycles_v"]
-    vol_tensor = init_returns["vol_tensor"]
-
-    for barcode_count, barcode in enumerate(barcodes):
-        fig = plt.figure()
-        fig.subplots_adjust(wspace = 0.3)
-
-        ax1 = fig.add_subplot(1, 2, 1)
-        ax2 = fig.add_subplot(1, 2, 2)
-
-        colors = ['k', 'r', 'b', 'g', 'm', 'c']
-
-        for k_count, k in enumerate(test_object[barcode_count].keys()):
-            cycles = test_object[barcode_count][k]
-            min_c = min(cycles)
-            max_c = max(cycles)
-            cycles = [
-                float(min_c) + float(max_c - min_c)
-                * x for x in np.arange(0., 1.1, 0.02)
-            ]
-
-            my_cycles = [
-                (cyc - cycles_m) / tf.sqrt(cycles_v) for cyc in cycles
-            ]
-
-            test_results = test_single_voltage(
-                my_cycles, vol_tensor[0], k, barcode_count, degradation_model
-            )
-
-            ax1.plot(
-                cycles,
-                test_results["pred_eq_voltage_0"],
-                c=colors[k_count]
-            )
-            ax1.set_ylabel("eq_voltage_0")
-            ax1.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-
-            ax2.plot(
-                cycles,
-                test_results["pred_eq_voltage_1"],
-                c=colors[k_count]
-            )
-            ax2.set_ylabel("eq_voltage_1")
-            ax2.yaxis.set_major_formatter(tick.FormatStrFormatter('%.2f'))
-
-        savefig('Eq_vol_{}_Count_{}.png', fit_args, barcode, count)
-        plt.close(fig)
 
 def plot_shift(plot_params, init_returns):
+    #TODO(sam): this needs to conform to the new dataset.
     barcodes = plot_params["barcodes"]
     count = plot_params["count"]
     fit_args = plot_params["fit_args"]
@@ -293,9 +236,11 @@ def plot_shift(plot_params, init_returns):
         plt.close(fig)
 
 def plot_eq_vol_and_r(plot_params, init_returns):
+    #TODO(sam): this needs to conform to the new dataset.
     barcodes = plot_params["barcodes"]
     count = plot_params["count"]
     fit_args = plot_params["fit_args"]
+    all_data = init_returns["all_data"]
 
     degradation_model = init_returns["degradation_model"]
     test_object = init_returns["test_object"]
@@ -345,35 +290,46 @@ def plot_eq_vol_and_r(plot_params, init_returns):
         savefig('Eq_{}_Count_{}.png', fit_args, barcode, count)
         plt.close(fig)
 
-def test_all_voltages(cycle, k, barcode_count, degradation_model, voltages):
-    centers = tf.expand_dims(
-        tf.concat(
-            (tf.expand_dims(cycle, axis=0), k),
-            axis=0
-        ),
-        axis=0
-    )
+def test_all_voltages(cycle, constant_current, end_current_prev, end_voltage_prev, barcode_count, degradation_model, voltages):
+    expanded_cycles = tf.constant(cycle, shape=[1, 1])
+    expanded_constant_current = tf.constant(constant_current, shape=[1, 1])
+    expanded_end_current_prev = tf.constant(end_current_prev, shape=[1, 1])
+    expanded_end_voltage_prev = tf.constant(end_voltage_prev, shape=[1, 1])
+
     indecies = tf.reshape(barcode_count, [1])
     measured_cycles = tf.reshape(cycle, [1, 1])
 
     return degradation_model(
-        (centers, indecies, measured_cycles, voltages),
+        (
+            expanded_cycles,
+            expanded_constant_current,
+            expanded_end_current_prev,
+            expanded_end_voltage_prev,
+            indecies,
+            measured_cycles,
+            voltages
+        ),
         training=False
     )
 
-def test_single_voltage(cycles, v, k, barcode_count, degradation_model):
-    centers = tf.concat(
-        (
-            tf.expand_dims(cycles, axis=1),
-            tf.tile(tf.expand_dims(k, axis=0), [len(cycles), 1])
-        ),
-        axis=1
-    )
+def test_single_voltage(cycles, v, constant_current, end_current_prev, end_voltage_prev, barcode_count, degradation_model):
+    expanded_cycles = tf.expand_dims(cycles, axis=1)
+    expanded_constant_current = tf.constant(constant_current, shape=[len(cycles), 1])
+    expanded_end_current_prev = tf.constant(end_current_prev, shape=[len(cycles), 1])
+    expanded_end_voltage_prev = tf.constant(end_voltage_prev, shape=[len(cycles), 1])
+
     indecies = tf.tile(tf.expand_dims(barcode_count, axis=0), [len(cycles)])
     measured_cycles = tf.expand_dims(cycles, axis=1)
 
     return degradation_model(
-        (centers, indecies, measured_cycles, tf.expand_dims(v, axis=0)),
+        (
+            expanded_cycles,
+            expanded_constant_current,
+            expanded_end_current_prev,
+            expanded_end_voltage_prev,
+            indecies,
+            measured_cycles,
+            tf.expand_dims(v, axis=0)),
         training=False
     )
 

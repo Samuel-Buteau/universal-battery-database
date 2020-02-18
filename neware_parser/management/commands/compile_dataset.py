@@ -215,16 +215,15 @@ def initial_processing(my_barcodes, fit_args):
                     #print(step_info)
                     result.append((
                         cyc.get_offset_cycle(),
-                        vq_curve,
+                        -1.* vq_curve,
                         vq_mask,
-                        step_info['constant_current'],
+                        -1.* step_info['constant_current'],
                         step_info['end_current_prev'],
                         step_info['end_voltage_prev'],
                         cyc.get_temperature()
                     ))
-            cyc_grp_dict[
-                (cyc_group.charging_rate, cyc_group.discharging_rate)
-            ] = numpy.array(
+
+            res = numpy.array(
                 result,
                 dtype=[
                     ('cycle_number', 'f4'),
@@ -237,11 +236,18 @@ def initial_processing(my_barcodes, fit_args):
                     ('temperature', 'f4'),
                 ])
 
+            cyc_grp_dict[
+                (cyc_group.charging_rate, cyc_group.discharging_rate, 'dchg')
+            ] = (res, {'avg_constant_current': numpy.average(res['constant_current']),
+                       'avg_end_current_prev': numpy.average(res['end_current_prev']),
+                       'avg_end_voltage_prev': numpy.average(res['end_voltage_prev']),}
+                 )
+
         fig = plt.figure()
         ax = fig.add_subplot(111)
         for k in cyc_grp_dict.keys():
-            print(voltage_grid, numpy.average(cyc_grp_dict[k]['vq_curve_mask'], axis=0))
-            ax.plot(voltage_grid, numpy.average(cyc_grp_dict[k]['vq_curve_mask'], axis=0))
+            print(voltage_grid, numpy.average(cyc_grp_dict[k][0]['vq_curve_mask'], axis=0))
+            ax.plot(voltage_grid, numpy.average(cyc_grp_dict[k][0]['vq_curve_mask'], axis=0))
         plt.savefig(os.path.join(fit_args['path_to_dataset'], 'masks_version_{}_barcode_{}.png'.format(fit_args['dataset_version'], barcode)))
         plt.close(fig)
         all_data[barcode] = cyc_grp_dict

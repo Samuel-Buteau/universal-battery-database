@@ -31,13 +31,25 @@ def feedforward_nn_parameters(depth, width):
     )
     return {'initial': initial, 'bulk': bulk, 'final': final}
 
+"""
+The call convention for the neural networks is a bit complex but it makes the code easier to use.
+
+First, there are some parameters that are from the real data (e.g. cycle number, voltage, etc.)
+these are passed to every call as a dictionary.
+
+Second, all the parameters that are used in the body of the function can be overridden by passing them. If they are passed as None, 
+the default dictionary will be used
+
+"""
+
+
 class DegradationModel(Model):
 
     def __init__(self, num_keys, depth, width):
         super(DegradationModel, self).__init__()
 
         self.nn_cap = feedforward_nn_parameters(depth, width)
-        self.nn_eq_vol = feedforward_nn_parameters(depth, width)
+        #self.nn_eq_vol = feedforward_nn_parameters(depth, width)
         self.nn_r = feedforward_nn_parameters(depth, width)
 
         self.nn_theoretical_cap = feedforward_nn_parameters(depth, width)
@@ -46,7 +58,7 @@ class DegradationModel(Model):
         self.nn_init_soc = feedforward_nn_parameters(depth, width)
 
         self.nn_soc_part2 = feedforward_nn_parameters(depth, width)
-        self.nn_eq_voltage_0 = feedforward_nn_parameters(depth, width)
+        #self.nn_eq_voltage_0 = feedforward_nn_parameters(depth, width)
 
         self.nn_shift = feedforward_nn_parameters(depth, width)
         self.nn_soc_0_part3 = feedforward_nn_parameters(depth, width)
@@ -67,52 +79,118 @@ class DegradationModel(Model):
             cycles += "_flat"
         return params[cycles] * (1e-10 + tf.exp(-params[norm_constant]))
 
+    # theoretical_cap(cycles, constant_current, cell_feat)
+    def theoretical_cap(self, params, norm_cycle=None, constant_current=None, cell_feat=None):
+
+        if norm_cycle is None:
+            norm_cycle = self.norm_cycle(params)
+
+        if constant_current is None:
+            constant_current = params["constant_current"]
+
+        if cell_feat is None:
+            cell_feat = params["cell_feat"]
+
+
+        dependencies = (
+            norm_cycle,
+            tf.abs(constant_current),
+            cell_feat
+        )
+        return tf.exp(self.nn_call(self.nn_theoretical_cap, dependencies))
+
+    def r(self, params, norm_cycle=None, cell_feat=None):
+        if norm_cycle is None:
+            norm_cycle = self.norm_cycle(params)
+        if cell_feat is None:
+            cell_feat = params["cell_feat"]
+
+        dependencies = (
+            norm_cycle,
+            cell_feat
+        )
+        return tf.exp(self.nn_call(self.nn_r, dependencies))
+
+
+
+    def eq_voltage_0(self, params, end_voltage_prev=None, end_current_prev=None):
+        if end_voltage_prev is None:
+            end_voltage_prev = params["end_voltage_prev"]
+        if end_current_prev is None:
+            end_current_prev = params["end_current_prev"]
+
+        return end_voltage_prev - end_current_prev * self.r(params)
+
+    def eq_voltage_1(self, params, voltage=None, constant_current=None):
+        if voltage is None:
+            voltage = params["voltage_flat"]
+        if constant_current is None:
+            constant_current = params["constant_current_flat"]
+
+        r_flat = self.add_volt_dep(self.r(params), params)
+        return voltage - constant_current * r_flat
+
+    # sco_1 = soc(voltage = eq_voltage_1, cell_feat)
+    def soc(self, params, voltage, cell_feat=None, scalar = True):
+        if cell_feat is None:
+
+            label = "cell_feat"
+            if not scalar:
+                label = "cell_feat_flat"
+            cell_feat = params[label]
+
+        dependencies = (
+            voltage,
+            cell_feat
+        )
+        return tf.nn.elu(self.nn_call(self.nn_soc, dependencies))
+
     ''' Part 4 ------------------------------------------------------------- '''
 
     ''' Part 3 ------------------------------------------------------------- '''
 
-    def dchg_cap_part3(self, params):
-        theoretical_cap = self.add_volt_dep(
-            self.theoretical_cap(params),
-            params
-        )
-
-        shift = self.shift(params)
-
-        soc_0 = self.add_volt_dep(
-            self.soc_part3(params, shift, self.eq_voltage_0(params)),
-            params
-        )
-        # "whereever you are in the voltage curve"
-        soc_1 = self.soc_part3(
-            params,
-            self.add_volt_dep(shift, params),
-            self.eq_voltage_1(params),
-            scalar = False
-        )
-
-        return -theoretical_cap * (soc_1 - soc_0)
-
-    def shift(self, params):
-        dependencies = (
-            self.norm_cycle(params),
-            params["chg_rate"],
-            params["dchg_rate"],
-            params["cell_feat"]
-        )
-        return self.nn_call(self.nn_shift, dependencies)
-
-    def soc_part3(self, params, shift, voltage, scalar = True):
-        cell_feat = "cell_feat"
-        if not scalar:
-            cell_feat = "cell_feat_flat"
-
-        dependencies = (
-            shift,
-            voltage,
-            params[cell_feat]
-        )
-        return self.nn_call(self.nn_soc_0_part3, dependencies)
+    # def dchg_cap_part3(self, params):
+    #     theoretical_cap = self.add_volt_dep(
+    #         self.theoretical_cap(params),
+    #         params
+    #     )
+    #
+    #     shift = self.shift(params)
+    #
+    #     soc_0 = self.add_volt_dep(
+    #         self.soc_part3(params, shift, self.eq_voltage_0(params)),
+    #         params
+    #     )
+    #     # "whereever you are in the voltage curve"
+    #     soc_1 = self.soc_part3(
+    #         params,
+    #         self.add_volt_dep(shift, params),
+    #         self.eq_voltage_1(params),
+    #         scalar = False
+    #     )
+    #
+    #     return -theoretical_cap * (soc_1 - soc_0)
+    #
+    # def shift(self, params):
+    #     dependencies = (
+    #         self.norm_cycle(params),
+    #         params["end_current_prev"],
+    #         params["constant_current"],
+    #         params["cell_feat"]
+    #     )
+    #     return self.nn_call(self.nn_shift, dependencies)
+    #
+    # def soc_part3(self, params, shift, voltage, scalar = True):
+    #     cell_feat = "cell_feat"
+    #     if not scalar:
+    #         cell_feat = "cell_feat_flat"
+    #
+    #     dependencies = (
+    #         shift,
+    #         voltage,
+    #         params[cell_feat]
+    #     )
+    #     return self.nn_call(self.nn_soc_0_part3, dependencies)
 
     ''' Part 2 ------------------------------------------------------------- '''
 
@@ -127,73 +205,16 @@ class DegradationModel(Model):
         )
         soc_1 = self.soc(params, self.eq_voltage_1(params), scalar = False)
 
-        return -theoretical_cap * (soc_1 - soc_0)
+        return theoretical_cap * (soc_1 - soc_0)
 
-    # eq_voltage_0(cycle, cell_feat)
-    def eq_voltage_0(self, params):
-        dependencies = (
-            self.norm_cycle(params),
-            params["chg_rate"],
-            params["cell_feat"]
-        )
-        return self.nn_call(self.nn_eq_voltage_0, dependencies)
+        # eq_voltage_0(cycle, cell_feat)
+
 
     ''' Part 1 ------------------------------------------------------------- '''
 
-    # dchg_cap_part1 = -theoretical_cap * (soc_1 - soc_0)
-    def dchg_cap_part1(self, params):
-        theoretical_cap = self.add_volt_dep(
-            self.theoretical_cap(params), # scalar
-            params
-        )
-        soc_0 = self.add_volt_dep(self.soc_0_part1(params), params)
-        soc_1 = self.soc(params, self.eq_voltage_1(params), scalar = False)
-
-        return -theoretical_cap * (soc_1 - soc_0)
-
-    # eq_voltage_1 = voltage + dchg_rate * R
-    def eq_voltage_1(self, params):
-        r_flat = self.add_volt_dep(self.r(params), params)
-
-        return params["voltage_flat"] + params["dchg_rate_flat"] * r_flat
-
-    # theoretical_cap(cycles, dchg_rate, cell_feat)
-    def theoretical_cap(self, params):
-        dependencies = (
-            self.norm_cycle(params),
-            params["dchg_rate"],
-            params["cell_feat"]
-        )
-        return tf.exp(self.nn_call(self.nn_theoretical_cap, dependencies))
-
-    # sco_1 = soc(voltage = eq_voltage_1, cell_feat)
-    def soc(self, params, voltage, scalar = True):
-        cell_feat = "cell_feat"
-        if not scalar:
-            cell_feat = "cell_feat_flat"
-
-        dependencies = (
-            voltage,
-            params[cell_feat]
-        )
-        return self.nn_call(self.nn_soc, dependencies)
-
-    # soc_0(cycles, dchg_rate, cell_feat)
-    def soc_0_part1(self, params):
-        dependencies = (
-            self.norm_cycle(params),
-            params["dchg_rate"],
-            params["cell_feat"]
-        )
-        return tf.exp(self.nn_call(self.nn_soc_0, dependencies))
 
     ''' End ---------------------------------------------------------------- '''
 
-    def max_dchg_vol(self, params):
-        eq_vol = self.eq_vol(params)
-        r = self.r(params)
-
-        return eq_vol - (params["dchg_rate"] * r)
 
     # Unstructured variables ---------------------------------------------------
 
@@ -205,30 +226,7 @@ class DegradationModel(Model):
             centers = d(centers)
         return nn_func['final'](centers)
 
-    def cap(self, params):
-        dependencies = (
-            self.norm_cycle(params, scalar = False),
-            params["chg_rate_flat"],
-            params["dchg_rate_flat"],
-            params["voltage_flat"],
-            params["cell_feat_flat"]
-        )
-        return self.nn_call(self.nn_cap, dependencies)
 
-    def eq_vol(self, params):
-        dependencies = (
-            self.norm_cycle(params),
-            params["chg_rate"],
-            params["cell_feat"]
-        )
-        return self.nn_call(self.nn_eq_vol, dependencies)
-
-    def r(self, params):
-        dependencies = (
-            self.norm_cycle(params),
-            params["cell_feat"]
-        )
-        return tf.exp(self.nn_call(self.nn_r, dependencies))
 
     # End: nn application functions ============================================
 
@@ -236,28 +234,28 @@ class DegradationModel(Model):
         derivatives = {}
 
         cycles = "cycles"
-        chg_rate = "chg_rate"
-        dchg_rate = "dchg_rate"
+        end_current_prev = "end_current_prev"
+        constant_current = "constant_current"
         cell_feat = "cell_feat"
         if not scalar:
             cycles = "cycles_flat"
-            chg_rate = "chg_rate_flat"
-            dchg_rate = "dchg_rate_flat"
+            end_current_prev = "end_current_prev_flat"
+            constant_current = "constant_current_flat"
             cell_feat = "cell_feat_flat"
 
 
         with tf.GradientTape(persistent=True) as tape3:
             tape3.watch(params[cycles])
-            tape3.watch(params[chg_rate])
-            tape3.watch(params[dchg_rate])
+            tape3.watch(params[end_current_prev])
+            tape3.watch(params[constant_current])
             tape3.watch(params[cell_feat])
             if not scalar:
                 tape3.watch(params["voltage_flat"])
 
             with tf.GradientTape(persistent=True) as tape2:
                 tape2.watch(params[cycles])
-                tape2.watch(params[chg_rate])
-                tape2.watch(params[dchg_rate])
+                tape2.watch(params[end_current_prev])
+                tape2.watch(params[constant_current])
                 tape2.watch(params[cell_feat])
                 if not scalar:
                     tape2.watch(params["voltage_flat"])
@@ -268,12 +266,12 @@ class DegradationModel(Model):
                 source=params[cycles],
                 target=res
             )[:, 0, :]
-            derivatives['d_chg_rate'] = tape2.batch_jacobian(
-                source=params[chg_rate],
+            derivatives['d_end_current_prev'] = tape2.batch_jacobian(
+                source=params[end_current_prev],
                 target=res
             )[:, 0, :]
-            derivatives['d_dchg_rate'] = tape2.batch_jacobian(
-                source=params[dchg_rate],
+            derivatives['d_constant_current'] = tape2.batch_jacobian(
+                source=params[constant_current],
                 target=res
             )[:, 0, :]
             derivatives['dFeatures'] = tape2.batch_jacobian(
@@ -292,13 +290,13 @@ class DegradationModel(Model):
             source=params[cycles],
             target=derivatives['dCyc']
         )[:, 0, :]
-        derivatives['d2_chg_rate'] = tape3.batch_jacobian(
-            source=params[chg_rate],
-            target=derivatives['d_chg_rate']
+        derivatives['d2_end_current_prev'] = tape3.batch_jacobian(
+            source=params[end_current_prev],
+            target=derivatives['d_end_current_prev']
         )[:, 0, :]
-        derivatives['d2_dchg_rate'] = tape3.batch_jacobian(
-            source=params[dchg_rate],
-            target=derivatives['d_dchg_rate']
+        derivatives['d2_constant_current'] = tape3.batch_jacobian(
+            source=params[constant_current],
+            target=derivatives['d_constant_current']
         )[:, 0, :]
         derivatives['d2Features'] = tape3.batch_jacobian(
             source=params[cell_feat],
@@ -341,18 +339,16 @@ class DegradationModel(Model):
 
     def call(self, x, training=False):
 
-        centers = x[0]  # batch of [cyc, k[0], k[1]]; dim: [batch, 3]
-        indecies = x[1]  # batch of index; dim: [batch]
-        meas_cycles = x[2]  # batch of cycles; dim: [batch]
-        voltage_vector = x[3] # dim: [voltages]
-        #Print.colour(Print.RED, voltage_vector)
-        # TODO get another input `shift_vector`
-        #tf.constant([32_things_in_here?])
+        cycles = x[0]  # matrix; dim: [batch, 1]
+        constant_current = x[1]  # matrix; dim: [batch, 1]
+        end_current_prev = x[2]  # matrix; dim: [batch, 1]
+        end_voltage_prev = x[3]  # matrix; dim: [batch, 1]
+
+        indecies = x[4]  # batch of index; dim: [batch]
+        meas_cycles = x[5]  # batch of cycles; dim: [batch]
+        voltage_vector = x[6] # dim: [voltages]
 
         features, mean, log_sig = self.dictionary(indecies, training=training)
-        cycles = centers[:, 0:1] # matrix; dim: [batch, 1]
-        rates = centers[:, 1:] # dim: [batch, 2]
-
         # duplicate cycles and others for all the voltages
         # dimensions are now [batch, voltages, features]
         batch_count = cycles.shape[0]
@@ -369,12 +365,16 @@ class DegradationModel(Model):
                 cycles,
                 count_dict
             ),
-            "chg_rate_flat": self.add_volt_dep(
-                rates[:, 0:1],
+            "constant_current_flat": self.add_volt_dep(
+                constant_current,
                 count_dict
             ),
-            "dchg_rate_flat": self.add_volt_dep(
-                rates[:, 1:2],
+            "end_current_prev_flat": self.add_volt_dep(
+                end_current_prev,
+                count_dict
+            ),
+            "end_voltage_prev_flat": self.add_volt_dep(
+                end_voltage_prev,
                 count_dict
             ),
             "cell_feat_flat": self.add_volt_dep(
@@ -393,8 +393,9 @@ class DegradationModel(Model):
 
             "norm_constant": features[:, 0:1],
             "cycles": cycles,
-            "chg_rate": rates[:, 0:1],
-            "dchg_rate": rates[:, 1:2],
+            "constant_current": constant_current,
+            "end_current_prev": end_current_prev,
+            "end_voltage_prev": end_voltage_prev,
             "cell_feat": features[:, 1:]
         }
 
@@ -406,7 +407,7 @@ class DegradationModel(Model):
             ''' discharge capacity '''
             cap, cap_der = self.create_derivatives(
                 params,
-                self.dchg_cap_part3,
+                self.dchg_cap_part2,
                 scalar = False
             )
             cap = tf.reshape(cap, [-1, voltage_count])
@@ -420,62 +421,133 @@ class DegradationModel(Model):
             )
 
             ''' discharge max voltage '''
-            max_dchg_vol, max_dchg_vol_der = self.create_derivatives(
-                params,
-                self.max_dchg_vol
-            )
-            max_dchg_vol = tf.reshape(max_dchg_vol, [-1])
+            # max_dchg_vol, max_dchg_vol_der = self.create_derivatives(
+            #     params,
+            #     self.max_dchg_vol
+            # )
+            # max_dchg_vol = tf.reshape(max_dchg_vol, [-1])
 
             '''resistance derivatives '''
             r, r_der = self.create_derivatives(params, self.r)
             r = tf.reshape(r, [-1])
 
-            '''eq_vol derivatives '''
-            eq_vol, eq_vol_der = self.create_derivatives(params, self.eq_vol)
-            eq_vol = tf.reshape(eq_vol, [-1])
+            #NOTE(sam): this is an example of a forall. (for all voltages, and all cell features)
 
-            pred_max_dchg_vol = (
-                max_dchg_vol + tf.reshape(max_dchg_vol_der['dCyc'], [-1])
-                * tf.reshape(var_cyc, [-1])
-                + tf.reshape(max_dchg_vol_der['d2Cyc'], [-1])
-                * tf.reshape(var_cyc_squared, [-1])
+            n_sample = 64
+            sampled_voltages = tf.random.uniform(minval=2.5, maxval=5., shape=[n_sample, 1])
+            sampled_norm_cycles = tf.random.uniform(minval=-10., maxval=10., shape=[n_sample, 1])
+            sampled_constant_current = tf.random.uniform(minval=-10., maxval=10., shape=[n_sample, 1])
+
+            sampled_cell_feat = self.dictionary.sample(n_sample)[:, 1:]
+            soc_1 = self.soc(
+                params,
+                voltage=sampled_voltages,
+                cell_feat=sampled_cell_feat,
+                scalar=False
             )
+
+            soc_loss = .001 * (
+                    tf.reduce_mean(tf.square(soc_1)) +
+                    1000. * tf.reduce_mean(tf.nn.relu(-soc_1))
+            )
+
+            theoretical_cap = self.theoretical_cap(
+                params,
+                norm_cycle=sampled_norm_cycles,
+                constant_current=sampled_constant_current,
+                cell_feat=sampled_cell_feat
+            )
+
+            theo_cap_loss = 1. * (
+                    tf.reduce_mean(tf.nn.relu(theoretical_cap-1.))
+            )
+
+            const_f_loss =  (
+                    tf.reduce_mean(tf.square(cap_der['dFeatures']))
+                    + tf.reduce_mean(tf.square(r_der['dFeatures']))
+
+            )
+
+            smooth_f_loss =  (
+                    tf.reduce_mean(tf.square(cap_der['d2Features']))
+                    + tf.reduce_mean(tf.square(r_der['d2Features']))
+
+            )
+
+            kl_loss = tf.reduce_mean(
+                0.5 * (tf.exp(log_sig) + tf.square(mean) - 1. - log_sig)
+            )
+
+
+            # TODO(sam): figure out how to do foralls with derivatives.
+            # mono_loss = fit_args['mono_coeff'] * (
+            #     tf.reduce_mean(tf.nn.relu(-cap))  # penalizes negative capacities
+            #     + tf.reduce_mean(tf.nn.relu(cap_der['dCyc'])) # shouldn't increase
+            #     + tf.reduce_mean(tf.nn.relu(cap_der['d_chg_rate']))
+            #     + tf.reduce_mean(tf.nn.relu(cap_der['d_dchg_rate']))
+            #     + tf.reduce_mean(tf.nn.relu(cap_der['dVol']))
+            #
+            #     + 10. * (
+            #         tf.reduce_mean(tf.nn.relu(-r))
+            #         + tf.reduce_mean(tf.nn.relu(-eq_vol))
+            #         # resistance should not decrease.
+            #         + 10  * tf.reduce_mean(tf.abs(r_der['dCyc']))
+            #         + 10. * (
+            #             tf.reduce_mean(tf.abs(eq_vol_der['dCyc']))
+            #             # equilibrium voltage should not change much
+            #             # TODO is this correct?
+            #             + tf.reduce_mean(tf.abs(eq_vol_der["d_chg_rate"]))
+            #             + tf.reduce_mean(tf.abs(eq_vol_der["d_dchg_rate"]))
+            #         )
+            #     )
+            # )
+
+            # smooth_loss = fit_args['smooth_coeff'] * (
+            #     tf.reduce_mean(tf.square(tf.nn.relu(cap_der['d2Cyc']))
+            #     + 0.02 * tf.square(tf.nn.relu(-cap_der['d2Cyc'])))
+            #     + tf.reduce_mean(
+            #         tf.square(tf.nn.relu(cap_der['d2_chg_rate']))
+            #         + 0.02 * tf.square(tf.nn.relu(-cap_der['d2_chg_rate']))
+            #         + tf.square(tf.nn.relu(cap_der['d2_dchg_rate']))
+            #         + 0.02 * tf.square(tf.nn.relu(-cap_der['d2_dchg_rate']))
+            #         + tf.square(tf.nn.relu(cap_der['d2Vol']))
+            #         + 0.02 * tf.square(tf.nn.relu(-cap_der['d2Vol']))
+            #     )
+            #
+            #     # enforces smoothness of resistance;
+            #     # more ok to accelerate UPWARDS
+            #     + 10. * tf.reduce_mean(tf.square(tf.nn.relu(-r_der['d2Cyc']))
+            #     + 0.5 * tf.square(tf.nn.relu(r_der['d2Cyc'])))
+            #     + 1. * tf.reduce_mean(tf.square((eq_vol_der["d_chg_rate"])))
+            #     + 1. * tf.reduce_mean(tf.square((eq_vol_der["d_dchg_rate"])))
+            #     + 1. * tf.reduce_mean(tf.square((eq_vol_der['d2Cyc'])))
+            # )
 
             return {
                 "pred_cap": pred_cap,
-                "pred_max_dchg_vol": tf.reshape(pred_max_dchg_vol, [-1]),
-                "pred_eq_vol": tf.reshape(eq_vol, [-1]),
+                "soc_loss": soc_loss,
+                "theo_cap_loss": theo_cap_loss,
+                "const_f_loss": const_f_loss,
+                "smooth_f_loss": smooth_f_loss,
+                "kl_loss":kl_loss,
                 "pred_r": tf.reshape(r, [-1]),
                 "mean": mean,
                 "log_sig": log_sig,
                 "cap_der": cap_der,
-                "max_dchg_vol_der": max_dchg_vol_der,
-                "r_der": r_der,
-                "eq_vol_der": eq_vol_der,
             }
 
         else:
             pred_cap = tf.reshape(
-                self.dchg_cap_part3(params),
+                self.dchg_cap_part2(params),
                 [-1, voltage_vector.shape[0]]
             )
-            pred_max_dchg_vol = self.max_dchg_vol(params)
-            pred_eq_vol = self.eq_vol(params)
             pred_r = self.r(params)
-
-            shift = self.shift(params)
-            pred_eq_voltage_0 = self.eq_voltage_0(params)
-            pred_eq_voltage_1 = self.eq_voltage_1(params)
+            #shift = self.shift(params)
 
             return {
                 "pred_cap": pred_cap,
-                "pred_max_dchg_vol": pred_max_dchg_vol,
-                "pred_eq_vol": pred_eq_vol,
                 "pred_r": pred_r,
-
-                "shift": shift,
-                "pred_eq_voltage_1": pred_eq_voltage_1,
-                "pred_eq_voltage_0": pred_eq_voltage_0
+                #"shift": shift,
             }
 
 # stores cell features
@@ -507,3 +579,16 @@ class DictionaryLayer(Layer):
         fetched_log_sig = tf.gather(log_sig, input, axis=0)
 
         return fetched_features, fetched_mean, fetched_log_sig
+
+
+    def sample(self, n_sample):
+        eps = tf.random.normal(
+            shape=[n_sample, self.num_features])
+        mean = self.kernel[:, :self.num_features]
+        log_sig = self.kernel[:, self.num_features:]
+        indecies = tf.random.uniform(maxval=self.num_keys, shape=[n_sample],dtype=tf.int32)
+
+        fetched_mean = tf.gather(mean, indecies, axis=0)
+        fetched_log_sig = tf.gather(log_sig, indecies, axis=0)
+        fetched_features = fetched_mean + tf.exp(fetched_log_sig / 2.) * eps
+        return tf.stop_gradient(fetched_features)

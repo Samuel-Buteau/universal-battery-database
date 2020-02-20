@@ -521,9 +521,8 @@ def train_step(params, fit_args):
             cap_loss
             + train_results["soc_loss"]
             + train_results["theo_cap_loss"]
+            + train_results["r_loss"]
             + fit_args['kl_coeff']*train_results["kl_loss"]
-            + fit_args['const_f_coeff']*train_results["const_f_loss"]
-            + fit_args['smooth_f_coeff']*train_results["smooth_f_loss"]
         )
 
 

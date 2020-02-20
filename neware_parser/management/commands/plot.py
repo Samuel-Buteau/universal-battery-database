@@ -169,8 +169,7 @@ def plot_capacity(plot_params, init_returns):
             min_c = min(cycles)
             max_c = max(cycles)
             cycles = [
-                float(min_c) + float(max_c - min_c)
-                * x for x in np.arange(0., 1.1, 0.02)
+                 x for x in np.arange(0., 7000., 100.)
             ]
 
             my_cycles = [

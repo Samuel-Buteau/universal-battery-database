@@ -430,15 +430,6 @@ def train_step(params, fit_args):
     # need to split the range
     batch_size2 = neigh_int.shape[0]
 
-    '''
-    find the actual cycle number by interpolation
-    then offset the cycle number by the delta * randomness.
-    '''
-
-    # offset center cycles so the model is never evaluated at the same cycle
-    center_cycle_offsets = tf.random.uniform(
-        [batch_size2], minval=-1., maxval=1., dtype=tf.float32
-    )
 
     '''
     if you have the minimum cycle and maximum cycle for a neighborhood,
@@ -464,20 +455,20 @@ def train_step(params, fit_args):
     )
 
     meas_cycles = tf.gather(
-        cycles_tensor, indices=cycle_indecies, axis=0
+        cycles_tensor,
+        indices=cycle_indecies, axis=0
     )
-    model_eval_cycles = (
-        meas_cycles + center_cycle_offsets * neigh_float[:, NEIGH_FLOAT_DELTA]
-    )
-
     meas_constant_current = tf.gather(
-        constant_current_tensor, indices=cycle_indecies, axis=0
+        constant_current_tensor,
+        indices=cycle_indecies, axis=0
     )
     meas_end_current_prev = tf.gather(
-        end_current_prev_tensor, indices=cycle_indecies, axis=0
+        end_current_prev_tensor,
+        indices=cycle_indecies, axis=0
     )
     meas_end_voltage_prev = tf.gather(
-        end_voltage_prev_tensor, indices=cycle_indecies, axis=0
+        end_voltage_prev_tensor,
+        indices=cycle_indecies, axis=0
     )
 
     cap = tf.gather(vq_curves, indices=cycle_indecies)
@@ -499,12 +490,11 @@ def train_step(params, fit_args):
 
         train_results = degradation_model(
             (
-                tf.expand_dims(model_eval_cycles, axis=1),
+                tf.expand_dims(meas_cycles, axis=1),
                 tf.expand_dims(meas_constant_current, axis=1),
                 tf.expand_dims(meas_end_current_prev, axis=1),
                 tf.expand_dims(meas_end_voltage_prev, axis=1),
                 cell_indecies,
-                meas_cycles,
                 vol_tensor),
             training = True
         )

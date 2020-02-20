@@ -45,6 +45,7 @@ the default dictionary will be used
 class Inequality(Enum):
     LessThan = 1
     GreaterThan = 2
+    Equals = 3
 
 class Level(Enum):
     Strong = 1
@@ -60,9 +61,10 @@ def incentive_inequality(A,symbol, B, level):
 
     :param A: The first object
     :param symbol: the relationship we want
-    (either Inequality.LessThan or Inequality.GreaterThan)
+    (either Inequality.LessThan or Inequality.GreaterThan or Inequality.Equal)
         Inequality.LessThan (i.e. A < B) means that A should be less than B,
         Inequality.GreaterThan (i.e. A > B) means that A should be greater than B.
+        Inequality.Equals (i.e. A = B) means that A should be equal to B.
 
     :param B: The second object
     :param level:  determines the relationship between the incentive strength and the values of A and B.
@@ -82,6 +84,8 @@ def incentive_inequality(A,symbol, B, level):
         intermediate = tf.nn.relu(A - B)
     elif symbol == Inequality.GreaterThan:
         intermediate = tf.nn.relu(B - A)
+    elif symbol == Inequality.Equals:
+        intermediate = tf.abs(A - B)
     else:
         raise Exception("not yet implemented inequality symbol {}.".format(symbol))
 
@@ -576,8 +580,7 @@ class DegradationModel(Model):
         end_voltage_prev = x[3]  # matrix; dim: [batch, 1]
 
         indecies = x[4]  # batch of index; dim: [batch]
-        meas_cycles = x[5]  # batch of cycles; dim: [batch]
-        voltage_vector = x[6] # dim: [voltages]
+        voltage_vector = x[5] # dim: [voltages]
 
         features, mean, log_sig = self.dictionary(indecies, training=training)
         # duplicate cycles and others for all the voltages
@@ -627,26 +630,28 @@ class DegradationModel(Model):
 
         if training:
 
-            var_cyc = tf.expand_dims(meas_cycles, axis=1) - cycles
-            var_cyc_squared = tf.square(var_cyc)
+            # var_cyc = tf.expand_dims(meas_cycles, axis=1) - cycles
+            # var_cyc_squared = tf.square(var_cyc)
+            #
+            # ''' discharge capacity '''
+            # cap, cap_der = self.create_derivatives(
+            #     self.dchg_cap_part2,
+            #     params,
+            #     over_params={},
+            #     scalar = False,
+            #     cycles_der=2,
+            # )
 
-            ''' discharge capacity '''
-            cap, cap_der = self.create_derivatives(
-                self.dchg_cap_part2,
-                params,
-                over_params={},
-                scalar = False,
-                cycles_der=2,
-            )
-            cap = tf.reshape(cap, [-1, voltage_count])
+            cap = self.dchg_cap_part2(params, over_params={})
+            pred_cap = tf.reshape(cap, [-1, voltage_count])
 
-            pred_cap = (
-                cap + var_cyc * tf.reshape(
-                    cap_der['d_cycles'], [-1, voltage_count]
-                ) + var_cyc_squared * tf.reshape(
-                    cap_der['d2_cycles'], [-1, voltage_count]
-                )
-            )
+            # pred_cap = (
+            #     cap + var_cyc * tf.reshape(
+            #         cap_der['d_cycles'], [-1, voltage_count]
+            #     ) + var_cyc_squared * tf.reshape(
+            #         cap_der['d2_cycles'], [-1, voltage_count]
+            #     )
+            # )
 
 
 
@@ -718,7 +723,7 @@ class DegradationModel(Model):
                     'features':sampled_features
                 },
                 scalar=True,
-                cycles_der=2,
+                cycles_der=3,
                 constant_current_der=2,
                 features_der=2,
             )
@@ -735,35 +740,55 @@ class DegradationModel(Model):
                             Level.Strong
                         )
                     ),
-                    (.01,incentive_inequality(
+                    (1.,incentive_inequality(
                             theoretical_cap_der['d_cycles'], Inequality.LessThan, 0,
                             Level.Proportional
                         ) # we want cap to diminish with cycle number
                     ),
-                    (.01,incentive_inequality(
+                    (.1, incentive_inequality(
+                        theoretical_cap_der['d2_cycles'], Inequality.LessThan, 0,
+                        Level.Proportional
+                    )  # we want cap to diminish with cycle number
+                     ),
+
+                    (1.,incentive_inequality(
                             theoretical_cap_der['d_constant_current'], Inequality.LessThan, 0,
                             Level.Proportional
                         ) # we want cap to diminish with constant_current (if constant current is positive)
                     ),
-                    (.01,incentive_magnitude(
+                    (1., incentive_magnitude(
+                        theoretical_cap_der['d_cycles'],
+                        Target.Small,
+                        Level.Proportional
+                    )
+                     ),
+
+                    (10.,incentive_magnitude(
                             theoretical_cap_der['d2_cycles'],
                             Target.Small,
                             Level.Proportional
                         )
                     ),
-                    (.01,incentive_magnitude(
+                    (100., incentive_magnitude(
+                            theoretical_cap_der['d3_cycles'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                     ),
+
+                    (1.,incentive_magnitude(
                             theoretical_cap_der['d2_constant_current'],
                             Target.Small,
                             Level.Proportional
                         )
                     ),
-                    (.01,incentive_magnitude(
+                    (1.,incentive_magnitude(
                             theoretical_cap_der['d_features'],
                             Target.Small,
                             Level.Proportional
                         )
                     ),
-                    (.01,incentive_magnitude(
+                    (1.,incentive_magnitude(
                             theoretical_cap_der['d2_features'],
                             Target.Small,
                             Level.Strong
@@ -779,7 +804,7 @@ class DegradationModel(Model):
                     'cycles': sampled_cycles,
                     'features': sampled_features
                 },
-                cycles_der=2,
+                cycles_der=3,
                 features_der=2,
                 scalar=True,
             )
@@ -787,23 +812,31 @@ class DegradationModel(Model):
             r_loss = .001 * incentive_combine(
                 [
                     (1.,incentive_inequality(
-                            r, Inequality.LessThan, 0,
+                            r, Inequality.GreaterThan, 0,
                             Level.Strong
                         )
                     ),
-                    (.01,incentive_magnitude(
+                    (10.,incentive_magnitude(
                             r_der['d2_cycles'],
                             Target.Small,
                             Level.Proportional
                         )
                     ),
-                    (.01,incentive_magnitude(
+
+                    (100., incentive_magnitude(
+                            r_der['d3_cycles'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                     ),
+
+                    (1.,incentive_magnitude(
                             r_der['d_features'],
                             Target.Small,
                             Level.Proportional
                         )
                     ),
-                    (.01,incentive_magnitude(
+                    (1.,incentive_magnitude(
                             r_der['d2_features'],
                             Target.Small,
                             Level.Strong

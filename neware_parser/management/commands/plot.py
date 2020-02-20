@@ -169,7 +169,7 @@ def plot_capacity(plot_params, init_returns):
             min_c = min(cycles)
             max_c = max(cycles)
             cycles = [
-                 x for x in np.arange(0., 7000., 100.)
+                 x for x in np.arange(0., 7000., 20.)
             ]
 
             my_cycles = [
@@ -296,7 +296,6 @@ def test_all_voltages(cycle, constant_current, end_current_prev, end_voltage_pre
     expanded_end_voltage_prev = tf.constant(end_voltage_prev, shape=[1, 1])
 
     indecies = tf.reshape(barcode_count, [1])
-    measured_cycles = tf.reshape(cycle, [1, 1])
 
     return degradation_model(
         (
@@ -305,7 +304,6 @@ def test_all_voltages(cycle, constant_current, end_current_prev, end_voltage_pre
             expanded_end_current_prev,
             expanded_end_voltage_prev,
             indecies,
-            measured_cycles,
             voltages
         ),
         training=False
@@ -318,7 +316,6 @@ def test_single_voltage(cycles, v, constant_current, end_current_prev, end_volta
     expanded_end_voltage_prev = tf.constant(end_voltage_prev, shape=[len(cycles), 1])
 
     indecies = tf.tile(tf.expand_dims(barcode_count, axis=0), [len(cycles)])
-    measured_cycles = tf.expand_dims(cycles, axis=1)
 
     return degradation_model(
         (
@@ -327,7 +324,6 @@ def test_single_voltage(cycles, v, constant_current, end_current_prev, end_volta
             expanded_end_current_prev,
             expanded_end_voltage_prev,
             indecies,
-            measured_cycles,
             tf.expand_dims(v, axis=0)),
         training=False
     )

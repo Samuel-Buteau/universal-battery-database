@@ -32,7 +32,7 @@ def plot_vq(plot_params, init_returns):
         ax = fig.add_subplot(1, 2, 1)
         colors = ['k', 'r', 'b', 'g', 'm', 'c']
 
-        for k_count, k in enumerate(test_object[barcode_count].keys()):
+        for k_count, k in enumerate([key for key in test_object[barcode_count].keys() if key[2]=='dchg']):
 
             if k[2] == 'dchg':
                 sign_change = -1.
@@ -43,9 +43,12 @@ def plot_vq(plot_params, init_returns):
 
             for vq_count, vq in enumerate(barcode_k['capacity_vector']):
 
+                vq_mask = barcode_k['vq_curve_mask'][vq_count]
+                valids = vq_mask> .5
+
                 ax.set_xlim(x_lim)
                 ax.set_ylim(y_lim)
-                ax.plot(sign_change * vq, vol_tensor.numpy(), c=colors[k_count])
+                ax.scatter(sign_change * vq[valids], vol_tensor.numpy()[valids], c=colors[k_count])
 
 
         ax = fig.add_subplot(1, 2, 2)
@@ -53,7 +56,7 @@ def plot_vq(plot_params, init_returns):
                   (0., 1., 0.), (1., 0., 1.), (0., 1., 1.)]
 
         cycles = [0, 2000, 4000, 6000]
-        for k_count, k in enumerate(test_object[barcode_count].keys()):
+        for k_count, k in enumerate([key for key in test_object[barcode_count].keys() if key[2]=='dchg']):
 
             if k[2] == 'dchg':
                 sign_change = -1.
@@ -140,7 +143,7 @@ def plot_capacity(plot_params, init_returns):
         #ax1.set_ylim([0.58, 1.03])
 
         colors = ['k', 'r', 'b', 'g', 'm', 'c']
-        for k_count, k in enumerate(test_object[barcode_count].keys()):
+        for k_count, k in enumerate([key for key in test_object[barcode_count].keys() if key[2]=='dchg']):
 
             if k[2] == 'dchg':
                 sign_change = -1.
@@ -158,7 +161,7 @@ def plot_capacity(plot_params, init_returns):
                 ax1.axvline(
                     x=cyc, color=colors[k_count], linestyle='--')
 
-        for k_count, k in enumerate(test_object[barcode_count].keys()):
+        for k_count, k in enumerate([key for key in test_object[barcode_count].keys() if key[2]=='dchg']):
 
             if k[2] == 'dchg':
                 sign_change = -1.

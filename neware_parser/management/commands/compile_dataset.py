@@ -222,13 +222,14 @@ def initial_processing(my_barcodes, fit_args):
                                                                                                       'chg')
                     if vq_curve_chg is None:
                         print('charge:', step_info_chg)
-                        print(cyc.step_set)
+                        print([s.step_type for s in cyc.step_set.order_by('cycle__cycle_number', 'step_number')])
+
 
                         continue
 
                     result_dchg.append((
                         cyc.get_offset_cycle(),
-                        -1.* vq_curve_dchg,
+                        vq_curve_dchg,
                         vq_mask_dchg,
                         -1.* step_info_dchg['constant_current'],
                         step_info_dchg['end_current_prev'],
@@ -241,7 +242,7 @@ def initial_processing(my_barcodes, fit_args):
                         vq_curve_chg,
                         vq_mask_chg,
                         step_info_chg['constant_current'],
-                        step_info_chg['end_current_prev'],
+                        -1.*step_info_chg['end_current_prev'],
                         step_info_chg['end_voltage_prev'],
                         cyc.get_temperature()
                     ))

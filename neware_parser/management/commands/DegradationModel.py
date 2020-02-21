@@ -756,14 +756,14 @@ class DegradationModel(Model):
                             Level.Proportional
                         ) # we want cap to diminish with constant_current (if constant current is positive)
                     ),
-                    (1., incentive_magnitude(
+                    (100., incentive_magnitude(
                         theoretical_cap_der['d_cycles'],
                         Target.Small,
                         Level.Proportional
                     )
                      ),
 
-                    (10.,incentive_magnitude(
+                    (100.,incentive_magnitude(
                             theoretical_cap_der['d2_cycles'],
                             Target.Small,
                             Level.Proportional

@@ -507,6 +507,15 @@ def is_monotonically_decreasing(qs):
             break
     return mono
 
+def is_monotonically_increasing(qs, mask=None):
+    mono = True
+    for i in range(1, len(qs) - 1):
+        if qs[i] < qs[i - 1] and (mask is None or (mask[i] > .1 and mask[i-1] > .1)):
+            mono = False
+            break
+    return mono
+
+
 
 def average_data(data_source_, val_keys, sort_val, weight_func=None, weight_exp_func=None, compute_std=False):
     if weight_func is not None:
@@ -945,22 +954,57 @@ def process_single_file(f,DEBUG=False):
     error_message['error'] = False
     return error_message
 
-def machine_learning_post_process_cycle(cyc, voltage_grid):
-    #TODO(sam): add option to compute the charge curve too.
-    #print(','.join([c.step_type for c in cyc.step_set.order_by('id')]))
-    steps = cyc.step_set.filter(step_type__contains='CC_DChg').order_by('cycle__cycle_number','step_number')
-    if len(steps) == 0:
-        return None, None, None
-    else:
-        first_step = steps[0]
-        vcqt_curve = first_step.get_v_c_q_t_data()
-        v_min = first_step.minimum_voltage
-        v_max = first_step.maximum_voltage
-        curve = vcqt_curve[:, [0, 2]]
+def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
+    if step_type == 'dchg':
+        steps = cyc.step_set.filter(step_type__contains='CC_DChg').order_by('cycle__cycle_number','step_number')
+        if len(steps) == 0:
+            return None, None, None
+        else:
+            first_step = steps[0]
+            vcqt_curve = first_step.get_v_c_q_t_data()
+            v_min = first_step.minimum_voltage
+            v_max = first_step.maximum_voltage
+            curve = vcqt_curve[:, [0, 2]]
+            curve[:, 1] = -1*curve[:,1]
+            curve = numpy.flip(curve, 0)
+
+    if step_type == 'chg':
+        steps = cyc.step_set.filter(step_type__contains='CC_Chg').order_by('cycle__cycle_number','step_number')
+        if len(steps) == 0:
+            steps = cyc.step_set.filter(step_type__contains='CCCV_Chg').order_by('cycle__cycle_number', 'step_number')
+
+            if len(steps) == 0:
+                return None, None, None
+            else:
+                first_step = steps[0]
+                vcqt_curve = first_step.get_v_c_q_t_data()
+                v_min = first_step.minimum_voltage
+                v_max = first_step.maximum_voltage
+                if len(vcqt_curve)==1:
+                    curve = vcqt_curve[:, [0,2]]
+                else:
+                    delta_currents = numpy.abs(vcqt_curve[1:,1] - vcqt_curve[:-1,1])
+                    delta_count = 0
+                    for d in delta_currents:
+                        if d < 5:
+                            delta_count+=1
+                        else:
+                            break
+
+                    curve = vcqt_curve[:delta_count+1, [0, 2]]
+
+        else:
+            first_step = steps[0]
+            vcqt_curve = first_step.get_v_c_q_t_data()
+            v_min = first_step.minimum_voltage
+            v_max = first_step.maximum_voltage
+            curve = vcqt_curve[:, [0, 2]]
+
+
 
     cursor = numpy.array([-1, len(curve)], dtype=numpy.int32)
-    limits_v = numpy.array([10., -10.], dtype=numpy.float32)
-    limits_q = numpy.array([-10, 1e6], dtype=numpy.float32)
+    limits_v = numpy.array([-10., 10.], dtype=numpy.float32)
+    limits_q = numpy.array([-1e6, 1e6], dtype=numpy.float32)
     masks = numpy.zeros(len(curve), dtype=numpy.bool)
 
     never_added_up = True
@@ -977,11 +1021,18 @@ def machine_learning_post_process_cycle(cyc, voltage_grid):
         can_add_downward = False
         delta_downward = 0.
 
-        # Test upward addition
-        dv1 = limits_v[0] - curve[cursor[0] + 1, 0]
-        dq1 = curve[cursor[0] + 1, 1] - limits_q[0]
-        dv2 = curve[cursor[0] + 1, 0] - limits_v[1]
-        dq2 = limits_q[1] - curve[cursor[0] + 1, 1]
+        # Test upward addition (addition from the left)
+        new_index = cursor[0] + 1
+        new_v = curve[new_index, 0] # should be more than limits_v[0] and less than limits_v[1]
+        new_q = curve[new_index, 1] # should be more than limits_q[0] and less than limits_q[1]
+
+        #should both be positive
+        dv1 = new_v - limits_v[0]
+        dv2 = limits_v[1] - new_v
+
+        #should both be positive (with some tolerance)
+        dq1 = new_q - limits_q[0]
+        dq2 = limits_q[1] - new_q
 
         if dv1 >= 0.0001 and dq1 >= -0.001 and dv2 >= 0.0001 and dq2 >= -0.001:
 
@@ -991,18 +1042,26 @@ def machine_learning_post_process_cycle(cyc, voltage_grid):
             delta_upward += abs(dv1) / dq1
             if abs(dv1) / dq1 < 10.:
                 if never_added_up:
-                    dv1 = curve[cursor[0] + 1, 0] - curve[cursor[0] + 2, 0]
-                    dq1 = curve[cursor[0] + 2, 1] - curve[cursor[0] + 1, 1]
+                    dv1 = curve[new_index + 1, 0] - new_v
+                    dq1 = curve[new_index + 1, 1] - new_q
                     if dv1 >= -0.001 and dq1 >= -0.001:
                         can_add_upward = True
                 else:
                     can_add_upward = True
 
         # Test downward addition
-        dv1 = limits_v[0] - curve[cursor[1] - 1, 0]
-        dq1 = curve[cursor[1] - 1, 1] - limits_q[0]
-        dv2 = curve[cursor[1] - 1, 0] - limits_v[1]
-        dq2 = limits_q[1] - curve[cursor[1] - 1, 1]
+
+        new_index = cursor[1] - 1
+        new_v = curve[new_index, 0]  # should be more than limits_v[0] and less than limits_v[1]
+        new_q = curve[new_index, 1]  # should be more than limits_q[0] and less than limits_q[1]
+
+        # should both be positive
+        dv1 = new_v - limits_v[0]
+        dv2 = limits_v[1] - new_v
+
+        # should both be positive (with some tolerance)
+        dq1 = new_q - limits_q[0]
+        dq2 = limits_q[1] - new_q
 
         if dv1 >= 0.0001 and dq1 >= -0.001 and dv2 >= 0.0001 and dq2 >= -0.001:
 
@@ -1013,8 +1072,8 @@ def machine_learning_post_process_cycle(cyc, voltage_grid):
             delta_upward += abs(dv2) / dq2
             if abs(dv2) / dq2 < 10.:
                 if never_added_down:
-                    dv2 = curve[cursor[1] - 2, 0] - curve[cursor[1] - 1, 0]
-                    dq2 = curve[cursor[1] - 1, 1] - curve[cursor[1] - 2, 1]
+                    dv2 = new_v - curve[new_index - 1, 0]
+                    dq2 = new_q - curve[new_index - 1, 1]
                     if dv2 >= -0.001 and dq2 >= -0.001:
                         can_add_downward = True
                 else:
@@ -1037,18 +1096,25 @@ def machine_learning_post_process_cycle(cyc, voltage_grid):
             my_add = 'Down'
 
         if my_add == 'Up':
-            never_added_up = False
-            masks[cursor[0] + 1] = True
-            limits_v[0] = min(limits_v[0], curve[cursor[0] + 1, 0])
-            limits_q[0] = max(limits_q[0], curve[cursor[0] + 1, 1])
+            new_index = cursor[0] + 1
+            new_v = curve[new_index, 0]
+            new_q = curve[new_index, 1]
 
+            never_added_up = False
+            masks[new_index] = True
+            limits_v[0] = max(limits_v[0], new_v)
+            limits_q[0] = max(limits_q[0], new_q)
             cursor[0] += 1
 
         elif my_add == 'Down':
+            new_index = cursor[1] - 1
+            new_v = curve[new_index, 0]
+            new_q = curve[new_index, 1]
+
             never_added_down = False
-            masks[cursor[1] - 1] = True
-            limits_v[1] = max(limits_v[1], curve[cursor[1] - 1, 0])
-            limits_q[1] = min(limits_q[1], curve[cursor[1] - 1, 1])
+            masks[new_index] = True
+            limits_v[1] = min(limits_v[1], new_v)
+            limits_q[1] = min(limits_q[1], new_q)
 
             cursor[1] += -1
 
@@ -1056,6 +1122,10 @@ def machine_learning_post_process_cycle(cyc, voltage_grid):
     invalid_curve = curve[~masks]
     if len(invalid_curve) > 5:
         return None, None, None
+
+    if len(valid_curve) == 0:
+        return None, None, None
+
 
     # uniformly sample it
 
@@ -1066,17 +1136,14 @@ def machine_learning_post_process_cycle(cyc, voltage_grid):
     v = v[sorted_ind]
     q = q[sorted_ind]
 
-    last = v[-1]
-
-    added_v = numpy.arange(last + 0.01, 4.6, 0.01)
-    added_q = 0. * numpy.arange(last + 0.01, 4.6, 0.01)
-    v1 = numpy.concatenate((v, added_v), axis=0)
-    q1 = numpy.concatenate((q, added_q), axis=0)
-    spline = PchipInterpolator(v1, q1)
+    # last = v[-1]
+    #
+    # added_v = numpy.arange(last + 0.01, 4.6, 0.01)
+    # added_q = 0. * numpy.arange(last + 0.01, 4.6, 0.01)
+    # v1 = numpy.concatenate((v, added_v), axis=0)
+    # q1 = numpy.concatenate((q, added_q), axis=0)
+    spline = PchipInterpolator(v, q, extrapolate=True)
     res = spline(voltage_grid)
-
-    if not is_monotonically_decreasing(res):
-        return None, None, None
 
     mask1 = numpy.where(
                     numpy.logical_and(
@@ -1084,8 +1151,12 @@ def machine_learning_post_process_cycle(cyc, voltage_grid):
                         voltage_grid <= v_max
                     ),
                     numpy.ones(len(voltage_grid), dtype=numpy.float32),
-                    0.01 * numpy.ones(len(voltage_grid), dtype=numpy.float32),
+                    0.0 * numpy.ones(len(voltage_grid), dtype=numpy.float32),
                 )
+
+    if not is_monotonically_increasing(res, mask=mask1):
+        return None, None, None
+
 
 
     mask2 = numpy.minimum(
@@ -1108,7 +1179,11 @@ def machine_learning_post_process_cycle(cyc, voltage_grid):
                 )
             ), axis=1)
     )
-    return res, mask2, {'end_current_prev':first_step.end_current_prev, 'end_voltage_prev':first_step.end_voltage_prev,'constant_current':first_step.constant_current,}
+    return res, mask2, {
+        'end_current_prev':first_step.end_current_prev,
+        'end_voltage_prev':first_step.end_voltage_prev,
+        'constant_current':first_step.constant_current,
+    }
 
 
 

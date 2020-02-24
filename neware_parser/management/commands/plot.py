@@ -9,8 +9,76 @@ from .colour_print import Print
 
 from matplotlib.axes._axes import _log as matplotlib_axes_logger
 matplotlib_axes_logger.setLevel('ERROR')
+import matplotlib.patches as mpatches
+FIGSIZE = [6, 5]
 
-FIGSIZE = [5, 5]
+
+COLORS = [
+    (.4, .4, .4),
+
+    (1., 0., 0.),
+    (0., 0., 1.),
+    (0., 1., 0.),
+
+    (.6, 0., .6),
+    (0., .6, .6),
+    (.6, .6, 0.),
+
+    (1., 0., .5),
+    (.5, 0., 1.),
+    (0., 1., .5),
+    (0., .5, 1.),
+    (1., .5, 0.),
+    (.5, 1., 0.),
+
+]
+
+def bake_rate(rate_in):
+    rate = round(20. * rate_in) / 20.
+    if rate == .05:
+        rate = '0.05'
+    elif rate > 1.75:
+        rate = '{}'.format(int(round(rate)))
+    elif rate > 0.4:
+        rate = round(2. * rate_in) / 2.
+        if rate == 1.:
+            rate = '1'
+        else:
+            rate = '{:1.1f}'.format(rate)
+    elif rate > 0.09:
+        rate = '{:1.1f}'.format(rate)
+    return rate
+
+
+def bake_voltage(vol_in):
+    vol = round(10. * vol_in) / 10.
+    if vol == 1. or vol == 2. or vol == 3. or vol==4. or vol == 5.:
+        vol = '{}'.format(int(vol))
+    else:
+        vol = '{:1.1f}'.format(vol)
+    return vol
+
+
+def make_legend(key):
+    constant_rate = key[0]
+    constant_rate = bake_rate(constant_rate)
+    end_rate_prev = key[1]
+    end_rate_prev = bake_rate(end_rate_prev)
+    end_rate = key[2]
+    end_rate = bake_rate(end_rate)
+
+    end_voltage = key[3]
+    end_voltage = bake_voltage(end_voltage)
+
+    end_voltage_prev = key[4]
+    end_voltage_prev = bake_voltage(end_voltage_prev)
+
+    template = "I:{}:{} V:{}:{}"
+    return template.format(end_rate_prev, constant_rate, end_voltage_prev, end_voltage)
+
+
+
+
 
 def plot_vq(plot_params, init_returns):
     barcodes = plot_params["barcodes"]
@@ -28,100 +96,88 @@ def plot_vq(plot_params, init_returns):
     y_lim = [2.95, 4.35]
 
     for barcode_count, barcode in enumerate(barcodes):
-        fig = plt.figure()
-        ax = fig.add_subplot(1, 2, 1)
-        colors = ['k', 'r', 'b', 'g', 'm', 'c']
+        fig = plt.figure(figsize=[9,5])
 
-        for k_count, k in enumerate([key for key in test_object[barcode_count].keys() if key[2]=='dchg']):
+        for typ, off in [('dchg',0), ('chg', 3)]:
+            list_of_keys = [key for key in test_object[barcode_count].keys() if key[-1] == typ]
+            list_of_keys.sort(key=lambda k: (round(20.*k[0]), round(20.*k[1]), round(20.*k[2]), round(20.*k[3]), round(20.*k[4])))
+            print(list_of_keys)
+            list_of_patches = []
+            ax = fig.add_subplot(2, 3, 1+off)
+            for k_count, k in enumerate(list_of_keys):
 
-            if k[2] == 'dchg':
-                sign_change = -1.
-            else:
-                sign_change = +1.
+                if k[-1] == 'dchg':
+                    sign_change = -1.
+                else:
+                    sign_change = +1.
 
-            barcode_k = all_data[barcode][k][0]
+                barcode_k = all_data[barcode][k][0]
 
-            for vq_count, vq in enumerate(barcode_k['capacity_vector']):
+                for vq_count, vq in enumerate(barcode_k['capacity_vector']):
+                    cyc = all_data[barcode][k][0]['cycle_number'][vq_count]
+                    mult = 1. - (.5 * cyc / 6000.)
 
-                vq_mask = barcode_k['vq_curve_mask'][vq_count]
-                valids = vq_mask> .5
+                    vq_mask = barcode_k['vq_curve_mask'][vq_count]
+                    valids = vq_mask> .5
 
-                ax.set_xlim(x_lim)
-                ax.set_ylim(y_lim)
-                ax.scatter(sign_change * vq[valids], vol_tensor.numpy()[valids], c=colors[k_count])
+                    ax.set_xlim(x_lim)
+                    ax.set_ylim(y_lim)
+                    ax.scatter(sign_change * vq[valids], vol_tensor.numpy()[valids],
+                               c=(
+                                   mult * COLORS[k_count][0],
+                                   mult * COLORS[k_count][1],
+                                   mult * COLORS[k_count][2]
+                               ),
+                               s=3)
 
 
-        ax = fig.add_subplot(1, 2, 2)
-        colors = [(1., 1., 1.), (1., 0., 0.), (0., 0., 1.),
-                  (0., 1., 0.), (1., 0., 1.), (0., 1., 1.)]
+            ax = fig.add_subplot(2, 3, 2+off)
 
-        cycles = [0, 2000, 4000, 6000]
-        for k_count, k in enumerate([key for key in test_object[barcode_count].keys() if key[2]=='dchg']):
+            cycles = [0, 6000/2, 6000]
+            for k_count, k in enumerate(list_of_keys):
+                list_of_patches.append(mpatches.Patch(color=COLORS[k_count], label=make_legend(k)))
 
-            if k[2] == 'dchg':
-                sign_change = -1.
-            else:
-                sign_change = +1.
+                if k[-1] == 'dchg':
+                    sign_change = -1.
+                else:
+                    sign_change = +1.
 
-            for i, cyc in enumerate(cycles):
-                cycle = ((float(cyc) - cycles_m) / tf.sqrt(cycles_v))
-                test_results = test_all_voltages(
-                    cycle,
-                    all_data[barcode][k][1]['avg_constant_current'],
-                    all_data[barcode][k][1]['avg_end_current_prev'],
-                    all_data[barcode][k][1]['avg_end_voltage_prev'],
-                    barcode_count, degradation_model, vol_tensor
-                )
+                for i, cyc in enumerate(cycles):
+                    cycle = ((float(cyc) - cycles_m) / tf.sqrt(cycles_v))
+                    mult = 1.-(.5*cyc/6000.)
 
-                pred_cap = tf.reshape(test_results["pred_cap"], shape = [-1])
-
-                mult = (i + 4) / (len(cycles) + 5)
-
-                ax.set_xlim(x_lim)
-                ax.set_ylim(y_lim)
-                ax.scatter(
-                    sign_change*pred_cap,
-                    vol_tensor.numpy(),
-                    c = (
-                        mult * colors[k_count][0],
-                        mult * colors[k_count][1],
-                        mult * colors[k_count][2]
+                    test_results = test_all_voltages(
+                        cycle,
+                        all_data[barcode][k][1]['avg_constant_current'],
+                        all_data[barcode][k][1]['avg_end_current_prev'],
+                        all_data[barcode][k][1]['avg_end_voltage_prev'],
+                        barcode_count, degradation_model, vol_tensor
                     )
-                )
 
+                    pred_cap = tf.reshape(test_results["pred_cap"], shape = [-1])
+
+
+                    ax.set_xlim(x_lim)
+                    ax.set_ylim(y_lim)
+                    ax.scatter(
+                        sign_change*pred_cap,
+                        vol_tensor.numpy(),
+                        c = (
+                            mult * COLORS[k_count][0],
+                            mult * COLORS[k_count][1],
+                            mult * COLORS[k_count][2]
+                        ),
+                        s=3,
+
+                    )
+
+            ax = fig.add_subplot(2, 3, 3 + off)
+            ax.axis('off')
+            ax.legend(handles=list_of_patches)
 
         savefig('VQ_{}_Count_{}.png', fit_args, barcode, count)
         plt.close(fig)
 
-def plot_test_rate_voltage(plot_params, init_returns):
-    barcodes = plot_params["barcodes"]
-    count = plot_params["count"]
-    fit_args = plot_params["fit_args"]
-
-    degradation_model = init_returns["degradation_model"]
-    vol_tensor = init_returns["vol_tensor"]
-
-    for barcode_count, barcode in enumerate(barcodes):
-        results = []
-        for k in [[0.1, x / 10.] for x in range(40)]:
-            test_results = test_single_voltage(
-                [0.], vol_tensor[0], k, barcode_count, degradation_model
-            )
-            results.append([k[1], test_results["pred_max_dchg_vol"]])
-
-        fig = plt.figure()
-        ax = fig.add_subplot(1, 1, 1)
-
-        results = np.array(results)
-        ax.scatter(results[:, 0], results[:, 1])
-
-        plt.savefig(
-            os.path.join(
-                fit_args['path_to_plots'],
-                'Test_Rate_Voltage_{}_Count_{}.png'.format(barcode, count)
-            )
-        )
-        plt.close(fig)
 
 def plot_capacity(plot_params, init_returns):
     barcodes = plot_params["barcodes"]
@@ -133,62 +189,72 @@ def plot_capacity(plot_params, init_returns):
     all_data = init_returns["all_data"]
     cycles_m = init_returns["cycles_m"]
     cycles_v = init_returns["cycles_v"]
-    vol_tensor = init_returns["vol_tensor"]
 
     for barcode_count, barcode in enumerate(barcodes):
-        fig = plt.figure()
+        fig = plt.figure(figsize=[5,5])
 
-        ax1 = fig.add_subplot(1, 1, 1)
-        ax1.set_ylabel("capacity")
-        #ax1.set_ylim([0.58, 1.03])
+        for typ, off in [('dchg',0), ('chg', 2)]:
+            list_of_patches = []
+            list_of_keys = [key for key in test_object[barcode_count].keys() if key[-1] == typ]
+            list_of_keys.sort(key=lambda k: (round(20.*k[0]), round(20.*k[1]), round(20.*k[2]), round(20.*k[3]), round(20.*k[4])))
 
-        colors = ['k', 'r', 'b', 'g', 'm', 'c']
-        for k_count, k in enumerate([key for key in test_object[barcode_count].keys() if key[2]=='dchg']):
+            ax1 = fig.add_subplot(2, 2, 1 + off)
+            ax1.set_ylabel("capacity")
 
-            if k[2] == 'dchg':
-                sign_change = -1.
-            else:
-                sign_change = +1.
+            for k_count, k in enumerate(list_of_keys):
+                list_of_patches.append(mpatches.Patch(color=COLORS[k_count], label=make_legend(k)))
 
-            ax1.scatter(
-                all_data[barcode][k][0]['cycle_number'],
-                sign_change*all_data[barcode][k][0]['capacity_vector'][:, 0],
-                c=colors[k_count]
-            )
+                if k[-1] == 'dchg':
+                    sign_change = -1.
+                else:
+                    sign_change = +1.
 
-            for cyc_i in [0, -1]:
-                cyc = test_object[barcode_count][k][cyc_i]
-                ax1.axvline(
-                    x=cyc, color=colors[k_count], linestyle='--')
+                ax1.scatter(
+                    all_data[barcode][k][0]['cycle_number'],
+                    sign_change*all_data[barcode][k][0]['last_cc_capacity'],
+                    c=COLORS[k_count],
+                    s=5,
+                    label = make_legend(k)
+                )
 
-        for k_count, k in enumerate([key for key in test_object[barcode_count].keys() if key[2]=='dchg']):
 
-            if k[2] == 'dchg':
-                sign_change = -1.
-            else:
-                sign_change = +1.
+                for cyc_i in [0, -1]:
+                    cyc = test_object[barcode_count][k][cyc_i]
+                    ax1.axvline(
+                        x=cyc, color=COLORS[k_count], linestyle='--')
 
-            cycles = test_object[barcode_count][k]
-            min_c = min(cycles)
-            max_c = max(cycles)
-            cycles = [
-                 x for x in np.arange(0., 7000., 20.)
-            ]
+            for k_count, k in enumerate(list_of_keys):
 
-            my_cycles = [
-                (cyc - cycles_m) / tf.sqrt(cycles_v) for cyc in cycles
-            ]
+                if k[-1] == 'dchg':
+                    sign_change = -1.
+                else:
+                    sign_change = +1.
 
-            test_results = test_single_voltage(
-                my_cycles, vol_tensor[0],
-                all_data[barcode][k][1]['avg_constant_current'],
-                all_data[barcode][k][1]['avg_end_current_prev'],
-                all_data[barcode][k][1]['avg_end_voltage_prev'],
-                barcode_count, degradation_model
-            )
-            pred_cap = tf.reshape(test_results["pred_cap"], shape = [-1])
+                cycles = test_object[barcode_count][k]
+                min_c = min(cycles)
+                max_c = max(cycles)
+                cycles = [
+                     x for x in np.arange(0., 6000., 20.)
+                ]
 
-            ax1.plot(cycles, sign_change*pred_cap, c=colors[k_count])
+                my_cycles = [
+                    (cyc - cycles_m) / tf.sqrt(cycles_v) for cyc in cycles
+                ]
+
+                test_results = test_single_voltage(
+                    my_cycles, all_data[barcode][k][1]['avg_last_cc_voltage'],
+                    all_data[barcode][k][1]['avg_constant_current'],
+                    all_data[barcode][k][1]['avg_end_current_prev'],
+                    all_data[barcode][k][1]['avg_end_voltage_prev'],
+                    barcode_count, degradation_model
+                )
+                pred_cap = tf.reshape(test_results["pred_cap"], shape = [-1])
+
+                ax1.plot(cycles, sign_change*pred_cap, c=COLORS[k_count])
+
+            ax = fig.add_subplot(2, 2, 2 + off)
+            ax.axis('off')
+            ax.legend(handles=list_of_patches)
 
         savefig('Cap_{}_Count_{}.png', fit_args, barcode, count)
         plt.close(fig)

@@ -80,7 +80,7 @@ def initial_processing(my_data, barcodes, fit_args):
         # find largest cap measured for this cell (max over all cycle groups)
         for k in cyc_grp_dict.keys():
             max_cap = max(
-                max_cap, max(abs(cyc_grp_dict[k][0]['capacity_vector'][:, 0])))
+                max_cap, max(abs(cyc_grp_dict[k][0]['last_cc_capacity'])))
 
         print("max_cap:", max_cap)
 
@@ -91,6 +91,10 @@ def initial_processing(my_data, barcodes, fit_args):
             # normalize capacity_vector with max_cap
             my_data['all_data'][barcode][k][0]['capacity_vector'] = (
                 1. / max_cap * cyc_grp_dict[k][0]['capacity_vector'])
+
+            my_data['all_data'][barcode][k][0]['last_cc_capacity'] = (
+                1. / max_cap * cyc_grp_dict[k][0]['last_cc_capacity'])
+
 
             my_data['all_data'][barcode][k][0]['constant_current'] = (
                     1. / max_cap * cyc_grp_dict[k][0]['constant_current'])

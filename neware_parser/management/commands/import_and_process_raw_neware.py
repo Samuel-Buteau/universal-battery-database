@@ -9,10 +9,10 @@ def import_and_process(args):
     else:
         barcodes = None
 
-    bulk_deprecate()
-    print(bulk_import(
-        barcodes=barcodes,
-        DEBUG=args['DEBUG']))
+    # bulk_deprecate()
+    # print(bulk_import(
+    #     barcodes=barcodes,
+    #     DEBUG=args['DEBUG']))
     print(bulk_process(
         DEBUG=args['DEBUG'],
         NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=args['NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS']))

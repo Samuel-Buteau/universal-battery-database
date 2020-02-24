@@ -274,17 +274,21 @@ class CyclingFile(models.Model):
 
 
 
-class CycleGroup(models.Model):
+class ChargeCycleGroup(models.Model):
     barcode = models.IntegerField()
-    charging_rate = models.FloatField()
-    discharging_rate = models.FloatField()
-    @property
-    def get_approx_charging_rate(self):
-        return round(20.*(self.charging_rate))/20.
+    constant_rate = models.FloatField()
+    end_rate = models.FloatField()
+    end_rate_prev = models.FloatField()
+    end_voltage = models.FloatField()
+    end_voltage_prev = models.FloatField()
 
-    @property
-    def get_approx_discharging_rate(self):
-        return round(20. * (self.discharging_rate)) / 20.
+class DischargeCycleGroup(models.Model):
+    barcode = models.IntegerField()
+    constant_rate = models.FloatField()
+    end_rate = models.FloatField()
+    end_rate_prev = models.FloatField()
+    end_voltage = models.FloatField()
+    end_voltage_prev = models.FloatField()
 
 class Cycle(models.Model):
     cycling_file = models.ForeignKey(CyclingFile, on_delete=models.CASCADE)
@@ -302,7 +306,9 @@ class Cycle(models.Model):
         return float(self.cycling_file.database_file.valid_metadata.temperature)
 
 
-    group = models.ForeignKey(CycleGroup, null=True, on_delete=models.SET_NULL)
+    charge_group = models.ForeignKey(ChargeCycleGroup, null=True, on_delete=models.SET_NULL)
+    discharge_group = models.ForeignKey(DischargeCycleGroup, null=True, on_delete=models.SET_NULL)
+
     valid_cycle = models.BooleanField(default=True)
 
     processed = models.BooleanField(default=False)
@@ -326,6 +332,32 @@ class Cycle(models.Model):
     dchg_minimum_current = models.FloatField(null=True)
     dchg_maximum_current = models.FloatField(null=True)
     dchg_duration = models.FloatField(null=True)
+
+
+    def get_first_discharge_step(self):
+
+        steps = self.step_set.filter(step_type__contains='CC_DChg').order_by('cycle__cycle_number', 'step_number')
+
+        if len(steps) == 0:
+            return None
+        else:
+            return steps[0]
+
+
+    def get_first_charge_step(self):
+        steps = self.step_set.filter(step_type__contains='CC_Chg').order_by(
+            'cycle__cycle_number',
+            'step_number'
+        )
+        if len(steps) == 0:
+            steps = self.step_set.filter(step_type__contains='CCCV_Chg').order_by(
+                'cycle__cycle_number',
+                'step_number'
+            )
+        if len(steps) == 0:
+            return None
+        else:
+            return steps[0]
 
 class Step(models.Model):
     cycle = models.ForeignKey(Cycle, on_delete=models.CASCADE)

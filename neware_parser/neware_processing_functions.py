@@ -593,158 +593,269 @@ def default_deprecation(barcode):
 
 
 def process_barcode(barcode, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
+    #TODO(sam): incorporate resting steps properly.
     print(barcode)
     with transaction.atomic():
-        CycleGroup.objects.filter(barcode=barcode).delete()
+        fs = get_files_for_barcode(barcode)
+        for f in fs:
+            steps = Step.objects.filter(cycle__cycling_file=f).order_by('cycle__cycle_number', 'step_number')
+            if len(steps) == 0:
+                continue
+            first_step = steps[0]
+
+            if 'Rest' in first_step.step_type:
+                first_step.end_current = 0.
+                first_step.end_voltage = 0.
+
+            elif 'CCCV_' in first_step.step_type:
+                sign = +1.
+                if 'DChg' in first_step.step_type:
+                    sign = -1.
+
+                first_step.end_current_prev = 0.
+                first_step.constant_current = sign * first_step.maximum_current
+                first_step.end_current = sign * first_step.minimum_current
+                if sign > 0:
+                    first_step.end_voltage = first_step.maximum_voltage
+                    first_step.constant_voltage = first_step.maximum_voltage
+                    first_step.end_voltage_prev = first_step.minimum_voltage
+
+                else:
+
+                    first_step.end_voltage = first_step.minimum_voltage
+                    first_step.constant_voltage = first_step.minimum_voltage
+                    first_step.end_voltage_prev = first_step.maximum_voltage
+            elif 'CC_' in first_step.step_type:
+                sign = +1.
+                if 'DChg' in first_step.step_type:
+                    sign = -1.
+
+                first_step.end_current_prev = 0.
+                first_step.constant_current = sign * first_step.average_current_by_capacity
+                first_step.end_current = first_step.constant_current
+                if sign > 0:
+                    first_step.end_voltage = first_step.maximum_voltage
+                    first_step.end_voltage_prev = first_step.minimum_voltage
+                else:
+                    first_step.end_voltage = first_step.minimum_voltage
+                    first_step.end_voltage_prev = first_step.maximum_voltage
+
+
+            first_step.save()
+
+            if len(steps) == 1:
+                continue
+            for i in range(1, len(steps)):
+                step = steps[i]
+                if 'Rest' in step.step_type:
+                    step.end_current = steps[i-1].end_current
+                    step.end_voltage = steps[i-1].end_voltage
+
+                elif 'CCCV_' in step.step_type:
+                    sign = +1.
+                    if 'DChg' in step.step_type:
+                        sign = -1.
+
+                    step.end_current_prev = steps[i - 1].end_current
+                    step.end_voltage_prev = steps[i - 1].end_voltage
+                    step.constant_current = sign * step.maximum_current
+                    step.end_current = sign * step.minimum_current
+                    if sign > 0:
+                        step.end_voltage = step.maximum_voltage
+                        step.constant_voltage = step.maximum_voltage
+
+                    else:
+
+                        step.end_voltage = step.minimum_voltage
+                        step.constant_voltage = step.minimum_voltage
+
+                elif 'CC_' in step.step_type:
+                    sign = +1.
+                    if 'DChg' in step.step_type:
+                        sign = -1.
+                    step.end_current_prev = steps[i-1].end_current
+                    step.end_voltage_prev = steps[i-1].end_voltage
+                    step.constant_current = sign * step.average_current_by_capacity
+                    step.end_current = step.constant_current
+                    if sign > 0:
+                        step.end_voltage = step.maximum_voltage
+                    else:
+                        step.end_voltage = step.minimum_voltage
+
+                step.save()
+
+
+        ChargeCycleGroup.objects.filter(barcode=barcode).delete()
+        DischargeCycleGroup.objects.filter(barcode=barcode).delete()
+
+
+
         files = get_good_neware_files().filter(valid_metadata__barcode=barcode)
-        new_data = []
-        for cyc in Cycle.objects.filter(
-                cycling_file__database_file__in = files, valid_cycle=True).order_by('cycle_number'):
-            new_data.append(
-                (
-                    cyc.id,  # id
-                    float(cyc.cycle_number + cyc.cycling_file.database_file.valid_metadata.start_cycle),  # cyc
+        total_capacity = Cycle.objects.filter(cycling_file__database_file__in=files, valid_cycle=True).aggregate(Max('dchg_total_capacity'))['dchg_total_capacity__max']
+        total_capacity = max(1e-10, total_capacity)
 
-                    math.log(1e-10 + abs(cyc.chg_maximum_current)),  # charge current
-                    math.log(1e-10 + abs(cyc.dchg_minimum_current)),  # discharge current
+        # DISCHARGE
+        for polarity in ['chg', 'dchg']:
+            new_data = []
+            for cyc in Cycle.objects.filter(
+                    cycling_file__database_file__in = files, valid_cycle=True).order_by('cycle_number'):
 
-                    math.log(1e-10 + cyc.chg_total_capacity),  # charge capacity
-                    math.log(1e-10 + cyc.dchg_total_capacity),  # discharge capacity
-                    cyc.dchg_minimum_voltage,
-                    cyc.dchg_maximum_voltage,
-                )
-            )
+                if polarity == 'dchg':
+                    step = cyc.get_first_discharge_step()
+                elif polarity == 'chg':
+                    step = cyc.get_first_charge_step()
+                else:
+                    raise Exception('unknown polarity {}'.format(polarity))
 
-        if len(new_data) > NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS:
-            new_data = numpy.array(
-                new_data, dtype=[
-                    ('cycle_id', int),
-                    ('cycle_number', 'f4'),
-                    ('charge_c_rate', 'f4'),
-                    ('discharge_c_rate', 'f4'),
-
-                    ('charge_cap', 'f4'),
-                    ('discharge_cap', 'f4'),
-                    ('min_v', 'f4'),
-                    ('max_v', 'f4'),
-                ])
-            discharge_rates = numpy.sort(new_data['discharge_c_rate'])
-            typical_discharge_rate = numpy.median(discharge_rates)
-            print('typical discharge rate: {}'.format(math.exp(typical_discharge_rate)))
-            charge_rates = numpy.sort(new_data['charge_c_rate'])
-            typical_charge_rate = numpy.median(charge_rates)
-            print('typical charge rate: {}'.format(math.exp(typical_charge_rate)))
-
-            theoretical_dict = average_data(
-                new_data,
-                val_keys=['discharge_cap'],
-                sort_val='discharge_cap',
-                weight_exp_func=lambda x: -0.1 * numpy.abs(5 - x['cycle_number']) - 0.1 * numpy.abs(
-                    typical_discharge_rate - x['discharge_c_rate']) - 0.1 * numpy.abs(
-                    typical_charge_rate - x['charge_c_rate'])
-            )
-
-            theoretical_cap_no_rate = theoretical_dict['discharge_cap']
-
-            normalized_data = new_data
-            normalized_data['discharge_c_rate'] = normalized_data['discharge_c_rate'] - theoretical_cap_no_rate
-            normalized_data['charge_c_rate'] = normalized_data['charge_c_rate'] - theoretical_cap_no_rate
-            normalized_data['discharge_cap'] = normalized_data['discharge_cap'] - theoretical_cap_no_rate
-
-            def separate_data(data_table, splitting_var='discharge_c_rate'):
-                rate_step_full = .1 * .5
-                rate_step_cut = .075 * .5
-                min_rate_full = numpy.min(data_table[splitting_var])
-                min_rate_full = round(max(min_rate_full, math.log(.005)) - rate_step_full, ndigits=1)
-
-                max_rate_full = numpy.max(data_table[splitting_var])
-                max_rate_full = round(min(max_rate_full, math.log(500.)) + rate_step_full, ndigits=1)
-
-                number_of_rate_steps = int((max_rate_full - min_rate_full) / rate_step_full) + 2
-
-                split_data = {}
-
-                prev_rate_mask = numpy.zeros(len(data_table), dtype=numpy.bool)
-                prev_avg_rate = 0
-                for i2 in range(number_of_rate_steps):
-                    avg_rate = (rate_step_full * i2) + min_rate_full
-                    min_rate = avg_rate - rate_step_cut
-                    max_rate = avg_rate + rate_step_cut
-
-                    rate_mask = numpy.logical_and(
-                        min_rate <= data_table[splitting_var],
-                        data_table[splitting_var] <= max_rate
+                #if step.end_current_prev is None:
+                    # print(polarity)
+                    # print([s.step_type for s in cyc.step_set.order_by('step_number')])
+                    # print([s.get_v_c_q_t_data() for s in cyc.step_set.order_by('step_number')])
+                new_data.append(
+                    (
+                        cyc.id,  # id
+                        math.log(1e-10 + abs(step.constant_current)/total_capacity),  # constant current
+                        math.log(1e-10 + abs(step.end_current) / total_capacity),  # end current
+                        math.log(1e-10 + abs(step.end_current_prev)/total_capacity),  # end current prev
+                        step.end_voltage,
+                        step.end_voltage_prev,
                     )
-                    if not numpy.any(rate_mask):
-                        continue
+                )
 
-                    intersection_mask = numpy.logical_and(rate_mask, prev_rate_mask)
+            if len(new_data) > NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS:
+                new_data = numpy.array(
+                    new_data, dtype=[
+                        ('cycle_id', int),
+                        ('constant_rate', 'f4'),
+                        ('end_rate', 'f4'),
+                        ('end_rate_prev', 'f4'),
+                        ('end_voltage', 'f4'),
+                        ('end_voltage_prev', 'f4'),
+                    ])
 
-                    if numpy.array_equal(rate_mask, prev_rate_mask) or numpy.array_equal(intersection_mask,
-                                                                                         rate_mask):
+                def separate_data(data_table, splitting_var='discharge_c_rate'):
+                    rate_step_full = .1 * .5
+                    rate_step_cut = .075 * .5
+                    min_rate_full = numpy.min(data_table[splitting_var])
+                    min_rate_full = round(max(min_rate_full, math.log(.005)) - rate_step_full, ndigits=1)
+
+                    max_rate_full = numpy.max(data_table[splitting_var])
+                    max_rate_full = round(min(max_rate_full, math.log(500.)) + rate_step_full, ndigits=1)
+
+                    number_of_rate_steps = int((max_rate_full - min_rate_full) / rate_step_full) + 2
+
+                    split_data = {}
+
+                    prev_rate_mask = numpy.zeros(len(data_table), dtype=numpy.bool)
+                    prev_avg_rate = 0
+                    for i2 in range(number_of_rate_steps):
+                        avg_rate = (rate_step_full * i2) + min_rate_full
+                        min_rate = avg_rate - rate_step_cut
+                        max_rate = avg_rate + rate_step_cut
+
+                        rate_mask = numpy.logical_and(
+                            min_rate <= data_table[splitting_var],
+                            data_table[splitting_var] <= max_rate
+                        )
+                        if not numpy.any(rate_mask):
+                            continue
+
+                        intersection_mask = numpy.logical_and(rate_mask, prev_rate_mask)
+
+                        if numpy.array_equal(rate_mask, prev_rate_mask) or numpy.array_equal(intersection_mask,
+                                                                                             rate_mask):
+                            prev_rate_mask = rate_mask
+                            prev_avg_rate = avg_rate
+                            continue
+
+                        elif numpy.array_equal(intersection_mask, prev_rate_mask) and numpy.any(prev_rate_mask):
+                            if prev_avg_rate in split_data.keys():
+                                del split_data[prev_avg_rate]
+
+                        split_data[avg_rate] = rate_mask
                         prev_rate_mask = rate_mask
                         prev_avg_rate = avg_rate
-                        continue
 
-                    elif numpy.array_equal(intersection_mask, prev_rate_mask) and numpy.any(prev_rate_mask):
-                        if prev_avg_rate in split_data.keys():
-                            del split_data[prev_avg_rate]
+                    sorted_keys = list(split_data.keys())
+                    sorted_keys.sort()
+                    avg_sorted_keys = {}
+                    for sk in sorted_keys:
+                        avg_sorted_keys[sk] = numpy.mean(
+                            data_table[split_data[sk]][splitting_var])
 
-                    split_data[avg_rate] = rate_mask
-                    prev_rate_mask = rate_mask
-                    prev_avg_rate = avg_rate
+                    grouped_rates = {}
+                    for sk in sorted_keys:
+                        found = False
+                        for k in grouped_rates.keys():
+                            if abs(avg_sorted_keys[k] - avg_sorted_keys[sk]) < 0.13:
+                                grouped_rates[k].append(sk)
+                                found = True
+                                break
+                        if not found:
+                            grouped_rates[sk] = [sk]
 
-                sorted_keys = list(split_data.keys())
-                sorted_keys.sort()
-                avg_sorted_keys = {}
-                for sk in sorted_keys:
-                    avg_sorted_keys[sk] = numpy.mean(
-                        data_table[split_data[sk]][splitting_var])
+                    split_data2 = {}
 
-                grouped_rates = {}
-                for sk in sorted_keys:
-                    found = False
                     for k in grouped_rates.keys():
-                        if abs(avg_sorted_keys[k] - avg_sorted_keys[sk]) < 0.13:
-                            grouped_rates[k].append(sk)
-                            found = True
-                            break
-                    if not found:
-                        grouped_rates[sk] = [sk]
+                        split_data2[k] = numpy.zeros(len(data_table), dtype=numpy.bool)
+                        for kk in grouped_rates[k]:
+                            split_data2[k] = numpy.logical_or(split_data[kk], split_data2[k])
 
-                split_data2 = {}
+                    return split_data2
 
-                for k in grouped_rates.keys():
-                    split_data2[k] = numpy.zeros(len(data_table), dtype=numpy.bool)
-                    for kk in grouped_rates[k]:
-                        split_data2[k] = numpy.logical_or(split_data[kk], split_data2[k])
+                summary_data = {}
 
-                return split_data2
+                split_data2 = separate_data(new_data, splitting_var='constant_rate')
+                for k in split_data2.keys():
+                    new_data_2 = new_data[split_data2[k]]
 
-            split_data2 = separate_data(normalized_data, splitting_var='discharge_c_rate')
+                    split_data3 = separate_data(new_data_2, splitting_var='end_rate')
+                    for k2 in split_data3.keys():
+                        new_data_3 = new_data_2[split_data3[k2]]
 
-            summary_data = {}
-            for k in split_data2.keys():
+                        split_data4 = separate_data(new_data_3, splitting_var='end_rate_prev')
+                        for k3 in split_data4.keys():
+                            new_data_4 = new_data_3[split_data4[k3]]
 
-                # print(k)
-                rate_normalized_data = normalized_data[split_data2[k]]
+                            split_data5 = separate_data(new_data_4, splitting_var='end_voltage')
+                            for k4 in split_data5.keys():
+                                new_data_5 = new_data_4[split_data5[k4]]
 
-                split_data3 = separate_data(rate_normalized_data, splitting_var='charge_c_rate')
-                for kk in split_data3.keys():
-                    rate_rate_normalized_data = rate_normalized_data[split_data3[kk]]
+                                split_data6 = separate_data(new_data_5, splitting_var='end_voltage_prev')
+                                for k5 in split_data6.keys():
+                                    new_data_6 = new_data_5[split_data6[k5]]
 
-                    avg_discharge_rate = numpy.mean(rate_rate_normalized_data['discharge_c_rate'])
-                    avg_charge_rate = numpy.mean(rate_rate_normalized_data['charge_c_rate'])
+                                    avg_constant_rate = numpy.mean(new_data_6['constant_rate'])
+                                    avg_end_rate = numpy.mean(new_data_6['end_rate'])
+                                    avg_end_rate_prev = numpy.mean(new_data_6['end_rate_prev'])
+                                    avg_end_voltage = numpy.mean(new_data_6['end_voltage'])
+                                    avg_end_voltage_prev = numpy.mean(new_data_6['end_voltage_prev'])
 
-                    summary_data[(avg_charge_rate, avg_discharge_rate)] = rate_rate_normalized_data
+                                    summary_data[(avg_constant_rate, avg_end_rate, avg_end_rate_prev, avg_end_voltage, avg_end_voltage_prev)] = new_data_6
 
-            for k in summary_data.keys():
+                for k in summary_data.keys():
 
-                cyc_group = CycleGroup(barcode=barcode, charging_rate=math.exp(k[0]), discharging_rate=math.exp(k[1]))
-                cyc_group.save()
+                    if polarity == 'dchg':
+                        cyc_group = DischargeCycleGroup(barcode=barcode,
+                                                        constant_rate=math.exp(k[0]),
+                                                        end_rate=math.exp(k[1]),
+                                                        end_rate_prev=math.exp(k[2]),
+                                                        end_voltage=k[3],
+                                                        end_voltage_prev=k[4],
+                                                        )
+                    elif polarity == 'chg':
+                        cyc_group = ChargeCycleGroup(barcode=barcode,
+                                                    constant_rate=math.exp(k[0]),
+                                                    end_rate=math.exp(k[1]),
+                                                    end_rate_prev=math.exp(k[2]),
+                                                    end_voltage=k[3],
+                                                    end_voltage_prev=k[4],
+                                                )
 
-                for cyc_id in (summary_data[k]['cycle_id']):
-                    cyc_group.cycle_set.add(Cycle.objects.get(id=cyc_id))
+                    cyc_group.save()
+
+                    for cyc_id in (summary_data[k]['cycle_id']):
+                        cyc_group.cycle_set.add(Cycle.objects.get(id=cyc_id))
 
 
             bn, _ = BarcodeNode.objects.get_or_create(barcode=barcode)
@@ -963,8 +1074,6 @@ def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
         else:
             first_step = steps[0]
             vcqt_curve = first_step.get_v_c_q_t_data()
-            v_min = first_step.minimum_voltage
-            v_max = first_step.maximum_voltage
             curve = vcqt_curve[:, [0, 2]]
             curve[:, 1] = -1*curve[:,1]
             curve = numpy.flip(curve, 0)
@@ -978,8 +1087,7 @@ def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
             else:
                 first_step = steps[0]
                 vcqt_curve = first_step.get_v_c_q_t_data()
-                v_min = first_step.minimum_voltage
-                v_max = first_step.maximum_voltage
+
                 if len(vcqt_curve)==1:
                     curve = vcqt_curve[:, [0,2]]
                 else:
@@ -996,8 +1104,6 @@ def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
         else:
             first_step = steps[0]
             vcqt_curve = first_step.get_v_c_q_t_data()
-            v_min = first_step.minimum_voltage
-            v_max = first_step.maximum_voltage
             curve = vcqt_curve[:, [0, 2]]
 
 
@@ -1135,16 +1241,22 @@ def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
     v = valid_curve[:, 0]
     q = valid_curve[:, 1]
 
+    #print(step_type)
+    #print(v, q)
     sorted_ind = numpy.argsort(v)
     v = v[sorted_ind]
     q = q[sorted_ind]
 
-    # last = v[-1]
-    #
-    # added_v = numpy.arange(last + 0.01, 4.6, 0.01)
-    # added_q = 0. * numpy.arange(last + 0.01, 4.6, 0.01)
-    # v1 = numpy.concatenate((v, added_v), axis=0)
-    # q1 = numpy.concatenate((q, added_q), axis=0)
+    #print(v, q)
+    if step_type == 'dchg':
+
+        last_cc_voltage = v[0]
+        last_cc_capacity = q[0]
+    else:
+        last_cc_voltage = v[-1]
+        last_cc_capacity = q[-1]
+
+    #print(last_cc_voltage,last_cc_capacity)
     spline = PchipInterpolator(v, q, extrapolate=True)
     res = spline(voltage_grid)
 
@@ -1162,8 +1274,8 @@ def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
 
     mask = numpy.where(
         numpy.logical_and(
-            voltage_grid >= (v_min),
-            voltage_grid <= (v_max)
+            voltage_grid >= v_min,
+            voltage_grid <= v_max
         ),
         numpy.ones(len(voltage_grid), dtype=numpy.float32),
         0.0 * numpy.ones(len(voltage_grid), dtype=numpy.float32),
@@ -1196,7 +1308,6 @@ def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
             ), axis=1)
     )
 
-    #TODO(sam): compute and return the final voltage and the final capacity.
     #TODO(sam): return the voltage grid.
     #TODO(sam): if the number of samples is smaller than the voltage grid, simply pad with zeros the original valid data.
     #TODO(sam): make the model use custom voltage tensor.
@@ -1205,6 +1316,8 @@ def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
         'end_current_prev':first_step.end_current_prev,
         'end_voltage_prev':first_step.end_voltage_prev,
         'constant_current':first_step.constant_current,
+        'last_cc_voltage':last_cc_voltage,
+        'last_cc_capacity':last_cc_capacity,
     }
 
 
@@ -1216,18 +1329,18 @@ def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
 
 def bulk_process(DEBUG=False, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10, barcodes = None):
     if barcodes is None:
-        errors = list(map(lambda x: process_single_file(x, DEBUG),
-                          CyclingFile.objects.filter(database_file__deprecated=False,
-                                                     process_time__lte = F('import_time'))))
+        #errors = list(map(lambda x: process_single_file(x, DEBUG),
+        #                  CyclingFile.objects.filter(database_file__deprecated=False,
+        #                                             process_time__lte = F('import_time'))))
         all_current_barcodes = CyclingFile.objects.filter(
             database_file__deprecated=False).values_list(
             'database_file__valid_metadata__barcode', flat=True).distinct()
 
     else:
-        errors = list(map(lambda x: process_single_file(x, DEBUG),
-                          CyclingFile.objects.filter(database_file__deprecated=False,
-                                                     database_file__valid_metadata__barcode__in=barcodes,
-                                                     process_time__lte=F('import_time'))))
+        # errors = list(map(lambda x: process_single_file(x, DEBUG),
+        #                   CyclingFile.objects.filter(database_file__deprecated=False,
+        #                                              database_file__valid_metadata__barcode__in=barcodes,
+        #                                              process_time__lte=F('import_time'))))
         all_current_barcodes = barcodes
 
     print(list(all_current_barcodes))
@@ -1236,7 +1349,7 @@ def bulk_process(DEBUG=False, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10, barcodes
             barcode,
             NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS)
 
-    return list(filter(lambda x: x['error'], errors))
+    return []#list(filter(lambda x: x['error'], errors))
 
 
 

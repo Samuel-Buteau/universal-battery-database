@@ -1070,7 +1070,7 @@ def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
         steps = cyc.step_set.filter(step_type__contains='CC_DChg').order_by('cycle__cycle_number','step_number')
 
         if len(steps) == 0:
-            return None, None, None
+            return None, None, None, None
         else:
             first_step = steps[0]
             vcqt_curve = first_step.get_v_c_q_t_data()
@@ -1083,7 +1083,7 @@ def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
         if len(steps) == 0:
             steps = cyc.step_set.filter(step_type__contains='CCCV_Chg').order_by('cycle__cycle_number', 'step_number')
             if len(steps) == 0:
-                return None, None, None
+                return None, None, None, None
             else:
                 first_step = steps[0]
                 vcqt_curve = first_step.get_v_c_q_t_data()
@@ -1117,7 +1117,7 @@ def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
     never_added_down = True
     if len(curve) < 3:
         print('curve too short: {}'.format(curve))
-        return None, None, None
+        return None, None, None, None
 
     while True:
         if cursor[0] + 1 >= cursor[1]:
@@ -1229,11 +1229,11 @@ def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
     invalid_curve = curve[~masks]
     if len(invalid_curve) > 5:
         print('too many invalids {}. (valids were {})'.format(invalid_curve, valid_curve))
-        return None, None, None
+        return None, None, None, None
 
     if len(valid_curve) == 0:
         print('not enough valids. curve was {}'.format(curve))
-        return None, None, None
+        return None, None, None, None
 
 
     # uniformly sample it
@@ -1255,6 +1255,23 @@ def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
     else:
         last_cc_voltage = v[-1]
         last_cc_capacity = q[-1]
+
+    if len(voltage_grid) >= len(v):
+        voltages = numpy.zeros(shape=(len(voltage_grid)), dtype=numpy.float32)
+        qs = numpy.zeros(shape=(len(voltage_grid)), dtype=numpy.float32)
+        mask = numpy.zeros(shape=(len(voltage_grid)), dtype=numpy.float32)
+
+        voltages[:len(v)] = v[:]
+        qs[:len(v)] =  q[:]
+        mask[:len(v)] = 1.0
+
+        return voltages, qs, mask, {
+            'end_current_prev': first_step.end_current_prev,
+            'end_voltage_prev': first_step.end_voltage_prev,
+            'constant_current': first_step.constant_current,
+            'last_cc_voltage': last_cc_voltage,
+            'last_cc_capacity': last_cc_capacity,
+        }
 
     #print(last_cc_voltage,last_cc_capacity)
     spline = PchipInterpolator(v, q, extrapolate=True)
@@ -1283,7 +1300,7 @@ def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
 
     if not is_monotonically_increasing(res, mask=mask):
         print('was not increasing {}, with mask {}'.format(res,mask1))
-        return None, None, None
+        return None, None, None, None
 
 
 
@@ -1308,11 +1325,12 @@ def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
             ), axis=1)
     )
 
+    voltages = voltage_grid
     #TODO(sam): return the voltage grid.
     #TODO(sam): if the number of samples is smaller than the voltage grid, simply pad with zeros the original valid data.
     #TODO(sam): make the model use custom voltage tensor.
     #TODO(sam): treat and include the CV data as well.
-    return res, mask2, {
+    return voltages, res, mask2, {
         'end_current_prev':first_step.end_current_prev,
         'end_voltage_prev':first_step.end_voltage_prev,
         'constant_current':first_step.constant_current,

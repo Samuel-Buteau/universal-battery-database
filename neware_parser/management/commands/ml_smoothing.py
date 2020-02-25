@@ -44,8 +44,8 @@ NEIGH_FLOAT_DCHG_RATE = 2
 # ==== Begin: initial processing ===============================================
 
 def initial_processing(my_data, barcodes, fit_args):
-    all_cells_neigh_data_int, all_cycle_nums, all_constant_current, all_end_current_prev, all_end_voltage_prev = [], [], [], [], []
-    all_cells_neigh_data_float, all_voltages, all_vq_curves, all_vq_curves_masks = [], [], [], []
+    all_cells_neigh_data_int, all_cycle_nums, all_constant_current, all_end_current_prev, all_end_voltage_prev, all_end_voltage = [], [], [], [], [],[]
+    all_cells_neigh_data_float, all_cc_voltage_vector, all_cc_capacity_vector, all_cc_mask_vector, all_cv_current_vector, all_cv_capacity_vector, all_cv_mask_vector = [], [], [], [],[], [], []
 
     test_object = {}
 
@@ -89,11 +89,20 @@ def initial_processing(my_data, barcodes, fit_args):
         for k_count, k in enumerate(cyc_grp_dict.keys()):
 
             # normalize capacity_vector with max_cap
-            my_data[barcode][k][0]['capacity_vector'] = (
-                1. / max_cap * cyc_grp_dict[k][0]['capacity_vector'])
+            my_data[barcode][k][0]['cc_capacity_vector'] = (
+                1. / max_cap * cyc_grp_dict[k][0]['cc_capacity_vector'])
+
+            my_data[barcode][k][0]['cv_capacity_vector'] = (
+                    1. / max_cap * cyc_grp_dict[k][0]['cv_capacity_vector'])
+
+            my_data[barcode][k][0]['cv_current_vector'] = (
+                    1. / max_cap * cyc_grp_dict[k][0]['cv_current_vector'])
 
             my_data[barcode][k][0]['last_cc_capacity'] = (
                 1. / max_cap * cyc_grp_dict[k][0]['last_cc_capacity'])
+
+            my_data[barcode][k][0]['last_cv_capacity'] = (
+                1. / max_cap * cyc_grp_dict[k][0]['last_cv_capacity'])
 
 
             my_data[barcode][k][0]['constant_current'] = (
@@ -103,6 +112,9 @@ def initial_processing(my_data, barcodes, fit_args):
 
             my_data[barcode][k][1]['avg_constant_current'] = (
                     1. / max_cap * cyc_grp_dict[k][1]['avg_constant_current'])
+
+            my_data[barcode][k][1]['avg_end_current'] = (
+                    1. / max_cap * cyc_grp_dict[k][1]['avg_end_current'])
 
             my_data[barcode][k][1]['avg_end_current_prev'] = (
                     1. / max_cap * cyc_grp_dict[k][1]['avg_end_current_prev'])
@@ -240,16 +252,21 @@ def initial_processing(my_data, barcodes, fit_args):
                 all_cycle_nums = numpy.concatenate(
                     (all_cycle_nums, cyc_grp_dict[k][0]['cycle_number']))
 
-                # giant array of all the vq_curves
-                all_vq_curves = numpy.concatenate(
-                    (all_vq_curves, cyc_grp_dict[k][0]['capacity_vector']))
+                all_cc_capacity_vector = numpy.concatenate(
+                    (all_cc_capacity_vector, cyc_grp_dict[k][0]['cc_capacity_vector']))
+                all_cc_voltage_vector = numpy.concatenate(
+                    (all_cc_voltage_vector, cyc_grp_dict[k][0]['cc_voltage_vector']))
+                all_cc_mask_vector = numpy.concatenate(
+                    (all_cc_mask_vector, cyc_grp_dict[k][0]['cc_mask_vector']))
 
-                all_voltages = numpy.concatenate(
-                    (all_voltages, cyc_grp_dict[k][0]['voltage_vector']))
 
-                # giant array of all the vq_curves_mask
-                all_vq_curves_masks = numpy.concatenate(
-                    (all_vq_curves_masks, cyc_grp_dict[k][0]['vq_curve_mask']))
+                all_cv_capacity_vector = numpy.concatenate(
+                    (all_cv_capacity_vector, cyc_grp_dict[k][0]['cv_capacity_vector']))
+                all_cv_current_vector = numpy.concatenate(
+                    (all_cv_current_vector, cyc_grp_dict[k][0]['cv_current_vector']))
+                all_cv_mask_vector = numpy.concatenate(
+                    (all_cv_mask_vector, cyc_grp_dict[k][0]['cv_mask_vector']))
+
 
                 all_constant_current = numpy.concatenate((
                     all_constant_current,
@@ -263,15 +280,25 @@ def initial_processing(my_data, barcodes, fit_args):
                     all_end_voltage_prev,
                     cyc_grp_dict[k][0]['end_voltage_prev'])
                 )
+                all_end_voltage = numpy.concatenate((
+                    all_end_voltage,
+                    cyc_grp_dict[k][0]['end_voltage'])
+                )
 
             else:
                 all_cycle_nums = cyc_grp_dict[k][0]['cycle_number']
-                all_voltages = cyc_grp_dict[k][0]['voltage_vector']
-                all_vq_curves = cyc_grp_dict[k][0]['capacity_vector']
-                all_vq_curves_masks = cyc_grp_dict[k][0]['vq_curve_mask']
+                all_cc_voltage_vector = cyc_grp_dict[k][0]['cc_voltage_vector']
+                all_cc_capacity_vector = cyc_grp_dict[k][0]['cc_capacity_vector']
+                all_cc_mask_vector = cyc_grp_dict[k][0]['cc_mask_vector']
+
+                all_cv_current_vector = cyc_grp_dict[k][0]['cv_current_vector']
+                all_cv_capacity_vector = cyc_grp_dict[k][0]['cv_capacity_vector']
+                all_cv_mask_vector = cyc_grp_dict[k][0]['cv_mask_vector']
+
                 all_constant_current = cyc_grp_dict[k][0]['constant_current']
                 all_end_current_prev = cyc_grp_dict[k][0]['end_current_prev']
                 all_end_voltage_prev = cyc_grp_dict[k][0]['end_voltage_prev']
+                all_end_voltage = cyc_grp_dict[k][0]['end_voltage']
 
         if len(cell_neigh_data_int) != 0:
             all_cells_neigh_data_int.append(cell_neigh_data_int)
@@ -294,14 +321,20 @@ def initial_processing(my_data, barcodes, fit_args):
     cycles_tensor = (cycles_tensor - cycles_m) / tf.sqrt(cycles_v)
 
     # the voltages are also normalized
-    vq_curves = tf.constant(all_vq_curves)
-    voltages = tf.constant(all_voltages)
-    vq_curves_mask = tf.constant(all_vq_curves_masks)
+    cc_voltage_tensor = tf.constant(all_cc_voltage_vector)
+    cc_capacity_tensor = tf.constant(all_cc_capacity_vector)
+    cc_mask_tensor = tf.constant(all_cc_mask_vector)
+    cv_capacity_tensor = tf.constant(all_cv_capacity_vector)
+    cv_current_tensor = tf.constant(all_cv_current_vector)
+    cv_mask_tensor = tf.constant(all_cv_mask_vector)
+
+
 
     # max voltage is NOT normalized
     constant_current_tensor = tf.constant(all_constant_current)
     end_current_prev_tensor = tf.constant(all_end_current_prev)
     end_voltage_prev_tensor = tf.constant(all_end_voltage_prev)
+    end_voltage_tensor = tf.constant(all_end_voltage)
 
     neigh_data_float = numpy.concatenate(
         [numpy.concatenate(neigh_data_float_full, axis=0)
@@ -343,14 +376,19 @@ def initial_processing(my_data, barcodes, fit_args):
         "constant_current_tensor": constant_current_tensor,
         "end_current_prev_tensor": end_current_prev_tensor,
         "end_voltage_prev_tensor": end_voltage_prev_tensor,
+        "end_voltage_tensor": end_voltage_tensor,
 
         "train_ds": train_ds,
         "cycles_m": cycles_m,
         "cycles_v": cycles_v,
 
-        "voltages":voltages,
-        "vq_curves": vq_curves,
-        "vq_curves_mask": vq_curves_mask,
+        'cc_voltage_tensor' : cc_voltage_tensor,
+        'cc_capacity_tensor' : cc_capacity_tensor,
+        'cc_mask_tensor' : cc_mask_tensor,
+        'cv_capacity_tensor' : cv_capacity_tensor,
+        'cv_current_tensor' : cv_current_tensor,
+        'cv_mask_tensor' : cv_mask_tensor,
+
         "optimizer": optimizer,
         "test_object": test_object,
         "all_data": my_data
@@ -383,12 +421,18 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                     "constant_current_tensor": init_returns["constant_current_tensor"],
                     "end_current_prev_tensor": init_returns["end_current_prev_tensor"],
                     "end_voltage_prev_tensor": init_returns["end_voltage_prev_tensor"],
+                    "end_voltage_tensor": init_returns["end_voltage_tensor"],
 
                     "degradation_model": init_returns["degradation_model"],
                     "optimizer": init_returns["optimizer"],
-                    "voltages": init_returns["voltages"],
-                    "vq_curves": init_returns["vq_curves"],
-                    "vq_curves_mask": init_returns["vq_curves_mask"],
+
+                    'cc_voltage_tensor': init_returns["cc_voltage_tensor"],
+                    'cc_capacity_tensor': init_returns["cc_capacity_tensor"],
+                    'cc_mask_tensor': init_returns["cc_mask_tensor"],
+                    'cv_capacity_tensor': init_returns["cv_capacity_tensor"],
+                    'cv_current_tensor': init_returns["cv_current_tensor"],
+                    'cv_mask_tensor': init_returns["cv_mask_tensor"],
+
                 }
 
                 dist_train_step(mirrored_strategy, train_step_params, fit_args)
@@ -405,8 +449,6 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
 
                     if (count % fit_args['visualize_fit_every']) == 0:
                         plot_capacity(plot_params, init_returns)
-                        #plot_shift(plot_params, init_returns)
-                        #plot_eq_vol_and_r(plot_params, init_returns)
                         plot_vq(plot_params, init_returns)
 
                 if count == fit_args['stop_count']:
@@ -425,12 +467,17 @@ def train_step(params, fit_args):
     constant_current_tensor= params["constant_current_tensor"]
     end_current_prev_tensor= params["end_current_prev_tensor"]
     end_voltage_prev_tensor= params["end_voltage_prev_tensor"]
+    end_voltage_tensor = params["end_voltage_tensor"]
 
     degradation_model = params["degradation_model"]
     optimizer = params["optimizer"]
-    voltages = params["voltages"]
-    vq_curves = params["vq_curves"]
-    vq_curves_mask = params["vq_curves_mask"]
+
+    cc_voltage_tensor = params["cc_voltage_tensor"]
+    cc_capacity_tensor = params["cc_capacity_tensor"]
+    cc_mask_tensor = params["cc_mask_tensor"]
+    cv_capacity_tensor = params["cv_capacity_tensor"]
+    cv_current_tensor = params["cv_current_tensor"]
+    cv_mask_tensor = params["cv_mask_tensor"]
 
     # need to split the range
     batch_size2 = neigh_int.shape[0]
@@ -459,35 +506,49 @@ def train_step(params, fit_args):
         tf.int32
     )
 
-    meas_cycles = tf.gather(
+    cycles = tf.gather(
         cycles_tensor,
         indices=cycle_indecies, axis=0
     )
-    meas_constant_current = tf.gather(
+    constant_current = tf.gather(
         constant_current_tensor,
         indices=cycle_indecies, axis=0
     )
-    meas_end_current_prev = tf.gather(
+    end_current_prev = tf.gather(
         end_current_prev_tensor,
         indices=cycle_indecies, axis=0
     )
-    meas_end_voltage_prev = tf.gather(
+    end_voltage_prev = tf.gather(
         end_voltage_prev_tensor,
         indices=cycle_indecies, axis=0
     )
 
-    cap = tf.gather(vq_curves, indices=cycle_indecies)
-    vol = tf.gather(voltages, indices=cycle_indecies)
-    ws_cap = tf.gather(vq_curves_mask, indices=cycle_indecies)
-    ws2_cap = tf.tile(
+    end_voltage = tf.gather(
+        end_voltage_tensor,
+        indices=cycle_indecies, axis=0
+    )
+
+    cc_capacity = tf.gather(cc_capacity_tensor, indices=cycle_indecies)
+    cc_voltage = tf.gather(cc_voltage_tensor, indices=cycle_indecies)
+    cc_mask = tf.gather(cc_mask_tensor, indices=cycle_indecies)
+    cc_mask_2 = tf.tile(
         tf.reshape(
             1. / (tf.cast(neigh_int[:, NEIGH_INT_VALID_CYC_INDEX], tf.float32)),
             [batch_size2, 1]
         ),
-        [1, vol.shape[1]]
+        [1, cc_voltage.shape[1]]
     )
 
-
+    cv_capacity = tf.gather(cv_capacity_tensor, indices=cycle_indecies)
+    cv_current = tf.gather(cv_current_tensor, indices=cycle_indecies)
+    cv_mask = tf.gather(cv_mask_tensor, indices=cycle_indecies)
+    cv_mask_2 = tf.tile(
+        tf.reshape(
+            1. / (tf.cast(neigh_int[:, NEIGH_INT_VALID_CYC_INDEX], tf.float32)),
+            [batch_size2, 1]
+        ),
+        [1, cv_current.shape[1]]
+    )
 
     cell_indecies = neigh_int[:, NEIGH_INT_BARCODE_INDEX]
 
@@ -496,25 +557,34 @@ def train_step(params, fit_args):
 
         train_results = degradation_model(
             (
-                tf.expand_dims(meas_cycles, axis=1),
-                tf.expand_dims(meas_constant_current, axis=1),
-                tf.expand_dims(meas_end_current_prev, axis=1),
-                tf.expand_dims(meas_end_voltage_prev, axis=1),
+                tf.expand_dims(cycles, axis=1),
+                tf.expand_dims(constant_current, axis=1),
+                tf.expand_dims(end_current_prev, axis=1),
+                tf.expand_dims(end_voltage_prev, axis=1),
+                tf.expand_dims(end_voltage, axis=1),
                 cell_indecies,
-                vol),
+                cc_voltage,
+                cv_current,
+            ),
             training = True
         )
 
-        pred_cap = train_results["pred_cap"]
+        pred_cc_capacity = train_results["pred_cc_capacity"]
+        pred_cv_capacity = train_results["pred_cv_capacity"]
 
-
-        cap_loss = (
-            tf.reduce_mean(ws2_cap * ws_cap * tf.square(cap - pred_cap))
-            / (1e-10 + tf.reduce_mean(ws2_cap * ws_cap))
+        cc_capacity_loss = (
+            tf.reduce_mean(cc_mask_2 * cc_mask * tf.square(cc_capacity - pred_cc_capacity))
+            / (1e-10 + tf.reduce_mean(cc_mask_2 * cc_mask))
+        )
+        cv_capacity_loss = (
+            tf.reduce_mean(cv_mask_2 * cv_mask * tf.square(cv_capacity - pred_cv_capacity))
+            / (1e-10 + tf.reduce_mean(cv_mask_2 * cv_mask))
         )
 
+
+
         loss = (
-            cap_loss
+            cc_capacity_loss + cv_capacity_loss
             + train_results["soc_loss"]
             + train_results["theo_cap_loss"]
             + train_results["r_loss"]

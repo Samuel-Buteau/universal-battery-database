@@ -233,6 +233,21 @@ class DegradationModel(Model):
             constant_current = params['constant_current']
 
         cell_feat = self.cell_features(params, over_params)
+        return self.theoretical_cap_direct(params, over_params={'norm_cycle':norm_cycle, 'constant_current':constant_current, 'cell_feat':cell_feat})
+
+    def theoretical_cap_direct(self, params, over_params=None):
+        if over_params is None:
+            over_params = {}
+
+        if 'norm_cycle' in over_params.keys():
+            norm_cycle = over_params["norm_cycle"]
+
+        if 'constant_current' in over_params.keys():
+            constant_current = over_params["constant_current"]
+
+        if 'cell_feat' in over_params.keys():
+            cell_feat = over_params["cell_feat"]
+
 
         dependencies = (
             norm_cycle,
@@ -262,7 +277,14 @@ class DegradationModel(Model):
         else:
             end_current_prev = params["end_current_prev"]
 
-        return end_voltage_prev - end_current_prev * self.r(params, over_params)
+        return self.eq_voltage(
+            params,
+            over_params={
+                'voltage':end_voltage_prev,
+                'current':end_current_prev,
+                'resistance':self.r(params, over_params),
+            }
+        )
 
     def eq_voltage_1(self, params, over_params=None):
         if over_params is None:
@@ -278,7 +300,28 @@ class DegradationModel(Model):
             constant_current = params["constant_current_flat"]
 
         r_flat = self.add_volt_dep(self.r(params,over_params), params)
-        return voltage - constant_current * r_flat
+        return self.eq_voltage(
+            params,
+            over_params={
+                'voltage':voltage,
+                'current':constant_current,
+                'resistance':r_flat,
+            }
+        )
+
+    def eq_voltage(self, params, over_params=None):
+        if over_params is None:
+            over_params = {}
+        if 'voltage' in over_params.keys():
+            voltage = over_params["voltage"]
+
+        if 'current' in over_params.keys():
+            current = over_params['current']
+        if 'resistance' in over_params.keys():
+            resistance = over_params['resistance']
+
+        return voltage - current * resistance
+
 
     def soc(self, params, over_params=None, scalar = True):
         if over_params is None:
@@ -290,11 +333,25 @@ class DegradationModel(Model):
         else:
             raise Exception("tried to call soc without any voltage. please add a 'voltage':value to over_param")
 
+        return self.soc_direct(params, over_params = {'voltage':voltage, 'cell_feat':cell_feat})
+
+    def soc_direct(self, params, over_params=None):
+        if over_params is None:
+            over_params = {}
+
+        if 'voltage' in over_params.keys():
+            voltage = over_params['voltage']
+
+        if 'cell_feat' in over_params.keys():
+            cell_feat = over_params['cell_feat']
+
         dependencies = (
             voltage,
             cell_feat
         )
         return tf.nn.elu(self.nn_call(self.nn_soc, dependencies))
+
+
 
     # def dchg_cap_part3(self, params):
     #     theoretical_cap = self.add_volt_dep(
@@ -340,7 +397,7 @@ class DegradationModel(Model):
     #     return self.nn_call(self.nn_soc_0_part3, dependencies)
 
 
-    def dchg_cap_part2(self, params, over_params=None):
+    def cc_capacity_part2(self, params, over_params=None):
         if over_params is None:
             over_params = {}
 
@@ -364,6 +421,81 @@ class DegradationModel(Model):
         soc_1 = self.soc(params, new_over_param, scalar = False)
 
         return theoretical_cap * (soc_1 - soc_0)
+
+
+    def cv_capacity(self, params, over_params=None):
+        if over_params is None:
+            over_params = {}
+
+        theoretical_cap_cc = self.theoretical_cap(params, {})
+
+        new_over_param = {}
+        for key in over_params.keys():
+            new_over_param[key] = over_params[key]
+        new_over_param['voltage'] = self.eq_voltage_0(
+            params,
+            over_params
+        )
+        cc_soc_0 = self.soc(params, new_over_param, scalar=True)
+
+        new_over_param = {}
+        for key in over_params.keys():
+            new_over_param[key] = over_params[key]
+        new_over_param['voltage'] = self.eq_voltage(
+            params,
+            over_params = {
+                'voltage':params['end_voltage'],
+                'current':params['constant_current'],
+                'resistance':self.r(params, over_params)
+            }
+        )
+
+        cc_soc_1 = self.soc(params, new_over_param, scalar=True)
+
+        cc_capacity = theoretical_cap_cc * (cc_soc_1 - cc_soc_0)
+
+        cell_feat = self.cell_features(params, {})
+        theoretical_cap_cv = self.theoretical_cap_direct(
+            params,
+            over_params={
+                'norm_cycle':self.add_current_dep(self.norm_cycle(params, {}), params),
+                'constant_current':params['cv_current_flat'],
+                'cell_feat': self.add_current_dep(cell_feat, params, cell_feat.shape[1]),
+            }
+        )
+
+        theoretical_cap_cv_reshaped = tf.reshape(theoretical_cap_cv, [-1, params['current_count']])
+
+        cv_soc_1 = self.soc_direct(
+            params,
+            over_params={
+                'voltage':self.eq_voltage(
+                    params,
+                    over_params = {
+                        'voltage':self.add_current_dep(params['end_voltage'], params),
+                        'current':params['cv_current_flat'],
+                        'resistance':self.add_current_dep(self.r(params, over_params), params),
+
+                    }
+                ),
+                'cell_feat':self.add_current_dep(self.cell_features(params, {}),params, cell_feat.shape[1]),
+            },
+        )
+
+        cv_soc_1_reshaped = tf.reshape(cv_soc_1, [-1, params['current_count']])
+
+        cv_soc_0_reshaped = tf.concat(
+            (
+            cc_soc_1,
+            cv_soc_1_reshaped[:,1:],
+            ),
+            axis=1,
+        )
+
+        cv_capacity_deltas = theoretical_cap_cv_reshaped * (cv_soc_1_reshaped - cv_soc_0_reshaped)
+        cv_capacity_cumulative = tf.cumsum(cv_capacity_deltas, axis=1)
+
+        return tf.reshape(cv_capacity_cumulative, [-1,1]) + self.add_current_dep(cc_capacity, params)
 
 
 
@@ -559,29 +691,48 @@ class DegradationModel(Model):
             [params["batch_count"] * params["voltage_count"], dim]
         )
 
+    def add_current_dep(self, thing, params, dim = 1):
+        return tf.reshape(
+            tf.tile(
+                tf.expand_dims(
+                    thing,
+                    axis=1
+                ),
+                [1, params["current_count"],1]
+            ),
+            [params["batch_count"] * params["current_count"], dim]
+        )
+
+
     def call(self, x, training=False):
 
         cycles = x[0]  # matrix; dim: [batch, 1]
         constant_current = x[1]  # matrix; dim: [batch, 1]
         end_current_prev = x[2]  # matrix; dim: [batch, 1]
         end_voltage_prev = x[3]  # matrix; dim: [batch, 1]
+        end_voltage = x[4]  # matrix; dim: [batch, 1]
 
-        indecies = x[4]  # batch of index; dim: [batch]
-        voltage_tensor = x[5] # dim: [batch, voltages]
+        indecies = x[5]  # batch of index; dim: [batch]
+        voltage_tensor = x[6] # dim: [batch, voltages]
+        current_tensor = x[7]  # dim: [batch, voltages]
 
         features, mean, log_sig = self.dictionary(indecies, training=training)
         # duplicate cycles and others for all the voltages
         # dimensions are now [batch, voltages, features]
         batch_count = cycles.shape[0]
         voltage_count = voltage_tensor.shape[1]
+        current_count = current_tensor.shape[1]
         count_dict = {
             "batch_count": batch_count,
-            "voltage_count": voltage_count
+            "voltage_count": voltage_count,
+            "current_count": current_count,
         }
 
         params = {
             "batch_count": batch_count,
             "voltage_count": voltage_count,
+            "current_count": current_count,
+
             "cycles_flat": self.add_volt_dep(
                 cycles,
                 count_dict
@@ -604,39 +755,23 @@ class DegradationModel(Model):
                 dim = self.width
             ),
             "voltage_flat": tf.reshape(voltage_tensor, [-1, 1]),
+            "cv_current_flat": tf.reshape(current_tensor, [-1, 1]),
 
             "cycles": cycles,
             "constant_current": constant_current,
             "end_current_prev": end_current_prev,
             "end_voltage_prev": end_voltage_prev,
-            "features": features
+            "features": features,
+            "end_voltage": end_voltage,
+
         }
+        cc_capacity = self.cc_capacity_part2(params, over_params={})
+        pred_cc_capacity = tf.reshape(cc_capacity, [-1, voltage_count])
+
+        cv_capacity = self.cv_capacity(params, over_params={})
+        pred_cv_capacity = tf.reshape(cv_capacity, [-1, current_count])
 
         if training:
-
-            # var_cyc = tf.expand_dims(meas_cycles, axis=1) - cycles
-            # var_cyc_squared = tf.square(var_cyc)
-            #
-            # ''' discharge capacity '''
-            # cap, cap_der = self.create_derivatives(
-            #     self.dchg_cap_part2,
-            #     params,
-            #     over_params={},
-            #     scalar = False,
-            #     cycles_der=2,
-            # )
-
-            cap = self.dchg_cap_part2(params, over_params={})
-            pred_cap = tf.reshape(cap, [-1, voltage_count])
-
-            # pred_cap = (
-            #     cap + var_cyc * tf.reshape(
-            #         cap_der['d_cycles'], [-1, voltage_count]
-            #     ) + var_cyc_squared * tf.reshape(
-            #         cap_der['d2_cycles'], [-1, voltage_count]
-            #     )
-            # )
-
 
 
             #NOTE(sam): this is an example of a forall. (for all voltages, and all cell features)
@@ -837,7 +972,8 @@ class DegradationModel(Model):
 
 
             return {
-                "pred_cap": pred_cap,
+                "pred_cc_capacity": pred_cc_capacity,
+                "pred_cv_capacity": pred_cv_capacity,
                 "soc_loss": soc_loss,
                 "theo_cap_loss": theo_cap_loss,
                 "r_loss": r_loss,
@@ -845,14 +981,12 @@ class DegradationModel(Model):
             }
 
         else:
-            pred_cap = tf.reshape(
-                self.dchg_cap_part2(params),
-                [-1, voltage_count]
-            )
+
             pred_r = self.r(params)
 
             return {
-                "pred_cap": pred_cap,
+                "pred_cc_capacity": pred_cc_capacity,
+                "pred_cv_capacity": pred_cv_capacity,
                 "pred_r": pred_r,
             }
 

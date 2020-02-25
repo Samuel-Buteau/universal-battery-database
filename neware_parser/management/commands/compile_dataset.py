@@ -137,7 +137,7 @@ def initial_processing(my_barcodes, fit_args):
                 for cyc in cyc_group.cycle_set.order_by(
                         'cycle_number'):
                     if cyc.valid_cycle:
-                        vq_curve, vq_mask, step_info = machine_learning_post_process_cycle(
+                        voltages, vq_curve, vq_mask, step_info = machine_learning_post_process_cycle(
                             cyc,
                             voltage_grid,
                             typ
@@ -146,8 +146,10 @@ def initial_processing(my_barcodes, fit_args):
                         if vq_curve is None:
                             continue
 
+
                         result.append((
                             cyc.get_offset_cycle(),
+                            voltages,
                             vq_curve,
                             vq_mask,
                             sign* step_info['constant_current'],
@@ -163,6 +165,7 @@ def initial_processing(my_barcodes, fit_args):
                     result,
                     dtype=[
                         ('cycle_number', 'f4'),
+                        ('voltage_vector', 'f4', len(voltage_grid)),
                         ('capacity_vector', 'f4', len(voltage_grid)),
                         ('vq_curve_mask', 'f4', len(voltage_grid)),
                         ('constant_current', 'f4'),
@@ -191,7 +194,7 @@ def initial_processing(my_barcodes, fit_args):
         plt.close(fig)
         all_data[barcode] = cyc_grp_dict
 
-    return {'voltage_grid':voltage_grid, 'all_data':all_data}
+    return all_data
 
 
 # === End: initial processing ==================================================

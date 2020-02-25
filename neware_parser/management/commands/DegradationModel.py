@@ -559,19 +559,6 @@ class DegradationModel(Model):
             [params["batch_count"] * params["voltage_count"], dim]
         )
 
-    # add cycle dependence ([vol] -> [cyc, vol])
-    def add_cyc_dep(self, thing, params, dim = 1):
-        return tf.reshape(
-            tf.tile(
-                tf.expand_dims(
-                    thing,
-                    axis=0
-                ),
-                [params["batch_count"], 1,1]
-            ),
-            [params["batch_count"] * params["voltage_count"], dim]
-        )
-
     def call(self, x, training=False):
 
         cycles = x[0]  # matrix; dim: [batch, 1]
@@ -580,13 +567,13 @@ class DegradationModel(Model):
         end_voltage_prev = x[3]  # matrix; dim: [batch, 1]
 
         indecies = x[4]  # batch of index; dim: [batch]
-        voltage_vector = x[5] # dim: [voltages]
+        voltage_tensor = x[5] # dim: [batch, voltages]
 
         features, mean, log_sig = self.dictionary(indecies, training=training)
         # duplicate cycles and others for all the voltages
         # dimensions are now [batch, voltages, features]
         batch_count = cycles.shape[0]
-        voltage_count = voltage_vector.shape[0]
+        voltage_count = voltage_tensor.shape[1]
         count_dict = {
             "batch_count": batch_count,
             "voltage_count": voltage_count
@@ -616,10 +603,7 @@ class DegradationModel(Model):
                 count_dict,
                 dim = self.width
             ),
-            "voltage_flat": self.add_cyc_dep(
-                tf.expand_dims(voltage_vector, axis = 1),
-                count_dict
-            ),
+            "voltage_flat": tf.reshape(voltage_tensor, [-1, 1]),
 
             "cycles": cycles,
             "constant_current": constant_current,
@@ -863,15 +847,13 @@ class DegradationModel(Model):
         else:
             pred_cap = tf.reshape(
                 self.dchg_cap_part2(params),
-                [-1, voltage_vector.shape[0]]
+                [-1, voltage_count]
             )
             pred_r = self.r(params)
-            #shift = self.shift(params)
 
             return {
                 "pred_cap": pred_cap,
                 "pred_r": pred_r,
-                #"shift": shift,
             }
 
 # stores cell features

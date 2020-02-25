@@ -45,7 +45,7 @@ NEIGH_FLOAT_DCHG_RATE = 2
 
 def initial_processing(my_data, barcodes, fit_args):
     all_cells_neigh_data_int, all_cycle_nums, all_constant_current, all_end_current_prev, all_end_voltage_prev = [], [], [], [], []
-    all_cells_neigh_data_float, all_vq_curves, all_vq_curves_masks = [], [], []
+    all_cells_neigh_data_float, all_voltages, all_vq_curves, all_vq_curves_masks = [], [], [], []
 
     test_object = {}
 
@@ -76,7 +76,7 @@ def initial_processing(my_data, barcodes, fit_args):
               (mask of 0)]
         '''
         max_cap = 0.
-        cyc_grp_dict = my_data['all_data'][barcode]
+        cyc_grp_dict = my_data[barcode]
         # find largest cap measured for this cell (max over all cycle groups)
         for k in cyc_grp_dict.keys():
             max_cap = max(
@@ -89,22 +89,22 @@ def initial_processing(my_data, barcodes, fit_args):
         for k_count, k in enumerate(cyc_grp_dict.keys()):
 
             # normalize capacity_vector with max_cap
-            my_data['all_data'][barcode][k][0]['capacity_vector'] = (
+            my_data[barcode][k][0]['capacity_vector'] = (
                 1. / max_cap * cyc_grp_dict[k][0]['capacity_vector'])
 
-            my_data['all_data'][barcode][k][0]['last_cc_capacity'] = (
+            my_data[barcode][k][0]['last_cc_capacity'] = (
                 1. / max_cap * cyc_grp_dict[k][0]['last_cc_capacity'])
 
 
-            my_data['all_data'][barcode][k][0]['constant_current'] = (
+            my_data[barcode][k][0]['constant_current'] = (
                     1. / max_cap * cyc_grp_dict[k][0]['constant_current'])
-            my_data['all_data'][barcode][k][0]['end_current_prev'] = (
+            my_data[barcode][k][0]['end_current_prev'] = (
                     1. / max_cap * cyc_grp_dict[k][0]['end_current_prev'])
 
-            my_data['all_data'][barcode][k][1]['avg_constant_current'] = (
+            my_data[barcode][k][1]['avg_constant_current'] = (
                     1. / max_cap * cyc_grp_dict[k][1]['avg_constant_current'])
 
-            my_data['all_data'][barcode][k][1]['avg_end_current_prev'] = (
+            my_data[barcode][k][1]['avg_end_current_prev'] = (
                     1. / max_cap * cyc_grp_dict[k][1]['avg_end_current_prev'])
 
             print("k:", k)
@@ -244,6 +244,9 @@ def initial_processing(my_data, barcodes, fit_args):
                 all_vq_curves = numpy.concatenate(
                     (all_vq_curves, cyc_grp_dict[k][0]['capacity_vector']))
 
+                all_voltages = numpy.concatenate(
+                    (all_voltages, cyc_grp_dict[k][0]['voltage_vector']))
+
                 # giant array of all the vq_curves_mask
                 all_vq_curves_masks = numpy.concatenate(
                     (all_vq_curves_masks, cyc_grp_dict[k][0]['vq_curve_mask']))
@@ -263,6 +266,7 @@ def initial_processing(my_data, barcodes, fit_args):
 
             else:
                 all_cycle_nums = cyc_grp_dict[k][0]['cycle_number']
+                all_voltages = cyc_grp_dict[k][0]['voltage_vector']
                 all_vq_curves = cyc_grp_dict[k][0]['capacity_vector']
                 all_vq_curves_masks = cyc_grp_dict[k][0]['vq_curve_mask']
                 all_constant_current = cyc_grp_dict[k][0]['constant_current']
@@ -290,10 +294,8 @@ def initial_processing(my_data, barcodes, fit_args):
     cycles_tensor = (cycles_tensor - cycles_m) / tf.sqrt(cycles_v)
 
     # the voltages are also normalized
-    vol_tensor = tf.cast(tf.constant(my_data['voltage_grid']), dtype=tf.float32)
-    #voltages_m, voltages_v = tf.nn.moments(vol_tensor, axes=[0])
-    #vol_tensor = (vol_tensor - voltages_m) / tf.sqrt(voltages_v)
     vq_curves = tf.constant(all_vq_curves)
+    voltages = tf.constant(all_voltages)
     vq_curves_mask = tf.constant(all_vq_curves_masks)
 
     # max voltage is NOT normalized
@@ -338,7 +340,6 @@ def initial_processing(my_data, barcodes, fit_args):
         "degradation_model": degradation_model,
 
         "cycles_tensor": cycles_tensor,
-        "vol_tensor": vol_tensor,
         "constant_current_tensor": constant_current_tensor,
         "end_current_prev_tensor": end_current_prev_tensor,
         "end_voltage_prev_tensor": end_voltage_prev_tensor,
@@ -347,11 +348,12 @@ def initial_processing(my_data, barcodes, fit_args):
         "cycles_m": cycles_m,
         "cycles_v": cycles_v,
 
+        "voltages":voltages,
         "vq_curves": vq_curves,
         "vq_curves_mask": vq_curves_mask,
         "optimizer": optimizer,
         "test_object": test_object,
-        "all_data": my_data['all_data']
+        "all_data": my_data
     }
 
 
@@ -378,13 +380,13 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                     "neigh_int": neigh_int,
 
                     "cycles_tensor": init_returns["cycles_tensor"],
-                    "vol_tensor": init_returns["vol_tensor"],
                     "constant_current_tensor": init_returns["constant_current_tensor"],
                     "end_current_prev_tensor": init_returns["end_current_prev_tensor"],
                     "end_voltage_prev_tensor": init_returns["end_voltage_prev_tensor"],
 
                     "degradation_model": init_returns["degradation_model"],
                     "optimizer": init_returns["optimizer"],
+                    "voltages": init_returns["voltages"],
                     "vq_curves": init_returns["vq_curves"],
                     "vq_curves_mask": init_returns["vq_curves_mask"],
                 }
@@ -424,10 +426,9 @@ def train_step(params, fit_args):
     end_current_prev_tensor= params["end_current_prev_tensor"]
     end_voltage_prev_tensor= params["end_voltage_prev_tensor"]
 
-    vol_tensor = params["vol_tensor"]
-
     degradation_model = params["degradation_model"]
     optimizer = params["optimizer"]
+    voltages = params["voltages"]
     vq_curves = params["vq_curves"]
     vq_curves_mask = params["vq_curves_mask"]
 
@@ -476,13 +477,14 @@ def train_step(params, fit_args):
     )
 
     cap = tf.gather(vq_curves, indices=cycle_indecies)
+    vol = tf.gather(voltages, indices=cycle_indecies)
     ws_cap = tf.gather(vq_curves_mask, indices=cycle_indecies)
     ws2_cap = tf.tile(
         tf.reshape(
             1. / (tf.cast(neigh_int[:, NEIGH_INT_VALID_CYC_INDEX], tf.float32)),
             [batch_size2, 1]
         ),
-        [1, vol_tensor.shape[0]]
+        [1, vol.shape[1]]
     )
 
 
@@ -499,7 +501,7 @@ def train_step(params, fit_args):
                 tf.expand_dims(meas_end_current_prev, axis=1),
                 tf.expand_dims(meas_end_voltage_prev, axis=1),
                 cell_indecies,
-                vol_tensor),
+                vol),
             training = True
         )
 
@@ -551,7 +553,7 @@ def ml_smoothing(fit_args):
     with open(dataset_path, 'rb') as f:
         my_data = pickle.load(f)
 
-    barcodes = list(my_data['all_data'].keys())
+    barcodes = list(my_data.keys())
 
     if len(fit_args['wanted_barcodes']) !=0:
         barcodes = list(

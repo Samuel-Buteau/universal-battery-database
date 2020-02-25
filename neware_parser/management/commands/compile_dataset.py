@@ -137,26 +137,33 @@ def initial_processing(my_barcodes, fit_args):
                 for cyc in cyc_group.cycle_set.order_by(
                         'cycle_number'):
                     if cyc.valid_cycle:
-                        voltages, vq_curve, vq_mask, step_info = machine_learning_post_process_cycle(
+                        post_process_results = machine_learning_post_process_cycle(
                             cyc,
                             voltage_grid,
-                            typ
+                            typ,
+                            current_max_n=fit_args['current_max_n']
                         )
 
-                        if vq_curve is None:
+                        if post_process_results is None:
                             continue
 
 
                         result.append((
                             cyc.get_offset_cycle(),
-                            voltages,
-                            vq_curve,
-                            vq_mask,
-                            sign* step_info['constant_current'],
-                            -1.*sign*step_info['end_current_prev'],
-                            step_info['end_voltage_prev'],
-                            step_info['last_cc_voltage'],
-                            step_info['last_cc_capacity'],
+                            post_process_results['cc_voltages'],
+                            post_process_results['cc_capacities'],
+                            post_process_results['cc_masks'],
+                            sign*post_process_results['cv_currents'],
+                            post_process_results['cv_capacities'],
+                            post_process_results['cv_masks'],
+                            sign* post_process_results['constant_current'],
+                            -1.*sign*post_process_results['end_current_prev'],
+                            sign * post_process_results['end_current'],
+                            post_process_results['end_voltage_prev'],
+                            post_process_results['end_voltage'],
+                            post_process_results['last_cc_voltage'],
+                            post_process_results['last_cc_capacity'],
+                            post_process_results['last_cv_capacity'],
                             cyc.get_temperature()
                         ))
 
@@ -165,14 +172,23 @@ def initial_processing(my_barcodes, fit_args):
                     result,
                     dtype=[
                         ('cycle_number', 'f4'),
-                        ('voltage_vector', 'f4', len(voltage_grid)),
-                        ('capacity_vector', 'f4', len(voltage_grid)),
-                        ('vq_curve_mask', 'f4', len(voltage_grid)),
+
+                        ('cc_voltage_vector', 'f4', len(voltage_grid)),
+                        ('cc_capacity_vector', 'f4', len(voltage_grid)),
+                        ('cc_mask_vector', 'f4', len(voltage_grid)),
+
+                        ('cv_current_vector', 'f4', fit_args['current_max_n']),
+                        ('cv_capacity_vector', 'f4', fit_args['current_max_n']),
+                        ('cv_mask_vector', 'f4', fit_args['current_max_n']),
+
                         ('constant_current', 'f4'),
                         ('end_current_prev', 'f4'),
+                        ('end_current', 'f4'),
                         ('end_voltage_prev', 'f4'),
+                        ('end_voltage', 'f4'),
                         ('last_cc_voltage', 'f4'),
                         ('last_cc_capacity', 'f4'),
+                        ('last_cv_capacity', 'f4'),
                         ('temperature', 'f4'),
                     ])
 
@@ -181,17 +197,13 @@ def initial_processing(my_barcodes, fit_args):
                 ] = (res, {
                     'avg_constant_current': numpy.average(res['constant_current']),
                     'avg_end_current_prev': numpy.average(res['end_current_prev']),
+                    'avg_end_current': numpy.average(res['end_current']),
                     'avg_end_voltage_prev': numpy.average(res['end_voltage_prev']),
+                    'avg_end_voltage': numpy.average(res['end_voltage']),
                     'avg_last_cc_voltage': numpy.average(res['last_cc_voltage']),
                         }
                      )
 
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        for k in cyc_grp_dict.keys():
-            ax.plot(voltage_grid, numpy.average(cyc_grp_dict[k][0]['vq_curve_mask'], axis=0))
-        plt.savefig(os.path.join(fit_args['path_to_dataset'], 'masks_version_{}_barcode_{}.png'.format(fit_args['dataset_version'], barcode)))
-        plt.close(fig)
         all_data[barcode] = cyc_grp_dict
 
     return all_data
@@ -214,6 +226,7 @@ class Command(BaseCommand):
         parser.add_argument('--voltage_grid_min_v', type=float, default=2.5)
         parser.add_argument('--voltage_grid_max_v', type=float, default=4.5)
         parser.add_argument('--voltage_grid_n_samples', type=int, default=32)
+        parser.add_argument('--current_max_n', type=int, default=8)
         parser.add_argument('--wanted_barcodes', type=int, nargs='+', default=[83220, 83083])
 
     def handle(self, *args, **options):

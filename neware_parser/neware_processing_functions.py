@@ -1065,31 +1065,34 @@ def process_single_file(f,DEBUG=False):
     error_message['error'] = False
     return error_message
 
-def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
+def machine_learning_post_process_cycle(cyc, voltage_grid, step_type, current_max_n):
     if step_type == 'dchg':
         steps = cyc.step_set.filter(step_type__contains='CC_DChg').order_by('cycle__cycle_number','step_number')
 
         if len(steps) == 0:
-            return None, None, None, None
+            return None
         else:
             first_step = steps[0]
             vcqt_curve = first_step.get_v_c_q_t_data()
             curve = vcqt_curve[:, [0, 2]]
             curve[:, 1] = -1*curve[:,1]
             curve = numpy.flip(curve, 0)
+            cv_curve = []
 
     if step_type == 'chg':
         steps = cyc.step_set.filter(step_type__contains='CC_Chg').order_by('cycle__cycle_number','step_number')
         if len(steps) == 0:
             steps = cyc.step_set.filter(step_type__contains='CCCV_Chg').order_by('cycle__cycle_number', 'step_number')
             if len(steps) == 0:
-                return None, None, None, None
+                return None
             else:
+                #has some CV data
                 first_step = steps[0]
                 vcqt_curve = first_step.get_v_c_q_t_data()
 
                 if len(vcqt_curve)==1:
                     curve = vcqt_curve[:, [0,2]]
+                    cv_curve = []
                 else:
                     delta_currents = numpy.abs(vcqt_curve[1:,1] - vcqt_curve[:-1,1])
                     delta_count = 0
@@ -1100,12 +1103,14 @@ def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
                             break
 
                     curve = vcqt_curve[:delta_count+1, [0, 2]]
+                    cv_curve = vcqt_curve[delta_count+1:, [1,2]]
+
 
         else:
             first_step = steps[0]
             vcqt_curve = first_step.get_v_c_q_t_data()
             curve = vcqt_curve[:, [0, 2]]
-
+            cv_curve = []
 
 
     cursor = numpy.array([-1, len(curve)], dtype=numpy.int32)
@@ -1117,7 +1122,7 @@ def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
     never_added_down = True
     if len(curve) < 3:
         print('curve too short: {}'.format(curve))
-        return None, None, None, None
+        return None
 
     while True:
         if cursor[0] + 1 >= cursor[1]:
@@ -1229,11 +1234,11 @@ def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
     invalid_curve = curve[~masks]
     if len(invalid_curve) > 5:
         print('too many invalids {}. (valids were {})'.format(invalid_curve, valid_curve))
-        return None, None, None, None
+        return None
 
     if len(valid_curve) == 0:
         print('not enough valids. curve was {}'.format(curve))
-        return None, None, None, None
+        return None
 
 
     # uniformly sample it
@@ -1256,6 +1261,26 @@ def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
         last_cc_voltage = v[-1]
         last_cc_capacity = q[-1]
 
+    if len(cv_curve) > 0:
+        last_cv_capacity = cv_curve[-1, 1]
+    else:
+        last_cv_capacity = last_cc_capacity
+
+    cv_currents = numpy.zeros(shape=(current_max_n), dtype=numpy.float32)
+    cv_qs = numpy.zeros(shape=(current_max_n), dtype=numpy.float32)
+    cv_mask = numpy.zeros(shape=(current_max_n), dtype=numpy.float32)
+
+    if len(cv_curve) >0:
+        if current_max_n >= len(cv_curve):
+            cv_currents[:len(cv_curve)] = cv_curve[:, 0]
+            cv_qs[:len(cv_curve)] = cv_curve[:, 1]
+            cv_mask[:len(cv_curve)] = 1.
+        else:
+            cv_currents[:] = cv_curve[:current_max_n, 0]
+            cv_qs[:] = cv_curve[:current_max_n, 1]
+            cv_mask[:] = 1.
+
+
     if len(voltage_grid) >= len(v):
         voltages = numpy.zeros(shape=(len(voltage_grid)), dtype=numpy.float32)
         qs = numpy.zeros(shape=(len(voltage_grid)), dtype=numpy.float32)
@@ -1265,12 +1290,18 @@ def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
         qs[:len(v)] =  q[:]
         mask[:len(v)] = 1.0
 
-        return voltages, qs, mask, {
-            'end_current_prev': first_step.end_current_prev,
-            'end_voltage_prev': first_step.end_voltage_prev,
-            'constant_current': first_step.constant_current,
-            'last_cc_voltage': last_cc_voltage,
-            'last_cc_capacity': last_cc_capacity,
+        return {'cc_voltages':voltages, 'cc_capacities':qs, 'cc_masks':mask,
+                'cv_currents': cv_currents, 'cv_capacities': cv_qs, 'cv_masks': cv_mask,
+                'end_current_prev': first_step.end_current_prev,
+                'end_current': first_step.end_current,
+
+                'end_voltage_prev': first_step.end_voltage_prev,
+                'end_voltage': first_step.end_voltage,
+
+                'constant_current': first_step.constant_current,
+                'last_cc_voltage': last_cc_voltage,
+                'last_cc_capacity': last_cc_capacity,
+                'last_cv_capacity': last_cv_capacity,
         }
 
     #print(last_cc_voltage,last_cc_capacity)
@@ -1300,7 +1331,7 @@ def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
 
     if not is_monotonically_increasing(res, mask=mask):
         print('was not increasing {}, with mask {}'.format(res,mask1))
-        return None, None, None, None
+        return None
 
 
 
@@ -1326,17 +1357,21 @@ def machine_learning_post_process_cycle(cyc, voltage_grid, step_type):
     )
 
     voltages = voltage_grid
-    #TODO(sam): return the voltage grid.
-    #TODO(sam): if the number of samples is smaller than the voltage grid, simply pad with zeros the original valid data.
-    #TODO(sam): make the model use custom voltage tensor.
     #TODO(sam): treat and include the CV data as well.
-    return voltages, res, mask2, {
-        'end_current_prev':first_step.end_current_prev,
-        'end_voltage_prev':first_step.end_voltage_prev,
-        'constant_current':first_step.constant_current,
-        'last_cc_voltage':last_cc_voltage,
-        'last_cc_capacity':last_cc_capacity,
-    }
+    return {'cc_voltages':voltages, 'cc_capacities':res, 'cc_masks':mask2,
+            'cv_currents': cv_currents, 'cv_capacities': cv_qs, 'cv_masks': cv_mask,
+            'end_current_prev': first_step.end_current_prev,
+            'end_current': first_step.end_current,
+
+            'end_voltage_prev': first_step.end_voltage_prev,
+            'end_voltage': first_step.end_voltage,
+            'constant_current': first_step.constant_current,
+            'last_cc_voltage': last_cc_voltage,
+            'last_cc_capacity': last_cc_capacity,
+            'last_cv_capacity': last_cv_capacity,
+        }
+
+
 
 
 

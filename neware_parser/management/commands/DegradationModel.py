@@ -254,7 +254,7 @@ class DegradationModel(Model):
             tf.abs(constant_current),
             cell_feat
         )
-        return tf.exp(self.nn_call(self.nn_theoretical_cap, dependencies))
+        return tf.nn.elu(self.nn_call(self.nn_theoretical_cap, dependencies))
 
     def r(self, params, over_params=None):
         if over_params is None:
@@ -263,7 +263,7 @@ class DegradationModel(Model):
             self.norm_cycle(params, over_params, scalar=True),
             self.cell_features(params, over_params,scalar=True)
         )
-        return tf.exp(self.nn_call(self.nn_r, dependencies))
+        return tf.nn.elu(self.nn_call(self.nn_r, dependencies))
 
     def eq_voltage_0(self, params, over_params=None):
         if over_params is None:
@@ -427,7 +427,6 @@ class DegradationModel(Model):
         if over_params is None:
             over_params = {}
 
-        theoretical_cap_cc = self.theoretical_cap(params, {})
 
         new_over_param = {}
         for key in over_params.keys():
@@ -436,23 +435,8 @@ class DegradationModel(Model):
             params,
             over_params
         )
-        cc_soc_0 = self.soc(params, new_over_param, scalar=True)
+        cc_soc_0 = self.add_current_dep(self.soc(params, new_over_param, scalar=True), params)
 
-        new_over_param = {}
-        for key in over_params.keys():
-            new_over_param[key] = over_params[key]
-        new_over_param['voltage'] = self.eq_voltage(
-            params,
-            over_params = {
-                'voltage':params['end_voltage'],
-                'current':params['constant_current'],
-                'resistance':self.r(params, over_params)
-            }
-        )
-
-        cc_soc_1 = self.soc(params, new_over_param, scalar=True)
-
-        cc_capacity = theoretical_cap_cc * (cc_soc_1 - cc_soc_0)
 
         cell_feat = self.cell_features(params, {})
         theoretical_cap_cv = self.theoretical_cap_direct(
@@ -463,8 +447,6 @@ class DegradationModel(Model):
                 'cell_feat': self.add_current_dep(cell_feat, params, cell_feat.shape[1]),
             }
         )
-
-        theoretical_cap_cv_reshaped = tf.reshape(theoretical_cap_cv, [-1, params['current_count']])
 
         cv_soc_1 = self.soc_direct(
             params,
@@ -482,20 +464,10 @@ class DegradationModel(Model):
             },
         )
 
-        cv_soc_1_reshaped = tf.reshape(cv_soc_1, [-1, params['current_count']])
 
-        cv_soc_0_reshaped = tf.concat(
-            (
-            cc_soc_1,
-            cv_soc_1_reshaped[:,1:],
-            ),
-            axis=1,
-        )
 
-        cv_capacity_deltas = theoretical_cap_cv_reshaped * (cv_soc_1_reshaped - cv_soc_0_reshaped)
-        cv_capacity_cumulative = tf.cumsum(cv_capacity_deltas, axis=1)
 
-        return tf.reshape(cv_capacity_cumulative, [-1,1]) + self.add_current_dep(cc_capacity, params)
+        return theoretical_cap_cv * (cv_soc_1 - cc_soc_0)
 
 
 
@@ -789,7 +761,7 @@ class DegradationModel(Model):
                     'features': sampled_features,
                 },
                 scalar=True,
-                voltage_der=2,
+                voltage_der=3,
                 features_der=2,
             )
 
@@ -811,8 +783,8 @@ class DegradationModel(Model):
                             Level.Strong
                         )
                 ),
-                (.01, incentive_magnitude(
-                            soc_1_der['d2_voltage'],
+                (10., incentive_magnitude(
+                            soc_1_der['d3_voltage'],
                             Target.Small,
                             Level.Proportional
                         )
@@ -843,18 +815,18 @@ class DegradationModel(Model):
                 },
                 scalar=True,
                 cycles_der=3,
-                constant_current_der=2,
+                constant_current_der=1,
                 features_der=2,
             )
 
             theo_cap_loss = .001 * incentive_combine(
                 [
-                    (1.,incentive_inequality(
-                            theoretical_cap, Inequality.GreaterThan, 0,
+                    (100.,incentive_inequality(
+                            theoretical_cap, Inequality.GreaterThan, 0.01,
                             Level.Strong
                         )
                     ),
-                    (1.,incentive_inequality(
+                    (100.,incentive_inequality(
                             theoretical_cap, Inequality.LessThan, 1,
                             Level.Strong
                         )
@@ -895,8 +867,8 @@ class DegradationModel(Model):
                         )
                      ),
 
-                    (1.,incentive_magnitude(
-                            theoretical_cap_der['d2_constant_current'],
+                    (100.,incentive_magnitude(
+                            theoretical_cap_der['d_constant_current'],
                             Target.Small,
                             Level.Proportional
                         )
@@ -930,8 +902,8 @@ class DegradationModel(Model):
 
             r_loss = .001 * incentive_combine(
                 [
-                    (1.,incentive_inequality(
-                            r, Inequality.GreaterThan, 0,
+                    (100.,incentive_inequality(
+                            r, Inequality.GreaterThan, 0.01,
                             Level.Strong
                         )
                     ),
@@ -983,11 +955,12 @@ class DegradationModel(Model):
         else:
 
             pred_r = self.r(params)
-
+            pred_theo_cap = self.theoretical_cap(params)
             return {
                 "pred_cc_capacity": pred_cc_capacity,
                 "pred_cv_capacity": pred_cv_capacity,
                 "pred_r": pred_r,
+                "pred_theo_capacity":pred_theo_cap,
             }
 
 # stores cell features

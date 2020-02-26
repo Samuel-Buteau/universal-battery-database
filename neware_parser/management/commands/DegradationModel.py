@@ -251,10 +251,45 @@ class DegradationModel(Model):
 
         dependencies = (
             norm_cycle,
-            tf.abs(constant_current),
+            #tf.abs(constant_current),
             cell_feat
         )
         return tf.nn.elu(self.nn_call(self.nn_theoretical_cap, dependencies))
+
+    def shift(self, params, over_params=None):
+        if over_params is None:
+            over_params = {}
+        norm_cycle = self.norm_cycle(params, over_params)
+
+        if 'constant_current' in over_params.keys():
+            constant_current = over_params["constant_current"]
+        else:
+            constant_current = params['constant_current']
+
+        cell_feat = self.cell_features(params, over_params)
+        return self.shift_direct(params,
+                                           over_params={'norm_cycle': norm_cycle, 'constant_current': constant_current,
+                                                        'cell_feat': cell_feat})
+
+    def shift_direct(self, params, over_params=None):
+        if over_params is None:
+            over_params = {}
+
+        if 'norm_cycle' in over_params.keys():
+            norm_cycle = over_params["norm_cycle"]
+
+        if 'constant_current' in over_params.keys():
+            constant_current = over_params["constant_current"]
+
+        if 'cell_feat' in over_params.keys():
+            cell_feat = over_params["cell_feat"]
+
+        dependencies = (
+            norm_cycle,
+            tf.abs(constant_current),
+            cell_feat
+        )
+        return (self.nn_call(self.nn_shift, dependencies))
 
     def r(self, params, over_params=None):
         if over_params is None:
@@ -327,13 +362,33 @@ class DegradationModel(Model):
         if over_params is None:
             over_params = {}
 
+        if scalar:
+            shift = self.shift(params, over_params)
+        else:
+            shift = self.add_volt_dep(self.shift(params, over_params), params)
+
         cell_feat = self.cell_features(params, over_params, scalar)
         if 'voltage' in over_params.keys():
             voltage = over_params['voltage']
         else:
             raise Exception("tried to call soc without any voltage. please add a 'voltage':value to over_param")
 
-        return self.soc_direct(params, over_params = {'voltage':voltage, 'cell_feat':cell_feat})
+        return self.soc_direct(params, over_params = {'voltage':voltage, 'cell_feat':cell_feat, 'shift': shift})
+
+    def soc_shift(self, params, over_params=None, scalar=True):
+        if over_params is None:
+            over_params = {}
+
+        if 'shift' in over_params.keys():
+            shift = over_params['shift']
+
+        cell_feat = self.cell_features(params, over_params, scalar)
+        if 'voltage' in over_params.keys():
+            voltage = over_params['voltage']
+        else:
+            raise Exception("tried to call soc without any voltage. please add a 'voltage':value to over_param")
+
+        return self.soc_direct(params, over_params={'voltage': voltage, 'cell_feat': cell_feat, 'shift': shift})
 
     def soc_direct(self, params, over_params=None):
         if over_params is None:
@@ -342,11 +397,16 @@ class DegradationModel(Model):
         if 'voltage' in over_params.keys():
             voltage = over_params['voltage']
 
+        if 'shift' in over_params.keys():
+            shift = over_params['shift']
+
+
         if 'cell_feat' in over_params.keys():
             cell_feat = over_params['cell_feat']
 
         dependencies = (
             voltage,
+            shift,
             cell_feat
         )
         return tf.nn.elu(self.nn_call(self.nn_soc, dependencies))
@@ -460,6 +520,7 @@ class DegradationModel(Model):
 
                     }
                 ),
+                'shift': self.add_current_dep(self.shift(params, {}), params),
                 'cell_feat':self.add_current_dep(self.cell_features(params, {}),params, cell_feat.shape[1]),
             },
         )
@@ -752,12 +813,14 @@ class DegradationModel(Model):
             sampled_cycles = tf.random.uniform(minval=-10., maxval=10., shape=[n_sample, 1])
             sampled_constant_current = tf.random.uniform(minval=0.001, maxval=10., shape=[n_sample, 1])
             sampled_features = self.dictionary.sample(n_sample)
+            sampled_shift = tf.random.uniform(minval=-1., maxval=1., shape=[n_sample, 1])
 
             soc_1, soc_1_der = self.create_derivatives(
-                self.soc,
+                self.soc_shift,
                 params,
                 over_params={
                     'voltage':sampled_voltages,
+                    'shift':sampled_shift,
                     'features': sampled_features,
                 },
                 scalar=True,
@@ -783,7 +846,7 @@ class DegradationModel(Model):
                             Level.Strong
                         )
                 ),
-                (10., incentive_magnitude(
+                (.1, incentive_magnitude(
                             soc_1_der['d3_voltage'],
                             Target.Small,
                             Level.Proportional
@@ -815,7 +878,7 @@ class DegradationModel(Model):
                 },
                 scalar=True,
                 cycles_der=3,
-                constant_current_der=1,
+                constant_current_der=0,
                 features_der=2,
             )
 
@@ -842,11 +905,11 @@ class DegradationModel(Model):
                     )  # we want cap to diminish with cycle number
                      ),
 
-                    (1.,incentive_inequality(
-                            theoretical_cap_der['d_constant_current'], Inequality.LessThan, 0,
-                            Level.Proportional
-                        ) # we want cap to diminish with constant_current (if constant current is positive)
-                    ),
+                    # (1.,incentive_inequality(
+                    #         theoretical_cap_der['d_constant_current'], Inequality.LessThan, 0,
+                    #         Level.Proportional
+                    #     ) # we want cap to diminish with constant_current (if constant current is positive)
+                    # ),
                     (100., incentive_magnitude(
                         theoretical_cap_der['d_cycles'],
                         Target.Small,
@@ -867,12 +930,12 @@ class DegradationModel(Model):
                         )
                      ),
 
-                    (100.,incentive_magnitude(
-                            theoretical_cap_der['d_constant_current'],
-                            Target.Small,
-                            Level.Proportional
-                        )
-                    ),
+                    # (100.,incentive_magnitude(
+                    #         theoretical_cap_der['d_constant_current'],
+                    #         Target.Small,
+                    #         Level.Proportional
+                    #     )
+                    # ),
                     (1.,incentive_magnitude(
                             theoretical_cap_der['d_features'],
                             Target.Small,

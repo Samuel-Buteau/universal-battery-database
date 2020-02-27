@@ -584,10 +584,11 @@ def train_step(params, fit_args):
 
 
         loss = (
-            cc_capacity_loss + cv_capacity_loss
+            cc_capacity_loss + 0.05*cv_capacity_loss
             + train_results["soc_loss"]
             + train_results["theo_cap_loss"]
             + train_results["r_loss"]
+            + train_results["shift_loss"]
             + fit_args['kl_coeff']*train_results["kl_loss"]
         )
 

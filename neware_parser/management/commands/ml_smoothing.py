@@ -649,11 +649,11 @@ class Command(BaseCommand):
         parser.add_argument('--smooth_coeff', type=float, default=.05)
         parser.add_argument('--const_f_coeff', type=float, default=.0)
         parser.add_argument('--smooth_f_coeff', type=float, default=.01)
-        parser.add_argument('--depth', type=int, default=3)
-        parser.add_argument('--width', type=int, default=32)
+        parser.add_argument('--depth', type=int, default=4)
+        parser.add_argument('--width', type=int, default=48)
         parser.add_argument('--batch_size', type=int, default=2 * 16)
 
-        vis = 1000
+        vis = 10000
         parser.add_argument('--print_loss_every', type=int, default=vis)
         parser.add_argument('--visualize_fit_every', type=int, default=vis)
         parser.add_argument('--visualize_vq_every', type=int, default=vis)

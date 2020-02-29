@@ -182,7 +182,7 @@ class DegradationModel(Model):
     def theoretical_cap_direct(self,norm_cycle, current, cell_features):
         dependencies = (
             norm_cycle,
-            tf.abs(current),
+            #tf.abs(current),
             cell_features
         )
         return tf.nn.elu(self.nn_call(self.nn_theoretical_cap, dependencies))
@@ -273,9 +273,9 @@ class DegradationModel(Model):
                 current=params['constant_current'],
                 cell_features=cell_features,
         )
-        shift = self.shift_direct(
+        shift_0 = self.shift_direct(
             norm_cycle = norm_cycle,
-            current = params['constant_current'],
+            current = params['end_current_prev'],
             cell_features = cell_features
         )
 
@@ -292,7 +292,7 @@ class DegradationModel(Model):
 
         soc_0 = self.soc_direct(
             voltage = eq_voltage_0,
-            shift = shift,
+            shift = shift_0,
             cell_features=cell_features
         )
 
@@ -302,9 +302,16 @@ class DegradationModel(Model):
             resistance=self.add_volt_dep(resistance, params),
         )
 
+
+        shift_1 = self.shift_direct(
+            norm_cycle = norm_cycle,
+            current = params['constant_current'],
+            cell_features = cell_features
+        )
+
         soc_1 = self.soc_direct(
             voltage = eq_voltage_1,
-            shift = self.add_volt_dep(shift, params),
+            shift = self.add_volt_dep(shift_1, params),
             cell_features=self.add_volt_dep(cell_features,params, cell_features.shape[1]),
         )
 
@@ -321,7 +328,7 @@ class DegradationModel(Model):
         cell_features = self.cell_features_direct(features=params['features'])
         cc_shift = self.shift_direct(
             norm_cycle = norm_cycle,
-            current = params['constant_current'],
+            current = params['end_current_prev'],
             cell_features = cell_features
         )
 
@@ -635,7 +642,7 @@ class DegradationModel(Model):
                 shift_der=3,
             )
 
-            soc_loss = .001 * incentive_combine([
+            soc_loss = .0001 * incentive_combine([
                 (1., incentive_magnitude(
                             soc,
                             Target.Small,
@@ -643,17 +650,17 @@ class DegradationModel(Model):
                         )
                 ),
 
-                (1000., incentive_inequality(
+                (100., incentive_inequality(
                             soc, Inequality.GreaterThan, 0,
                             Level.Strong
                         )
                 ),
-                (1., incentive_inequality(
-                            soc_der['d_voltage'], Inequality.GreaterThan, 0,
+                (10000., incentive_inequality(
+                            soc_der['d_voltage'], Inequality.GreaterThan, 0.05,
                             Level.Strong
                         )
                 ),
-                (.1, incentive_magnitude(
+                (100., incentive_magnitude(
                             soc_der['d3_voltage'],
                             Target.Small,
                             Level.Proportional
@@ -704,7 +711,7 @@ class DegradationModel(Model):
                 features_der=2,
             )
 
-            theo_cap_loss = .001 * incentive_combine(
+            theo_cap_loss = .0001 * incentive_combine(
                 [
                     (100.,incentive_inequality(
                             theoretical_cap, Inequality.GreaterThan, 0.01,
@@ -727,11 +734,12 @@ class DegradationModel(Model):
                     )  # we want cap to diminish with cycle number
                      ),
 
-                    # (1.,incentive_inequality(
-                    #         theoretical_cap_der['d_constant_current'], Inequality.LessThan, 0,
-                    #         Level.Proportional
-                    #     ) # we want cap to diminish with constant_current (if constant current is positive)
-                    # ),
+                    # (1., incentive_inequality(
+                    #     theoretical_cap_der['d_current'], Inequality.LessThan, 0,
+                    #     Level.Proportional
+                    # )  # we want cap to diminish with cycle number
+                    #  ),
+
                     (100., incentive_magnitude(
                         theoretical_cap_der['d_cycle'],
                         Target.Small,
@@ -752,12 +760,26 @@ class DegradationModel(Model):
                         )
                      ),
 
-                    # (100.,incentive_magnitude(
-                    #         theoretical_cap_der['d_constant_current'],
-                    #         Target.Small,
-                    #         Level.Proportional
-                    #     )
-                    # ),
+                    # (100000., incentive_magnitude(
+                    #     theoretical_cap_der['d_current'],
+                    #     Target.Small,
+                    #     Level.Proportional
+                    # )
+                    #  ),
+                    #
+                    # (1000., incentive_magnitude(
+                    #     theoretical_cap_der['d2_current'],
+                    #     Target.Small,
+                    #     Level.Proportional
+                    # )
+                    #  ),
+                    # (1000., incentive_magnitude(
+                    #     theoretical_cap_der['d3_current'],
+                    #     Target.Small,
+                    #     Level.Proportional
+                    # )
+                    #  ),
+
                     (1.,incentive_magnitude(
                             theoretical_cap_der['d_features'],
                             Target.Small,
@@ -777,11 +799,11 @@ class DegradationModel(Model):
                 self.shift_for_derivative,
                 params={'cycle': sampled_cycles, 'current': sampled_constant_current, 'features': sampled_features},
                 cycle_der=3,
-                current_der=0,
+                current_der=3,
                 features_der=2,
             )
 
-            shift_loss = .001 * incentive_combine(
+            shift_loss = .0001 * incentive_combine(
                 [
                     (100., incentive_inequality(
                         shift, Inequality.GreaterThan, -1,
@@ -793,37 +815,46 @@ class DegradationModel(Model):
                         Level.Strong
                     )
                      ),
-                    # (1.,incentive_inequality(
-                    #         shift_der['d_constant_current'], Inequality.LessThan, 0,
-                    #         Level.Proportional
-                    #     ) # we want cap to diminish with constant_current (if constant current is positive)
-                    # ),
                     (100., incentive_magnitude(
+                        shift_der['d_current'],
+                        Target.Small,
+                        Level.Proportional
+                    )
+                     ),
+
+                    (100., incentive_magnitude(
+                        shift_der['d2_current'],
+                        Target.Small,
+                        Level.Proportional
+                    )
+                     ),
+                    (100., incentive_magnitude(
+                        shift_der['d3_current'],
+                        Target.Small,
+                        Level.Proportional
+                    )
+                     ),
+
+                    (10., incentive_magnitude(
                         shift_der['d_cycle'],
                         Target.Small,
                         Level.Proportional
                     )
                      ),
 
-                    (100., incentive_magnitude(
+                    (10., incentive_magnitude(
                         shift_der['d2_cycle'],
                         Target.Small,
                         Level.Proportional
                     )
                      ),
-                    (100., incentive_magnitude(
+                    (10., incentive_magnitude(
                         shift_der['d3_cycle'],
                         Target.Small,
                         Level.Proportional
                     )
                      ),
 
-                    # (100.,incentive_magnitude(
-                    #         shift_der['d_constant_current'],
-                    #         Target.Small,
-                    #         Level.Proportional
-                    #     )
-                    # ),
                     (1., incentive_magnitude(
                         shift_der['d_features'],
                         Target.Small,
@@ -847,25 +878,25 @@ class DegradationModel(Model):
 
             )
 
-            r_loss = .001 * incentive_combine(
+            r_loss = .0001 * incentive_combine(
                 [
                     (100.,incentive_inequality(
                             r, Inequality.GreaterThan, 0.01,
                             Level.Strong
                         )
                     ),
-                    (10.,incentive_magnitude(
+
+                    (1000., incentive_magnitude(
                             r_der['d2_cycle'],
                             Target.Small,
                             Level.Proportional
                         )
-                    ),
-
-                    (100., incentive_magnitude(
-                            r_der['d3_cycle'],
-                            Target.Small,
-                            Level.Proportional
-                        )
+                     ),
+                    (1000., incentive_magnitude(
+                        r_der['d3_cycle'],
+                        Target.Small,
+                        Level.Proportional
+                    )
                      ),
 
                     (1.,incentive_magnitude(
@@ -912,12 +943,20 @@ class DegradationModel(Model):
                 current=params['constant_current'],
                 cell_features=self.cell_features_direct(features=params['features'])
             )
+            pred_shift = self.shift_direct(
+                norm_cycle=self.norm_cycle(params),
+                current=params['constant_current'],
+                cell_features=self.cell_features_direct(features=params['features'])
+            )
+
+
 
             return {
                 "pred_cc_capacity": pred_cc_capacity,
                 "pred_cv_capacity": pred_cv_capacity,
                 "pred_r": pred_r,
                 "pred_theo_capacity":pred_theo_cap,
+                "pred_shift":pred_shift,
             }
 
 # stores cell features

@@ -134,12 +134,13 @@ def initial_processing(my_barcodes, fit_args):
                 for cyc in cyc_group.cycle_set.order_by(
                     'cycle_number'):
                     if cyc.valid_cycle:
-                        post_process_results = machine_learning_post_process_cycle(
-                            cyc,
-                            voltage_grid,
-                            typ,
-                            current_max_n = fit_args['current_max_n']
-                        )
+                        post_process_results = \
+                            machine_learning_post_process_cycle(
+                                cyc,
+                                voltage_grid,
+                                typ,
+                                current_max_n = fit_args['current_max_n']
+                            )
 
                         if post_process_results is None:
                             continue

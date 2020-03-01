@@ -36,8 +36,12 @@ NEIGH_FLOAT_DCHG_RATE = 2
 # ==== Begin: initial processing ===============================================
 
 def initial_processing(my_data, barcodes, fit_args):
-    all_cells_neigh_data_int, all_cycle_nums, all_constant_current, all_end_current_prev, all_end_voltage_prev, all_end_voltage = [], [], [], [], [], []
-    all_cells_neigh_data_float, all_cc_voltage_vector, all_cc_capacity_vector, all_cc_mask_vector, all_cv_current_vector, all_cv_capacity_vector, all_cv_mask_vector = [], [], [], [], [], [], []
+    all_cells_neigh_data_int, all_cycle_nums, all_constant_current, \
+    all_end_current_prev, all_end_voltage_prev, all_end_voltage = [], [], [], \
+                                                                  [], [], []
+    all_cells_neigh_data_float, all_cc_voltage_vector, \
+    all_cc_capacity_vector, all_cc_mask_vector, all_cv_current_vector, \
+    all_cv_capacity_vector, all_cv_mask_vector = [], [], [], [], [], [], []
 
     test_object = {}
 

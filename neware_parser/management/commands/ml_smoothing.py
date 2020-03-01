@@ -1,14 +1,8 @@
-import os
-import pickle
 import numpy
 
 import tensorflow as tf
 
-from tensorflow.keras.layers import Flatten, Conv1D, Conv2D
-from tensorflow.keras.layers import GlobalAveragePooling1D, BatchNormalization
-
 from django.core.management.base import BaseCommand
-from mpl_toolkits.mplot3d import Axes3D
 
 from neware_parser.models import *
 from .plot import *
@@ -28,7 +22,7 @@ Shortened Variable Names:
     res -   result
 '''
 
-#TODO(sam): add end current/voltage throughout
+# TODO(sam): add end current/voltage throughout
 
 NEIGH_INT_MIN_CYC_INDEX = 0
 NEIGH_INT_MAX_CYC_INDEX = 1
@@ -44,8 +38,8 @@ NEIGH_FLOAT_DCHG_RATE = 2
 # ==== Begin: initial processing ===============================================
 
 def initial_processing(my_data, barcodes, fit_args):
-    all_cells_neigh_data_int, all_cycle_nums, all_constant_current, all_end_current_prev, all_end_voltage_prev, all_end_voltage = [], [], [], [], [],[]
-    all_cells_neigh_data_float, all_cc_voltage_vector, all_cc_capacity_vector, all_cc_mask_vector, all_cv_current_vector, all_cv_capacity_vector, all_cv_mask_vector = [], [], [], [],[], [], []
+    all_cells_neigh_data_int, all_cycle_nums, all_constant_current, all_end_current_prev, all_end_voltage_prev, all_end_voltage = [], [], [], [], [], []
+    all_cells_neigh_data_float, all_cc_voltage_vector, all_cc_capacity_vector, all_cc_mask_vector, all_cv_current_vector, all_cv_capacity_vector, all_cv_mask_vector = [], [], [], [], [], [], []
 
     test_object = {}
 
@@ -93,10 +87,10 @@ def initial_processing(my_data, barcodes, fit_args):
                 1. / max_cap * cyc_grp_dict[k][0]['cc_capacity_vector'])
 
             my_data[barcode][k][0]['cv_capacity_vector'] = (
-                    1. / max_cap * cyc_grp_dict[k][0]['cv_capacity_vector'])
+                1. / max_cap * cyc_grp_dict[k][0]['cv_capacity_vector'])
 
             my_data[barcode][k][0]['cv_current_vector'] = (
-                    1. / max_cap * cyc_grp_dict[k][0]['cv_current_vector'])
+                1. / max_cap * cyc_grp_dict[k][0]['cv_current_vector'])
 
             my_data[barcode][k][0]['last_cc_capacity'] = (
                 1. / max_cap * cyc_grp_dict[k][0]['last_cc_capacity'])
@@ -104,20 +98,19 @@ def initial_processing(my_data, barcodes, fit_args):
             my_data[barcode][k][0]['last_cv_capacity'] = (
                 1. / max_cap * cyc_grp_dict[k][0]['last_cv_capacity'])
 
-
             my_data[barcode][k][0]['constant_current'] = (
-                    1. / max_cap * cyc_grp_dict[k][0]['constant_current'])
+                1. / max_cap * cyc_grp_dict[k][0]['constant_current'])
             my_data[barcode][k][0]['end_current_prev'] = (
-                    1. / max_cap * cyc_grp_dict[k][0]['end_current_prev'])
+                1. / max_cap * cyc_grp_dict[k][0]['end_current_prev'])
 
             my_data[barcode][k][1]['avg_constant_current'] = (
-                    1. / max_cap * cyc_grp_dict[k][1]['avg_constant_current'])
+                1. / max_cap * cyc_grp_dict[k][1]['avg_constant_current'])
 
             my_data[barcode][k][1]['avg_end_current'] = (
-                    1. / max_cap * cyc_grp_dict[k][1]['avg_end_current'])
+                1. / max_cap * cyc_grp_dict[k][1]['avg_end_current'])
 
             my_data[barcode][k][1]['avg_end_current_prev'] = (
-                    1. / max_cap * cyc_grp_dict[k][1]['avg_end_current_prev'])
+                1. / max_cap * cyc_grp_dict[k][1]['avg_end_current_prev'])
 
             print("k:", k)
             print("params:", cyc_grp_dict[k][1])
@@ -229,14 +222,14 @@ def initial_processing(my_data, barcodes, fit_args):
 
             if valid_cycles != 0:
                 neigh_data_int = numpy.array(
-                    neigh_data_int, dtype=numpy.int32
+                    neigh_data_int, dtype = numpy.int32
                 )
 
                 # the empty slot becomes the count of added neighborhoods, which
                 # are used to counterbalance the bias toward longer cycle life
                 neigh_data_int[:, NEIGH_INT_VALID_CYC_INDEX] = valid_cycles
                 neigh_data_float = numpy.array(
-                    neigh_data_float, dtype=numpy.float32
+                    neigh_data_float, dtype = numpy.float32
                 )
 
                 cell_neigh_data_int.append(neigh_data_int)
@@ -253,20 +246,22 @@ def initial_processing(my_data, barcodes, fit_args):
                     (all_cycle_nums, cyc_grp_dict[k][0]['cycle_number']))
 
                 all_cc_capacity_vector = numpy.concatenate(
-                    (all_cc_capacity_vector, cyc_grp_dict[k][0]['cc_capacity_vector']))
+                    (all_cc_capacity_vector,
+                     cyc_grp_dict[k][0]['cc_capacity_vector']))
                 all_cc_voltage_vector = numpy.concatenate(
-                    (all_cc_voltage_vector, cyc_grp_dict[k][0]['cc_voltage_vector']))
+                    (all_cc_voltage_vector,
+                     cyc_grp_dict[k][0]['cc_voltage_vector']))
                 all_cc_mask_vector = numpy.concatenate(
                     (all_cc_mask_vector, cyc_grp_dict[k][0]['cc_mask_vector']))
 
-
                 all_cv_capacity_vector = numpy.concatenate(
-                    (all_cv_capacity_vector, cyc_grp_dict[k][0]['cv_capacity_vector']))
+                    (all_cv_capacity_vector,
+                     cyc_grp_dict[k][0]['cv_capacity_vector']))
                 all_cv_current_vector = numpy.concatenate(
-                    (all_cv_current_vector, cyc_grp_dict[k][0]['cv_current_vector']))
+                    (all_cv_current_vector,
+                     cyc_grp_dict[k][0]['cv_current_vector']))
                 all_cv_mask_vector = numpy.concatenate(
                     (all_cv_mask_vector, cyc_grp_dict[k][0]['cv_mask_vector']))
-
 
                 all_constant_current = numpy.concatenate((
                     all_constant_current,
@@ -288,11 +283,13 @@ def initial_processing(my_data, barcodes, fit_args):
             else:
                 all_cycle_nums = cyc_grp_dict[k][0]['cycle_number']
                 all_cc_voltage_vector = cyc_grp_dict[k][0]['cc_voltage_vector']
-                all_cc_capacity_vector = cyc_grp_dict[k][0]['cc_capacity_vector']
+                all_cc_capacity_vector = cyc_grp_dict[k][0][
+                    'cc_capacity_vector']
                 all_cc_mask_vector = cyc_grp_dict[k][0]['cc_mask_vector']
 
                 all_cv_current_vector = cyc_grp_dict[k][0]['cv_current_vector']
-                all_cv_capacity_vector = cyc_grp_dict[k][0]['cv_capacity_vector']
+                all_cv_capacity_vector = cyc_grp_dict[k][0][
+                    'cv_capacity_vector']
                 all_cv_mask_vector = cyc_grp_dict[k][0]['cv_mask_vector']
 
                 all_constant_current = cyc_grp_dict[k][0]['constant_current']
@@ -307,15 +304,15 @@ def initial_processing(my_data, barcodes, fit_args):
             print("barcode: ", barcode)
 
     neigh_data_int = tf.constant(numpy.concatenate(
-        [numpy.concatenate(cell_neigh_data_int, axis=0)
-            for cell_neigh_data_int in all_cells_neigh_data_int],
-        axis=0)
+        [numpy.concatenate(cell_neigh_data_int, axis = 0)
+         for cell_neigh_data_int in all_cells_neigh_data_int],
+        axis = 0)
     )
 
     # cycles go from 0 to 6000, but nn prefers normally distributed variables
     # so cycle numbers is normalized with mean and variance
     cycles_tensor = tf.constant(all_cycle_nums)
-    cycles_m, cycles_v = tf.nn.moments(cycles_tensor, axes=[0])
+    cycles_m, cycles_v = tf.nn.moments(cycles_tensor, axes = [0])
     cycles_m = cycles_m.numpy()
     cycles_v = cycles_v.numpy()
     cycles_tensor = (cycles_tensor - cycles_m) / tf.sqrt(cycles_v)
@@ -328,8 +325,6 @@ def initial_processing(my_data, barcodes, fit_args):
     cv_current_tensor = tf.constant(all_cv_current_vector)
     cv_mask_tensor = tf.constant(all_cv_mask_vector)
 
-
-
     # max voltage is NOT normalized
     constant_current_tensor = tf.constant(all_constant_current)
     end_current_prev_tensor = tf.constant(all_end_current_prev)
@@ -337,9 +332,9 @@ def initial_processing(my_data, barcodes, fit_args):
     end_voltage_tensor = tf.constant(all_end_voltage)
 
     neigh_data_float = numpy.concatenate(
-        [numpy.concatenate(neigh_data_float_full, axis=0)
-            for neigh_data_float_full in all_cells_neigh_data_float],
-        axis=0
+        [numpy.concatenate(neigh_data_float_full, axis = 0)
+         for neigh_data_float_full in all_cells_neigh_data_float],
+        axis = 0
     )
 
     # onvert the delta_cycles of each neighborhoods to the normalized units
@@ -361,39 +356,38 @@ def initial_processing(my_data, barcodes, fit_args):
             train_ds_)
 
         degradation_model = DegradationModel(
-            num_keys=len(barcodes),
-            width=fit_args['width'],
-            depth=fit_args['depth']
+            num_keys = len(barcodes),
+            width = fit_args['width'],
+            depth = fit_args['depth']
         )
 
         optimizer = tf.keras.optimizers.Adam()
 
     return {
-        "mirrored_strategy": mirrored_strategy,
-        "degradation_model": degradation_model,
+        "mirrored_strategy":       mirrored_strategy,
+        "degradation_model":       degradation_model,
 
-        "cycles_tensor": cycles_tensor,
+        "cycles_tensor":           cycles_tensor,
         "constant_current_tensor": constant_current_tensor,
         "end_current_prev_tensor": end_current_prev_tensor,
         "end_voltage_prev_tensor": end_voltage_prev_tensor,
-        "end_voltage_tensor": end_voltage_tensor,
+        "end_voltage_tensor":      end_voltage_tensor,
 
-        "train_ds": train_ds,
-        "cycles_m": cycles_m,
-        "cycles_v": cycles_v,
+        "train_ds":                train_ds,
+        "cycles_m":                cycles_m,
+        "cycles_v":                cycles_v,
 
-        'cc_voltage_tensor' : cc_voltage_tensor,
-        'cc_capacity_tensor' : cc_capacity_tensor,
-        'cc_mask_tensor' : cc_mask_tensor,
-        'cv_capacity_tensor' : cv_capacity_tensor,
-        'cv_current_tensor' : cv_current_tensor,
-        'cv_mask_tensor' : cv_mask_tensor,
+        'cc_voltage_tensor':       cc_voltage_tensor,
+        'cc_capacity_tensor':      cc_capacity_tensor,
+        'cc_mask_tensor':          cc_mask_tensor,
+        'cv_capacity_tensor':      cv_capacity_tensor,
+        'cv_current_tensor':       cv_current_tensor,
+        'cv_mask_tensor':          cv_mask_tensor,
 
-        "optimizer": optimizer,
-        "test_object": test_object,
-        "all_data": my_data
+        "optimizer":               optimizer,
+        "test_object":             test_object,
+        "all_data":                my_data
     }
-
 
 
 # === End: initial processing ==================================================
@@ -414,24 +408,33 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                 count += 1
 
                 train_step_params = {
-                    "neigh_float": neigh_float,
-                    "neigh_int": neigh_int,
+                    "neigh_float":             neigh_float,
+                    "neigh_int":               neigh_int,
 
-                    "cycles_tensor": init_returns["cycles_tensor"],
-                    "constant_current_tensor": init_returns["constant_current_tensor"],
-                    "end_current_prev_tensor": init_returns["end_current_prev_tensor"],
-                    "end_voltage_prev_tensor": init_returns["end_voltage_prev_tensor"],
-                    "end_voltage_tensor": init_returns["end_voltage_tensor"],
+                    "cycles_tensor":           init_returns["cycles_tensor"],
+                    "constant_current_tensor": init_returns[
+                                                   "constant_current_tensor"],
+                    "end_current_prev_tensor": init_returns[
+                                                   "end_current_prev_tensor"],
+                    "end_voltage_prev_tensor": init_returns[
+                                                   "end_voltage_prev_tensor"],
+                    "end_voltage_tensor":      init_returns[
+                                                   "end_voltage_tensor"],
 
-                    "degradation_model": init_returns["degradation_model"],
-                    "optimizer": init_returns["optimizer"],
+                    "degradation_model":       init_returns[
+                                                   "degradation_model"],
+                    "optimizer":               init_returns["optimizer"],
 
-                    'cc_voltage_tensor': init_returns["cc_voltage_tensor"],
-                    'cc_capacity_tensor': init_returns["cc_capacity_tensor"],
-                    'cc_mask_tensor': init_returns["cc_mask_tensor"],
-                    'cv_capacity_tensor': init_returns["cv_capacity_tensor"],
-                    'cv_current_tensor': init_returns["cv_current_tensor"],
-                    'cv_mask_tensor': init_returns["cv_mask_tensor"],
+                    'cc_voltage_tensor':       init_returns[
+                                                   "cc_voltage_tensor"],
+                    'cc_capacity_tensor':      init_returns[
+                                                   "cc_capacity_tensor"],
+                    'cc_mask_tensor':          init_returns["cc_mask_tensor"],
+                    'cv_capacity_tensor':      init_returns[
+                                                   "cv_capacity_tensor"],
+                    'cv_current_tensor':       init_returns[
+                                                   "cv_current_tensor"],
+                    'cv_mask_tensor':          init_returns["cv_mask_tensor"],
 
                 }
 
@@ -443,7 +446,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
 
                     plot_params = {
                         "barcodes": barcodes,
-                        "count": count,
+                        "count":    count,
                         "fit_args": fit_args,
                     }
 
@@ -464,9 +467,9 @@ def train_step(params, fit_args):
     neigh_int = params["neigh_int"]
 
     cycles_tensor = params["cycles_tensor"]
-    constant_current_tensor= params["constant_current_tensor"]
-    end_current_prev_tensor= params["end_current_prev_tensor"]
-    end_voltage_prev_tensor= params["end_voltage_prev_tensor"]
+    constant_current_tensor = params["constant_current_tensor"]
+    end_current_prev_tensor = params["end_current_prev_tensor"]
+    end_voltage_prev_tensor = params["end_voltage_prev_tensor"]
     end_voltage_tensor = params["end_voltage_tensor"]
 
     degradation_model = params["degradation_model"]
@@ -482,7 +485,6 @@ def train_step(params, fit_args):
     # need to split the range
     batch_size2 = neigh_int.shape[0]
 
-
     '''
     if you have the minimum cycle and maximum cycle for a neighborhood,
     you can sample cycles from this neighborhood by sampling real numbers
@@ -492,15 +494,15 @@ def train_step(params, fit_args):
     '''
 
     cycle_indecies_lerp = tf.random.uniform(
-        [batch_size2], minval=0., maxval=1., dtype=tf.float32)
+        [batch_size2], minval = 0., maxval = 1., dtype = tf.float32)
     cycle_indecies = tf.cast(
         (1. - cycle_indecies_lerp) * tf.cast(
             neigh_int[:, NEIGH_INT_MIN_CYC_INDEX]
-                + neigh_int[:, NEIGH_INT_ABSOLUTE_INDEX],
+            + neigh_int[:, NEIGH_INT_ABSOLUTE_INDEX],
             tf.float32
         ) + (cycle_indecies_lerp) * tf.cast(
             neigh_int[:, NEIGH_INT_MAX_CYC_INDEX]
-                + neigh_int[:, NEIGH_INT_ABSOLUTE_INDEX],
+            + neigh_int[:, NEIGH_INT_ABSOLUTE_INDEX],
             tf.float32
         ),
         tf.int32
@@ -508,29 +510,29 @@ def train_step(params, fit_args):
 
     cycles = tf.gather(
         cycles_tensor,
-        indices=cycle_indecies, axis=0
+        indices = cycle_indecies, axis = 0
     )
     constant_current = tf.gather(
         constant_current_tensor,
-        indices=cycle_indecies, axis=0
+        indices = cycle_indecies, axis = 0
     )
     end_current_prev = tf.gather(
         end_current_prev_tensor,
-        indices=cycle_indecies, axis=0
+        indices = cycle_indecies, axis = 0
     )
     end_voltage_prev = tf.gather(
         end_voltage_prev_tensor,
-        indices=cycle_indecies, axis=0
+        indices = cycle_indecies, axis = 0
     )
 
     end_voltage = tf.gather(
         end_voltage_tensor,
-        indices=cycle_indecies, axis=0
+        indices = cycle_indecies, axis = 0
     )
 
-    cc_capacity = tf.gather(cc_capacity_tensor, indices=cycle_indecies)
-    cc_voltage = tf.gather(cc_voltage_tensor, indices=cycle_indecies)
-    cc_mask = tf.gather(cc_mask_tensor, indices=cycle_indecies)
+    cc_capacity = tf.gather(cc_capacity_tensor, indices = cycle_indecies)
+    cc_voltage = tf.gather(cc_voltage_tensor, indices = cycle_indecies)
+    cc_mask = tf.gather(cc_mask_tensor, indices = cycle_indecies)
     cc_mask_2 = tf.tile(
         tf.reshape(
             1. / (tf.cast(neigh_int[:, NEIGH_INT_VALID_CYC_INDEX], tf.float32)),
@@ -539,9 +541,9 @@ def train_step(params, fit_args):
         [1, cc_voltage.shape[1]]
     )
 
-    cv_capacity = tf.gather(cv_capacity_tensor, indices=cycle_indecies)
-    cv_current = tf.gather(cv_current_tensor, indices=cycle_indecies)
-    cv_mask = tf.gather(cv_mask_tensor, indices=cycle_indecies)
+    cv_capacity = tf.gather(cv_capacity_tensor, indices = cycle_indecies)
+    cv_current = tf.gather(cv_current_tensor, indices = cycle_indecies)
+    cv_mask = tf.gather(cv_mask_tensor, indices = cycle_indecies)
     cv_mask_2 = tf.tile(
         tf.reshape(
             1. / (tf.cast(neigh_int[:, NEIGH_INT_VALID_CYC_INDEX], tf.float32)),
@@ -552,16 +554,14 @@ def train_step(params, fit_args):
 
     cell_indecies = neigh_int[:, NEIGH_INT_BARCODE_INDEX]
 
-
     with tf.GradientTape() as tape:
-
         train_results = degradation_model(
             (
-                tf.expand_dims(cycles, axis=1),
-                tf.expand_dims(constant_current, axis=1),
-                tf.expand_dims(end_current_prev, axis=1),
-                tf.expand_dims(end_voltage_prev, axis=1),
-                tf.expand_dims(end_voltage, axis=1),
+                tf.expand_dims(cycles, axis = 1),
+                tf.expand_dims(constant_current, axis = 1),
+                tf.expand_dims(end_current_prev, axis = 1),
+                tf.expand_dims(end_voltage_prev, axis = 1),
+                tf.expand_dims(end_voltage, axis = 1),
                 cell_indecies,
                 cc_voltage,
                 cv_current,
@@ -573,40 +573,39 @@ def train_step(params, fit_args):
         pred_cv_capacity = train_results["pred_cv_capacity"]
 
         cc_capacity_loss = (
-            tf.reduce_mean(cc_mask_2 * cc_mask * tf.square(cc_capacity - pred_cc_capacity))
+            tf.reduce_mean(
+                cc_mask_2 * cc_mask * tf.square(cc_capacity - pred_cc_capacity))
             / (1e-10 + tf.reduce_mean(cc_mask_2 * cc_mask))
         )
         cv_capacity_loss = (
-            tf.reduce_mean(cv_mask_2 * cv_mask * tf.square(cv_capacity - pred_cv_capacity))
+            tf.reduce_mean(
+                cv_mask_2 * cv_mask * tf.square(cv_capacity - pred_cv_capacity))
             / (1e-10 + tf.reduce_mean(cv_mask_2 * cv_mask))
         )
 
-
-
         loss = (
-            cc_capacity_loss + 0.05*cv_capacity_loss
+            cc_capacity_loss + 0.05 * cv_capacity_loss
             + train_results["soc_loss"]
             + train_results["theo_cap_loss"]
             + train_results["r_loss"]
             + train_results["shift_loss"]
-            + fit_args['kl_coeff']*train_results["kl_loss"]
+            + fit_args['kl_coeff'] * train_results["kl_loss"]
         )
-
-
-
 
     gradients = tape.gradient(loss, degradation_model.trainable_variables)
     optimizer.apply_gradients(
         zip(gradients, degradation_model.trainable_variables)
     )
 
+
 # === End : train step =========================================================
 
 @tf.function
 def dist_train_step(mirrored_strategy, train_step_params, fit_args):
     mirrored_strategy.experimental_run_v2(
-        train_step, args=(train_step_params, fit_args)
+        train_step, args = (train_step_params, fit_args)
     )
+
 
 def ml_smoothing(fit_args):
     if not os.path.exists(fit_args['path_to_plots']):
@@ -626,7 +625,7 @@ def ml_smoothing(fit_args):
 
     barcodes = list(my_data.keys())
 
-    if len(fit_args['wanted_barcodes']) !=0:
+    if len(fit_args['wanted_barcodes']) != 0:
         barcodes = list(
             set(barcodes).intersection(set(fit_args['wanted_barcodes'])))
 
@@ -640,27 +639,27 @@ def ml_smoothing(fit_args):
 class Command(BaseCommand):
 
     def add_arguments(self, parser):
-
-        parser.add_argument('--path_to_dataset', required=True)
-        parser.add_argument('--dataset_version', required=True)
-        parser.add_argument('--path_to_plots', required=True)
-        parser.add_argument('--kl_coeff', type=float, default=0.00001)
-        parser.add_argument('--mono_coeff', type=float, default=.005)
-        parser.add_argument('--smooth_coeff', type=float, default=.05)
-        parser.add_argument('--const_f_coeff', type=float, default=.0)
-        parser.add_argument('--smooth_f_coeff', type=float, default=.01)
-        parser.add_argument('--depth', type=int, default=3)
-        parser.add_argument('--width', type=int, default=32)
-        parser.add_argument('--batch_size', type=int, default=2 * 16)
+        parser.add_argument('--path_to_dataset', required = True)
+        parser.add_argument('--dataset_version', required = True)
+        parser.add_argument('--path_to_plots', required = True)
+        parser.add_argument('--kl_coeff', type = float, default = 0.00001)
+        parser.add_argument('--mono_coeff', type = float, default = .005)
+        parser.add_argument('--smooth_coeff', type = float, default = .05)
+        parser.add_argument('--const_f_coeff', type = float, default = .0)
+        parser.add_argument('--smooth_f_coeff', type = float, default = .01)
+        parser.add_argument('--depth', type = int, default = 3)
+        parser.add_argument('--width', type = int, default = 32)
+        parser.add_argument('--batch_size', type = int, default = 2 * 16)
 
         vis = 1000
-        parser.add_argument('--print_loss_every', type=int, default=vis)
-        parser.add_argument('--visualize_fit_every', type=int, default=vis)
-        parser.add_argument('--visualize_vq_every', type=int, default=vis)
+        parser.add_argument('--print_loss_every', type = int, default = vis)
+        parser.add_argument('--visualize_fit_every', type = int, default = vis)
+        parser.add_argument('--visualize_vq_every', type = int, default = vis)
 
-        parser.add_argument('--stop_count', type=int, default=100000)
+        parser.add_argument('--stop_count', type = int, default = 100000)
         parser.add_argument(
-            '--wanted_barcodes', type=int, nargs='+', default=[83220, 83083]
+            '--wanted_barcodes', type = int, nargs = '+',
+            default = [83220, 83083]
         )
 
     def handle(self, *args, **options):

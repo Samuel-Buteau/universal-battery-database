@@ -11,10 +11,8 @@ class Print:
     def colour(c, s):
         print(c + str(s) + Print.END)
 
-
     def bold(c, s):
         colour(c + Print.BOLD, s)
-
 
     def type(x):
         bold(type(x))

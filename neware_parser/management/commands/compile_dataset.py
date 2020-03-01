@@ -37,9 +37,9 @@ def make_my_barcodes(fit_args):
 
     used_barcodes = []
     for b in my_barcodes:
-        if ChargeCycleGroup.objects.filter(
-            barcode = b).exists() or DischargeCycleGroup.objects.filter(
-            barcode = b).exists():
+        if (ChargeCycleGroup.objects.filter(barcode = b).exists()
+            or DischargeCycleGroup.objects.filter(barcode = b).exists()
+        ):
             used_barcodes.append(b)
 
     if len(fit_args['wanted_barcodes']) == 0:
@@ -66,16 +66,26 @@ def clamp(a, x, b):
 def make_voltage_grid(min_v, max_v, n_samples, my_barcodes):
     if n_samples < 2:
         n_samples = 2
-    all_cycs = Cycle.objects.filter(discharge_group__barcode__in = my_barcodes,
-                                    valid_cycle = True)
-    my_max = max(all_cycs.aggregate(Max('chg_maximum_voltage'))[
-                     'chg_maximum_voltage__max'],
-                 all_cycs.aggregate(Max('dchg_maximum_voltage'))[
-                     'dchg_maximum_voltage__max'])
-    my_min = min(all_cycs.aggregate(Min('chg_minimum_voltage'))[
-                     'chg_minimum_voltage__min'],
-                 all_cycs.aggregate(Min('dchg_minimum_voltage'))[
-                     'dchg_minimum_voltage__min'])
+    all_cycs = Cycle.objects.filter(
+        discharge_group__barcode__in = my_barcodes,
+        valid_cycle = True
+    )
+    my_max = max(
+        all_cycs.aggregate(Max('chg_maximum_voltage'))[
+            'chg_maximum_voltage__max'
+        ],
+        all_cycs.aggregate(Max('dchg_maximum_voltage'))[
+            'dchg_maximum_voltage__max'
+        ]
+    )
+    my_min = min(
+        all_cycs.aggregate(Min('chg_minimum_voltage'))[
+            'chg_minimum_voltage__min'
+        ],
+        all_cycs.aggregate(Min('dchg_minimum_voltage'))[
+            'dchg_minimum_voltage__min'
+        ]
+    )
 
     my_max = clamp(min_v, my_max, max_v)
     my_min = clamp(min_v, my_min, max_v)
@@ -155,7 +165,8 @@ def initial_processing(my_barcodes, fit_args):
                             post_process_results['cv_masks'],
                             sign * post_process_results['constant_current'],
                             -1. * sign * post_process_results[
-                                'end_current_prev'],
+                                'end_current_prev'
+                            ],
                             sign * post_process_results['end_current'],
                             post_process_results['end_voltage_prev'],
                             post_process_results['end_voltage'],

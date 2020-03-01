@@ -1,12 +1,10 @@
 import numpy
-
 import tensorflow as tf
-
 from django.core.management.base import BaseCommand
 
 from neware_parser.models import *
-from .plot import *
 from .DegradationModel import DegradationModel
+from .plot import *
 
 '''
 Shortened Variable Names:

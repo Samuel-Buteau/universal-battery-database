@@ -1,10 +1,9 @@
-import tensorflow as tf
-
-from tensorflow.keras import Model
-from tensorflow.keras.layers import Dense, Layer
 from enum import Enum
 
-from .colour_print import Print
+import tensorflow as tf
+from tensorflow.keras import Model
+from tensorflow.keras.layers import Dense, Layer
+
 
 def feedforward_nn_parameters(depth, width):
     initial = Dense(
@@ -32,6 +31,7 @@ def feedforward_nn_parameters(depth, width):
     )
     return {'initial': initial, 'bulk': bulk, 'final': final}
 
+
 """
 The call convention for the neural networks is a bit complex but it makes the code easier to use.
 
@@ -42,21 +42,25 @@ Second, all the parameters that are used in the body of the function can be over
 the default dictionary will be used
 
 """
+
+
 class Inequality(Enum):
     LessThan = 1
     GreaterThan = 2
     Equals = 3
 
+
 class Level(Enum):
     Strong = 1
     Proportional = 2
+
 
 class Target(Enum):
     Small = 1
     Big = 2
 
 
-def incentive_inequality(A,symbol, B, level):
+def incentive_inequality(A, symbol, B, level):
     """
 
     :param A: The first object
@@ -87,7 +91,8 @@ def incentive_inequality(A,symbol, B, level):
     elif symbol == Inequality.Equals:
         intermediate = tf.abs(A - B)
     else:
-        raise Exception("not yet implemented inequality symbol {}.".format(symbol))
+        raise Exception(
+            "not yet implemented inequality symbol {}.".format(symbol))
 
     if level == Level.Strong:
         return intermediate
@@ -95,6 +100,7 @@ def incentive_inequality(A,symbol, B, level):
         return tf.square(intermediate)
     else:
         raise Exception("not yet implemented incentive level {}.".format(level))
+
 
 def incentive_magnitude(A, target, level):
     """
@@ -131,7 +137,7 @@ def incentive_magnitude(A, target, level):
         raise Exception('not yet implemented target {}'.format(target))
 
     if level == Level.Strong:
-        A_prime =  A_prime
+        A_prime = A_prime
     elif level == Level.Proportional:
         A_prime = tf.square(A_prime)
     else:
@@ -150,7 +156,8 @@ def incentive_combine(As):
 
     """
 
-    return sum([a[0]* tf.reduce_mean(a[1]) for a in As])
+    return sum([a[0] * tf.reduce_mean(a[1]) for a in As])
+
 
 class DegradationModel(Model):
 
@@ -162,7 +169,8 @@ class DegradationModel(Model):
         self.nn_soc = feedforward_nn_parameters(depth, width)
         self.nn_shift = feedforward_nn_parameters(depth, width)
 
-        self.dictionary = DictionaryLayer(num_features=width, num_keys=num_keys)
+        self.dictionary = DictionaryLayer(num_features = width,
+                                          num_keys = num_keys)
 
         self.width = width
         self.num_keys = num_keys
@@ -171,6 +179,7 @@ class DegradationModel(Model):
 
     def eq_voltage_direct(self, voltage, current, resistance):
         return voltage - current * resistance
+
     def soc_direct(self, voltage, shift, cell_features):
         dependencies = (
             voltage,
@@ -179,7 +188,7 @@ class DegradationModel(Model):
         )
         return tf.nn.elu(self.nn_call(self.nn_soc, dependencies))
 
-    def theoretical_cap_direct(self,norm_cycle, current, cell_features):
+    def theoretical_cap_direct(self, norm_cycle, current, cell_features):
         dependencies = (
             norm_cycle,
             tf.abs(current),
@@ -194,7 +203,6 @@ class DegradationModel(Model):
             cell_features
         )
         return (self.nn_call(self.nn_shift, dependencies))
-
 
     def r_direct(self, norm_cycle, cell_features):
         dependencies = (
@@ -214,64 +222,65 @@ class DegradationModel(Model):
 
     def norm_cycle(self, params):
         return self.norm_cycle_direct(
-            norm_constant=self.norm_constant_direct(params['features']),
-            cycle=params['cycle']
+            norm_constant = self.norm_constant_direct(params['features']),
+            cycle = params['cycle']
         )
 
     def soc_for_derivative(self, params):
         return self.soc_direct(
-            cell_features=self.cell_features_direct(features=params['features']),
-            voltage=params['voltage'],
-            shift=params['shift']
+            cell_features = self.cell_features_direct(
+                features = params['features']),
+            voltage = params['voltage'],
+            shift = params['shift']
         )
 
     def theoretical_cap_for_derivative(self, params):
         return self.theoretical_cap_direct(
-            norm_cycle=self.norm_cycle(params={
-                    'cycle': params['cycle'],
-                    'features': params['features']
-                }
+            norm_cycle = self.norm_cycle(params = {
+                'cycle':    params['cycle'],
+                'features': params['features']
+            }
             ),
-            current=params['current'],
-            cell_features=self.cell_features_direct(features=params['features'])
+            current = params['current'],
+            cell_features = self.cell_features_direct(
+                features = params['features'])
         )
 
     def shift_for_derivative(self, params):
         return self.shift_direct(
-            norm_cycle=self.norm_cycle(params={
-                    'cycle': params['cycle'],
-                    'features': params['features']
-                }
+            norm_cycle = self.norm_cycle(params = {
+                'cycle':    params['cycle'],
+                'features': params['features']
+            }
             ),
-            current=params['current'],
-            cell_features=self.cell_features_direct(features=params['features']),
+            current = params['current'],
+            cell_features = self.cell_features_direct(
+                features = params['features']),
         )
 
     def r_for_derivative(self, params):
         return self.r_direct(
-            norm_cycle=self.norm_cycle(params={
-                    'cycle': params['cycle'],
-                    'features': params['features']
-                }
+            norm_cycle = self.norm_cycle(params = {
+                'cycle':    params['cycle'],
+                'features': params['features']
+            }
             ),
-            cell_features=self.cell_features_direct(features=params['features']),
+            cell_features = self.cell_features_direct(
+                features = params['features']),
         )
-
-
-
 
     def cc_capacity_part2(self, params):
-        norm_constant = self.norm_constant_direct(features=params['features'])
+        norm_constant = self.norm_constant_direct(features = params['features'])
         norm_cycle = self.norm_cycle_direct(
-            cycle=params['cycle'],
-            norm_constant=norm_constant
+            cycle = params['cycle'],
+            norm_constant = norm_constant
         )
 
-        cell_features = self.cell_features_direct(features=params['features'])
+        cell_features = self.cell_features_direct(features = params['features'])
         theoretical_cap = self.theoretical_cap_direct(
-                norm_cycle=norm_cycle,
-                current=params['constant_current'],
-                cell_features=cell_features,
+            norm_cycle = norm_cycle,
+            current = params['constant_current'],
+            cell_features = cell_features,
         )
         shift = self.shift_direct(
             norm_cycle = norm_cycle,
@@ -280,45 +289,46 @@ class DegradationModel(Model):
         )
 
         resistance = self.r_direct(
-            norm_cycle=norm_cycle,
-            cell_features=cell_features,
+            norm_cycle = norm_cycle,
+            cell_features = cell_features,
         )
 
         eq_voltage_0 = self.eq_voltage_direct(
-             voltage=params['end_voltage_prev'],
-             current=params['end_current_prev'],
-             resistance=resistance,
-         )
+            voltage = params['end_voltage_prev'],
+            current = params['end_current_prev'],
+            resistance = resistance,
+        )
 
         soc_0 = self.soc_direct(
             voltage = eq_voltage_0,
             shift = shift,
-            cell_features=cell_features
+            cell_features = cell_features
         )
 
         eq_voltage_1 = self.eq_voltage_direct(
-            voltage=params['voltage'],
-            current=self.add_volt_dep(params['constant_current'], params),
-            resistance=self.add_volt_dep(resistance, params),
+            voltage = params['voltage'],
+            current = self.add_volt_dep(params['constant_current'], params),
+            resistance = self.add_volt_dep(resistance, params),
         )
 
         soc_1 = self.soc_direct(
             voltage = eq_voltage_1,
             shift = self.add_volt_dep(shift, params),
-            cell_features=self.add_volt_dep(cell_features,params, cell_features.shape[1]),
+            cell_features = self.add_volt_dep(cell_features, params,
+                                              cell_features.shape[1]),
         )
 
-        return self.add_volt_dep(theoretical_cap,params) * (soc_1 - self.add_volt_dep(soc_0, params))
-
+        return self.add_volt_dep(theoretical_cap, params) * (
+                soc_1 - self.add_volt_dep(soc_0, params))
 
     def cv_capacity(self, params):
-        norm_constant = self.norm_constant_direct(features=params['features'])
+        norm_constant = self.norm_constant_direct(features = params['features'])
         norm_cycle = self.norm_cycle_direct(
-            cycle=params['cycle'],
-            norm_constant=norm_constant
+            cycle = params['cycle'],
+            norm_constant = norm_constant
         )
 
-        cell_features = self.cell_features_direct(features=params['features'])
+        cell_features = self.cell_features_direct(features = params['features'])
         cc_shift = self.shift_direct(
             norm_cycle = norm_cycle,
             current = params['constant_current'],
@@ -326,72 +336,66 @@ class DegradationModel(Model):
         )
 
         resistance = self.r_direct(
-            norm_cycle=norm_cycle,
-            cell_features=cell_features,
+            norm_cycle = norm_cycle,
+            cell_features = cell_features,
         )
 
         eq_voltage_0 = self.eq_voltage_direct(
-             voltage=params['end_voltage_prev'],
-             current=params['end_current_prev'],
-             resistance=resistance,
-         )
+            voltage = params['end_voltage_prev'],
+            current = params['end_current_prev'],
+            resistance = resistance,
+        )
 
         soc_0 = self.soc_direct(
             voltage = eq_voltage_0,
             shift = cc_shift,
-            cell_features=cell_features
+            cell_features = cell_features
         )
 
         theoretical_cap = self.theoretical_cap_direct(
-            norm_cycle=self.add_current_dep(norm_cycle, params),
-            current=params['cv_current'],
-            cell_features=self.add_current_dep(cell_features,params, cell_features.shape[1]),
+            norm_cycle = self.add_current_dep(norm_cycle, params),
+            current = params['cv_current'],
+            cell_features = self.add_current_dep(cell_features, params,
+                                                 cell_features.shape[1]),
         )
 
         eq_voltage_1 = self.eq_voltage_direct(
-            voltage=self.add_current_dep(params['end_voltage'],params),
-            current=params['cv_current'],
-            resistance=self.add_current_dep(resistance, params),
+            voltage = self.add_current_dep(params['end_voltage'], params),
+            current = params['cv_current'],
+            resistance = self.add_current_dep(resistance, params),
         )
 
         cv_shift = self.shift_direct(
-            norm_cycle = self.add_current_dep(norm_cycle,params),
-            current= params['cv_current'],
-            cell_features=self.add_current_dep(cell_features, params, cell_features.shape[1]),
+            norm_cycle = self.add_current_dep(norm_cycle, params),
+            current = params['cv_current'],
+            cell_features = self.add_current_dep(cell_features, params,
+                                                 cell_features.shape[1]),
         )
 
         soc_1 = self.soc_direct(
             voltage = eq_voltage_1,
             shift = cv_shift,
-            cell_features=self.add_current_dep(cell_features,params, cell_features.shape[1]),
+            cell_features = self.add_current_dep(cell_features, params,
+                                                 cell_features.shape[1]),
         )
 
         return theoretical_cap * (soc_1 - self.add_current_dep(soc_0, params))
 
-
-
-
-
-
-
     def nn_call(self, nn_func, dependencies):
         centers = nn_func['initial'](
-            tf.concat(dependencies, axis=1)
+            tf.concat(dependencies, axis = 1)
         )
         for d in nn_func['bulk']:
             centers = d(centers)
         return nn_func['final'](centers)
 
-
-
-
     def create_derivatives(self, nn,
                            params,
-                           voltage_der=0,
-                           cycle_der=0,
-                           features_der=0,
-                           current_der=0,
-                           shift_der=0
+                           voltage_der = 0,
+                           cycle_der = 0,
+                           features_der = 0,
+                           current_der = 0,
+                           shift_der = 0
                            ):
         """
         derivatives will only be taken inside forall statements.
@@ -419,8 +423,7 @@ class DegradationModel(Model):
         if shift_der >= 1:
             shift = params['shift']
 
-
-        with tf.GradientTape(persistent=True) as tape_d3:
+        with tf.GradientTape(persistent = True) as tape_d3:
             if cycle_der >= 3:
                 tape_d3.watch(cycle)
             if voltage_der >= 3:
@@ -432,8 +435,7 @@ class DegradationModel(Model):
             if shift_der >= 3:
                 tape_d3.watch(shift)
 
-
-            with tf.GradientTape(persistent=True) as tape_d2:
+            with tf.GradientTape(persistent = True) as tape_d2:
                 if cycle_der >= 2:
                     tape_d2.watch(cycle)
                 if voltage_der >= 2:
@@ -445,7 +447,7 @@ class DegradationModel(Model):
                 if shift_der >= 2:
                     tape_d2.watch(shift)
 
-                with tf.GradientTape(persistent=True) as tape_d1:
+                with tf.GradientTape(persistent = True) as tape_d1:
                     if cycle_der >= 1:
                         tape_d1.watch(cycle)
                     if voltage_der >= 1:
@@ -457,92 +459,90 @@ class DegradationModel(Model):
                     if shift_der >= 1:
                         tape_d1.watch(shift)
 
-
                     res = tf.reshape(nn(params), [-1, 1])
 
                 if cycle_der >= 1:
                     derivatives['d_cycle'] = tape_d1.batch_jacobian(
-                        source=cycle,
-                        target=res
+                        source = cycle,
+                        target = res
                     )[:, 0, :]
                 if voltage_der >= 1:
                     derivatives['d_voltage'] = tape_d1.batch_jacobian(
-                        source=voltage,
-                        target=res
+                        source = voltage,
+                        target = res
                     )[:, 0, :]
                 if current_der >= 1:
                     derivatives['d_current'] = tape_d1.batch_jacobian(
-                        source=current,
-                        target=res
+                        source = current,
+                        target = res
                     )[:, 0, :]
                 if shift_der >= 1:
                     derivatives['d_shift'] = tape_d1.batch_jacobian(
-                        source=shift,
-                        target=res
+                        source = shift,
+                        target = res
                     )[:, 0, :]
                 if features_der >= 1:
                     derivatives['d_features'] = tape_d1.batch_jacobian(
-                        source=features,
-                        target=res
+                        source = features,
+                        target = res
                     )[:, 0, :]
 
                 del tape_d1
 
             if cycle_der >= 2:
                 derivatives['d2_cycle'] = tape_d2.batch_jacobian(
-                    source=cycle,
-                    target=derivatives['d_cycle']
+                    source = cycle,
+                    target = derivatives['d_cycle']
                 )[:, 0, :]
             if voltage_der >= 2:
                 derivatives['d2_voltage'] = tape_d2.batch_jacobian(
-                    source=voltage,
-                    target=derivatives['d_voltage']
+                    source = voltage,
+                    target = derivatives['d_voltage']
                 )[:, 0, :]
             if current_der >= 2:
                 derivatives['d2_current'] = tape_d2.batch_jacobian(
-                    source=current,
-                    target=derivatives['d_current']
+                    source = current,
+                    target = derivatives['d_current']
                 )[:, 0, :]
             if shift_der >= 2:
                 derivatives['d2_shift'] = tape_d2.batch_jacobian(
-                    source=shift,
-                    target=derivatives['d_shift']
+                    source = shift,
+                    target = derivatives['d_shift']
                 )[:, 0, :]
-
 
             if features_der >= 2:
                 derivatives['d2_features'] = tape_d2.batch_jacobian(
-                    source=features,
-                    target=derivatives['d_features']
+                    source = features,
+                    target = derivatives['d_features']
                 )
 
             del tape_d2
 
         if cycle_der >= 3:
             derivatives['d3_cycle'] = tape_d3.batch_jacobian(
-                source=cycle,
-                target=derivatives['d2_cycle']
+                source = cycle,
+                target = derivatives['d2_cycle']
             )[:, 0, :]
         if voltage_der >= 3:
             derivatives['d3_voltage'] = tape_d3.batch_jacobian(
-                source=voltage,
-                target=derivatives['d2_voltage']
+                source = voltage,
+                target = derivatives['d2_voltage']
             )[:, 0, :]
         if current_der >= 3:
             derivatives['d3_current'] = tape_d3.batch_jacobian(
-                source=current,
-                target=derivatives['d2_current']
+                source = current,
+                target = derivatives['d2_current']
             )[:, 0, :]
         if shift_der >= 3:
             derivatives['d3_shift'] = tape_d3.batch_jacobian(
-                source=shift,
-                target=derivatives['d2_shift']
+                source = shift,
+                target = derivatives['d2_shift']
             )[:, 0, :]
 
         if features_der >= 3:
             derivatives['d3_features'] = tape_d3.batch_jacobian(
-                source=features,
-                target=derivatives['d2_features']
+                source = features,
+                target = derivatives['d2_features']
             )
 
         del tape_d3
@@ -555,9 +555,9 @@ class DegradationModel(Model):
             tf.tile(
                 tf.expand_dims(
                     thing,
-                    axis=1
+                    axis = 1
                 ),
-                [1, params["voltage_count"],1]
+                [1, params["voltage_count"], 1]
             ),
             [params["batch_count"] * params["voltage_count"], dim]
         )
@@ -567,15 +567,14 @@ class DegradationModel(Model):
             tf.tile(
                 tf.expand_dims(
                     thing,
-                    axis=1
+                    axis = 1
                 ),
-                [1, params["current_count"],1]
+                [1, params["current_count"], 1]
             ),
             [params["batch_count"] * params["current_count"], dim]
         )
 
-
-    def call(self, x, training=False):
+    def call(self, x, training = False):
 
         cycle = x[0]  # matrix; dim: [batch, 1]
         constant_current = x[1]  # matrix; dim: [batch, 1]
@@ -584,10 +583,10 @@ class DegradationModel(Model):
         end_voltage = x[4]  # matrix; dim: [batch, 1]
 
         indecies = x[5]  # batch of index; dim: [batch]
-        voltage_tensor = x[6] # dim: [batch, voltages]
+        voltage_tensor = x[6]  # dim: [batch, voltages]
         current_tensor = x[7]  # dim: [batch, voltages]
 
-        features, mean, log_sig = self.dictionary(indecies, training=training)
+        features, mean, log_sig = self.dictionary(indecies, training = training)
         # duplicate cycles and others for all the voltages
         # dimensions are now [batch, voltages, features]
         batch_count = cycle.shape[0]
@@ -595,19 +594,19 @@ class DegradationModel(Model):
         current_count = current_tensor.shape[1]
 
         params = {
-            "batch_count": batch_count,
-            "voltage_count": voltage_count,
-            "current_count": current_count,
+            "batch_count":      batch_count,
+            "voltage_count":    voltage_count,
+            "current_count":    current_count,
 
-            "voltage": tf.reshape(voltage_tensor, [-1, 1]),
-            "cv_current": tf.reshape(current_tensor, [-1, 1]),
+            "voltage":          tf.reshape(voltage_tensor, [-1, 1]),
+            "cv_current":       tf.reshape(current_tensor, [-1, 1]),
 
-            "cycle": cycle,
+            "cycle":            cycle,
             "constant_current": constant_current,
             "end_current_prev": end_current_prev,
             "end_voltage_prev": end_voltage_prev,
-            "features": features,
-            "end_voltage": end_voltage,
+            "features":         features,
+            "end_voltage":      end_voltage,
 
         }
         cc_capacity = self.cc_capacity_part2(params)
@@ -618,59 +617,65 @@ class DegradationModel(Model):
 
         if training:
 
-
-            #NOTE(sam): this is an example of a forall. (for all voltages, and all cell features)
+            # NOTE(sam): this is an example of a forall. (for all voltages, and all cell features)
             n_sample = 64
-            sampled_voltages = tf.random.uniform(minval=2.5, maxval=5., shape=[n_sample, 1])
-            sampled_cycles = tf.random.uniform(minval=-10., maxval=10., shape=[n_sample, 1])
-            sampled_constant_current = tf.random.uniform(minval=0.001, maxval=10., shape=[n_sample, 1])
+            sampled_voltages = tf.random.uniform(minval = 2.5, maxval = 5.,
+                                                 shape = [n_sample, 1])
+            sampled_cycles = tf.random.uniform(minval = -10., maxval = 10.,
+                                               shape = [n_sample, 1])
+            sampled_constant_current = tf.random.uniform(minval = 0.001,
+                                                         maxval = 10.,
+                                                         shape = [n_sample, 1])
             sampled_features = self.dictionary.sample(n_sample)
-            sampled_shift = tf.random.uniform(minval=-1., maxval=1., shape=[n_sample, 1])
+            sampled_shift = tf.random.uniform(minval = -1., maxval = 1.,
+                                              shape = [n_sample, 1])
 
             soc, soc_der = self.create_derivatives(
                 self.soc_for_derivative,
-                params={'voltage':sampled_voltages, 'features':sampled_features, 'shift':sampled_shift},
-                voltage_der=3,
-                features_der=2,
-                shift_der=3,
+                params = {'voltage':  sampled_voltages,
+                          'features': sampled_features, 'shift': sampled_shift
+                },
+                voltage_der = 3,
+                features_der = 2,
+                shift_der = 3,
             )
 
             soc_loss = .001 * incentive_combine([
                 (1., incentive_magnitude(
-                            soc,
-                            Target.Small,
-                            Level.Proportional
-                        )
-                ),
+                    soc,
+                    Target.Small,
+                    Level.Proportional
+                )
+                 ),
 
                 (1000., incentive_inequality(
-                            soc, Inequality.GreaterThan, 0,
-                            Level.Strong
-                        )
-                ),
+                    soc, Inequality.GreaterThan, 0,
+                    Level.Strong
+                )
+                 ),
                 (1., incentive_inequality(
-                            soc_der['d_voltage'], Inequality.GreaterThan, 0,
-                            Level.Strong
-                        )
-                ),
+                    soc_der['d_voltage'], Inequality.GreaterThan, 0,
+                    Level.Strong
+                )
+                 ),
                 (.1, incentive_magnitude(
-                            soc_der['d3_voltage'],
-                            Target.Small,
-                            Level.Proportional
-                        )
-                ),
+                    soc_der['d3_voltage'],
+                    Target.Small,
+                    Level.Proportional
+                )
+                 ),
                 (.01, incentive_magnitude(
-                            soc_der['d_features'],
-                            Target.Small,
-                            Level.Proportional
-                        )
-                ),
+                    soc_der['d_features'],
+                    Target.Small,
+                    Level.Proportional
+                )
+                 ),
                 (.01, incentive_magnitude(
-                            soc_der['d2_features'],
-                            Target.Small,
-                            Level.Strong
-                        )
-                ),
+                    soc_der['d2_features'],
+                    Target.Small,
+                    Level.Strong
+                )
+                 ),
 
                 (100., incentive_magnitude(
                     soc_der['d_shift'],
@@ -698,29 +703,32 @@ class DegradationModel(Model):
 
             theoretical_cap, theoretical_cap_der = self.create_derivatives(
                 self.theoretical_cap_for_derivative,
-                params = {'cycle':sampled_cycles, 'current':sampled_constant_current, 'features':sampled_features},
-                cycle_der=3,
-                current_der=0,
-                features_der=2,
+                params = {'cycle':    sampled_cycles,
+                          'current':  sampled_constant_current,
+                          'features': sampled_features
+                },
+                cycle_der = 3,
+                current_der = 0,
+                features_der = 2,
             )
 
             theo_cap_loss = .001 * incentive_combine(
                 [
-                    (100.,incentive_inequality(
-                            theoretical_cap, Inequality.GreaterThan, 0.01,
-                            Level.Strong
-                        )
-                    ),
-                    (100.,incentive_inequality(
-                            theoretical_cap, Inequality.LessThan, 1,
-                            Level.Strong
-                        )
-                    ),
-                    (1.,incentive_inequality(
-                            theoretical_cap_der['d_cycle'], Inequality.LessThan, 0,
-                            Level.Proportional
-                        ) # we want cap to diminish with cycle number
-                    ),
+                    (100., incentive_inequality(
+                        theoretical_cap, Inequality.GreaterThan, 0.01,
+                        Level.Strong
+                    )
+                     ),
+                    (100., incentive_inequality(
+                        theoretical_cap, Inequality.LessThan, 1,
+                        Level.Strong
+                    )
+                     ),
+                    (1., incentive_inequality(
+                        theoretical_cap_der['d_cycle'], Inequality.LessThan, 0,
+                        Level.Proportional
+                    )  # we want cap to diminish with cycle number
+                     ),
                     (.1, incentive_inequality(
                         theoretical_cap_der['d2_cycle'], Inequality.LessThan, 0,
                         Level.Proportional
@@ -739,17 +747,17 @@ class DegradationModel(Model):
                     )
                      ),
 
-                    (100.,incentive_magnitude(
-                            theoretical_cap_der['d2_cycle'],
-                            Target.Small,
-                            Level.Proportional
-                        )
-                    ),
                     (100., incentive_magnitude(
-                            theoretical_cap_der['d3_cycle'],
-                            Target.Small,
-                            Level.Proportional
-                        )
+                        theoretical_cap_der['d2_cycle'],
+                        Target.Small,
+                        Level.Proportional
+                    )
+                     ),
+                    (100., incentive_magnitude(
+                        theoretical_cap_der['d3_cycle'],
+                        Target.Small,
+                        Level.Proportional
+                    )
                      ),
 
                     # (100.,incentive_magnitude(
@@ -758,27 +766,30 @@ class DegradationModel(Model):
                     #         Level.Proportional
                     #     )
                     # ),
-                    (1.,incentive_magnitude(
-                            theoretical_cap_der['d_features'],
-                            Target.Small,
-                            Level.Proportional
-                        )
-                    ),
-                    (1.,incentive_magnitude(
-                            theoretical_cap_der['d2_features'],
-                            Target.Small,
-                            Level.Strong
-                        )
+                    (1., incentive_magnitude(
+                        theoretical_cap_der['d_features'],
+                        Target.Small,
+                        Level.Proportional
                     )
+                     ),
+                    (1., incentive_magnitude(
+                        theoretical_cap_der['d2_features'],
+                        Target.Small,
+                        Level.Strong
+                    )
+                     )
                 ]
             )
 
             shift, shift_der = self.create_derivatives(
                 self.shift_for_derivative,
-                params={'cycle': sampled_cycles, 'current': sampled_constant_current, 'features': sampled_features},
-                cycle_der=3,
-                current_der=0,
-                features_der=2,
+                params = {'cycle':    sampled_cycles,
+                          'current':  sampled_constant_current,
+                          'features': sampled_features
+                },
+                cycle_der = 3,
+                current_der = 0,
+                features_der = 2,
             )
 
             shift_loss = .001 * incentive_combine(
@@ -841,84 +852,86 @@ class DegradationModel(Model):
 
             r, r_der = self.create_derivatives(
                 self.r_for_derivative,
-                params = {'cycle':sampled_cycles, 'features':sampled_features},
-                cycle_der=3,
-                features_der=2,
+                params = {'cycle':    sampled_cycles,
+                          'features': sampled_features
+                },
+                cycle_der = 3,
+                features_der = 2,
 
             )
 
             r_loss = .001 * incentive_combine(
                 [
-                    (100.,incentive_inequality(
-                            r, Inequality.GreaterThan, 0.01,
-                            Level.Strong
-                        )
-                    ),
-                    (10.,incentive_magnitude(
-                            r_der['d2_cycle'],
-                            Target.Small,
-                            Level.Proportional
-                        )
-                    ),
-
-                    (100., incentive_magnitude(
-                            r_der['d3_cycle'],
-                            Target.Small,
-                            Level.Proportional
-                        )
+                    (100., incentive_inequality(
+                        r, Inequality.GreaterThan, 0.01,
+                        Level.Strong
+                    )
+                     ),
+                    (10., incentive_magnitude(
+                        r_der['d2_cycle'],
+                        Target.Small,
+                        Level.Proportional
+                    )
                      ),
 
-                    (1.,incentive_magnitude(
-                            r_der['d_features'],
-                            Target.Small,
-                            Level.Proportional
-                        )
-                    ),
-                    (1.,incentive_magnitude(
-                            r_der['d2_features'],
-                            Target.Small,
-                            Level.Strong
-                        )
+                    (100., incentive_magnitude(
+                        r_der['d3_cycle'],
+                        Target.Small,
+                        Level.Proportional
                     )
+                     ),
+
+                    (1., incentive_magnitude(
+                        r_der['d_features'],
+                        Target.Small,
+                        Level.Proportional
+                    )
+                     ),
+                    (1., incentive_magnitude(
+                        r_der['d2_features'],
+                        Target.Small,
+                        Level.Strong
+                    )
+                     )
                 ]
             )
-
 
             kl_loss = tf.reduce_mean(
                 0.5 * (tf.exp(log_sig) + tf.square(mean) - 1. - log_sig)
             )
 
-
-
             return {
                 "pred_cc_capacity": pred_cc_capacity,
                 "pred_cv_capacity": pred_cv_capacity,
-                "soc_loss": soc_loss,
-                "theo_cap_loss": theo_cap_loss,
-                "r_loss": r_loss,
-                "shift_loss": shift_loss,
-                "kl_loss":kl_loss,
+                "soc_loss":         soc_loss,
+                "theo_cap_loss":    theo_cap_loss,
+                "r_loss":           r_loss,
+                "shift_loss":       shift_loss,
+                "kl_loss":          kl_loss,
             }
 
         else:
 
             pred_r = self.r_direct(
-                norm_cycle=self.norm_cycle(params),
-                cell_features=self.cell_features_direct(features=params['features']),
+                norm_cycle = self.norm_cycle(params),
+                cell_features = self.cell_features_direct(
+                    features = params['features']),
             )
 
             pred_theo_cap = self.theoretical_cap_direct(
-                norm_cycle=self.norm_cycle(params),
-                current=params['constant_current'],
-                cell_features=self.cell_features_direct(features=params['features'])
+                norm_cycle = self.norm_cycle(params),
+                current = params['constant_current'],
+                cell_features = self.cell_features_direct(
+                    features = params['features'])
             )
 
             return {
-                "pred_cc_capacity": pred_cc_capacity,
-                "pred_cv_capacity": pred_cv_capacity,
-                "pred_r": pred_r,
-                "pred_theo_capacity":pred_theo_cap,
+                "pred_cc_capacity":   pred_cc_capacity,
+                "pred_cv_capacity":   pred_cv_capacity,
+                "pred_r":             pred_r,
+                "pred_theo_capacity": pred_theo_cap,
             }
+
 
 # stores cell features
 # key: index
@@ -930,11 +943,11 @@ class DictionaryLayer(Layer):
         self.num_features = num_features
         self.num_keys = num_keys
         self.kernel = self.add_weight(
-            "kernel", shape=[self.num_keys, self.num_features * 2])
+            "kernel", shape = [self.num_keys, self.num_features * 2])
 
-    def call(self, input, training=True):
+    def call(self, input, training = True):
         eps = tf.random.normal(
-            shape=[self.num_keys, self.num_features])
+            shape = [self.num_keys, self.num_features])
         mean = self.kernel[:, :self.num_features]
         log_sig = self.kernel[:, self.num_features:]
 
@@ -944,21 +957,21 @@ class DictionaryLayer(Layer):
             features = mean + tf.exp(log_sig / 2.) * eps
 
         # tf.gather: "fetching in the dictionary"
-        fetched_features = tf.gather(features, input, axis=0)
-        fetched_mean = tf.gather(mean, input, axis=0)
-        fetched_log_sig = tf.gather(log_sig, input, axis=0)
+        fetched_features = tf.gather(features, input, axis = 0)
+        fetched_mean = tf.gather(mean, input, axis = 0)
+        fetched_log_sig = tf.gather(log_sig, input, axis = 0)
 
         return fetched_features, fetched_mean, fetched_log_sig
 
-
     def sample(self, n_sample):
         eps = tf.random.normal(
-            shape=[n_sample, self.num_features])
+            shape = [n_sample, self.num_features])
         mean = self.kernel[:, :self.num_features]
         log_sig = self.kernel[:, self.num_features:]
-        indecies = tf.random.uniform(maxval=self.num_keys, shape=[n_sample],dtype=tf.int32)
+        indecies = tf.random.uniform(maxval = self.num_keys, shape = [n_sample],
+                                     dtype = tf.int32)
 
-        fetched_mean = tf.gather(mean, indecies, axis=0)
-        fetched_log_sig = tf.gather(log_sig, indecies, axis=0)
+        fetched_mean = tf.gather(mean, indecies, axis = 0)
+        fetched_log_sig = tf.gather(log_sig, indecies, axis = 0)
         fetched_features = fetched_mean + tf.exp(fetched_log_sig / 2.) * eps
         return tf.stop_gradient(fetched_features)

@@ -319,7 +319,7 @@ class DegradationModel(Model):
         )
 
         return self.add_volt_dep(theoretical_cap, params) * (
-                soc_1 - self.add_volt_dep(soc_0, params))
+            soc_1 - self.add_volt_dep(soc_0, params))
 
     def cv_capacity(self, params):
         norm_constant = self.norm_constant_direct(features = params['features'])
@@ -632,8 +632,9 @@ class DegradationModel(Model):
 
             soc, soc_der = self.create_derivatives(
                 self.soc_for_derivative,
-                params = {'voltage':  sampled_voltages,
-                          'features': sampled_features, 'shift': sampled_shift
+                params = {
+                    'voltage':  sampled_voltages,
+                    'features': sampled_features, 'shift': sampled_shift
                 },
                 voltage_der = 3,
                 features_der = 2,
@@ -703,9 +704,10 @@ class DegradationModel(Model):
 
             theoretical_cap, theoretical_cap_der = self.create_derivatives(
                 self.theoretical_cap_for_derivative,
-                params = {'cycle':    sampled_cycles,
-                          'current':  sampled_constant_current,
-                          'features': sampled_features
+                params = {
+                    'cycle':    sampled_cycles,
+                    'current':  sampled_constant_current,
+                    'features': sampled_features
                 },
                 cycle_der = 3,
                 current_der = 0,
@@ -783,9 +785,10 @@ class DegradationModel(Model):
 
             shift, shift_der = self.create_derivatives(
                 self.shift_for_derivative,
-                params = {'cycle':    sampled_cycles,
-                          'current':  sampled_constant_current,
-                          'features': sampled_features
+                params = {
+                    'cycle':    sampled_cycles,
+                    'current':  sampled_constant_current,
+                    'features': sampled_features
                 },
                 cycle_der = 3,
                 current_der = 0,
@@ -852,8 +855,9 @@ class DegradationModel(Model):
 
             r, r_der = self.create_derivatives(
                 self.r_for_derivative,
-                params = {'cycle':    sampled_cycles,
-                          'features': sampled_features
+                params = {
+                    'cycle':    sampled_cycles,
+                    'features': sampled_features
                 },
                 cycle_der = 3,
                 features_der = 2,

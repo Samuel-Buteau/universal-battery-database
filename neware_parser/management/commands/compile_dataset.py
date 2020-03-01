@@ -1,23 +1,10 @@
-import argparse
-import os
-import pickle
 import numpy
-import math
-import re
-import copy
-from neware_parser.models import *
-from neware_parser.neware_processing_functions import machine_learning_post_process_cycle
 from django.core.management.base import BaseCommand
-import tensorflow as tf
-from django.db.models import Max,Min
-from tensorflow.keras.layers import (
-    Dense, Flatten, Conv2D, GlobalAveragePooling1D,
-    BatchNormalization, Conv1D, Layer
-)
-from tensorflow.keras import Model
+from django.db.models import Max, Min
 
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.pyplot as plt
+from neware_parser.models import *
+from neware_parser.neware_processing_functions import \
+    machine_learning_post_process_cycle
 
 '''
 Shortened Variable Names:
@@ -32,27 +19,30 @@ Shortened Variable Names:
     eq -    equillibrium
 '''
 
+
 # === Begin: make my barcodes ==================================================
 
 def make_my_barcodes(fit_args):
     my_barcodes = CyclingFile.objects.filter(
-        database_file__deprecated=False,
-        database_file__is_valid=True
+        database_file__deprecated = False,
+        database_file__is_valid = True
     ).exclude(
-        database_file__valid_metadata=None
+        database_file__valid_metadata = None
     ).order_by(
         'database_file__valid_metadata__barcode'
     ).values_list(
         'database_file__valid_metadata__barcode',
-        flat=True
+        flat = True
     ).distinct()
 
     used_barcodes = []
     for b in my_barcodes:
-        if ChargeCycleGroup.objects.filter(barcode=b).exists() or DischargeCycleGroup.objects.filter(barcode=b).exists():
+        if ChargeCycleGroup.objects.filter(
+            barcode = b).exists() or DischargeCycleGroup.objects.filter(
+            barcode = b).exists():
             used_barcodes.append(b)
 
-    if len(fit_args['wanted_barcodes'])==0:
+    if len(fit_args['wanted_barcodes']) == 0:
         return used_barcodes
     else:
         return list(
@@ -60,7 +50,6 @@ def make_my_barcodes(fit_args):
                 set(fit_args['wanted_barcodes'])
             )
         )
-
 
 
 # === End: make my barcodes ====================================================
@@ -77,22 +66,30 @@ def clamp(a, x, b):
 def make_voltage_grid(min_v, max_v, n_samples, my_barcodes):
     if n_samples < 2:
         n_samples = 2
-    all_cycs = Cycle.objects.filter(discharge_group__barcode__in=my_barcodes, valid_cycle=True)
-    my_max = max(all_cycs.aggregate(Max('chg_maximum_voltage'))['chg_maximum_voltage__max'],
-        all_cycs.aggregate(Max('dchg_maximum_voltage'))['dchg_maximum_voltage__max'])
-    my_min= min(all_cycs.aggregate(Min('chg_minimum_voltage'))['chg_minimum_voltage__min'],
-        all_cycs.aggregate(Min('dchg_minimum_voltage'))['dchg_minimum_voltage__min'])
+    all_cycs = Cycle.objects.filter(discharge_group__barcode__in = my_barcodes,
+                                    valid_cycle = True)
+    my_max = max(all_cycs.aggregate(Max('chg_maximum_voltage'))[
+                     'chg_maximum_voltage__max'],
+                 all_cycs.aggregate(Max('dchg_maximum_voltage'))[
+                     'dchg_maximum_voltage__max'])
+    my_min = min(all_cycs.aggregate(Min('chg_minimum_voltage'))[
+                     'chg_minimum_voltage__min'],
+                 all_cycs.aggregate(Min('dchg_minimum_voltage'))[
+                     'dchg_minimum_voltage__min'])
 
     my_max = clamp(min_v, my_max, max_v)
     my_min = clamp(min_v, my_min, max_v)
 
-    delta = (my_max - my_min)/float(n_samples-1.)
-    return numpy.array([my_min + delta*float(i) for i in range(n_samples)])
+    delta = (my_max - my_min) / float(n_samples - 1.)
+    return numpy.array([my_min + delta * float(i) for i in range(n_samples)])
 
 
 def initial_processing(my_barcodes, fit_args):
     all_data = {}
-    voltage_grid = make_voltage_grid(fit_args['voltage_grid_min_v'], fit_args['voltage_grid_max_v'], fit_args['voltage_grid_n_samples'], my_barcodes)
+    voltage_grid = make_voltage_grid(fit_args['voltage_grid_min_v'],
+                                     fit_args['voltage_grid_max_v'],
+                                     fit_args['voltage_grid_n_samples'],
+                                     my_barcodes)
 
     '''
     - cycles are grouped by their charge rates and discharge rates.
@@ -125,39 +122,39 @@ def initial_processing(my_barcodes, fit_args):
 
             if typ == 'dchg':
                 groups = DischargeCycleGroup.objects.filter(
-                        barcode=barcode
+                    barcode = barcode
                 ).order_by('constant_rate')
             else:
                 groups = ChargeCycleGroup.objects.filter(
-                    barcode=barcode
+                    barcode = barcode
                 ).order_by('constant_rate')
             for cyc_group in groups:
                 result = []
 
                 for cyc in cyc_group.cycle_set.order_by(
-                        'cycle_number'):
+                    'cycle_number'):
                     if cyc.valid_cycle:
                         post_process_results = machine_learning_post_process_cycle(
                             cyc,
                             voltage_grid,
                             typ,
-                            current_max_n=fit_args['current_max_n']
+                            current_max_n = fit_args['current_max_n']
                         )
 
                         if post_process_results is None:
                             continue
-
 
                         result.append((
                             cyc.get_offset_cycle(),
                             post_process_results['cc_voltages'],
                             post_process_results['cc_capacities'],
                             post_process_results['cc_masks'],
-                            sign*post_process_results['cv_currents'],
+                            sign * post_process_results['cv_currents'],
                             post_process_results['cv_capacities'],
                             post_process_results['cv_masks'],
-                            sign* post_process_results['constant_current'],
-                            -1.*sign*post_process_results['end_current_prev'],
+                            sign * post_process_results['constant_current'],
+                            -1. * sign * post_process_results[
+                                'end_current_prev'],
                             sign * post_process_results['end_current'],
                             post_process_results['end_voltage_prev'],
                             post_process_results['end_voltage'],
@@ -167,10 +164,9 @@ def initial_processing(my_barcodes, fit_args):
                             cyc.get_temperature()
                         ))
 
-
                 res = numpy.array(
                     result,
-                    dtype=[
+                    dtype = [
                         ('cycle_number', 'f4'),
 
                         ('cc_voltage_vector', 'f4', len(voltage_grid)),
@@ -193,15 +189,21 @@ def initial_processing(my_barcodes, fit_args):
                     ])
 
                 cyc_grp_dict[
-                    (cyc_group.constant_rate, cyc_group.end_rate_prev, cyc_group.end_rate, cyc_group.end_voltage, cyc_group.end_voltage_prev, typ)
+                    (cyc_group.constant_rate, cyc_group.end_rate_prev,
+                     cyc_group.end_rate, cyc_group.end_voltage,
+                     cyc_group.end_voltage_prev, typ)
                 ] = (res, {
-                    'avg_constant_current': numpy.average(res['constant_current']),
-                    'avg_end_current_prev': numpy.average(res['end_current_prev']),
-                    'avg_end_current': numpy.average(res['end_current']),
-                    'avg_end_voltage_prev': numpy.average(res['end_voltage_prev']),
-                    'avg_end_voltage': numpy.average(res['end_voltage']),
-                    'avg_last_cc_voltage': numpy.average(res['last_cc_voltage']),
-                        }
+                    'avg_constant_current': numpy.average(
+                        res['constant_current']),
+                    'avg_end_current_prev': numpy.average(
+                        res['end_current_prev']),
+                    'avg_end_current':      numpy.average(res['end_current']),
+                    'avg_end_voltage_prev': numpy.average(
+                        res['end_voltage_prev']),
+                    'avg_end_voltage':      numpy.average(res['end_voltage']),
+                    'avg_last_cc_voltage':  numpy.average(
+                        res['last_cc_voltage']),
+                }
                      )
 
         all_data[barcode] = cyc_grp_dict
@@ -215,22 +217,24 @@ def compile_dataset(fit_args):
         os.mkdir(fit_args['path_to_dataset'])
     my_barcodes = make_my_barcodes(fit_args)
     pick = initial_processing(my_barcodes, fit_args)
-    with open(os.path.join(fit_args['path_to_dataset'], 'dataset_ver_{}.file'.format(fit_args['dataset_version'])), 'wb') as f:
+    with open(os.path.join(fit_args['path_to_dataset'],
+                           'dataset_ver_{}.file'.format(
+                               fit_args['dataset_version'])), 'wb') as f:
         pickle.dump(pick, f, pickle.HIGHEST_PROTOCOL)
+
 
 class Command(BaseCommand):
 
     def add_arguments(self, parser):
-        parser.add_argument('--path_to_dataset', required=True)
-        parser.add_argument('--dataset_version', required=True)
-        parser.add_argument('--voltage_grid_min_v', type=float, default=2.5)
-        parser.add_argument('--voltage_grid_max_v', type=float, default=4.5)
-        parser.add_argument('--voltage_grid_n_samples', type=int, default=32)
-        parser.add_argument('--current_max_n', type=int, default=8)
-        parser.add_argument('--wanted_barcodes', type=int, nargs='+', default=[83220, 83083])
+        parser.add_argument('--path_to_dataset', required = True)
+        parser.add_argument('--dataset_version', required = True)
+        parser.add_argument('--voltage_grid_min_v', type = float, default = 2.5)
+        parser.add_argument('--voltage_grid_max_v', type = float, default = 4.5)
+        parser.add_argument('--voltage_grid_n_samples', type = int,
+                            default = 32)
+        parser.add_argument('--current_max_n', type = int, default = 8)
+        parser.add_argument('--wanted_barcodes', type = int, nargs = '+',
+                            default = [83220, 83083])
 
     def handle(self, *args, **options):
         compile_dataset(options)
-
-
-

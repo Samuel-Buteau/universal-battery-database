@@ -33,12 +33,15 @@ def feedforward_nn_parameters(depth, width):
 
 
 """
-The call convention for the neural networks is a bit complex but it makes the code easier to use.
+The call convention for the neural networks is a bit complex but it makes the 
+code easier to use.
 
-First, there are some parameters that are from the real data (e.g. cycle number, voltage, etc.)
+First, there are some parameters that are from the real data (e.g. cycle 
+number, voltage, etc.)
 these are passed to every call as a dictionary.
 
-Second, all the parameters that are used in the body of the function can be overridden by passing them. If they are passed as None, 
+Second, all the parameters that are used in the body of the function can be 
+overridden by passing them. If they are passed as None, 
 the default dictionary will be used
 
 """
@@ -67,20 +70,26 @@ def incentive_inequality(A, symbol, B, level):
     :param symbol: the relationship we want
     (either Inequality.LessThan or Inequality.GreaterThan or Inequality.Equal)
         Inequality.LessThan (i.e. A < B) means that A should be less than B,
-        Inequality.GreaterThan (i.e. A > B) means that A should be greater than B.
+        Inequality.GreaterThan (i.e. A > B) means that A should be greater
+        than B.
         Inequality.Equals (i.e. A = B) means that A should be equal to B.
 
     :param B: The second object
-    :param level:  determines the relationship between the incentive strength and the values of A and B.
+    :param level:  determines the relationship between the incentive strength
+    and the values of A and B.
     (either Level.Strong or Level.Proportional)
-        Level.Strong means that we take the L1 norm, so the gradient trying to satisfy
-        'A symbol B' will be constant no matter how far from 'A symbol B' we are.
-        Level.Proportional means that we take the L2 norm, so the gradient trying to satisfy
+        Level.Strong means that we take the L1 norm, so the gradient trying
+        to satisfy
+        'A symbol B' will be constant no matter how far from 'A symbol B' we
+        are.
+        Level.Proportional means that we take the L2 norm, so the gradient
+        trying to satisfy
         'A symbol B' will be proportional to how far from 'A symbol B' we are.
 
 
     :return:
-    Returns a loss which will give the model an incentive to satisfy 'A symbol B', with level.
+    Returns a loss which will give the model an incentive to satisfy 'A
+    symbol B', with level.
 
 
     """
@@ -108,20 +117,25 @@ def incentive_magnitude(A, target, level):
         :param A: The object
         :param target: the direction we want
         (either Target.Small or Target.Big)
-            Target.Small  means that the norm of A should be as small as possible,
+            Target.Small  means that the norm of A should be as small as
+            possible,
             Target.Big  means that the norm of A should be as big as possible,
 
-        :param level:  determines the relationship between the incentive strength and the value of A.
+        :param level:  determines the relationship between the incentive
+        strength and the value of A.
         (either Level.Strong or Level.Proportional)
             Level.Strong means that we take the L1 norm,
-            so the gradient trying to push the absolute value of A to target will be constant.
+            so the gradient trying to push the absolute value of A to target
+            will be constant.
             Level.Proportional means that we take the L2 norm,
-            so the gradient trying to push the absolute value of A to target will be proportional to the absolute value of A.
+            so the gradient trying to push the absolute value of A to target
+            will be proportional to the absolute value of A.
 
 
 
         :return:
-        Returns a loss which will give the model an incentive to push the absolute value of A to target.
+        Returns a loss which will give the model an incentive to push the
+        absolute value of A to target.
 
 
         """
@@ -149,10 +163,12 @@ def incentive_magnitude(A, target, level):
 def incentive_combine(As):
     """
 
-        :param As: A list of tuples. Each tuple contains a coefficient and a tensor of losses corresponding to incentives.
+        :param As: A list of tuples. Each tuple contains a coefficient and a
+        tensor of losses corresponding to incentives.
 
         :return:
-        Returns a combined loss (single number) which will incentivize all the individual incentive tensors with weights given by the coefficients.
+        Returns a combined loss (single number) which will incentivize all
+        the individual incentive tensors with weights given by the coefficients.
 
     """
 
@@ -617,7 +633,8 @@ class DegradationModel(Model):
 
         if training:
 
-            # NOTE(sam): this is an example of a forall. (for all voltages, and all cell features)
+            # NOTE(sam): this is an example of a forall. (for all voltages,
+            # and all cell features)
             n_sample = 64
             sampled_voltages = tf.random.uniform(minval = 2.5, maxval = 5.,
                                                  shape = [n_sample, 1])
@@ -738,9 +755,11 @@ class DegradationModel(Model):
                      ),
 
                     # (1.,incentive_inequality(
-                    #         theoretical_cap_der['d_constant_current'], Inequality.LessThan, 0,
+                    #         theoretical_cap_der['d_constant_current'],
+                    #         Inequality.LessThan, 0,
                     #         Level.Proportional
-                    #     ) # we want cap to diminish with constant_current (if constant current is positive)
+                    #     ) # we want cap to diminish with constant_current (
+                    #     if constant current is positive)
                     # ),
                     (100., incentive_magnitude(
                         theoretical_cap_der['d_cycle'],
@@ -808,9 +827,11 @@ class DegradationModel(Model):
                     )
                      ),
                     # (1.,incentive_inequality(
-                    #         shift_der['d_constant_current'], Inequality.LessThan, 0,
+                    #         shift_der['d_constant_current'],
+                    #         Inequality.LessThan, 0,
                     #         Level.Proportional
-                    #     ) # we want cap to diminish with constant_current (if constant current is positive)
+                    #     ) # we want cap to diminish with constant_current (
+                    #     if constant current is positive)
                     # ),
                     (100., incentive_magnitude(
                         shift_der['d_cycle'],

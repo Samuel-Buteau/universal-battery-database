@@ -33,15 +33,15 @@ def feedforward_nn_parameters(depth, width):
 
 
 """
-The call convention for the neural networks is a bit complex but it makes the 
+The call convention for the neural networks is a bit complex but it makes the
 code easier to use.
 
-First, there are some parameters that are from the real data (e.g. cycle 
+First, there are some parameters that are from the real data (e.g. cycle
 number, voltage, etc.)
 these are passed to every call as a dictionary.
 
-Second, all the parameters that are used in the body of the function can be 
-overridden by passing them. If they are passed as None, 
+Second, all the parameters that are used in the body of the function can be
+overridden by passing them. If they are passed as None,
 the default dictionary will be used
 
 """
@@ -65,34 +65,37 @@ class Target(Enum):
 
 def incentive_inequality(A, symbol, B, level):
     """
-
     :param A: The first object
-    :param symbol: the relationship we want
-    (either Inequality.LessThan or Inequality.GreaterThan or Inequality.Equal)
+
+    :param symbol: the relationship we want (either Inequality.LessThan or
+    Inequality.GreaterThan or Inequality.Equal)
+
         Inequality.LessThan (i.e. A < B) means that A should be less than B,
+
         Inequality.GreaterThan (i.e. A > B) means that A should be greater
         than B.
+
         Inequality.Equals (i.e. A = B) means that A should be equal to B.
 
     :param B: The second object
+
     :param level:  determines the relationship between the incentive strength
     and the values of A and B.
     (either Level.Strong or Level.Proportional)
+
         Level.Strong means that we take the L1 norm, so the gradient trying
-        to satisfy
-        'A symbol B' will be constant no matter how far from 'A symbol B' we
+        to satisfy 'A symbol B' will be constant no matter how far from 'A
+        symbol B' we
         are.
+
         Level.Proportional means that we take the L2 norm, so the gradient
-        trying to satisfy
-        'A symbol B' will be proportional to how far from 'A symbol B' we are.
+        trying to satisfy 'A symbol B' will be proportional to how far from
+        'A symbol B' we are.
 
-
-    :return:
-    Returns a loss which will give the model an incentive to satisfy 'A
+    :return: A loss which will give the model an incentive to satisfy 'A
     symbol B', with level.
-
-
     """
+
     if symbol == Inequality.LessThan:
         intermediate = tf.nn.relu(A - B)
     elif symbol == Inequality.GreaterThan:
@@ -101,7 +104,8 @@ def incentive_inequality(A, symbol, B, level):
         intermediate = tf.abs(A - B)
     else:
         raise Exception(
-            "not yet implemented inequality symbol {}.".format(symbol))
+            "not yet implemented inequality symbol {}.".format(symbol)
+        )
 
     if level == Level.Strong:
         return intermediate
@@ -113,32 +117,29 @@ def incentive_inequality(A, symbol, B, level):
 
 def incentive_magnitude(A, target, level):
     """
+    :param A: The object
 
-        :param A: The object
-        :param target: the direction we want
-        (either Target.Small or Target.Big)
-            Target.Small  means that the norm of A should be as small as
-            possible,
-            Target.Big  means that the norm of A should be as big as possible,
+    :param target: The direction we want (either Target.Small or Target.Big)
 
-        :param level:  determines the relationship between the incentive
-        strength and the value of A.
-        (either Level.Strong or Level.Proportional)
-            Level.Strong means that we take the L1 norm,
-            so the gradient trying to push the absolute value of A to target
-            will be constant.
-            Level.Proportional means that we take the L2 norm,
-            so the gradient trying to push the absolute value of A to target
-            will be proportional to the absolute value of A.
+        Target.Small means that the norm of A should be as small as possible
 
+        Target.Big means that the norm of A should be as big as
+        possible,
 
+    :param level: Determines the relationship between the incentive strength
+    and the value of A. (either Level.Strong or Level.Proportional)
 
-        :return:
-        Returns a loss which will give the model an incentive to push the
-        absolute value of A to target.
+        Level.Strong means that we take the L1 norm, so the gradient trying
+        to push the absolute value of A to target
+        will be constant.
 
+        Level.Proportional means that we take the L2 norm,
+        so the gradient trying to push the absolute value of A to target
+        will be proportional to the absolute value of A.
 
-        """
+    :return: A loss which will give the model an incentive to push the
+    absolute value of A to target.
+    """
 
     A_prime = tf.abs(A)
 
@@ -162,14 +163,11 @@ def incentive_magnitude(A, target, level):
 
 def incentive_combine(As):
     """
+    :param As: A list of tuples. Each tuple contains a coefficient and a
+    tensor of losses corresponding to incentives.
 
-        :param As: A list of tuples. Each tuple contains a coefficient and a
-        tensor of losses corresponding to incentives.
-
-        :return:
-        Returns a combined loss (single number) which will incentivize all
-        the individual incentive tensors with weights given by the coefficients.
-
+    :return: A combined loss (single number) which will incentivize all the
+    individual incentive tensors with weights given by the coefficients.
     """
 
     return sum([a[0] * tf.reduce_mean(a[1]) for a in As])
@@ -405,18 +403,19 @@ class DegradationModel(Model):
             centers = d(centers)
         return nn_func['final'](centers)
 
-    def create_derivatives(self, nn,
-                           params,
-                           voltage_der = 0,
-                           cycle_der = 0,
-                           features_der = 0,
-                           current_der = 0,
-                           shift_der = 0
-                           ):
+    def create_derivatives(
+        self,
+        nn,
+        params,
+        voltage_der = 0,
+        cycle_der = 0,
+        features_der = 0,
+        current_der = 0,
+        shift_der = 0
+    ):
         """
         derivatives will only be taken inside forall statements.
         if auxiliary variables must be given, create a lambda.
-
 
         :param nn:
         :param params:

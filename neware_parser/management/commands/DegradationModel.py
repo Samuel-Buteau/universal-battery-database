@@ -36,14 +36,12 @@ def feedforward_nn_parameters(depth, width):
 The call convention for the neural networks is a bit complex but it makes the
 code easier to use.
 
-First, there are some parameters that are from the real data (e.g. cycle
-number, voltage, etc.)
-these are passed to every call as a dictionary.
+First, there are some parameters that are from the real data (e.g. cycle number,
+voltage, etc.) these are passed to every call as a dictionary.
 
 Second, all the parameters that are used in the body of the function can be
 overridden by passing them. If they are passed as None,
 the default dictionary will be used
-
 """
 
 

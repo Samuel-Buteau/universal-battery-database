@@ -27,7 +27,6 @@ COLORS = [
     (0., .5, 1.),
     (1., .5, 0.),
     (.5, 1., 0.),
-
 ]
 
 
@@ -81,8 +80,9 @@ def make_legend(key):
     end_voltage_prev = bake_voltage(end_voltage_prev)
 
     template = "I {}:{}:{:5}   V {}:{}"
-    return template.format(end_rate_prev, constant_rate, end_rate,
-                           end_voltage_prev, end_voltage)
+    return template.format(
+        end_rate_prev, constant_rate, end_rate, end_voltage_prev, end_voltage
+    )
 
 
 def plot_vq(plot_params, init_returns):
@@ -151,13 +151,16 @@ def plot_vq(plot_params, init_returns):
                     ax.set_xlim(x_lim)
                     ax.set_ylim(y_lim)
 
-                    ax.scatter(sign_change * vq[valids], y_axis[valids],
-                               c = [[
-                                   mult * COLORS[k_count][0],
-                                   mult * COLORS[k_count][1],
-                                   mult * COLORS[k_count][2]
-                               ]],
-                               s = 3)
+                    ax.scatter(
+                        sign_change * vq[valids],
+                        y_axis[valids],
+                        c = [[
+                            mult * COLORS[k_count][0],
+                            mult * COLORS[k_count][1],
+                            mult * COLORS[k_count][2]
+                        ]],
+                        s = 3
+                    )
 
             cycles = [0, 6000 / 2, 6000]
             for k_count, k in enumerate(list_of_keys):
@@ -509,12 +512,18 @@ def test_single_voltage(cycles, v, constant_current, end_current_prev,
                         end_voltage_prev, end_voltage, currents, barcode_count,
                         degradation_model):
     expanded_cycles = tf.expand_dims(cycles, axis = 1)
-    expanded_constant_current = tf.constant(constant_current,
-                                            shape = [len(cycles), 1])
-    expanded_end_current_prev = tf.constant(end_current_prev,
-                                            shape = [len(cycles), 1])
-    expanded_end_voltage_prev = tf.constant(end_voltage_prev,
-                                            shape = [len(cycles), 1])
+    expanded_constant_current = tf.constant(
+        constant_current,
+        shape = [len(cycles), 1]
+    )
+    expanded_end_current_prev = tf.constant(
+        end_current_prev,
+        shape = [len(cycles), 1]
+    )
+    expanded_end_voltage_prev = tf.constant(
+        end_voltage_prev,
+        shape = [len(cycles), 1]
+    )
     expanded_end_voltage = tf.constant(end_voltage, shape = [len(cycles), 1])
 
     indecies = tf.tile(tf.expand_dims(barcode_count, axis = 0), [len(cycles)])

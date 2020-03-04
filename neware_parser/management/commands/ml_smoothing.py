@@ -641,22 +641,22 @@ def ml_smoothing(fit_args):
 class Command(BaseCommand):
 
     def add_arguments(self, parser):
-        parser.add_argument('--path_to_dataset', required=True)
-        parser.add_argument('--dataset_version', required=True)
-        parser.add_argument('--path_to_plots', required=True)
-        parser.add_argument('--kl_coeff', type=float, default=0.00001)
-        parser.add_argument('--mono_coeff', type=float, default=.005)
-        parser.add_argument('--smooth_coeff', type=float, default=.05)
-        parser.add_argument('--const_f_coeff', type=float, default=.0)
-        parser.add_argument('--smooth_f_coeff', type=float, default=.01)
-        parser.add_argument('--depth', type=int, default=3)
-        parser.add_argument('--width', type=int, default=32)
-        parser.add_argument('--batch_size', type=int, default=2 * 16)
+        parser.add_argument('--path_to_dataset', required = True)
+        parser.add_argument('--dataset_version', required = True)
+        parser.add_argument('--path_to_plots', required = True)
+        parser.add_argument('--kl_coeff', type = float, default = 0.00001)
+        parser.add_argument('--mono_coeff', type = float, default = .005)
+        parser.add_argument('--smooth_coeff', type = float, default = .05)
+        parser.add_argument('--const_f_coeff', type = float, default = .0)
+        parser.add_argument('--smooth_f_coeff', type = float, default = .01)
+        parser.add_argument('--depth', type = int, default = 3)
+        parser.add_argument('--width', type = int, default = 32)
+        parser.add_argument('--batch_size', type = int, default = 2 * 16)
 
         vis = 10000
-        parser.add_argument('--print_loss_every', type=int, default=vis)
-        parser.add_argument('--visualize_fit_every', type=int, default=vis)
-        parser.add_argument('--visualize_vq_every', type=int, default=vis)
+        parser.add_argument('--print_loss_every', type = int, default = vis)
+        parser.add_argument('--visualize_fit_every', type = int, default = vis)
+        parser.add_argument('--visualize_vq_every', type = int, default = vis)
 
         parser.add_argument('--stop_count', type = int, default = 100000)
         parser.add_argument(

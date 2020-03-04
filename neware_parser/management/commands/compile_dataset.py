@@ -96,10 +96,12 @@ def make_voltage_grid(min_v, max_v, n_samples, my_barcodes):
 
 def initial_processing(my_barcodes, fit_args):
     all_data = {}
-    voltage_grid = make_voltage_grid(fit_args['voltage_grid_min_v'],
-                                     fit_args['voltage_grid_max_v'],
-                                     fit_args['voltage_grid_n_samples'],
-                                     my_barcodes)
+    voltage_grid = make_voltage_grid(
+        fit_args['voltage_grid_min_v'],
+        fit_args['voltage_grid_max_v'],
+        fit_args['voltage_grid_n_samples'],
+        my_barcodes
+    )
 
     '''
     - cycles are grouped by their charge rates and discharge rates.
@@ -198,25 +200,36 @@ def initial_processing(my_barcodes, fit_args):
                         ('last_cc_capacity', 'f4'),
                         ('last_cv_capacity', 'f4'),
                         ('temperature', 'f4'),
-                    ])
+                    ]
+                )
 
                 cyc_grp_dict[
                     (cyc_group.constant_rate, cyc_group.end_rate_prev,
                      cyc_group.end_rate, cyc_group.end_voltage,
                      cyc_group.end_voltage_prev, typ)
-                ] = (res, {
-                    'avg_constant_current': numpy.average(
-                        res['constant_current']),
-                    'avg_end_current_prev': numpy.average(
-                        res['end_current_prev']),
-                    'avg_end_current':      numpy.average(res['end_current']),
-                    'avg_end_voltage_prev': numpy.average(
-                        res['end_voltage_prev']),
-                    'avg_end_voltage':      numpy.average(res['end_voltage']),
-                    'avg_last_cc_voltage':  numpy.average(
-                        res['last_cc_voltage']),
-                }
-                     )
+                ] = (
+                    res,
+                    {
+                        'avg_constant_current': numpy.average(
+                            res['constant_current']
+                        ),
+                        'avg_end_current_prev': numpy.average(
+                            res['end_current_prev']
+                        ),
+                        'avg_end_current':      numpy.average(
+                            res['end_current']
+                        ),
+                        'avg_end_voltage_prev': numpy.average(
+                            res['end_voltage_prev']
+                        ),
+                        'avg_end_voltage':      numpy.average(
+                            res['end_voltage']
+                        ),
+                        'avg_last_cc_voltage':  numpy.average(
+                            res['last_cc_voltage']
+                        ),
+                    }
+                )
 
         all_data[barcode] = cyc_grp_dict
 
@@ -229,9 +242,13 @@ def compile_dataset(fit_args):
         os.mkdir(fit_args['path_to_dataset'])
     my_barcodes = make_my_barcodes(fit_args)
     pick = initial_processing(my_barcodes, fit_args)
-    with open(os.path.join(fit_args['path_to_dataset'],
-                           'dataset_ver_{}.file'.format(
-                               fit_args['dataset_version'])), 'wb') as f:
+    with open(
+        os.path.join(
+            fit_args['path_to_dataset'],
+            'dataset_ver_{}.file'.format(fit_args['dataset_version'])
+        ),
+        'wb'
+    ) as f:
         pickle.dump(pick, f, pickle.HIGHEST_PROTOCOL)
 
 

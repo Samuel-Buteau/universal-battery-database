@@ -655,22 +655,34 @@ class DegradationModel(Model):
             # NOTE(sam): this is an example of a forall. (for all voltages,
             # and all cell features)
             n_sample = 64
-            sampled_voltages = tf.random.uniform(minval = 2.5, maxval = 5.,
-                                                 shape = [n_sample, 1])
-            sampled_cycles = tf.random.uniform(minval = -10., maxval = 10.,
-                                               shape = [n_sample, 1])
-            sampled_constant_current = tf.random.uniform(minval = 0.001,
-                                                         maxval = 10.,
-                                                         shape = [n_sample, 1])
+            sampled_voltages = tf.random.uniform(
+                minval = 2.5,
+                maxval = 5.,
+                shape = [n_sample, 1]
+            )
+            sampled_cycles = tf.random.uniform(
+                minval = -10.,
+                maxval = 10.,
+                shape = [n_sample, 1]
+            )
+            sampled_constant_current = tf.random.uniform(
+                minval = 0.001,
+                maxval = 10.,
+                shape = [n_sample, 1]
+            )
             sampled_features = self.dictionary.sample(n_sample)
-            sampled_shift = tf.random.uniform(minval = -1., maxval = 1.,
-                                              shape = [n_sample, 1])
+            sampled_shift = tf.random.uniform(
+                minval = -1.,
+                maxval = 1.,
+                shape = [n_sample, 1]
+            )
 
             soc, soc_der = self.create_derivatives(
                 self.soc_for_derivative,
                 params = {
                     'voltage':  sampled_voltages,
-                    'features': sampled_features, 'shift': sampled_shift
+                    'features': sampled_features,
+                    'shift':    sampled_shift
                 },
                 voltage_der = 3,
                 features_der = 2,
@@ -679,64 +691,82 @@ class DegradationModel(Model):
 
             soc_loss = .0001 * incentive_combine(
                 [
-                    (1., incentive_magnitude(
-                        soc,
-                        Target.Small,
-                        Level.Proportional
-                    )
-                     ),
+                    (
+                        1.,
+                        incentive_magnitude(
+                            soc,
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
+                    (
+                        100.,
+                        incentive_inequality(
+                            soc,
+                            Inequality.GreaterThan,
+                            0,
+                            Level.Strong
+                        )
+                    ),
+                    (
+                        10000.,
+                        incentive_inequality(
+                            soc_der['d_voltage'],
+                            Inequality.GreaterThan,
+                            0.05,
+                            Level.Strong
+                        )
+                    ),
+                    (
+                        100.,
+                        incentive_magnitude(
+                            soc_der['d3_voltage'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
+                    (
+                        .01,
+                        incentive_magnitude(
+                            soc_der['d_features'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
+                    (
+                        .01,
+                        incentive_magnitude(
+                            soc_der['d2_features'],
+                            Target.Small,
+                            Level.Strong
+                        )
+                    ),
+                    (
+                        100.,
+                        incentive_magnitude(
+                            soc_der['d_shift'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
 
-                    (100., incentive_inequality(
-                        soc, Inequality.GreaterThan, 0,
-                        Level.Strong
-                    )
-                     ),
-                    (10000., incentive_inequality(
-                        soc_der['d_voltage'], Inequality.GreaterThan, 0.05,
-                        Level.Strong
-                    )
-                     ),
-                    (100., incentive_magnitude(
-                        soc_der['d3_voltage'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                     ),
-                    (.01, incentive_magnitude(
-                        soc_der['d_features'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                     ),
-                    (.01, incentive_magnitude(
-                        soc_der['d2_features'],
-                        Target.Small,
-                        Level.Strong
-                    )
-                     ),
-
-                    (100., incentive_magnitude(
-                        soc_der['d_shift'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                     ),
-
-                    (100., incentive_magnitude(
-                        soc_der['d2_shift'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                     ),
-                    (100., incentive_magnitude(
-                        soc_der['d3_shift'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                     ),
-
+                    (
+                        100.,
+                        incentive_magnitude(
+                            soc_der['d2_shift'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
+                    (
+                        100.,
+                        incentive_magnitude(
+                            soc_der['d3_shift'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
                 ]
-
             )
 
             theoretical_cap, theoretical_cap_der = self.create_derivatives(
@@ -753,59 +783,85 @@ class DegradationModel(Model):
 
             theo_cap_loss = .0001 * incentive_combine(
                 [
-                    (100., incentive_inequality(
-                        theoretical_cap, Inequality.GreaterThan, 0.01,
-                        Level.Strong
-                    )
-                     ),
-                    (100., incentive_inequality(
-                        theoretical_cap, Inequality.LessThan, 1,
-                        Level.Strong
-                    )
-                     ),
-                    (1., incentive_inequality(
-                        theoretical_cap_der['d_cycle'], Inequality.LessThan, 0,
-                        Level.Proportional
-                    )  # we want cap to diminish with cycle number
-                     ),
-                    (.1, incentive_inequality(
-                        theoretical_cap_der['d2_cycle'], Inequality.LessThan, 0,
-                        Level.Proportional
-                    )  # we want cap to diminish with cycle number
-                     ),
+                    (
+                        100.,
+                        incentive_inequality(
+                            theoretical_cap,
+                            Inequality.GreaterThan,
+                            0.01,
+                            Level.Strong
+                        )
+                    ),
+                    (
+                        100.,
+                        incentive_inequality(
+                            theoretical_cap,
+                            Inequality.LessThan,
+                            1,
+                            Level.Strong
+                        )
+                    ),
+                    (
+                        1.,
+                        incentive_inequality(
+                            theoretical_cap_der['d_cycle'],
+                            Inequality.LessThan,
+                            0,
+                            Level.Proportional
+                        )  # we want cap to diminish with cycle number
+                    ),
+                    (
+                        .1,
+                        incentive_inequality(
+                            theoretical_cap_der['d2_cycle'],
+                            Inequality.LessThan,
+                            0,
+                            Level.Proportional
+                        )  # we want cap to diminish with cycle number
+                    ),
 
-                    (100., incentive_magnitude(
-                        theoretical_cap_der['d_cycle'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                     ),
+                    (
+                        100.,
+                        incentive_magnitude(
+                            theoretical_cap_der['d_cycle'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
 
-                    (100., incentive_magnitude(
-                        theoretical_cap_der['d2_cycle'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                     ),
-                    (100., incentive_magnitude(
-                        theoretical_cap_der['d3_cycle'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                     ),
+                    (
+                        100.,
+                        incentive_magnitude(
+                            theoretical_cap_der['d2_cycle'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
+                    (
+                        100.,
+                        incentive_magnitude(
+                            theoretical_cap_der['d3_cycle'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
 
-                    (1., incentive_magnitude(
-                        theoretical_cap_der['d_features'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                     ),
-                    (1., incentive_magnitude(
-                        theoretical_cap_der['d2_features'],
-                        Target.Small,
-                        Level.Strong
-                    )
-                     ),
+                    (
+                        1.,
+                        incentive_magnitude(
+                            theoretical_cap_der['d_features'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
+                    (
+                        1.,
+                        incentive_magnitude(
+                            theoretical_cap_der['d2_features'],
+                            Target.Small,
+                            Level.Strong
+                        )
+                    ),
                 ]
             )
 
@@ -823,68 +879,86 @@ class DegradationModel(Model):
 
             shift_loss = .0001 * incentive_combine(
                 [
-                    (100., incentive_inequality(
-                        shift, Inequality.GreaterThan, -1,
-                        Level.Strong
+                    (
+                        100.,
+                        incentive_inequality(
+                            shift, Inequality.GreaterThan,
+                            -1,
+                            Level.Strong
+                        )
+                    ),
+                    (
+                        100.,
+                        incentive_inequality(
+                            shift, Inequality.LessThan,
+                            1,
+                            Level.Strong
+                        )
+                    ),
+                    (
+                        100.,
+                        incentive_magnitude(
+                            shift_der['d_current'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
+                    (
+                        100.,
+                        incentive_magnitude(
+                            shift_der['d2_current'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
+                    (
+                        100.,
+                        incentive_magnitude(
+                            shift_der['d3_current'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
+                    (
+                        10.,
+                        incentive_magnitude(
+                            shift_der['d_cycle'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
+                    (
+                        10.,
+                        incentive_magnitude(
+                            shift_der['d2_cycle'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
+                    (
+                        10.,
+                        incentive_magnitude(
+                            shift_der['d3_cycle'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
+                    (
+                        1.,
+                        incentive_magnitude(
+                            shift_der['d_features'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
+                    (
+                        1.,
+                        incentive_magnitude(
+                            shift_der['d2_features'],
+                            Target.Small,
+                            Level.Strong
+                        )
                     )
-                     ),
-                    (100., incentive_inequality(
-                        shift, Inequality.LessThan, 1,
-                        Level.Strong
-                    )
-                     ),
-                    (100., incentive_magnitude(
-                        shift_der['d_current'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                     ),
-
-                    (100., incentive_magnitude(
-                        shift_der['d2_current'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                     ),
-                    (100., incentive_magnitude(
-                        shift_der['d3_current'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                     ),
-
-                    (10., incentive_magnitude(
-                        shift_der['d_cycle'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                     ),
-
-                    (10., incentive_magnitude(
-                        shift_der['d2_cycle'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                     ),
-                    (10., incentive_magnitude(
-                        shift_der['d3_cycle'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                     ),
-
-                    (1., incentive_magnitude(
-                        shift_der['d_features'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                     ),
-                    (1., incentive_magnitude(
-                        shift_der['d2_features'],
-                        Target.Small,
-                        Level.Strong
-                    )
-                     )
                 ]
             )
 
@@ -901,43 +975,59 @@ class DegradationModel(Model):
 
             r_loss = .0001 * incentive_combine(
                 [
-                    (100., incentive_inequality(
-                        r, Inequality.GreaterThan, 0.01,
-                        Level.Strong
-                    )
-                     ),
+                    (
+                        100.,
+                        incentive_inequality(
+                            r,
+                            Inequality.GreaterThan,
+                            0.01,
+                            Level.Strong
+                        )
+                    ),
 
-                    (100., incentive_inequality(
-                        r, Inequality.GreaterThan, 0.01,
-                        Level.Strong
-                    )
-                     ),
-                    (10., incentive_magnitude(
-                        r_der['d2_cycle'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                     ),
+                    (
+                        100.,
+                        incentive_inequality(
+                            r,
+                            Inequality.GreaterThan,
+                            0.01,
+                            Level.Strong
+                        )
+                    ),
+                    (
+                        10.,
+                        incentive_magnitude(
+                            r_der['d2_cycle'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
 
-                    (100., incentive_magnitude(
-                        r_der['d3_cycle'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                     ),
+                    (
+                        100.,
+                        incentive_magnitude(
+                            r_der['d3_cycle'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
 
-                    (1., incentive_magnitude(
-                        r_der['d_features'],
-                        Target.Small,
-                        Level.Proportional
+                    (
+                        1.,
+                        incentive_magnitude(
+                            r_der['d_features'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
+                    (
+                        1.,
+                        incentive_magnitude(
+                            r_der['d2_features'],
+                            Target.Small,
+                            Level.Strong
+                        )
                     )
-                     ),
-                    (1., incentive_magnitude(
-                        r_der['d2_features'],
-                        Target.Small,
-                        Level.Strong
-                    )
-                     )
                 ]
             )
 
@@ -996,11 +1086,13 @@ class DictionaryLayer(Layer):
         self.num_features = num_features
         self.num_keys = num_keys
         self.kernel = self.add_weight(
-            "kernel", shape = [self.num_keys, self.num_features * 2])
+            "kernel", shape = [self.num_keys, self.num_features * 2]
+        )
 
     def call(self, input, training = True):
         eps = tf.random.normal(
-            shape = [self.num_keys, self.num_features])
+            shape = [self.num_keys, self.num_features]
+        )
         mean = self.kernel[:, :self.num_features]
         log_sig = self.kernel[:, self.num_features:]
 

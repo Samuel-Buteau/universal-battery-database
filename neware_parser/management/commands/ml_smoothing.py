@@ -86,33 +86,43 @@ def initial_processing(my_data, barcodes, fit_args):
 
             # normalize capacity_vector with max_cap
             my_data[barcode][k][0]['cc_capacity_vector'] = (
-                1. / max_cap * cyc_grp_dict[k][0]['cc_capacity_vector'])
+                1. / max_cap * cyc_grp_dict[k][0]['cc_capacity_vector']
+            )
 
             my_data[barcode][k][0]['cv_capacity_vector'] = (
-                1. / max_cap * cyc_grp_dict[k][0]['cv_capacity_vector'])
+                1. / max_cap * cyc_grp_dict[k][0]['cv_capacity_vector']
+            )
 
             my_data[barcode][k][0]['cv_current_vector'] = (
-                1. / max_cap * cyc_grp_dict[k][0]['cv_current_vector'])
+                1. / max_cap * cyc_grp_dict[k][0]['cv_current_vector']
+            )
 
             my_data[barcode][k][0]['last_cc_capacity'] = (
-                1. / max_cap * cyc_grp_dict[k][0]['last_cc_capacity'])
+                1. / max_cap * cyc_grp_dict[k][0]['last_cc_capacity']
+            )
 
             my_data[barcode][k][0]['last_cv_capacity'] = (
-                1. / max_cap * cyc_grp_dict[k][0]['last_cv_capacity'])
+                1. / max_cap * cyc_grp_dict[k][0]['last_cv_capacity']
+            )
 
             my_data[barcode][k][0]['constant_current'] = (
-                1. / max_cap * cyc_grp_dict[k][0]['constant_current'])
+                1. / max_cap * cyc_grp_dict[k][0]['constant_current']
+            )
             my_data[barcode][k][0]['end_current_prev'] = (
-                1. / max_cap * cyc_grp_dict[k][0]['end_current_prev'])
+                1. / max_cap * cyc_grp_dict[k][0]['end_current_prev']
+            )
 
             my_data[barcode][k][1]['avg_constant_current'] = (
-                1. / max_cap * cyc_grp_dict[k][1]['avg_constant_current'])
+                1. / max_cap * cyc_grp_dict[k][1]['avg_constant_current']
+            )
 
             my_data[barcode][k][1]['avg_end_current'] = (
-                1. / max_cap * cyc_grp_dict[k][1]['avg_end_current'])
+                1. / max_cap * cyc_grp_dict[k][1]['avg_end_current']
+            )
 
             my_data[barcode][k][1]['avg_end_current_prev'] = (
-                1. / max_cap * cyc_grp_dict[k][1]['avg_end_current_prev'])
+                1. / max_cap * cyc_grp_dict[k][1]['avg_end_current_prev']
+            )
 
             print("k:", k)
             print("params:", cyc_grp_dict[k][1])

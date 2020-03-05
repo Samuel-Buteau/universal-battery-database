@@ -3,8 +3,8 @@ import tensorflow as tf
 from django.core.management.base import BaseCommand
 
 from neware_parser.models import *
-from .DegradationModel import DegradationModel
-from .plot import *
+from neware_parser.DegradationModel import DegradationModel
+from neware_parser.plot import *
 
 '''
 Shortened Variable Names:

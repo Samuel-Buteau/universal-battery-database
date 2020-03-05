@@ -908,30 +908,6 @@ class DegradationModel(Model):
                         )
                     ),
                     (
-                        10.,
-                        incentive_magnitude(
-                            shift_der['d_cycle'],
-                            Target.Small,
-                            Level.Proportional
-                        )
-                    ),
-                    (
-                        10.,
-                        incentive_magnitude(
-                            shift_der['d2_cycle'],
-                            Target.Small,
-                            Level.Proportional
-                        )
-                    ),
-                    (
-                        10.,
-                        incentive_magnitude(
-                            shift_der['d3_cycle'],
-                            Target.Small,
-                            Level.Proportional
-                        )
-                    ),
-                    (
                         1.,
                         incentive_magnitude(
                             shift_der['d_features'],

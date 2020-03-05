@@ -143,8 +143,7 @@ def initial_processing(my_barcodes, fit_args):
             for cyc_group in groups:
                 result = []
 
-                for cyc in cyc_group.cycle_set.order_by(
-                    'cycle_number'):
+                for cyc in cyc_group.cycle_set.order_by('cycle_number'):
                     if cyc.valid_cycle:
                         post_process_results = \
                             machine_learning_post_process_cycle(
@@ -262,8 +261,12 @@ class Command(BaseCommand):
         parser.add_argument('--voltage_grid_n_samples', type = int,
                             default = 32)
         parser.add_argument('--current_max_n', type = int, default = 8)
-        parser.add_argument('--wanted_barcodes', type = int, nargs = '+',
-                            default = [83220, 83083])
+        parser.add_argument(
+            '--wanted_barcodes',
+            type = int,
+            nargs = '+',
+            default = [83220, 83083]
+        )
 
     def handle(self, *args, **options):
         compile_dataset(options)

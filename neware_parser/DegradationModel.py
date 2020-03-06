@@ -702,14 +702,14 @@ class DegradationModel(Model):
                     (
                         100.,
                         incentive_inequality(
-                            soc, Inequality.GreaterThan,0,
+                            soc, Inequality.GreaterThan, 0,
                             Level.Strong
                         )
                     ),
                     (
                         10000.,
                         incentive_inequality(
-                            soc_der['d_voltage'],Inequality.GreaterThan,0.05,
+                            soc_der['d_voltage'], Inequality.GreaterThan, 0.05,
                             Level.Strong
                         )
                     ),
@@ -796,7 +796,8 @@ class DegradationModel(Model):
                     (
                         1.,
                         incentive_inequality(
-                            theoretical_cap_der['d_cycle'],Inequality.LessThan,0,
+                            theoretical_cap_der['d_cycle'], Inequality.LessThan,
+                            0,
                             Level.Proportional
                         )  # we want cap to diminish with cycle number
                     ),
@@ -872,14 +873,14 @@ class DegradationModel(Model):
                     (
                         100.,
                         incentive_inequality(
-                            shift, Inequality.GreaterThan,-1,
+                            shift, Inequality.GreaterThan, -1,
                             Level.Strong
                         )
                     ),
                     (
                         100.,
                         incentive_inequality(
-                            shift, Inequality.LessThan,1,
+                            shift, Inequality.LessThan, 1,
                             Level.Strong
                         )
                     ),

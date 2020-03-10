@@ -14,6 +14,109 @@ from io import BytesIO
 def get_files_for_barcode(barcode):
     return CyclingFile.objects.filter(database_file__deprecated=False).filter(database_file__valid_metadata__barcode=barcode)
 
+def clamp(a, x, b):
+    x = min(x, b)
+    x = max(x, a)
+    return x
+
+
+def make_voltage_grid(min_v, max_v, n_samples, my_barcodes):
+    if n_samples < 2:
+        n_samples = 2
+    all_cycs = Cycle.objects.filter(
+        discharge_group__barcode__in = my_barcodes,
+        valid_cycle = True
+    )
+    my_max = max(
+        all_cycs.aggregate(Max('chg_maximum_voltage'))[
+            'chg_maximum_voltage__max'
+        ],
+        all_cycs.aggregate(Max('dchg_maximum_voltage'))[
+            'dchg_maximum_voltage__max'
+        ]
+    )
+    my_min = min(
+        all_cycs.aggregate(Min('chg_minimum_voltage'))[
+            'chg_minimum_voltage__min'
+        ],
+        all_cycs.aggregate(Min('dchg_minimum_voltage'))[
+            'dchg_minimum_voltage__min'
+        ]
+    )
+
+    my_max = clamp(min_v, my_max, max_v)
+    my_min = clamp(min_v, my_min, max_v)
+
+    delta = (my_max - my_min) / float(n_samples - 1.)
+    return numpy.array([my_min + delta * float(i) for i in range(n_samples)])
+
+
+def make_current_grid(min_c, max_c, n_samples, my_barcodes):
+    if n_samples < 2:
+        n_samples = 2
+    all_cycs = Cycle.objects.filter(
+        discharge_group__barcode__in = my_barcodes,
+        valid_cycle = True
+    )
+    my_max = max(abs(
+        all_cycs.aggregate(Max('chg_maximum_current'))[
+            'chg_maximum_current__max'
+        ]),
+        abs(all_cycs.aggregate(Max('dchg_maximum_current'))[
+            'dchg_maximum_current__max'
+        ])
+    )
+
+    my_min = min(
+        abs(all_cycs.aggregate(Min('chg_minimum_current'))[
+            'chg_minimum_current__min'
+        ]),
+
+        abs(all_cycs.aggregate(Min('dchg_minimum_current'))[
+            'dchg_minimum_current__min'
+        ])
+    )
+
+    my_max = clamp(min_c, my_max, max_c)
+    my_min = clamp(min_c, my_min, max_c)
+
+    my_max = current_to_log_current(my_max)
+    my_min = current_to_log_current(my_min)
+    delta = (my_max - my_min) / float(n_samples - 1.)
+
+    return numpy.array([my_min + delta * float(i) for i in range(n_samples)])
+
+
+def current_to_log_current(current):
+    return numpy.log(abs(current) + 1e-5)
+
+def temperature_to_arrhenius(temp):
+    return numpy.exp(-1. / (temp + 273))
+
+def make_sign_grid():
+    return numpy.array([1., -1.])
+
+def make_temperature_grid(min_t, max_t, n_samples, my_barcodes):
+    if n_samples < 2:
+        n_samples = 2
+
+    my_files = CyclingFile.objects.filter(database_file__deprecated=False).filter(database_file__valid_metadata__barcode__in=my_barcodes)
+    my_max = my_files.aggregate(Max('database_file__valid_metadata__temperature'))[
+            'database_file__valid_metadata__temperature__max'
+        ]
+    my_min = my_files.aggregate(Min('database_file__valid_metadata__temperature'))[
+        'database_file__valid_metadata__temperature__min'
+    ]
+
+    my_max = clamp(min_t, my_max, max_t)
+    my_min = clamp(min_t, my_min, max_t)
+
+    arrhenius_max = numpy.exp(-1./(my_min+273))
+    arrhenius_min = numpy.exp(-1./(my_max+273))
+
+    delta = (arrhenius_max - arrhenius_min) / float(n_samples - 1.)
+
+    return numpy.array([arrhenius_min + delta * float(i) for i in range(n_samples)])
 
 
 def plot_barcode(barcode, path_to_plots = None, lower_cycle=None, upper_cycle=None, show_invalid=False, vertical_barriers=None, list_all_options=None, figsize = None):

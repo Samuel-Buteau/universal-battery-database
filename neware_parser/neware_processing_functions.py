@@ -14,6 +14,7 @@ import numpy
 from scipy.interpolate import PchipInterpolator
 import math
 from background_task import background
+from scipy import special
 
 halifax_timezone = pytz.timezone("America/Halifax")
 
@@ -1064,6 +1065,158 @@ def process_single_file(f,DEBUG=False):
     # after all processing.
     error_message['error'] = False
     return error_message
+
+def detect_point(mus, sigma, x):
+    return numpy.exp(-1./(2.* sigma**2.) * numpy.square(x - mus))
+
+def detect_line(mus, sigma, x_min, x_max):
+    return 0.5* (
+            special.erf(1./(sigma*numpy.sqrt(2.))*(x_max - mus)) -
+            special.erf(1./(sigma*numpy.sqrt(2.))*(x_min - mus))
+    )
+
+def detect_sign(signs, x):
+    return numpy.where(
+        x * signs > 0.,
+        1.,
+        0.
+    )
+
+def detect_step_cc( V_min, V_max, I, T, sign,
+                    voltage_grid,
+                    current_grid,
+                    temperature_grid,
+                    sign_grid):
+    sign_dim = detect_sign(
+        sign_grid,
+        sign
+    )
+
+    V_dim = detect_line(
+        voltage_grid,
+        sigma=(voltage_grid[1] - voltage_grid[0]),
+        x_min=V_min,
+        x_max=V_max
+    )
+
+    I_dim = detect_point(
+        current_grid,
+        sigma=(current_grid[1] - current_grid[0]),
+        x=I,
+    )
+
+    T_dim = detect_point(
+        temperature_grid,
+        sigma=(temperature_grid[1] - temperature_grid[0]),
+        x=T,
+    )
+
+    total_detect = (
+            numpy.reshape(sign_dim, [2, 1, 1, 1]) *
+            numpy.reshape(V_dim, [1, -1, 1, 1]) *
+            numpy.reshape(I_dim, [1, 1, -1, 1]) *
+            numpy.reshape(T_dim, [1, 1, 1, -1])
+    )
+    return total_detect
+
+
+def detect_step_cv( V, I_min, I_max, T, sign,
+                    voltage_grid,
+                    current_grid,
+                    temperature_grid,
+                    sign_grid):
+    sign_dim = detect_sign(
+        sign_grid,
+        sign
+    )
+
+    V_dim = detect_point(
+        voltage_grid,
+        sigma=(voltage_grid[1] - voltage_grid[0]),
+        x=V,
+    )
+    I_dim = detect_line(
+        current_grid,
+        sigma=(current_grid[1] - current_grid[0]),
+        x_min=I_min,
+        x_max=I_max
+    )
+    T_dim = detect_point(
+        temperature_grid,
+        sigma=(temperature_grid[1] - temperature_grid[0]),
+        x=T,
+    )
+
+    total_detect = (
+            numpy.reshape(sign_dim, [2, 1, 1, 1]) *
+            numpy.reshape(V_dim, [1, -1, 1, 1]) *
+            numpy.reshape(I_dim, [1, 1, -1, 1]) *
+            numpy.reshape(T_dim, [1, 1, 1, -1])
+    )
+    return total_detect
+
+
+
+
+def get_count_matrix(cyc, voltage_grid_degradation, current_grid, temperature_grid, sign_grid):
+    steps = cyc.step_set.order_by('step_number')
+    total = None
+    if len(steps)== 0:
+        return total
+    for step in steps:
+        #TODO(sam):
+        # compute the matrix for a step
+        if 'CC_DChg' in step.step_type:
+            sign = -1.
+            V_max = step.end_voltage_prev
+            V_min = step.end_voltage
+            I = current_to_log_current(step.constant_current)
+            T = temperature_to_arrhenius(cyc.get_temperature())
+
+            total_detect = detect_step_cc(V_min, V_max, I, T, sign, voltage_grid_degradation, current_grid, temperature_grid, sign_grid)
+
+
+        elif 'CC_Chg' in step.step_type:
+            sign = 1.
+            V_min = step.end_voltage_prev
+            V_max = step.end_voltage
+            I = current_to_log_current(step.constant_current)
+            T = temperature_to_arrhenius(cyc.get_temperature())
+            total_detect = detect_step_cc(V_min, V_max, I, T, sign, voltage_grid_degradation, current_grid,
+                                          temperature_grid, sign_grid)
+
+
+        elif 'CCCV_Chg' in step.step_type:
+            sign = 1.
+
+            #CC part
+            V_min = step.end_voltage_prev
+            V_max = step.end_voltage
+            I = current_to_log_current(step.constant_current)
+            T = temperature_to_arrhenius(cyc.get_temperature())
+            total_detect_0 = detect_step_cc(V_min, V_max, I, T, sign, voltage_grid_degradation, current_grid,
+                                          temperature_grid, sign_grid)
+
+            #CV part
+            V = step.end_voltage
+            I_max = current_to_log_current(step.constant_current)
+            I_min = current_to_log_current(step.end_current)
+
+            total_detect_1 = detect_step_cv(V,I_min, I_max, T, sign, voltage_grid_degradation, current_grid,
+                                      temperature_grid, sign_grid)
+
+            total_detect = total_detect_0 + total_detect_1
+
+        else:
+            continue
+
+        if total is None:
+            total = total_detect
+        else:
+            total += total_detect
+
+    return total
+
 
 def machine_learning_post_process_cycle(cyc, voltage_grid, step_type, current_max_n):
     if step_type == 'dchg':

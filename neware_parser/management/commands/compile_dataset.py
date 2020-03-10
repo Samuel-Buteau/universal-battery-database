@@ -3,8 +3,7 @@ from django.core.management.base import BaseCommand
 from django.db.models import Max, Min
 
 from neware_parser.models import *
-from neware_parser.neware_processing_functions import \
-    machine_learning_post_process_cycle
+from neware_parser.neware_processing_functions import *
 
 '''
 Shortened Variable Names:
@@ -57,41 +56,6 @@ def make_my_barcodes(fit_args):
 # ==== Begin: initial processing ===============================================
 
 
-def clamp(a, x, b):
-    x = min(x, b)
-    x = max(x, a)
-    return x
-
-
-def make_voltage_grid(min_v, max_v, n_samples, my_barcodes):
-    if n_samples < 2:
-        n_samples = 2
-    all_cycs = Cycle.objects.filter(
-        discharge_group__barcode__in = my_barcodes,
-        valid_cycle = True
-    )
-    my_max = max(
-        all_cycs.aggregate(Max('chg_maximum_voltage'))[
-            'chg_maximum_voltage__max'
-        ],
-        all_cycs.aggregate(Max('dchg_maximum_voltage'))[
-            'dchg_maximum_voltage__max'
-        ]
-    )
-    my_min = min(
-        all_cycs.aggregate(Min('chg_minimum_voltage'))[
-            'chg_minimum_voltage__min'
-        ],
-        all_cycs.aggregate(Min('dchg_minimum_voltage'))[
-            'dchg_minimum_voltage__min'
-        ]
-    )
-
-    my_max = clamp(min_v, my_max, max_v)
-    my_min = clamp(min_v, my_min, max_v)
-
-    delta = (my_max - my_min) / float(n_samples - 1.)
-    return numpy.array([my_min + delta * float(i) for i in range(n_samples)])
 
 
 def initial_processing(my_barcodes, fit_args):
@@ -103,6 +67,27 @@ def initial_processing(my_barcodes, fit_args):
         my_barcodes
     )
 
+    voltage_grid_degradation = make_voltage_grid(
+        fit_args['voltage_grid_min_v'],
+        fit_args['voltage_grid_max_v'],
+        fit_args['voltage_grid_n_samples']/4,
+        my_barcodes
+    )
+
+    current_grid = make_current_grid(
+        fit_args['current_grid_min_v'],
+        fit_args['current_grid_max_v'],
+        fit_args['current_grid_n_samples'],
+        my_barcodes
+    )
+
+    temperature_grid = make_temperature_grid(
+        fit_args['temperature_grid_min_v'],
+        fit_args['temperature_grid_max_v'],
+        fit_args['temperature_grid_n_samples'],
+        my_barcodes
+    )
+    sign_grid = make_sign_grid()
     '''
     - cycles are grouped by their charge rates and discharge rates.
     - a cycle group contains many cycles
@@ -124,6 +109,46 @@ def initial_processing(my_barcodes, fit_args):
               voltage was not measured, so the capacity is meaningless.
               (mask of 0)]
         '''
+
+        files = get_files_for_barcode(barcode)
+
+        all_mats = []
+        for cyc in Cycle.objects.filter(cycling_file__in=files).order_by('cycle_number'):
+            count_matrix = get_count_matrix(cyc, voltage_grid_degradation, current_grid, temperature_grid, sign_grid)
+            true_cycle = cyc.get_offset_cycle()
+            # for each cycle, call COUNT_MATRIX, and get (true_cyc, COUNT_MATRIX) list
+            if count_matrix is None:
+                continue
+            all_mats.append((true_cycle, count_matrix))
+
+        all_mats = numpy.array(all_mats, dtype = [('cycle_number', 'f4'),
+
+                        ('count_matrix', 'f4', (2, len(voltage_grid_degradation, len(current_grid), temperature_grid))),
+                                                  ])
+
+        min_cycle = numpy.min(all_mats['cycle_number'])
+        max_cycle = numpy.max(all_mats['cycle_number'])
+
+        cycle_span = max_cycle - min_cycle
+
+
+        delta_cycle = cycle_span / float(fit_args['reference_cycles_n'])
+
+        reference_cycles = [min_cycle + i*delta_cycle for i in numpy.arange(1, fit_args['reference_cycles_n'] + 1)]
+        all_reference_mats = []
+        # then for reference cycle, mask all cycles < reference cycle compute the average.
+        for reference_cycle in reference_cycles:
+            prev_matrices = all_mats['count_matrix'][all_mats['cycle_number'] <= reference_cycle]
+            avg_matrices = numpy.average(prev_matrices)
+            all_reference_mats.append((reference_cycle, avg_matrices))
+            # each step points to the nearest reference cycle
+
+        all_reference_mats = numpy.array(all_reference_mats, dtype=[('cycle_number', 'f4'),
+
+                                                ('count_matrix', 'f4', (
+                                                len(sign_grid), len(voltage_grid_degradation, len(current_grid), temperature_grid))),
+                                                ])
+
 
         cyc_grp_dict = {}
         for typ in ['chg', 'dchg']:
@@ -230,9 +255,9 @@ def initial_processing(my_barcodes, fit_args):
                     }
                 )
 
-        all_data[barcode] = cyc_grp_dict
+        all_data[barcode] = {'cyc_grp_dict':cyc_grp_dict, 'all_reference_mats':all_reference_mats}
 
-    return all_data
+    return {'all_data':all_data, 'voltage_grid':voltage_grid_degradation, 'current_grid':current_grid, 'temperature_grid':temperature_grid, 'sign_grid':sign_grid}
 
 
 # === End: initial processing ==================================================
@@ -257,10 +282,21 @@ class Command(BaseCommand):
         parser.add_argument('--path_to_dataset', required = True)
         parser.add_argument('--dataset_version', required = True)
         parser.add_argument('--voltage_grid_min_v', type = float, default = 2.5)
-        parser.add_argument('--voltage_grid_max_v', type = float, default = 4.5)
+        parser.add_argument('--voltage_grid_max_v', type = float, default = 5.0)
         parser.add_argument('--voltage_grid_n_samples', type = int,
                             default = 32)
+
+        parser.add_argument('--current_grid_min_v', type=float, default=1.)
+        parser.add_argument('--current_grid_max_v', type=float, default=1000.)
+        parser.add_argument('--current_grid_n_samples', type=int, default=8)
+
+        parser.add_argument('--temperature_grid_min_v', type=float, default=-20.)
+        parser.add_argument('--temperature_grid_max_v', type=float, default=80.)
+        parser.add_argument('--temperature_grid_n_samples', type=int, default=3)
+
         parser.add_argument('--current_max_n', type = int, default = 8)
+
+        parser.add_argument('--reference_cycles_n', type=int, default=10)
         parser.add_argument(
             '--wanted_barcodes',
             type = int,

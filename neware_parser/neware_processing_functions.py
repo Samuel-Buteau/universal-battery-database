@@ -1067,7 +1067,7 @@ def process_single_file(f,DEBUG=False):
     return error_message
 
 def detect_point(mus, sigma, x):
-    return numpy.exp(-1./(2.* sigma**2.) * numpy.square(x - mus))
+    return numpy.exp(-.5 *(sigma**-2.) * numpy.square(x - mus))
 
 def detect_line(mus, sigma, x_min, x_max):
     return 0.5* (
@@ -1171,7 +1171,7 @@ def get_count_matrix(cyc, voltage_grid_degradation, current_grid, temperature_gr
             V_max = step.end_voltage_prev
             V_min = step.end_voltage
             I = current_to_log_current(step.constant_current)
-            T = temperature_to_arrhenius(cyc.get_temperature())
+            T = cyc.get_temperature()
 
             total_detect = detect_step_cc(V_min, V_max, I, T, sign, voltage_grid_degradation, current_grid, temperature_grid, sign_grid)
 
@@ -1181,7 +1181,7 @@ def get_count_matrix(cyc, voltage_grid_degradation, current_grid, temperature_gr
             V_min = step.end_voltage_prev
             V_max = step.end_voltage
             I = current_to_log_current(step.constant_current)
-            T = temperature_to_arrhenius(cyc.get_temperature())
+            T = cyc.get_temperature()
             total_detect = detect_step_cc(V_min, V_max, I, T, sign, voltage_grid_degradation, current_grid,
                                           temperature_grid, sign_grid)
 
@@ -1193,7 +1193,7 @@ def get_count_matrix(cyc, voltage_grid_degradation, current_grid, temperature_gr
             V_min = step.end_voltage_prev
             V_max = step.end_voltage
             I = current_to_log_current(step.constant_current)
-            T = temperature_to_arrhenius(cyc.get_temperature())
+            T = cyc.get_temperature()
             total_detect_0 = detect_step_cc(V_min, V_max, I, T, sign, voltage_grid_degradation, current_grid,
                                           temperature_grid, sign_grid)
 

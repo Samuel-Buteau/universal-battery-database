@@ -47,7 +47,7 @@ def make_voltage_grid(min_v, max_v, n_samples, my_barcodes):
     my_max = clamp(min_v, my_max, max_v)
     my_min = clamp(min_v, my_min, max_v)
 
-    delta = (my_max - my_min) / float(n_samples - 1.)
+    delta = (my_max - my_min) / float(n_samples - 1)
     return numpy.array([my_min + delta * float(i) for i in range(n_samples)])
 
 
@@ -90,8 +90,8 @@ def make_current_grid(min_c, max_c, n_samples, my_barcodes):
 def current_to_log_current(current):
     return numpy.log(abs(current) + 1e-5)
 
-def temperature_to_arrhenius(temp):
-    return numpy.exp(-1. / (temp + 273))
+#def temperature_to_arrhenius(temp):
+#   return numpy.exp(-1. / (temp + 273))
 
 def make_sign_grid():
     return numpy.array([1., -1.])
@@ -109,14 +109,17 @@ def make_temperature_grid(min_t, max_t, n_samples, my_barcodes):
     ]
 
     my_max = clamp(min_t, my_max, max_t)
+    if my_max < 55.:
+        my_max = 55.
+
     my_min = clamp(min_t, my_min, max_t)
+    if my_min > 20.:
+        my_min = 20.
 
-    arrhenius_max = numpy.exp(-1./(my_min+273))
-    arrhenius_min = numpy.exp(-1./(my_max+273))
 
-    delta = (arrhenius_max - arrhenius_min) / float(n_samples - 1.)
+    delta = (my_max - my_min) / float(n_samples - 1)
 
-    return numpy.array([arrhenius_min + delta * float(i) for i in range(n_samples)])
+    return numpy.array([my_min + delta * float(i) for i in range(n_samples)])
 
 
 def plot_barcode(barcode, path_to_plots = None, lower_cycle=None, upper_cycle=None, show_invalid=False, vertical_barriers=None, list_all_options=None, figsize = None):

@@ -70,7 +70,7 @@ def initial_processing(my_barcodes, fit_args):
     voltage_grid_degradation = make_voltage_grid(
         fit_args['voltage_grid_min_v'],
         fit_args['voltage_grid_max_v'],
-        fit_args['voltage_grid_n_samples']/4,
+        int(fit_args['voltage_grid_n_samples']/4),
         my_barcodes
     )
 
@@ -123,7 +123,7 @@ def initial_processing(my_barcodes, fit_args):
 
         all_mats = numpy.array(all_mats, dtype = [('cycle_number', 'f4'),
 
-                        ('count_matrix', 'f4', (2, len(voltage_grid_degradation, len(current_grid), temperature_grid))),
+                        ('count_matrix', 'f4', (len(sign_grid), len(voltage_grid_degradation), len(current_grid), len(temperature_grid))),
                                                   ])
 
         min_cycle = numpy.min(all_mats['cycle_number'])
@@ -146,7 +146,7 @@ def initial_processing(my_barcodes, fit_args):
         all_reference_mats = numpy.array(all_reference_mats, dtype=[('cycle_number', 'f4'),
 
                                                 ('count_matrix', 'f4', (
-                                                len(sign_grid), len(voltage_grid_degradation, len(current_grid), temperature_grid))),
+                                                len(sign_grid), len(voltage_grid_degradation), len(current_grid), len(temperature_grid))),
                                                 ])
 
 

@@ -78,33 +78,34 @@ def initial_processing(my_data, barcodes, fit_args):
                         sign
                     )
 
-                    each group is a tuple:
-                    - res, a numpy structured array with dtype:
-                        [
-                            ('cycle_number', 'f4'),
-                            ('cc_voltage_vector', 'f4', len(voltage_grid)),
-                            ('cc_capacity_vector', 'f4', len(voltage_grid)),
-                            ('cc_mask_vector', 'f4', len(voltage_grid)),
-                            ('cv_current_vector', 'f4', fit_args['current_max_n']),
-                            ('cv_capacity_vector', 'f4', fit_args['current_max_n']),
-                            ('cv_mask_vector', 'f4', fit_args['current_max_n']),
-                            ('constant_current', 'f4'),
-                            ('end_current_prev', 'f4'),
-                            ('end_current', 'f4'),
-                            ('end_voltage_prev', 'f4'),
-                            ('end_voltage', 'f4'),
-                            ('last_cc_voltage', 'f4'),
-                            ('last_cc_capacity', 'f4'),
-                            ('last_cv_capacity', 'f4'),
-                            ('temperature', 'f4'),
-                        ]
-                    - dictionary of averages:
+                    each group is a dictinary indexed by various quantities:
+                        - res, a numpy structured array with dtype:
+                            [
+                                ('cycle_number', 'f4'),
+                                ('cc_voltage_vector', 'f4', len(voltage_grid)),
+                                ('cc_capacity_vector', 'f4', len(voltage_grid)),
+                                ('cc_mask_vector', 'f4', len(voltage_grid)),
+                                ('cv_current_vector', 'f4', fit_args['current_max_n']),
+                                ('cv_capacity_vector', 'f4', fit_args['current_max_n']),
+                                ('cv_mask_vector', 'f4', fit_args['current_max_n']),
+                                ('constant_current', 'f4'),
+                                ('end_current_prev', 'f4'),
+                                ('end_current', 'f4'),
+                                ('end_voltage_prev', 'f4'),
+                                ('end_voltage', 'f4'),
+                                ('last_cc_voltage', 'f4'),
+                                ('last_cc_capacity', 'f4'),
+                                ('last_cv_capacity', 'f4'),
+                                ('temperature', 'f4'),
+                            ]
+
                         -     'avg_constant_current'
                         -     'avg_end_current_prev'
                         -     'avg_end_current'
                         -     'avg_end_voltage_prev'
                         -     'avg_end_voltage'
                         -     'avg_last_cc_voltage'
+
 
 
 

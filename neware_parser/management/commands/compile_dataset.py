@@ -96,7 +96,7 @@ def initial_processing(my_barcodes, fit_args):
                             sign
                         )
 
-                        each group is a tuple:
+                        each group is a dictinary indexed by various quantities:
                         - res, a numpy structured array with dtype:
                             [
                                 ('cycle_number', 'f4'),
@@ -116,13 +116,13 @@ def initial_processing(my_barcodes, fit_args):
                                 ('last_cv_capacity', 'f4'),
                                 ('temperature', 'f4'),
                             ]
-                        - dictionary of averages:
-                            -     'avg_constant_current'
-                            -     'avg_end_current_prev'
-                            -     'avg_end_current'
-                            -     'avg_end_voltage_prev'
-                            -     'avg_end_voltage'
-                            -     'avg_last_cc_voltage'
+
+                        -     'avg_constant_current'
+                        -     'avg_end_current_prev'
+                        -     'avg_end_current'
+                        -     'avg_end_voltage_prev'
+                        -     'avg_end_voltage'
+                        -     'avg_last_cc_voltage'
 
 
 
@@ -302,29 +302,28 @@ def initial_processing(my_barcodes, fit_args):
                     (cyc_group.constant_rate, cyc_group.end_rate_prev,
                      cyc_group.end_rate, cyc_group.end_voltage,
                      cyc_group.end_voltage_prev, typ)
-                ] = (
-                    res,
-                    {
-                        'avg_constant_current': numpy.average(
-                            res['constant_current']
-                        ),
-                        'avg_end_current_prev': numpy.average(
-                            res['end_current_prev']
-                        ),
-                        'avg_end_current':      numpy.average(
-                            res['end_current']
-                        ),
-                        'avg_end_voltage_prev': numpy.average(
-                            res['end_voltage_prev']
-                        ),
-                        'avg_end_voltage':      numpy.average(
-                            res['end_voltage']
-                        ),
-                        'avg_last_cc_voltage':  numpy.average(
-                            res['last_cc_voltage']
-                        ),
+                ] = {
+                    'main_data':res,
+                    'avg_constant_current': numpy.average(
+                        res['constant_current']
+                    ),
+                    'avg_end_current_prev': numpy.average(
+                        res['end_current_prev']
+                    ),
+                    'avg_end_current':      numpy.average(
+                        res['end_current']
+                    ),
+                    'avg_end_voltage_prev': numpy.average(
+                        res['end_voltage_prev']
+                    ),
+                    'avg_end_voltage':      numpy.average(
+                        res['end_voltage']
+                    ),
+                    'avg_last_cc_voltage':  numpy.average(
+                        res['last_cc_voltage']
+                    ),
                     }
-                )
+
 
         all_data[barcode] = {'cyc_grp_dict':cyc_grp_dict, 'all_reference_mats':all_reference_mats}
 

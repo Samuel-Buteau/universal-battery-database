@@ -59,6 +59,77 @@ def make_my_barcodes(fit_args):
 
 
 def initial_processing(my_barcodes, fit_args):
+    """
+        the output of this fuction has the following structure:
+            a dictionary indexed by various data:
+                - 'voltage_grid': 1D array of voltages
+                - 'current_grid': 1D array of log currents
+                - 'temperature_grid': 1D array of temperatures
+                - 'sign_grid': 1D array of signs
+                - 'all_data': a dictionary indexed by barcode. Each barcode yields:
+                    - 'all_reference_mats': structured array with dtype =
+                        [
+                            (
+                                'cycle_number',
+                                'f4'
+                            ),
+                            (
+                                'count_matrix',
+                                'f4',
+                                (
+                                    len(sign_grid),
+                                    len(voltage_grid_degradation),
+                                    len(current_grid),
+                                    len(temperature_grid)
+                                )
+                            ),
+                        ]
+
+                    - 'cyc_grp_dict': we know how this works.
+                        basically groups of steps indexed by group averages of
+                        (
+                            end_current_prev,
+                            constant_current,
+                            end_current,
+                            end_voltage_prev,
+                            end_voltage,
+                            sign
+                        )
+
+                        each group is a tuple:
+                        - res, a numpy structured array with dtype:
+                            [
+                                ('cycle_number', 'f4'),
+                                ('cc_voltage_vector', 'f4', len(voltage_grid)),
+                                ('cc_capacity_vector', 'f4', len(voltage_grid)),
+                                ('cc_mask_vector', 'f4', len(voltage_grid)),
+                                ('cv_current_vector', 'f4', fit_args['current_max_n']),
+                                ('cv_capacity_vector', 'f4', fit_args['current_max_n']),
+                                ('cv_mask_vector', 'f4', fit_args['current_max_n']),
+                                ('constant_current', 'f4'),
+                                ('end_current_prev', 'f4'),
+                                ('end_current', 'f4'),
+                                ('end_voltage_prev', 'f4'),
+                                ('end_voltage', 'f4'),
+                                ('last_cc_voltage', 'f4'),
+                                ('last_cc_capacity', 'f4'),
+                                ('last_cv_capacity', 'f4'),
+                                ('temperature', 'f4'),
+                            ]
+                        - dictionary of averages:
+                            -     'avg_constant_current'
+                            -     'avg_end_current_prev'
+                            -     'avg_end_current'
+                            -     'avg_end_voltage_prev'
+                            -     'avg_end_voltage'
+                            -     'avg_last_cc_voltage'
+
+
+
+
+        """
+
+
     all_data = {}
     voltage_grid = make_voltage_grid(
         fit_args['voltage_grid_min_v'],

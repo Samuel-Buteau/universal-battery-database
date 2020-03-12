@@ -97,7 +97,7 @@ def initial_processing(my_barcodes, fit_args):
                         )
 
                         each group is a dictinary indexed by various quantities:
-                        - res, a numpy structured array with dtype:
+                        - 'main_data":  a numpy structured array with dtype:
                             [
                                 ('cycle_number', 'f4'),
                                 ('cc_voltage_vector', 'f4', len(voltage_grid)),

@@ -52,6 +52,7 @@ def numpy_acc(my_dict, my_key, my_dat):
 # ==== Begin: initial processing ===============================================
 
 def initial_processing(my_data, barcodes, fit_args):
+    print('entered initial_processing')
     """
     my_data has the following structure:
         my_data: a dictionary indexed by various data:
@@ -132,7 +133,7 @@ def initial_processing(my_data, barcodes, fit_args):
 
 
         max_cap = 0.
-        cyc_grp_dict = my_data[barcode]
+        cyc_grp_dict = my_data['all_data'][barcode]['cyc_grp_dict']
         # find largest cap measured for this cell (max over all cycle groups)
         for k in cyc_grp_dict.keys():
             max_cap = max(
@@ -144,42 +145,42 @@ def initial_processing(my_data, barcodes, fit_args):
         for k_count, k in enumerate(cyc_grp_dict.keys()):
 
             # normalize capacity_vector with max_cap
-            my_data[barcode][k]['main_data']['cc_capacity_vector'] = (
+            my_data['all_data'][barcode]['cyc_grp_dict'][k]['main_data']['cc_capacity_vector'] = (
                 1. / max_cap * cyc_grp_dict[k]['main_data']['cc_capacity_vector']
             )
 
-            my_data[barcode][k]['main_data']['cv_capacity_vector'] = (
+            my_data['all_data'][barcode]['cyc_grp_dict'][k]['main_data']['cv_capacity_vector'] = (
                 1. / max_cap * cyc_grp_dict[k]['main_data']['cv_capacity_vector']
             )
 
-            my_data[barcode][k]['main_data']['cv_current_vector'] = (
+            my_data['all_data'][barcode]['cyc_grp_dict'][k]['main_data']['cv_current_vector'] = (
                 1. / max_cap * cyc_grp_dict[k]['main_data']['cv_current_vector']
             )
 
-            my_data[barcode][k]['main_data']['last_cc_capacity'] = (
+            my_data['all_data'][barcode]['cyc_grp_dict'][k]['main_data']['last_cc_capacity'] = (
                 1. / max_cap * cyc_grp_dict[k]['main_data']['last_cc_capacity']
             )
 
-            my_data[barcode][k]['main_data']['last_cv_capacity'] = (
+            my_data['all_data'][barcode]['cyc_grp_dict'][k]['main_data']['last_cv_capacity'] = (
                 1. / max_cap * cyc_grp_dict[k]['main_data']['last_cv_capacity']
             )
 
-            my_data[barcode][k]['main_data']['constant_current'] = (
+            my_data['all_data'][barcode]['cyc_grp_dict'][k]['main_data']['constant_current'] = (
                 1. / max_cap * cyc_grp_dict[k]['main_data']['constant_current']
             )
-            my_data[barcode][k]['main_data']['end_current_prev'] = (
+            my_data['all_data'][barcode]['cyc_grp_dict'][k]['main_data']['end_current_prev'] = (
                 1. / max_cap * cyc_grp_dict[k]['main_data']['end_current_prev']
             )
 
-            my_data[barcode][k]['avg_constant_current'] = (
+            my_data['all_data'][barcode]['cyc_grp_dict'][k]['avg_constant_current'] = (
                 1. / max_cap * cyc_grp_dict[k]['avg_constant_current']
             )
 
-            my_data[barcode][k]['avg_end_current'] = (
+            my_data['all_data'][barcode]['cyc_grp_dict'][k]['avg_end_current'] = (
                 1. / max_cap * cyc_grp_dict[k]['avg_end_current']
             )
 
-            my_data[barcode][k]['avg_end_current_prev'] = (
+            my_data['all_data'][barcode]['cyc_grp_dict'][k]['avg_end_current_prev'] = (
                 1. / max_cap * cyc_grp_dict[k]['avg_end_current_prev']
             )
 
@@ -391,7 +392,7 @@ def initial_processing(my_data, barcodes, fit_args):
         'cv_mask_tensor':          cv_mask_tensor,
 
         "optimizer":               optimizer,
-        "all_data":                my_data
+        "my_data":                my_data
     }
 
 
@@ -627,13 +628,14 @@ def ml_smoothing(fit_args):
     with open(dataset_path, 'rb') as f:
         my_data = pickle.load(f)
 
-    barcodes = list(my_data.keys())
+    barcodes = list(my_data['all_data'].keys())
 
     if len(fit_args['wanted_barcodes']) != 0:
         barcodes = list(
             set(barcodes).intersection(set(fit_args['wanted_barcodes'])))
 
     if len(barcodes) == 0:
+        print('no barcodes')
         return
 
     train_and_evaluate(
@@ -655,7 +657,7 @@ class Command(BaseCommand):
         parser.add_argument('--width', type = int, default = 32)
         parser.add_argument('--batch_size', type = int, default = 2 * 16)
 
-        vis = 10000
+        vis = 1000
         parser.add_argument('--print_loss_every', type = int, default = vis)
         parser.add_argument('--visualize_fit_every', type = int, default = vis)
         parser.add_argument('--visualize_vq_every', type = int, default = vis)

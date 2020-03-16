@@ -24,15 +24,20 @@ Shortened Variable Names:
 #TODO(sam): Each cycle must have an index mapping to the nearest reference cycle.
 #TODO(sam): to evaluate a cycle, there must be the multigrid, the reference cycle scaled by cycle number, the cell features, pasted together and ran through a neural net.
 
-NEIGH_INT_MIN_CYC_INDEX = 0
-NEIGH_INT_MAX_CYC_INDEX = 1
-NEIGH_INT_RATE_INDEX = 2
-NEIGH_INT_BARCODE_INDEX = 3
-NEIGH_INT_ABSOLUTE_INDEX = 4
-NEIGH_INT_VALID_CYC_INDEX = 5
-NEIGH_FLOAT_DELTA = 0
-NEIGH_FLOAT_CHG_RATE = 1
-NEIGH_FLOAT_DCHG_RATE = 2
+NEIGHBORHOOD_MIN_CYC_INDEX = 0
+NEIGHBORHOOD_MAX_CYC_INDEX = 1
+NEIGHBORHOOD_RATE_INDEX = 2
+NEIGHBORHOOD_BARCODE_INDEX = 3
+NEIGHBORHOOD_ABSOLUTE_CYCLE_INDEX = 4
+NEIGHBORHOOD_VALID_CYC_INDEX = 5
+NEIGHBORHOOD_SIGN_GRID = 6
+NEIGHBORHOOD_VOLTAGE_GRID = 7
+NEIGHBORHOOD_CURRENT_GRID = 8
+NEIGHBORHOOD_TEMPERATURE_GRID = 9
+NEIGHBORHOOD_ABSOLUTE_REFERENCE_INDEX = 10
+NEIGHBORHOOD_REFERENCE_INDEX = 11
+
+NEIGHBORHOOD_TOTAL = 12
 
 
 #TODO(sam): these huge tensors would be much easier to understand with ragged tensors.
@@ -60,7 +65,8 @@ def initial_processing(my_data, barcodes, fit_args):
             - 'current_grid': 1D array of log currents
             - 'temperature_grid': 1D array of temperatures
             - 'sign_grid': 1D array of signs
-            - 'all_data': a dictionary indexed by barcode. Each barcode yields:
+            - 'all_data': a dictionary indexed by barcode. 
+               Each barcode yields:
                 - 'all_reference_mats': structured array with dtype =
                     [
                         (
@@ -126,12 +132,26 @@ def initial_processing(my_data, barcodes, fit_args):
 
     compiled_data = {}
     number_of_compiled_cycles = 0
+    number_of_reference_cycles = 0
+
+    numpy_acc(
+        compiled_data,
+        'voltage_grid',
+        numpy.array([my_data['voltage_grid']])
+    )
+    numpy_acc(
+        compiled_data,
+        'temperature_grid',
+        numpy.array([my_data['temperature_grid']])
+    )
+    numpy_acc(
+        compiled_data,
+        'sign_grid',
+        numpy.array([my_data['sign_grid']])
+    )
+
 
     for barcode_count, barcode in enumerate(barcodes):
-
-
-
-
         max_cap = 0.
         cyc_grp_dict = my_data['all_data'][barcode]['cyc_grp_dict']
         # find largest cap measured for this cell (max over all cycle groups)
@@ -139,8 +159,13 @@ def initial_processing(my_data, barcodes, fit_args):
             max_cap = max(
                 max_cap, max(abs(cyc_grp_dict[k]['main_data']['last_cc_capacity'])))
 
+        # the current grid is adjusted by the max capacity of the barcode. It is in log space, so I/Q becomes log(I) - log(Q)
+        numpy_acc(
+            compiled_data,
+            'current_grid',
+            numpy.array([my_data['current_grid'] - numpy.log(max_cap)])
 
-
+        )
 
         for k_count, k in enumerate(cyc_grp_dict.keys()):
 
@@ -284,15 +309,33 @@ def initial_processing(my_data, barcodes, fit_args):
                 '''
                 #TODO(sam): here, figure out where the reference cycle is, and note the index
 
+                neighborhood_data_i= numpy.zeros(NEIGHBORHOOD_TOTAL, dtype=numpy.int32)
+
+                neighborhood_data_i[NEIGHBORHOOD_MIN_CYC_INDEX] = min_cyc_index
+                neighborhood_data_i[NEIGHBORHOOD_MAX_CYC_INDEX] = max_cyc_index
+                neighborhood_data_i[NEIGHBORHOOD_RATE_INDEX] = k_count
+                neighborhood_data_i[NEIGHBORHOOD_BARCODE_INDEX] = barcode_count
+                neighborhood_data_i[NEIGHBORHOOD_ABSOLUTE_CYCLE_INDEX] = number_of_compiled_cycles
+                neighborhood_data_i[NEIGHBORHOOD_VALID_CYC_INDEX] = 0 # a weight based on prevalance. Set later
+                neighborhood_data_i[NEIGHBORHOOD_SIGN_GRID] = 0
+                neighborhood_data_i[NEIGHBORHOOD_VOLTAGE_GRID] = 0
+                neighborhood_data_i[NEIGHBORHOOD_CURRENT_GRID] = barcode_count
+                neighborhood_data_i[NEIGHBORHOOD_TEMPERATURE_GRID] = 0
+
+
+                center_cycle = float(cyc)
+                reference_cycles = my_data['all_data'][barcode]['all_reference_mats']['cycle_number']
+
+                index_of_closest_reference = numpy.argmin(
+                    abs(center_cycle - reference_cycles)
+                )
+
+                neighborhood_data_i[NEIGHBORHOOD_ABSOLUTE_REFERENCE_INDEX] = number_of_reference_cycles
+                neighborhood_data_i[NEIGHBORHOOD_REFERENCE_INDEX] = index_of_closest_reference
+
+
                 neighborhood_data.append(
-                    [
-                        min_cyc_index,
-                        max_cyc_index,
-                        k_count,
-                        barcode_count,
-                        number_of_compiled_cycles,
-                        0 # a weight based on prevalance. Set later
-                    ]
+                    neighborhood_data_i
                 )
 
             if valid_cycles != 0:
@@ -302,12 +345,16 @@ def initial_processing(my_data, barcodes, fit_args):
 
                 # the empty slot becomes the count of added neighborhoods, which
                 # are used to counterbalance the bias toward longer cycle life
-                neighborhood_data[:, NEIGH_INT_VALID_CYC_INDEX] = valid_cycles
+                neighborhood_data[:, NEIGHBORHOOD_VALID_CYC_INDEX] = valid_cycles
 
                 numpy_acc(compiled_data, 'neighborhood_data', neighborhood_data)
 
 
             number_of_compiled_cycles += len(cyc_grp_dict[k]['main_data']['cycle_number'])
+
+            number_of_reference_cycles += len(my_data['all_data'][barcode]['all_reference_mats']['cycle_number'])
+            numpy_acc(compiled_data, 'reference_cycle', my_data['all_data'][barcode]['all_reference_mats']['cycle_number'])
+            numpy_acc(compiled_data, 'count_matrix', my_data['all_data'][barcode]['all_reference_mats']['count_matrix'])
 
             numpy_acc(compiled_data, 'cycle', cyc_grp_dict[k]['main_data']['cycle_number'])
             numpy_acc(compiled_data, 'cc_voltage_vector', cyc_grp_dict[k]['main_data']['cc_voltage_vector'])
@@ -325,6 +372,8 @@ def initial_processing(my_data, barcodes, fit_args):
 
     neighborhood_data = tf.constant(compiled_data['neighborhood_data'])
 
+
+    compiled_tensors = {}
     # cycles go from 0 to 6000, but nn prefers normally distributed variables
     # so cycle numbers is normalized with mean and variance
     cycle_tensor = tf.constant(compiled_data['cycle'])
@@ -332,23 +381,23 @@ def initial_processing(my_data, barcodes, fit_args):
     cycle_m = cycle_m.numpy()
     cycle_v = cycle_v.numpy()
     cycle_tensor = (cycle_tensor - cycle_m) / tf.sqrt(cycle_v)
+    compiled_tensors['cycle'] = cycle_tensor
 
+    labels = [
+        'cc_voltage_vector',
+        'cc_capacity_vector',
+        'cc_mask_vector',
+        'cv_capacity_vector',
+        'cv_current_vector',
+        'cv_mask_vector',
+        'constant_current',
+        'end_current_prev',
+        'end_voltage_prev',
+        'end_voltage'
 
-    cc_voltage_tensor = tf.constant(compiled_data['cc_voltage_vector'])
-    cc_capacity_tensor = tf.constant(compiled_data['cc_capacity_vector'])
-    cc_mask_tensor = tf.constant(compiled_data['cc_mask_vector'])
-    cv_capacity_tensor = tf.constant(compiled_data['cv_capacity_vector'])
-    cv_current_tensor = tf.constant(compiled_data['cv_current_vector'])
-    cv_mask_tensor = tf.constant(compiled_data['cv_mask_vector'])
-
-    constant_current_tensor = tf.constant(compiled_data['constant_current'])
-    end_current_prev_tensor = tf.constant(compiled_data['end_current_prev'])
-    end_voltage_prev_tensor = tf.constant(compiled_data['end_voltage_prev'])
-    end_voltage_tensor = tf.constant(compiled_data['end_voltage'])
-
-
-
-
+    ]
+    for label in labels:
+        compiled_tensors[label] = tf.constant(compiled_data[label])
 
 
     batch_size = fit_args['batch_size']
@@ -374,22 +423,11 @@ def initial_processing(my_data, barcodes, fit_args):
         "mirrored_strategy":       mirrored_strategy,
         "degradation_model":       degradation_model,
 
-        "cycle_tensor":            cycle_tensor,
-        "constant_current_tensor": constant_current_tensor,
-        "end_current_prev_tensor": end_current_prev_tensor,
-        "end_voltage_prev_tensor": end_voltage_prev_tensor,
-        "end_voltage_tensor":      end_voltage_tensor,
+        "compiled_tensors":            compiled_tensors,
 
         "train_ds":                train_ds,
         "cycle_m":                 cycle_m,
         "cycle_v":                 cycle_v,
-
-        'cc_voltage_tensor':       cc_voltage_tensor,
-        'cc_capacity_tensor':      cc_capacity_tensor,
-        'cc_mask_tensor':          cc_mask_tensor,
-        'cv_capacity_tensor':      cv_capacity_tensor,
-        'cv_current_tensor':       cv_current_tensor,
-        'cv_mask_tensor':          cv_mask_tensor,
 
         "optimizer":               optimizer,
         "my_data":                my_data
@@ -414,33 +452,10 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                 count += 1
 
                 train_step_params = {
-                    "neighborhood":               neighborhood,
-
-                    "cycle_tensor":           init_returns["cycle_tensor"],
-                    "constant_current_tensor": init_returns[
-                                                   "constant_current_tensor"],
-                    "end_current_prev_tensor": init_returns[
-                                                   "end_current_prev_tensor"],
-                    "end_voltage_prev_tensor": init_returns[
-                                                   "end_voltage_prev_tensor"],
-                    "end_voltage_tensor":      init_returns[
-                                                   "end_voltage_tensor"],
-
-                    "degradation_model":       init_returns[
-                                                   "degradation_model"],
-                    "optimizer":               init_returns["optimizer"],
-
-                    'cc_voltage_tensor':       init_returns[
-                                                   "cc_voltage_tensor"],
-                    'cc_capacity_tensor':      init_returns[
-                                                   "cc_capacity_tensor"],
-                    'cc_mask_tensor':          init_returns["cc_mask_tensor"],
-                    'cv_capacity_tensor':      init_returns[
-                                                   "cv_capacity_tensor"],
-                    'cv_current_tensor':       init_returns[
-                                                   "cv_current_tensor"],
-                    'cv_mask_tensor':          init_returns["cv_mask_tensor"],
-
+                    "neighborhood": neighborhood,
+                    "compiled_tensors": init_returns['compiled_tensors'],
+                    "optimizer": init_returns['optimizer'],
+                    "degradation_model": init_returns['degradation_model'],
                 }
 
                 dist_train_step(mirrored_strategy, train_step_params, fit_args)
@@ -471,21 +486,21 @@ def train_step(params, fit_args):
 
     neighborhood = params["neighborhood"]
 
-    cycle_tensor = params["cycle_tensor"]
-    constant_current_tensor = params["constant_current_tensor"]
-    end_current_prev_tensor = params["end_current_prev_tensor"]
-    end_voltage_prev_tensor = params["end_voltage_prev_tensor"]
-    end_voltage_tensor = params["end_voltage_tensor"]
+    cycle_tensor = params["compiled_tensors"]['cycle']
+    constant_current_tensor = params["compiled_tensors"]["constant_current"]
+    end_current_prev_tensor = params["compiled_tensors"]["end_current_prev"]
+    end_voltage_prev_tensor = params["compiled_tensors"]["end_voltage_prev"]
+    end_voltage_tensor = params["compiled_tensors"]["end_voltage"]
 
     degradation_model = params["degradation_model"]
     optimizer = params["optimizer"]
 
-    cc_voltage_tensor = params["cc_voltage_tensor"]
-    cc_capacity_tensor = params["cc_capacity_tensor"]
-    cc_mask_tensor = params["cc_mask_tensor"]
-    cv_capacity_tensor = params["cv_capacity_tensor"]
-    cv_current_tensor = params["cv_current_tensor"]
-    cv_mask_tensor = params["cv_mask_tensor"]
+    cc_voltage_tensor = params["compiled_tensors"]["cc_voltage_vector"]
+    cc_capacity_tensor = params["compiled_tensors"]["cc_capacity_vector"]
+    cc_mask_tensor = params["compiled_tensors"]["cc_mask_vector"]
+    cv_capacity_tensor = params["compiled_tensors"]["cv_capacity_vector"]
+    cv_current_tensor = params["compiled_tensors"]["cv_current_vector"]
+    cv_mask_tensor = params["compiled_tensors"]["cv_mask_vector"]
 
     # need to split the range
     batch_size2 = neighborhood.shape[0]
@@ -502,12 +517,12 @@ def train_step(params, fit_args):
         [batch_size2], minval = 0., maxval = 1., dtype = tf.float32)
     cycle_indecies = tf.cast(
         (1. - cycle_indecies_lerp) * tf.cast(
-            neighborhood[:, NEIGH_INT_MIN_CYC_INDEX]
-            + neighborhood[:, NEIGH_INT_ABSOLUTE_INDEX],
+            neighborhood[:, NEIGHBORHOOD_MIN_CYC_INDEX]
+            + neighborhood[:, NEIGHBORHOOD_ABSOLUTE_CYCLE_INDEX],
             tf.float32
         ) + (cycle_indecies_lerp) * tf.cast(
-            neighborhood[:, NEIGH_INT_MAX_CYC_INDEX]
-            + neighborhood[:, NEIGH_INT_ABSOLUTE_INDEX],
+            neighborhood[:, NEIGHBORHOOD_MAX_CYC_INDEX]
+            + neighborhood[:, NEIGHBORHOOD_ABSOLUTE_CYCLE_INDEX],
             tf.float32
         ),
         tf.int32
@@ -540,7 +555,7 @@ def train_step(params, fit_args):
     cc_mask = tf.gather(cc_mask_tensor, indices = cycle_indecies)
     cc_mask_2 = tf.tile(
         tf.reshape(
-            1. / (tf.cast(neighborhood[:, NEIGH_INT_VALID_CYC_INDEX], tf.float32)),
+            1. / (tf.cast(neighborhood[:, NEIGHBORHOOD_VALID_CYC_INDEX], tf.float32)),
             [batch_size2, 1]
         ),
         [1, cc_voltage.shape[1]]
@@ -551,13 +566,13 @@ def train_step(params, fit_args):
     cv_mask = tf.gather(cv_mask_tensor, indices = cycle_indecies)
     cv_mask_2 = tf.tile(
         tf.reshape(
-            1. / (tf.cast(neighborhood[:, NEIGH_INT_VALID_CYC_INDEX], tf.float32)),
+            1. / (tf.cast(neighborhood[:, NEIGHBORHOOD_VALID_CYC_INDEX], tf.float32)),
             [batch_size2, 1]
         ),
         [1, cv_current.shape[1]]
     )
 
-    cell_indecies = neighborhood[:, NEIGH_INT_BARCODE_INDEX]
+    cell_indecies = neighborhood[:, NEIGHBORHOOD_BARCODE_INDEX]
 
     with tf.GradientTape() as tape:
         train_results = degradation_model(

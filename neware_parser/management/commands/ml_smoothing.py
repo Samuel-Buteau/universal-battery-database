@@ -30,10 +30,10 @@ NEIGHBORHOOD_RATE_INDEX = 2
 NEIGHBORHOOD_BARCODE_INDEX = 3
 NEIGHBORHOOD_ABSOLUTE_CYCLE_INDEX = 4
 NEIGHBORHOOD_VALID_CYC_INDEX = 5
-NEIGHBORHOOD_SIGN_GRID = 6
-NEIGHBORHOOD_VOLTAGE_GRID = 7
-NEIGHBORHOOD_CURRENT_GRID = 8
-NEIGHBORHOOD_TEMPERATURE_GRID = 9
+NEIGHBORHOOD_SIGN_GRID_INDEX = 6
+NEIGHBORHOOD_VOLTAGE_GRID_INDEX = 7
+NEIGHBORHOOD_CURRENT_GRID_INDEX = 8
+NEIGHBORHOOD_TEMPERATURE_GRID_INDEX = 9
 NEIGHBORHOOD_ABSOLUTE_REFERENCE_INDEX = 10
 NEIGHBORHOOD_REFERENCE_INDEX = 11
 
@@ -317,10 +317,10 @@ def initial_processing(my_data, barcodes, fit_args):
                 neighborhood_data_i[NEIGHBORHOOD_BARCODE_INDEX] = barcode_count
                 neighborhood_data_i[NEIGHBORHOOD_ABSOLUTE_CYCLE_INDEX] = number_of_compiled_cycles
                 neighborhood_data_i[NEIGHBORHOOD_VALID_CYC_INDEX] = 0 # a weight based on prevalance. Set later
-                neighborhood_data_i[NEIGHBORHOOD_SIGN_GRID] = 0
-                neighborhood_data_i[NEIGHBORHOOD_VOLTAGE_GRID] = 0
-                neighborhood_data_i[NEIGHBORHOOD_CURRENT_GRID] = barcode_count
-                neighborhood_data_i[NEIGHBORHOOD_TEMPERATURE_GRID] = 0
+                neighborhood_data_i[NEIGHBORHOOD_SIGN_GRID_INDEX] = 0
+                neighborhood_data_i[NEIGHBORHOOD_VOLTAGE_GRID_INDEX] = 0
+                neighborhood_data_i[NEIGHBORHOOD_CURRENT_GRID_INDEX] = barcode_count
+                neighborhood_data_i[NEIGHBORHOOD_TEMPERATURE_GRID_INDEX] = 0
 
 
                 center_cycle = float(cyc)
@@ -393,8 +393,14 @@ def initial_processing(my_data, barcodes, fit_args):
         'constant_current',
         'end_current_prev',
         'end_voltage_prev',
-        'end_voltage'
+        'end_voltage',
 
+        'count_matrix',
+
+        'sign_grid',
+        'voltage_grid',
+        'current_grid',
+        'temperature_grid',
     ]
     for label in labels:
         compiled_tensors[label] = tf.constant(compiled_data[label])
@@ -422,15 +428,14 @@ def initial_processing(my_data, barcodes, fit_args):
     return {
         "mirrored_strategy":       mirrored_strategy,
         "degradation_model":       degradation_model,
-
-        "compiled_tensors":            compiled_tensors,
+        "compiled_tensors":        compiled_tensors,
 
         "train_ds":                train_ds,
         "cycle_m":                 cycle_m,
         "cycle_v":                 cycle_v,
 
         "optimizer":               optimizer,
-        "my_data":                my_data
+        "my_data":                 my_data
     }
 
 
@@ -486,6 +491,11 @@ def train_step(params, fit_args):
 
     neighborhood = params["neighborhood"]
 
+    sign_grid_tensor = params["compiled_tensors"]['sign_grid']
+    voltage_grid_tensor = params["compiled_tensors"]['voltage_grid']
+    current_grid_tensor = params["compiled_tensors"]['current_grid']
+    temperature_grid_tensor = params["compiled_tensors"]['temperature_grid']
+
     cycle_tensor = params["compiled_tensors"]['cycle']
     constant_current_tensor = params["compiled_tensors"]["constant_current"]
     end_current_prev_tensor = params["compiled_tensors"]["end_current_prev"]
@@ -528,6 +538,52 @@ def train_step(params, fit_args):
         tf.int32
     )
 
+    sign_grid = tf.gather(
+        sign_grid_tensor,
+        indices = neighborhood[:, NEIGHBORHOOD_SIGN_GRID_INDEX], axis = 0
+    )
+    sign_grid_dim = sign_grid_tensor.shape[1]
+    voltage_grid = tf.gather(
+        voltage_grid_tensor,
+        indices=neighborhood[:, NEIGHBORHOOD_VOLTAGE_GRID_INDEX], axis=0
+    )
+    voltage_grid_dim = voltage_grid_tensor.shape[1]
+    current_grid = tf.gather(
+        current_grid_tensor,
+        indices=neighborhood[:, NEIGHBORHOOD_CURRENT_GRID_INDEX], axis=0
+    )
+    current_grid_dim = current_grid_tensor.shape[1]
+
+    temperature_grid = tf.gather(
+        temperature_grid_tensor,
+        indices=neighborhood[:, NEIGHBORHOOD_TEMPERATURE_GRID_INDEX], axis=0
+    )
+    temperature_grid_dim = temperature_grid_tensor.shape[1]
+
+    svit_grid = tf.concat(
+        (
+            tf.tile(
+                tf.reshape(sign_grid, [batch_size2, sign_grid_dim, 1, 1, 1, 1])
+                [1, 1, voltage_grid_dim, current_grid_dim, temperature_grid_dim, 1],
+            ),
+            tf.tile(
+                tf.reshape(voltage_grid, [batch_size2, 1, voltage_grid_dim, 1, 1, 1])
+                [1, sign_grid_dim, 1, current_grid_dim, temperature_grid_dim, 1],
+            ),
+            tf.tile(
+                tf.reshape(current_grid, [batch_size2, 1, 1, current_grid_dim, 1, 1])
+                [1, sign_grid_dim, voltage_grid_dim, 1, temperature_grid_dim, 1],
+            ),
+            tf.tile(
+                tf.reshape(temperature_grid, [batch_size2, 1, 1, 1, temperature_grid_dim, 1])
+                [1, sign_grid_dim, voltage_grid_dim, current_grid_dim, 1, 1],
+            ),
+        ),
+        axis = -1
+    )
+
+    #TODO: get the count matrix grids,
+    #TODO: the rest of the stress to strain assembly must occur within the model.
     cycle = tf.gather(
         cycle_tensor,
         indices = cycle_indecies, axis = 0

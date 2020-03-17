@@ -496,6 +496,8 @@ def train_step(params, fit_args):
     current_grid_tensor = params["compiled_tensors"]['current_grid']
     temperature_grid_tensor = params["compiled_tensors"]['temperature_grid']
 
+    count_matrix_tensor = params["compiled_tensors"]['count_matrix']
+
     cycle_tensor = params["compiled_tensors"]['cycle']
     constant_current_tensor = params["compiled_tensors"]["constant_current"]
     end_current_prev_tensor = params["compiled_tensors"]["end_current_prev"]
@@ -579,8 +581,21 @@ def train_step(params, fit_args):
                 [1, sign_grid_dim, voltage_grid_dim, current_grid_dim, 1, 1],
             ),
         ),
-        axis = -1
+        axis=-1
     )
+
+    count_matrix = tf.reshape(
+        tf.gather(
+            count_matrix_tensor,
+            (
+                neighborhood[:, NEIGHBORHOOD_ABSOLUTE_REFERENCE_INDEX]
+                + neighborhood[:, NEIGHBORHOOD_REFERENCE_INDEX]
+            ),
+            axis=0,
+        ),
+        [batch_size2, sign_grid_dim, voltage_grid_dim, current_grid_dim,temperature_grid_dim,1],
+    )
+
 
     #TODO: get the count matrix grids,
     #TODO: the rest of the stress to strain assembly must occur within the model.
@@ -641,6 +656,8 @@ def train_step(params, fit_args):
                 cell_indecies,
                 cc_voltage,
                 cv_current,
+                svit_grid,
+                count_matrix,
             ),
             training = True
         )

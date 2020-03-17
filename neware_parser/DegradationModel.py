@@ -173,7 +173,7 @@ def incentive_combine(As):
 
 class DegradationModel(Model):
 
-    def __init__(self, num_keys, depth, width):
+    def __init__(self, num_keys, depth, width, n_channels=16):
         super(DegradationModel, self).__init__()
 
         self.nn_r = feedforward_nn_parameters(depth, width)
@@ -186,8 +186,14 @@ class DegradationModel(Model):
             num_keys = num_keys
         )
 
+        self.stress_to_strain_layer = StressToStrainLayer(
+            num_keys = num_keys,
+            n_channels=n_channels
+        )
+
         self.width = width
         self.num_keys = num_keys
+        self.n_channels = n_channels
 
     # Begin: nn application functions ==========================================
 
@@ -240,6 +246,16 @@ class DegradationModel(Model):
             cycle = params['cycle']
         )
 
+    def stress_to_strain_direct(self, norm_cycle, cell_features, svit_grid, count_matrix, training=False):
+        return self.stress_to_strain_layer(
+            (
+                norm_cycle,
+                cell_features,
+                svit_grid,
+                count_matrix,
+            ),
+            training = training
+        )
     def soc_for_derivative(self, params):
         return self.soc_direct(
             cell_features = self.cell_features_direct(
@@ -414,6 +430,7 @@ class DegradationModel(Model):
         )
 
         return theoretical_cap * (soc_1 - self.add_current_dep(soc_0, params))
+
 
     def nn_call(self, nn_func, dependencies):
         centers = nn_func['initial'](
@@ -1085,3 +1102,74 @@ class DictionaryLayer(Layer):
         fetched_log_sig = tf.gather(log_sig, indecies, axis = 0)
         fetched_features = fetched_mean + tf.exp(fetched_log_sig / 2.) * eps
         return tf.stop_gradient(fetched_features)
+
+
+
+class StressToStrainLayer(Layer):
+    def __init__(self, num_keys, n_channels):
+        super(StressToStrainLayer, self).__init__()
+        self.num_keys = num_keys
+        self.n_channels = n_channels
+        self.input_kernel = self.add_weight(
+            "input_kernel", shape=[1, 1, 1, 1, 4 + 1 + self.num_keys, self.n_channels]
+        )
+
+        self.v_i_kernel_1 = self.add_weight(
+            "v_i_kernel_1", shape=[1, 3, 3, 1, self.n_channels, self.n_channels]
+        )
+
+        self.v_i_kernel_2 = self.add_weight(
+            "v_i_kernel_2", shape=[1, 3, 3, 1, self.n_channels, self.n_channels]
+        )
+
+        self.t_kernel = self.add_weight(
+            "t_kernel", shape=[1, 1, 1, 3, self.n_channels, self.n_channels]
+        )
+
+        self.output_kernel = self.add_weight(
+            "output_kernel", shape=[1, 1, 1, 1, self.n_channels, self.n_channels]
+        )
+
+
+    def call(self, input, training = True):
+        norm_cycle = input[0]  # matrix; dim: [batch, 1]
+        cell_features = input[1]  # matrix; dim: [batch, n_features]
+        svit_grid = input[2] # tensor; dim: [batch, n_sign, n_voltage, n_current, n_temperature, 4]
+        count_matrix = input[3] # tensor; dim: [batch, n_sign, n_voltage, n_current, n_temperature, 1]
+
+        n_batch = count_matrix.shape[0]
+        n_sign = count_matrix.shape[1]
+        n_voltage = count_matrix.shape[2]
+        n_current = count_matrix.shape[3]
+        n_temperature = count_matrix.shape[4]
+
+        total_count_matrix = tf.reshape(norm_cycle, [n_batch, 1, 1, 1, 1, 1]) * count_matrix
+        cell_features_grid = tf.tile(
+            tf.reshape(cell_features, [n_batch, 1, 1, 1, 1, -1]),
+            [1, n_sign, n_voltage, n_current, n_temperature, 1]
+        )
+
+        val = tf.concat(
+            (
+                svit_grid,
+                total_count_matrix,
+                cell_features_grid
+            ),
+            axis = -1
+        )
+        filters=[
+            (self.input_kernel, 'none'),
+            (self.v_i_kernel_1, 'relu'),
+            (self.t_kernel, 'relu'),
+            (self.v_i_kernel_2,'relu'),
+            (self.output_kernel,'none')
+        ]
+
+        for fil,activ in filters:
+            val = tf.nn.convolution(input=val, filters=fil, padding='SAME')
+            if activ is 'relu':
+                val = tf.nn.relu(val)
+
+        val = tf.reduce_mean(val, axis=[1,2,3,4], keepdims=False)
+
+        return val

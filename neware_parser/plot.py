@@ -85,6 +85,55 @@ def make_legend(key):
     )
 
 
+def get_svit_and_count(my_data, barcode):
+    n_sign = len(my_data['sign_grid'])
+    n_voltage = len(my_data['voltage_grid'])
+    n_current = len(my_data['all_data'][barcode]['current_grid'])
+    n_temperature = len(my_data['temperature_grid'])
+
+    count_matrix = np.reshape(
+        my_data['all_data'][barcode]['all_reference_mats']['count_matrix'][-1],
+        [n_sign, n_voltage, n_current, n_temperature, 1]
+    )
+
+    svit_grid = np.concatenate(
+        (
+            np.tile(
+                np.reshape(
+                    my_data['sign_grid'],
+                    [n_sign, 1, 1, 1, 1]
+                ),
+                [1, n_voltage, n_current, n_temperature, 1]
+            ),
+
+            np.tile(
+                np.reshape(
+                    my_data['voltage_grid'],
+                    [1, n_voltage, 1, 1, 1]
+                ),
+                [n_sign, 1, n_current, n_temperature, 1]
+            ),
+
+            np.tile(
+                np.reshape(
+                    my_data['all_data'][barcode]['current_grid'],
+                    [1, 1, n_current, 1, 1]
+                ),
+                [n_sign, n_voltage, 1, n_temperature, 1]
+            ),
+            np.tile(
+                np.reshape(
+                    my_data['temperature_grid'],
+                    [1, 1, 1, n_temperature, 1]
+                ),
+                [n_sign, n_voltage, n_current, 1, 1]
+            ),
+        ),
+        axis=-1
+
+    )
+    return {'svit_grid':svit_grid, 'count_matrix':count_matrix}
+
 def plot_vq(plot_params, init_returns):
     barcodes = plot_params["barcodes"]
     count = plot_params["count"]
@@ -184,9 +233,14 @@ def plot_vq(plot_params, init_returns):
                         np.arange(np.log(curr_min), np.log(curr_max),
                                   .05 * (np.log(curr_max) - np.log(curr_min))))
 
+
+                svit_and_count = get_svit_and_count(my_data, barcode)
+
                 for i, cyc in enumerate(cycle):
                     scaled_cyc = ((float(cyc) - cycle_m) / tf.sqrt(cycle_v))
                     mult = 1. - (.5 * float(cyc) / 6000.)
+
+
 
                     test_results = test_all_voltages(
                         scaled_cyc,
@@ -198,6 +252,8 @@ def plot_vq(plot_params, init_returns):
                         degradation_model,
                         v_range,
                         current_range,
+                        svit_and_count['svit_grid'],
+                        svit_and_count['count_matrix'],
                     )
 
                     if mode == 'cc':
@@ -243,6 +299,8 @@ def plot_capacity(plot_params, init_returns):
     cycle_v = init_returns["cycle_v"]
 
     for barcode_count, barcode in enumerate(barcodes):
+        svit_and_count = get_svit_and_count(my_data, barcode)
+
         fig = plt.figure(figsize = [11, 10])
 
         for typ, off, mode in [('dchg', 0, 'cc'), ('chg', 1, 'cc'),
@@ -279,7 +337,6 @@ def plot_capacity(plot_params, init_returns):
                     s = 5,
                     label = make_legend(k)
                 )
-
 
 
             for k_count, k in enumerate(list_of_keys):
@@ -327,7 +384,9 @@ def plot_capacity(plot_params, init_returns):
                     my_data['all_data'][barcode]['cyc_grp_dict'][k]['avg_end_voltage_prev'],
                     my_data['all_data'][barcode]['cyc_grp_dict'][k]['avg_end_voltage'],
                     target_currents,
-                    barcode_count, degradation_model
+                    barcode_count, degradation_model,
+                    svit_and_count['svit_grid'],
+                    svit_and_count['count_matrix']
                 )
                 if mode == 'cc':
                     pred_cap = tf.reshape(
@@ -383,7 +442,9 @@ def plot_capacity(plot_params, init_returns):
                     my_data['all_data'][barcode]['cyc_grp_dict'][k]['avg_end_voltage_prev'],
                     my_data['all_data'][barcode]['cyc_grp_dict'][k]['avg_end_voltage'],
                     target_currents,
-                    barcode_count, degradation_model
+                    barcode_count, degradation_model,
+                    svit_and_count['svit_grid'],
+                    svit_and_count['count_matrix']
                 )
 
                 pred_cap = tf.reshape(
@@ -428,7 +489,9 @@ def plot_capacity(plot_params, init_returns):
                     my_data['all_data'][barcode]['cyc_grp_dict'][k]['avg_end_voltage_prev'],
                     my_data['all_data'][barcode]['cyc_grp_dict'][k]['avg_end_voltage'],
                     target_currents,
-                    barcode_count, degradation_model
+                    barcode_count, degradation_model,
+                    svit_and_count['svit_grid'],
+                    svit_and_count['count_matrix']
                 )
 
                 pred_cap = tf.reshape(test_results["pred_r"], shape = [-1])
@@ -467,7 +530,9 @@ def plot_capacity(plot_params, init_returns):
                     my_data['all_data'][barcode]['cyc_grp_dict'][k]['avg_end_voltage_prev'],
                     my_data['all_data'][barcode]['cyc_grp_dict'][k]['avg_end_voltage'],
                     target_currents,
-                    barcode_count, degradation_model
+                    barcode_count, degradation_model,
+                    svit_and_count['svit_grid'],
+                    svit_and_count['count_matrix'],
                 )
                 pred_cap = tf.reshape(test_results["pred_shift"], shape = [-1])
 
@@ -479,12 +544,15 @@ def plot_capacity(plot_params, init_returns):
 
 def test_all_voltages(cycle, constant_current, end_current_prev,
                       end_voltage_prev, end_voltage, barcode_count,
-                      degradation_model, voltages, currents):
+                      degradation_model, voltages, currents, svit_grid, count_matrix):
     expanded_cycle = tf.constant(cycle, shape = [1, 1])
     expanded_constant_current = tf.constant(constant_current, shape = [1, 1])
     expanded_end_current_prev = tf.constant(end_current_prev, shape = [1, 1])
     expanded_end_voltage_prev = tf.constant(end_voltage_prev, shape = [1, 1])
     expanded_end_voltage = tf.constant(end_voltage, shape = [1, 1])
+
+    expanded_svit_grid = tf.constant([svit_grid])
+    expanded_count_matrix = tf.constant([count_matrix])
 
     indecies = tf.reshape(barcode_count, [1])
 
@@ -497,7 +565,9 @@ def test_all_voltages(cycle, constant_current, end_current_prev,
             expanded_end_voltage,
             indecies,
             tf.reshape(voltages, [1, len(voltages)]),
-            tf.reshape(currents, [1, len(currents)])
+            tf.reshape(currents, [1, len(currents)]),
+            expanded_svit_grid,
+            expanded_count_matrix,
         ),
         training = False
     )
@@ -505,7 +575,7 @@ def test_all_voltages(cycle, constant_current, end_current_prev,
 
 def test_single_voltage(cycle, v, constant_current, end_current_prev,
                         end_voltage_prev, end_voltage, currents, barcode_count,
-                        degradation_model):
+                        degradation_model, svit_grid, count_matrix):
     expanded_cycle = tf.expand_dims(cycle, axis = 1)
     expanded_constant_current = tf.constant(
         constant_current,
@@ -523,6 +593,9 @@ def test_single_voltage(cycle, v, constant_current, end_current_prev,
 
     indecies = tf.tile(tf.expand_dims(barcode_count, axis = 0), [len(cycle)])
 
+    expanded_svit_grid = tf.tile(tf.constant([svit_grid]), [len(cycle), 1, 1, 1, 1, 1])
+    expanded_count_matrix = tf.tile(tf.constant([count_matrix]), [len(cycle), 1, 1, 1, 1, 1])
+
     return degradation_model(
         (
             expanded_cycle,
@@ -533,7 +606,9 @@ def test_single_voltage(cycle, v, constant_current, end_current_prev,
             indecies,
             tf.constant(v, shape = [len(cycle), 1]),
             tf.tile(tf.reshape(currents, shape = [1, len(currents)]),
-                    [len(cycle), 1])
+                    [len(cycle), 1]),
+            expanded_svit_grid,
+            expanded_count_matrix
         ),
         training = False
     )

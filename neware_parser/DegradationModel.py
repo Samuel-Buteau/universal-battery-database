@@ -308,24 +308,39 @@ class DegradationModel(Model):
             shift = params['shift']
         )
 
-    '''
+
     def theoretical_cap_for_derivative(self, params, training=True):
-        return self.theoretical_cap_direct(
-            norm_cycle = self.norm_cycle(
+        norm_cycle = self.norm_cycle(
                 params = {
                     'cycle':    params['cycle'],
                     'features': params['features']
                 },
                 training=training
-            ),
-            current = params['current'],
-            cell_features = self.cell_features_direct(
-                features = params['features'],
-                training=training
-            ),
+            )
+        cell_features = self.cell_features_direct(
+            features=params['features'],
             training=training
         )
 
+        strainless = self.theoretical_cap_strainless_direct(cell_features, training=training)
+
+        strain = self.stress_to_strain_direct(
+            norm_cycle=norm_cycle,
+            cell_features=cell_features,
+            svit_grid=params['svit_grid'],
+            count_matrix=params['count_matrix'],
+            training=training
+        )
+
+        return self.theoretical_cap_direct(
+            strain = strain,
+            current = params['current'],
+            theoretical_cap_strainless = strainless,
+            training = training
+        )
+
+
+    '''
     def shift_for_derivative(self, params, training=True):
         return self.shift_direct(
             norm_cycle = self.norm_cycle(
@@ -830,7 +845,7 @@ class DegradationModel(Model):
 
             # NOTE(sam): this is an example of a forall. (for all voltages,
             # and all cell features)
-            n_sample = 64
+            n_sample = 1
             sampled_voltages = tf.random.uniform(
                 minval = 2.5,
                 maxval = 5.,
@@ -852,8 +867,36 @@ class DegradationModel(Model):
                 maxval = 1.,
                 shape = [n_sample, 1]
             )
+            sampled_svit_grid = tf.gather(
+                svit_grid,
+                indices=tf.random.uniform(
+                    minval = 0,
+                    maxval = batch_count,
+                    shape = [n_sample],
+                    dtype= tf.int32,
+                ),
+                axis=0
+            )
+            sampled_count_matrix = tf.gather(
+                count_matrix,
+                indices=tf.random.uniform(
+                    minval=0,
+                    maxval=batch_count,
+                    shape=[n_sample],
+                    dtype=tf.int32,
+                ),
+                axis=0
+            )
+            #TODO(sam): sampling the svit_grid is not super useful.
+            #TODO(sam): sampling the count matrix doesn't really make sense
+            # because the valid count matrices are a very small subspace
+            # one way to do this is to cluster all the count matrices into X clusters
+            # then, we sample some cluster centers.
+            # we could also program a protocol simulator, generate 100000 count matrices,
+            # then train a generative model and use that...
+            # For now, we just use {the first count matrix we get} a bunch of times.
 
-            '''
+
             soc, soc_der = self.create_derivatives(
                 self.soc_for_derivative,
                 params = {
@@ -945,13 +988,15 @@ class DegradationModel(Model):
             theoretical_cap, theoretical_cap_der = self.create_derivatives(
                 self.theoretical_cap_for_derivative,
                 params = {
-                    'cycle':    sampled_cycles,
-                    'current':  sampled_constant_current,
-                    'features': sampled_features
+                    'cycle':       sampled_cycles,
+                    'current':     sampled_constant_current,
+                    'features':    sampled_features,
+                    'svit_grid':   sampled_svit_grid,
+                    'count_matrix':sampled_count_matrix
                 },
-                cycle_der = 3,
+                cycle_der = 1,
                 current_der = 0,
-                features_der = 2,
+                features_der = 0,
             )
 
             theo_cap_loss = .0001 * incentive_combine(
@@ -970,69 +1015,70 @@ class DegradationModel(Model):
                             Level.Strong
                         )
                     ),
-                    (
-                        1.,
-                        incentive_inequality(
-                            theoretical_cap_der['d_cycle'], Inequality.LessThan,
-                            0,
-                            Level.Proportional
-                        )  # we want cap to diminish with cycle number
-                    ),
-                    (
-                        .1,
-                        incentive_inequality(
-                            theoretical_cap_der['d2_cycle'],
-                            Inequality.LessThan,
-                            0,
-                            Level.Proportional
-                        )  # we want cap to diminish with cycle number
-                    ),
+                    # (
+                    #     1.,
+                    #     incentive_inequality(
+                    #         theoretical_cap_der['d_cycle'], Inequality.LessThan,
+                    #         0,
+                    #         Level.Proportional
+                    #     )
+                    # ),
+                    # (
+                    #     .1,
+                    #     incentive_inequality(
+                    #         theoretical_cap_der['d2_cycle'],
+                    #         Inequality.LessThan,
+                    #         0,
+                    #         Level.Proportional
+                    #     )  # we want cap to diminish with cycle number
+                    # ),
 
-                    (
-                        100.,
-                        incentive_magnitude(
-                            theoretical_cap_der['d_cycle'],
-                            Target.Small,
-                            Level.Proportional
-                        )
-                    ),
+                    # (
+                    #     100.,
+                    #     incentive_magnitude(
+                    #         theoretical_cap_der['d_cycle'],
+                    #         Target.Small,
+                    #         Level.Proportional
+                    #     )
+                    # ),
 
-                    (
-                        100.,
-                        incentive_magnitude(
-                            theoretical_cap_der['d2_cycle'],
-                            Target.Small,
-                            Level.Proportional
-                        )
-                    ),
-                    (
-                        100.,
-                        incentive_magnitude(
-                            theoretical_cap_der['d3_cycle'],
-                            Target.Small,
-                            Level.Proportional
-                        )
-                    ),
+                    # (
+                    #     100.,
+                    #     incentive_magnitude(
+                    #         theoretical_cap_der['d2_cycle'],
+                    #         Target.Small,
+                    #         Level.Proportional
+                    #     )
+                    # ),
+                    # (
+                    #     100.,
+                    #     incentive_magnitude(
+                    #         theoretical_cap_der['d3_cycle'],
+                    #         Target.Small,
+                    #         Level.Proportional
+                    #     )
+                    # ),
 
-                    (
-                        1.,
-                        incentive_magnitude(
-                            theoretical_cap_der['d_features'],
-                            Target.Small,
-                            Level.Proportional
-                        )
-                    ),
-                    (
-                        1.,
-                        incentive_magnitude(
-                            theoretical_cap_der['d2_features'],
-                            Target.Small,
-                            Level.Strong
-                        )
-                    ),
+                    # (
+                    #     1.,
+                    #     incentive_magnitude(
+                    #         theoretical_cap_der['d_features'],
+                    #         Target.Small,
+                    #         Level.Proportional
+                    #     )
+                    # ),
+                    # (
+                    #     1.,
+                    #     incentive_magnitude(
+                    #         theoretical_cap_der['d2_features'],
+                    #         Target.Small,
+                    #         Level.Strong
+                    #     )
+                    # ),
                 ]
             )
 
+            '''
             shift, shift_der = self.create_derivatives(
                 self.shift_for_derivative,
                 params = {
@@ -1180,8 +1226,8 @@ class DegradationModel(Model):
             return {
                 "pred_cc_capacity": pred_cc_capacity,
                 "pred_cv_capacity": pred_cv_capacity,
-                "soc_loss":         0.,#soc_loss,
-                "theo_cap_loss":    0.,#theo_cap_loss,
+                "soc_loss":         soc_loss,
+                "theo_cap_loss":    theo_cap_loss,
                 "r_loss":           0.,#r_loss,
                 "shift_loss":       0.,#shift_loss,
                 "kl_loss":          kl_loss,

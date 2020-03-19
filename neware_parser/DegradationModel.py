@@ -203,10 +203,10 @@ class DegradationModel(Model):
             num_keys = num_keys
         )
 
-        self.stress_to_strain_layer = StressToStrainLayer(
-            num_features = width,
+        self.stress_to_encoded_layer = StressToEncodedLayer(
             n_channels=n_channels
         )
+        self.nn_strain = feedforward_nn_parameters(depth, width)
 
         self.width = width
         self.num_keys = num_keys
@@ -287,11 +287,19 @@ class DegradationModel(Model):
             cycle = params['cycle']
         )
 
-    def stress_to_strain_direct(self, norm_cycle, cell_features, svit_grid, count_matrix, training=True):
-        return self.stress_to_strain_layer(
+    def stress_to_strain_direct(self, norm_cycle, cell_features, encoded_stress, training=True):
+        dependencies =(
+            norm_cycle,
+            cell_features,
+            encoded_stress,
+        )
+
+        return self.nn_call(self.nn_strain, dependencies)
+
+
+    def stress_to_encoded_direct(self, svit_grid, count_matrix, training=True):
+        return self.stress_to_encoded_layer(
             (
-                norm_cycle,
-                cell_features,
                 svit_grid,
                 count_matrix,
             ),
@@ -324,11 +332,15 @@ class DegradationModel(Model):
 
         strainless = self.theoretical_cap_strainless_direct(cell_features, training=training)
 
+        encoded_stress = self.stress_to_encoded_direct(
+            svit_grid=params['svit_grid'],
+            count_matrix=params['count_matrix'],
+        )
+
         strain = self.stress_to_strain_direct(
             norm_cycle=norm_cycle,
             cell_features=cell_features,
-            svit_grid=params['svit_grid'],
-            count_matrix=params['count_matrix'],
+            encoded_stress=encoded_stress,
             training=training
         )
 
@@ -340,41 +352,82 @@ class DegradationModel(Model):
         )
 
 
-    '''
     def shift_for_derivative(self, params, training=True):
-        return self.shift_direct(
-            norm_cycle = self.norm_cycle(
+        norm_cycle = self.norm_cycle(
                 params = {
                     'cycle':    params['cycle'],
                     'features': params['features']
                 },
                 training=training
-            ),
-            current = params['current'],
-            cell_features = self.cell_features_direct(
-                features = params['features'],
-                training=training
-            ),
+            )
+        cell_features = self.cell_features_direct(
+            features=params['features'],
             training=training
         )
+
+
+        encoded_stress = self.stress_to_encoded_direct(
+            svit_grid=params['svit_grid'],
+            count_matrix=params['count_matrix'],
+        )
+
+        strain = self.stress_to_strain_direct(
+            norm_cycle=norm_cycle,
+            cell_features=cell_features,
+            encoded_stress=encoded_stress,
+            training=training
+        )
+
+        strainless = self.shift_strainless_direct(
+            current=params['current'],
+            cell_features=cell_features,
+            training=training
+        )
+
+        return self.shift_direct(
+            strain=strain,
+            current=params['current'],
+            shift_strainless=strainless,
+            training=training
+        )
+
 
     def r_for_derivative(self, params, training=True):
-        return self.r_direct(
-            norm_cycle = self.norm_cycle(
+        norm_cycle = self.norm_cycle(
                 params = {
                     'cycle':    params['cycle'],
                     'features': params['features']
                 },
                 training=training
-            ),
-            cell_features = self.cell_features_direct(
-                features = params['features'],
-                training=training
-            ),
+            )
+        cell_features = self.cell_features_direct(
+            features=params['features'],
             training=training
         )
 
-    '''
+        strainless = self.r_strainless_direct(
+            cell_features=cell_features,
+            training=training
+        )
+
+        encoded_stress = self.stress_to_encoded_direct(
+            svit_grid=params['svit_grid'],
+            count_matrix=params['count_matrix'],
+        )
+
+        strain = self.stress_to_strain_direct(
+            norm_cycle=norm_cycle,
+            cell_features=cell_features,
+            encoded_stress=encoded_stress,
+            training=training
+        )
+
+        return self.r_direct(
+            strain = strain,
+            r_strainless = strainless,
+            training = training
+        )
+
 
     def cc_capacity_part2(self, params, training=True):
         norm_constant = self.norm_constant_direct(features = params['features'], training=training)
@@ -385,11 +438,17 @@ class DegradationModel(Model):
         )
 
         cell_features = self.cell_features_direct(features = params['features'], training=training)
+
+        encoded_stress = self.stress_to_encoded_direct(
+            svit_grid=params['svit_grid'],
+            count_matrix=params['count_matrix'],
+        )
+
+
         strain = self.stress_to_strain_direct(
             norm_cycle = norm_cycle,
             cell_features= cell_features,
-            svit_grid=params['svit_grid'],
-            count_matrix=params['count_matrix'],
+            encoded_stress=encoded_stress,
             training=training
         )
 
@@ -490,13 +549,18 @@ class DegradationModel(Model):
 
         cell_features = self.cell_features_direct(features = params['features'], training=training)
 
-        strain = self.stress_to_strain_direct(
-            norm_cycle = norm_cycle,
-            cell_features= cell_features,
+        encoded_stress = self.stress_to_encoded_direct(
             svit_grid=params['svit_grid'],
             count_matrix=params['count_matrix'],
+        )
+
+        strain = self.stress_to_strain_direct(
+            norm_cycle=norm_cycle,
+            cell_features=cell_features,
+            encoded_stress=encoded_stress,
             training=training
         )
+
 
 
         cc_shift_strainless = self.shift_strainless_direct(
@@ -845,7 +909,7 @@ class DegradationModel(Model):
 
             # NOTE(sam): this is an example of a forall. (for all voltages,
             # and all cell features)
-            n_sample = 1
+            n_sample = 64
             sampled_voltages = tf.random.uniform(
                 minval = 2.5,
                 maxval = 5.,
@@ -994,9 +1058,9 @@ class DegradationModel(Model):
                     'svit_grid':   sampled_svit_grid,
                     'count_matrix':sampled_count_matrix
                 },
-                cycle_der = 1,
+                cycle_der = 3,
                 current_der = 0,
-                features_der = 0,
+                features_der = 2,
             )
 
             theo_cap_loss = .0001 * incentive_combine(
@@ -1015,76 +1079,74 @@ class DegradationModel(Model):
                             Level.Strong
                         )
                     ),
-                    # (
-                    #     1.,
-                    #     incentive_inequality(
-                    #         theoretical_cap_der['d_cycle'], Inequality.LessThan,
-                    #         0,
-                    #         Level.Proportional
-                    #     )
-                    # ),
-                    # (
-                    #     .1,
-                    #     incentive_inequality(
-                    #         theoretical_cap_der['d2_cycle'],
-                    #         Inequality.LessThan,
-                    #         0,
-                    #         Level.Proportional
-                    #     )  # we want cap to diminish with cycle number
-                    # ),
+                    (
+                        1.,
+                        incentive_inequality(
+                            theoretical_cap_der['d_cycle'], Inequality.LessThan, 0,
+                            Level.Proportional
+                        )
+                    ),
+                    (
+                        .1,
+                        incentive_inequality(
+                            theoretical_cap_der['d2_cycle'], Inequality.LessThan, 0,
+                            Level.Proportional
+                        )
+                    ),
+                    (
+                        100.,
+                        incentive_magnitude(
+                            theoretical_cap_der['d_cycle'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
 
-                    # (
-                    #     100.,
-                    #     incentive_magnitude(
-                    #         theoretical_cap_der['d_cycle'],
-                    #         Target.Small,
-                    #         Level.Proportional
-                    #     )
-                    # ),
+                    (
+                        100.,
+                        incentive_magnitude(
+                            theoretical_cap_der['d2_cycle'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
+                    (
+                        100.,
+                        incentive_magnitude(
+                            theoretical_cap_der['d3_cycle'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
 
-                    # (
-                    #     100.,
-                    #     incentive_magnitude(
-                    #         theoretical_cap_der['d2_cycle'],
-                    #         Target.Small,
-                    #         Level.Proportional
-                    #     )
-                    # ),
-                    # (
-                    #     100.,
-                    #     incentive_magnitude(
-                    #         theoretical_cap_der['d3_cycle'],
-                    #         Target.Small,
-                    #         Level.Proportional
-                    #     )
-                    # ),
-
-                    # (
-                    #     1.,
-                    #     incentive_magnitude(
-                    #         theoretical_cap_der['d_features'],
-                    #         Target.Small,
-                    #         Level.Proportional
-                    #     )
-                    # ),
-                    # (
-                    #     1.,
-                    #     incentive_magnitude(
-                    #         theoretical_cap_der['d2_features'],
-                    #         Target.Small,
-                    #         Level.Strong
-                    #     )
-                    # ),
+                    (
+                        1.,
+                        incentive_magnitude(
+                            theoretical_cap_der['d_features'],
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
+                    (
+                        1.,
+                        incentive_magnitude(
+                            theoretical_cap_der['d2_features'],
+                            Target.Small,
+                            Level.Strong
+                        )
+                    ),
                 ]
             )
 
-            '''
+
             shift, shift_der = self.create_derivatives(
                 self.shift_for_derivative,
                 params = {
                     'cycle':    sampled_cycles,
                     'current':  sampled_constant_current,
-                    'features': sampled_features
+                    'features': sampled_features,
+                    'svit_grid': sampled_svit_grid,
+                    'count_matrix': sampled_count_matrix
                 },
                 cycle_der = 3,
                 current_der = 3,
@@ -1154,7 +1216,9 @@ class DegradationModel(Model):
                 self.r_for_derivative,
                 params = {
                     'cycle':    sampled_cycles,
-                    'features': sampled_features
+                    'features': sampled_features,
+                    'svit_grid': sampled_svit_grid,
+                    'count_matrix': sampled_count_matrix
                 },
                 cycle_der = 3,
                 features_der = 2,
@@ -1218,7 +1282,7 @@ class DegradationModel(Model):
                     )
                 ]
             )
-            '''
+
             kl_loss = tf.reduce_mean(
                 0.5 * (tf.exp(log_sig) + tf.square(mean) - 1. - log_sig)
             )
@@ -1228,8 +1292,8 @@ class DegradationModel(Model):
                 "pred_cv_capacity": pred_cv_capacity,
                 "soc_loss":         soc_loss,
                 "theo_cap_loss":    theo_cap_loss,
-                "r_loss":           0.,#r_loss,
-                "shift_loss":       0.,#shift_loss,
+                "r_loss":           r_loss,
+                "shift_loss":       shift_loss,
                 "kl_loss":          kl_loss,
             }
 
@@ -1245,13 +1309,18 @@ class DegradationModel(Model):
 
             cell_features = self.cell_features_direct(features=params['features'], training=training)
 
+            encoded_stress = self.stress_to_encoded_direct(
+                svit_grid=params['svit_grid'],
+                count_matrix=params['count_matrix'],
+            )
+
             strain = self.stress_to_strain_direct(
                 norm_cycle=norm_cycle,
                 cell_features=cell_features,
-                svit_grid=params['svit_grid'],
-                count_matrix=params['count_matrix'],
+                encoded_stress=encoded_stress,
                 training=training
             )
+
 
             theoretical_cap_strainless = self.theoretical_cap_strainless_direct(
                 cell_features=cell_features,
@@ -1347,13 +1416,12 @@ class DictionaryLayer(Layer):
 
 
 
-class StressToStrainLayer(Layer):
-    def __init__(self, num_features, n_channels):
-        super(StressToStrainLayer, self).__init__()
-        self.num_features = num_features
+class StressToEncodedLayer(Layer):
+    def __init__(self, n_channels):
+        super(StressToEncodedLayer, self).__init__()
         self.n_channels = n_channels
         self.input_kernel = self.add_weight(
-            "input_kernel", shape=[1, 1, 1, 4 + 1 + self.num_features - 1, self.n_channels]
+            "input_kernel", shape=[1, 1, 1, 4 + 1, self.n_channels]
         )
 
         self.v_i_kernel_1 = self.add_weight(
@@ -1374,42 +1442,29 @@ class StressToStrainLayer(Layer):
 
 
     def call(self, input, training = True):
-        norm_cycle = input[0]  # matrix; dim: [batch, 1]
-        cell_features = input[1]  # matrix; dim: [batch, n_features]
-        svit_grid = input[2] # tensor; dim: [batch, n_sign, n_voltage, n_current, n_temperature, 4]
-        count_matrix = input[3] # tensor; dim: [batch, n_sign, n_voltage, n_current, n_temperature, 1]
+        svit_grid = input[0] # tensor; dim: [batch, n_sign, n_voltage, n_current, n_temperature, 4]
+        count_matrix = input[1] # tensor; dim: [batch, n_sign, n_voltage, n_current, n_temperature, 1]
 
-        n_batch = count_matrix.shape[0]
-        n_voltage = count_matrix.shape[2]
-        n_current = count_matrix.shape[3]
-        n_temperature = count_matrix.shape[4]
-
-        total_count_matrix_0 = tf.reshape(norm_cycle, [n_batch, 1, 1, 1, 1]) * count_matrix[:,0,:,:,:,:]
-        total_count_matrix_1 = tf.reshape(norm_cycle, [n_batch, 1, 1, 1, 1]) * count_matrix[:,1,:,:,:,:]
+        count_matrix_0 = count_matrix[:,0,:,:,:,:]
+        count_matrix_1 = count_matrix[:,1,:,:,:,:]
 
         svit_grid_0 = svit_grid[:,0,:,:,:,:]
         svit_grid_1 = svit_grid[:,1,:,:,:,:]
 
-        cell_features_grid = tf.tile(
-            tf.reshape(cell_features, [n_batch, 1, 1, 1, -1]),
-            [1, n_voltage, n_current, n_temperature, 1]
-        )
 
 
 
         val_0 = tf.concat(
             (
                 svit_grid_0,
-                total_count_matrix_0,
-                cell_features_grid
+                count_matrix_0,
             ),
             axis = -1
         )
         val_1 = tf.concat(
             (
                 svit_grid_1,
-                total_count_matrix_1,
-                cell_features_grid
+                count_matrix_1,
             ),
             axis=-1
         )
@@ -1431,11 +1486,11 @@ class StressToStrainLayer(Layer):
                 val_1 = tf.nn.relu(val_1)
 
         # each entry is scaled by its count.
-        val_0 = val_0 * total_count_matrix_0
-        val_1 = val_1 * total_count_matrix_1
+        val_0 = val_0 * count_matrix_0
+        val_1 = val_1 * count_matrix_1
 
         # then we take the average over all the grid.
         val_0 = tf.reduce_mean(val_0, axis=[1, 2, 3], keepdims=False)
         val_1 = tf.reduce_mean(val_1, axis=[1, 2, 3], keepdims=False)
 
-        return val_0 + val_1
+        return (val_0 + val_1)

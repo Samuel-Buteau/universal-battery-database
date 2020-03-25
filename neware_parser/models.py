@@ -10,6 +10,15 @@ import FileNameHelper.models
 import os
 from io import BytesIO
 
+def id_dict_from_id_list(id_list):
+    n = len(id_list)
+    id_dict = {}
+    for i in range(n):
+        id_dict[id_list[i]] = i
+
+    return id_dict
+
+
 
 def get_files_for_barcode(barcode):
     return CyclingFile.objects.filter(database_file__deprecated=False).filter(database_file__valid_metadata__barcode=barcode)

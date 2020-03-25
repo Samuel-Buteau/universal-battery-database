@@ -90,14 +90,6 @@ def make_current_grid(min_c, max_c, n_samples, my_barcodes):
 def current_to_log_current(current):
     return numpy.log(abs(current) + 1e-5)
 
-def convert_to_log_scale(x):
-    return numpy.log(x)
-
-def convert_from_log_scale(y):
-    return numpy.exp(y)
-
-numpy.exp(numpy.log(x)) == x
-
 
 
 #def temperature_to_arrhenius(temp):

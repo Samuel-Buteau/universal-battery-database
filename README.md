@@ -358,7 +358,8 @@ Let's get rid of it for now and focus on other stuff.
 to do this, we need:
 
 1. remove the sampling.
-2. add a loss term within the latent layer, based on the deviation from zero.
+2. add a loss term within the latent layer, based on the deviation
+ from zero.
 3. gather this loss as it is used and gate it as it is used.
 4. add a loss term at the combination of direct and indirect.
 5. add a loss term for the derivative of the indirect branch.

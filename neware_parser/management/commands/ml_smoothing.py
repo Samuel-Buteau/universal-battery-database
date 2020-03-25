@@ -173,12 +173,12 @@ def initial_processing(my_data, barcodes, fit_args):
             cell_to_pos[barcode] = 2
             cell_to_neg[barcode] = 0
             cell_to_electrolyte[barcode] = 250
-            cell_latent_flags[barcode] = 1.
+            cell_latent_flags[barcode] = 0.
         else:
             cell_to_pos[barcode] = 1
             cell_to_neg[barcode] = 3
             cell_to_electrolyte[barcode] = 100
-            cell_latent_flags[barcode] = 1.
+            cell_latent_flags[barcode] = 0.
 
         max_cap = 0.
         cyc_grp_dict = my_data['all_data'][barcode]['cyc_grp_dict']
@@ -523,7 +523,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                         plot_vq(plot_params, init_returns)
                         end = time.time()
                         print("time to plot: ", end - start)
-                        ker = init_returns["degradation_model"].dictionary.get_main_ker()
+                        ker = init_returns["degradation_model"].cell_direct.kernel.numpy()
                         prev_ker = now_ker
                         now_ker = ker
 
@@ -737,7 +737,7 @@ def train_step(params, fit_args):
             + train_results["theo_cap_loss"]
             + train_results["r_loss"]
             + train_results["shift_loss"]
-            + fit_args['kl_coeff'] * train_results["kl_loss"]
+            + fit_args['z_cell_coeff'] * train_results["z_cell_loss"]
         )
 
     gradients = tape.gradient(loss, degradation_model.trainable_variables)
@@ -791,7 +791,7 @@ class Command(BaseCommand):
         parser.add_argument('--path_to_dataset', required = True)
         parser.add_argument('--dataset_version', required = True)
         parser.add_argument('--path_to_plots', required = True)
-        parser.add_argument('--kl_coeff', type = float, default = 0.00001)
+        parser.add_argument('--z_cell_coeff', type = float, default = 0.00001)
         parser.add_argument('--mono_coeff', type = float, default = .005)
         parser.add_argument('--smooth_coeff', type = float, default = .05)
         parser.add_argument('--const_f_coeff', type = float, default = .0)
@@ -800,7 +800,7 @@ class Command(BaseCommand):
         parser.add_argument('--width', type = int, default = 32)
         parser.add_argument('--batch_size', type = int, default = 16 * 16)
 
-        vis = 6000
+        vis = 1000
         parser.add_argument('--print_loss_every', type = int, default = vis)
         parser.add_argument('--visualize_fit_every', type = int, default = vis)
         parser.add_argument('--visualize_vq_every', type = int, default = vis)

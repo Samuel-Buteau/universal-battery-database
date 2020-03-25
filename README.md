@@ -288,28 +288,6 @@ As for how to enter the info the right way, below we list some examples, some ge
 
 
 
-#TODO(sam): ML
-when having one cell on latent and the other on detailed predictions. 
-one of the cells could converge, but the other couldn't.
-We have to figure out why.
-
-- I will try to set both to detailed predictions. (this is working)
-- I will try to set both to latents. (this is not working)
-
-- I will try to use a simple path in the new code.
-- I will try to completely ignore the random sampling.
-- I will try to set kl to 0.
-
-
-This is confusing since all was well with only the latents active. 
-I will try to simply cutoff the non-latent branch and see what happens.
-also, change reporting frequency to 1000 because convergence too long.
-
-It seems the problem was convergence rates slower for latents.
-Next to try is the full latent model using the new code. 
-If after 6000 steps - 12000 steps we see signs of good curved convergence,
-it is manageable.
-If not, try the bigger model without the '0 times x + 1 times y' code
 
 
 #TODO(sam): make id->position fool-proof.
@@ -318,6 +296,8 @@ If not, try the bigger model without the '0 times x + 1 times y' code
 {id:position}
 - create a full numpy array, then overwrite it using the dictionary.
 - in the compiled dataset, it should just be dictionaries and ids.
+- make a file with id -> name mapping for cell, pos, neg, electrolyte and 
+  use it for display of the features.
 - in the ml tensors, try to decouple iterations of the loop from each other.
 
 #TODO(sam): make the user interface work and set the data for some of the useful cells.
@@ -367,3 +347,12 @@ to do this, we need:
 
 
 this is done! and it seems to work, though hard to tell.
+
+
+
+Next steps:
+1. define the compiled dataset format.
+2. pull it from database
+3. fake enter it for the relevant barcodes.
+4. fix the UI to make things easy to scale.
+5. come back with the electrolyte composition.

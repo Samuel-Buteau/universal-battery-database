@@ -65,6 +65,13 @@ def initial_processing(my_data, barcodes, fit_args):
             - 'current_grid': 1D array of log currents
             - 'temperature_grid': 1D array of temperatures
             - 'sign_grid': 1D array of signs
+            - 'cell_id_to_pos_id': a dictionary indexed by barcode yielding a positive electrode id.
+            - 'cell_id_to_neg_id': a dictionary indexed by barcode yielding a positive electrode id.
+            - 'cell_id_to_electrolyte_id': a dictionary indexed by barcode yielding a positive electrode id.
+            - 'cell_id_to_latent': a dictionary indexed by barcode yielding 
+                         1 if the cell is latent, 
+                         0 if made of known pos,neg,electrolyte
+                
             - 'all_data': a dictionary indexed by barcode. 
                Each barcode yields:
                 - 'all_reference_mats': structured array with dtype =
@@ -150,35 +157,30 @@ def initial_processing(my_data, barcodes, fit_args):
         numpy.array([my_data['sign_grid']])
     )
 
-    #TODO:This mapping should be in the compiled_dataset
-    # TODO(sam): remove this code.
-    cell_dict = {}
+    cell_id_list = numpy.array(barcodes)
+    cell_id_to_pos_id = {}
+    cell_id_to_neg_id = {}
+    cell_id_to_electrolyte_id = {}
+    cell_id_to_latent = {}
 
-    #should come with the dataset.
-    pos_dict = {1:0, 2:1}
-    neg_dict = {3:0, 0:1}
-    electrolyte_dict = {100:0, 250:1}
+    for cell_id in cell_id_list:
+        if cell_id in my_data['cell_id_to_pos_id'].keys():
+            cell_id_to_pos_id[cell_id] = my_data['cell_id_to_pos_id'][cell_id]
+        if cell_id in my_data['cell_id_to_neg_id'].keys():
+            cell_id_to_neg_id[cell_id] = my_data['cell_id_to_neg_id'][cell_id]
+        if cell_id in my_data['cell_id_to_electrolyte_id'].keys():
+            cell_id_to_electrolyte_id[cell_id] = my_data['cell_id_to_electrolyte_id'][cell_id]
+        if cell_id in my_data['cell_id_to_latent'].keys():
+            cell_id_to_latent[cell_id] = my_data['cell_id_to_latent'][cell_id]
 
-    #should come with the dataset
-    cell_to_pos = {}
-    cell_to_neg = {}
-    cell_to_electrolyte = {}
 
-    #should come with the dataset
-    cell_latent_flags = {}
+    pos_id_list = numpy.array(sorted(list(set(cell_id_to_pos_id.values()))))
+    neg_id_list = numpy.array(sorted(list(set(cell_id_to_neg_id.values()))))
+    electrolyte_id_list = numpy.array(sorted(list(set(cell_id_to_electrolyte_id.values()))))
+
+
+
     for barcode_count, barcode in enumerate(barcodes):
-        #TODO(sam):
-        cell_dict[barcode] = barcode_count
-        if barcode_count == 0:
-            cell_to_pos[barcode] = 2
-            cell_to_neg[barcode] = 0
-            cell_to_electrolyte[barcode] = 250
-            cell_latent_flags[barcode] = 0.
-        else:
-            cell_to_pos[barcode] = 1
-            cell_to_neg[barcode] = 3
-            cell_to_electrolyte[barcode] = 100
-            cell_latent_flags[barcode] = 0.
 
         max_cap = 0.
         cyc_grp_dict = my_data['all_data'][barcode]['cyc_grp_dict']
@@ -449,14 +451,14 @@ def initial_processing(my_data, barcodes, fit_args):
         degradation_model = DegradationModel(
             width = fit_args['width'],
             depth = fit_args['depth'],
-            cell_dict=cell_dict,
-            pos_dict=pos_dict,
-            neg_dict=neg_dict,
-            electrolyte_dict=electrolyte_dict,
-            cell_to_pos=cell_to_pos,
-            cell_to_neg=cell_to_neg,
-            cell_to_electrolyte=cell_to_electrolyte,
-            cell_latent_flags=cell_latent_flags,
+            cell_dict=id_dict_from_id_list(cell_id_list),
+            pos_dict=id_dict_from_id_list(pos_id_list),
+            neg_dict=id_dict_from_id_list(neg_id_list),
+            electrolyte_dict=id_dict_from_id_list(electrolyte_id_list),
+            cell_to_pos=cell_id_to_pos_id,
+            cell_to_neg=cell_id_to_neg_id,
+            cell_to_electrolyte=cell_id_to_electrolyte_id,
+            cell_latent_flags=cell_id_to_latent,
 
         )
 

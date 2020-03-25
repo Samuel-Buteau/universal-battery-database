@@ -1157,7 +1157,6 @@ def detect_step_cv( V, I_min, I_max, T, sign,
 
 
 
-
 def get_count_matrix(cyc, voltage_grid_degradation, current_grid, temperature_grid, sign_grid):
     steps = cyc.step_set.order_by('step_number')
     total = None

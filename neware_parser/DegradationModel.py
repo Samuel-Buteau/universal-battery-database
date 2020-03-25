@@ -208,6 +208,14 @@ class DegradationModel(Model):
                  cell_to_electrolyte,
                 n_channels=16):
         super(DegradationModel, self).__init__()
+        print('cell_dict', cell_dict)
+        print('pos_dict', pos_dict)
+        print('neg_dict', neg_dict)
+        print('electrolyte_dict', electrolyte_dict)
+        print('cell_latent_flags', cell_latent_flags)
+        print('cell_to_pos', cell_to_pos)
+        print('cell_to_neg', cell_to_neg)
+        print('cell_to_electrolyte', cell_to_electrolyte)
 
         self.nn_r = feedforward_nn_parameters(depth, width)
         self.nn_theoretical_cap = feedforward_nn_parameters(depth, width)
@@ -249,7 +257,8 @@ class DegradationModel(Model):
         )
 
         for cell_id in self.cell_direct.id_dict.keys():
-            latent_flags[self.cell_direct.id_dict[cell_id], 0] = cell_latent_flags[cell_id]
+            if cell_id in cell_latent_flags.keys():
+                latent_flags[self.cell_direct.id_dict[cell_id], 0] = cell_latent_flags[cell_id]
 
         self.cell_latent_flags = tf.constant(latent_flags)
 
@@ -258,12 +267,13 @@ class DegradationModel(Model):
             dtype=numpy.int32,
         )
 
-        # cell_to_pos: cell_id -> pos_id
-
         for cell_id in self.cell_direct.id_dict.keys():
-            cell_pointers[self.cell_direct.id_dict[cell_id], 0] = pos_dict[cell_to_pos[cell_id]]
-            cell_pointers[self.cell_direct.id_dict[cell_id], 1] = neg_dict[cell_to_neg[cell_id]]
-            cell_pointers[self.cell_direct.id_dict[cell_id], 2] = electrolyte_dict[cell_to_electrolyte[cell_id]]
+            if cell_id in cell_to_pos.keys():
+                cell_pointers[self.cell_direct.id_dict[cell_id], 0] = pos_dict[cell_to_pos[cell_id]]
+            if cell_id in cell_to_neg.keys():
+                cell_pointers[self.cell_direct.id_dict[cell_id], 1] = neg_dict[cell_to_neg[cell_id]]
+            if cell_id in cell_to_electrolyte.keys():
+                cell_pointers[self.cell_direct.id_dict[cell_id], 2] = electrolyte_dict[cell_to_electrolyte[cell_id]]
 
         self.cell_pointers = tf.constant(cell_pointers)
         self.cell_indirect = feedforward_nn_parameters(depth, width, last=self.num_features)

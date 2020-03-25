@@ -19,6 +19,33 @@ Shortened Variable Names:
 '''
 
 
+def get_pos_id_from_cell_id(cell_id):
+    #TODO(sam): this needs to talk to database
+    if cell_id == 83220:
+        return 2
+    elif cell_id == 83083:
+        return 1
+    else:
+        return None
+
+def get_neg_id_from_cell_id(cell_id):
+    #TODO(sam): this needs to talk to database
+    if cell_id == 83220:
+        return 0
+    elif cell_id == 83083:
+        return 3
+    else:
+        return None
+
+def get_electrolyte_id_from_cell_id(cell_id):
+    #TODO(sam): this needs to talk to database
+    if cell_id == 83220:
+        return 250
+    elif cell_id == 83083:
+        return None#100
+    else:
+        return None
+
 # === Begin: make my barcodes ==================================================
 
 def make_my_barcodes(fit_args):
@@ -60,12 +87,18 @@ def make_my_barcodes(fit_args):
 
 def initial_processing(my_barcodes, fit_args):
     """
-        the output of this fuction has the following structure:
+        the output of this function has the following structure:
             a dictionary indexed by various data:
                 - 'voltage_grid': 1D array of voltages
                 - 'current_grid': 1D array of log currents
                 - 'temperature_grid': 1D array of temperatures
                 - 'sign_grid': 1D array of signs
+                - 'cell_id_to_pos_id': a dictionary indexed by barcode yielding a positive electrode id.
+                - 'cell_id_to_neg_id': a dictionary indexed by barcode yielding a positive electrode id.
+                - 'cell_id_to_electrolyte_id': a dictionary indexed by barcode yielding a positive electrode id.
+                - 'cell_id_to_latent': a dictionary indexed by barcode yielding
+                         1 if the cell is latent,
+                         0 if made of known pos,neg,electrolyte
                 - 'all_data': a dictionary indexed by barcode. Each barcode yields:
                     - 'all_reference_mats': structured array with dtype =
                         [
@@ -327,7 +360,47 @@ def initial_processing(my_barcodes, fit_args):
 
         all_data[barcode] = {'cyc_grp_dict':cyc_grp_dict, 'all_reference_mats':all_reference_mats}
 
-    return {'all_data':all_data, 'voltage_grid':voltage_grid_degradation, 'current_grid':current_grid, 'temperature_grid':temperature_grid, 'sign_grid':sign_grid}
+    """
+    - 'cell_id_list': 1D array of barcodes
+    - 'pos_id_list': 1D array of positive electrode ids
+    - 'neg_id_list': 1D array of negative electrode ids
+    - 'electrolyte_id_list': 1D array of electrolyte ids
+    - 'cell_id_to_pos_id': a dictionary indexed by barcode yielding a positive electrode id.
+    - 'cell_id_to_neg_id': a dictionary indexed by barcode yielding a positive electrode id.
+    - 'cell_id_to_electrolyte_id': a dictionary indexed by barcode yielding a positive electrode id.
+                
+    """
+
+    cell_id_to_pos_id = {}
+    cell_id_to_neg_id = {}
+    cell_id_to_electrolyte_id = {}
+    cell_id_to_latent = {}
+    for cell_id in my_barcodes:
+        pos = get_pos_id_from_cell_id(cell_id)
+        neg = get_neg_id_from_cell_id(cell_id)
+        electrolyte = get_electrolyte_id_from_cell_id(cell_id)
+        if pos is None or neg is None or electrolyte is None:
+            cell_id_to_latent[cell_id] = 1.
+        else:
+            cell_id_to_latent[cell_id] = 0.
+            cell_id_to_pos_id[cell_id] = pos
+            cell_id_to_neg_id[cell_id] = neg
+            cell_id_to_electrolyte_id[cell_id] = electrolyte
+
+
+
+
+    return {
+        'all_data':all_data,
+        'voltage_grid':voltage_grid_degradation,
+        'current_grid':current_grid,
+        'temperature_grid':temperature_grid,
+        'sign_grid':sign_grid,
+        'cell_id_to_pos_id':cell_id_to_pos_id,
+        'cell_id_to_neg_id':cell_id_to_neg_id,
+        'cell_id_to_electrolyte_id':cell_id_to_electrolyte_id,
+        'cell_id_to_latent':cell_id_to_latent,
+    }
 
 
 # === End: initial processing ==================================================

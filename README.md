@@ -364,3 +364,6 @@ to do this, we need:
 4. add a loss term at the combination of direct and indirect.
 5. add a loss term for the derivative of the indirect branch.
 6. include in the bigger model.
+
+
+this is done! and it seems to work, though hard to tell.

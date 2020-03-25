@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand
 from neware_parser.models import *
 from neware_parser.DegradationModel import DegradationModel
 from neware_parser.plot import *
-
+import time
 '''
 Shortened Variable Names:
     vol -   voltage
@@ -150,8 +150,36 @@ def initial_processing(my_data, barcodes, fit_args):
         numpy.array([my_data['sign_grid']])
     )
 
+    #TODO:This mapping should be in the compiled_dataset
+    # TODO(sam): remove this code.
+    cell_dict = {}
 
+    #should come with the dataset.
+    pos_dict = {1:0, 2:1}
+    neg_dict = {3:0, 0:1}
+    electrolyte_dict = {100:0, 250:1}
+
+    #should come with the dataset
+    cell_to_pos = {}
+    cell_to_neg = {}
+    cell_to_electrolyte = {}
+
+    #should come with the dataset
+    cell_latent_flags = {}
     for barcode_count, barcode in enumerate(barcodes):
+        #TODO(sam):
+        cell_dict[barcode] = barcode_count
+        if barcode_count == 0:
+            cell_to_pos[barcode] = 2
+            cell_to_neg[barcode] = 0
+            cell_to_electrolyte[barcode] = 250
+            cell_latent_flags[barcode] = 1.
+        else:
+            cell_to_pos[barcode] = 1
+            cell_to_neg[barcode] = 3
+            cell_to_electrolyte[barcode] = 100
+            cell_latent_flags[barcode] = 1.
+
         max_cap = 0.
         cyc_grp_dict = my_data['all_data'][barcode]['cyc_grp_dict']
         # find largest cap measured for this cell (max over all cycle groups)
@@ -419,12 +447,20 @@ def initial_processing(my_data, barcodes, fit_args):
             train_ds_)
 
         degradation_model = DegradationModel(
-            num_keys = len(barcodes),
             width = fit_args['width'],
-            depth = fit_args['depth']
+            depth = fit_args['depth'],
+            cell_dict=cell_dict,
+            pos_dict=pos_dict,
+            neg_dict=neg_dict,
+            electrolyte_dict=electrolyte_dict,
+            cell_to_pos=cell_to_pos,
+            cell_to_neg=cell_to_neg,
+            cell_to_electrolyte=cell_to_electrolyte,
+            cell_latent_flags=cell_latent_flags,
+
         )
 
-        optimizer = tf.keras.optimizers.Adam()
+        optimizer = tf.keras.optimizers.Adam(learning_rate=0.002)
 
     return {
         "mirrored_strategy":       mirrored_strategy,
@@ -451,7 +487,11 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
     count = 0
 
     template = 'Epoch {}, Count {}'
-
+    start = time.time()
+    print("hello")
+    end = time.time()
+    prev_ker = None
+    now_ker = None
     with mirrored_strategy.scope():
         for epoch in range(EPOCHS):
             for neighborhood in init_returns["train_ds"]:
@@ -477,8 +517,22 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                     }
 
                     if (count % fit_args['visualize_fit_every']) == 0:
+                        start = time.time()
+                        print("time to simulate: ", start - end)
                         plot_capacity(plot_params, init_returns)
                         plot_vq(plot_params, init_returns)
+                        end = time.time()
+                        print("time to plot: ", end - start)
+                        ker = init_returns["degradation_model"].dictionary.get_main_ker()
+                        prev_ker = now_ker
+                        now_ker = ker
+
+                        if now_ker is not None:
+                            delta_cell_ker = numpy.abs(now_ker[0] - now_ker[1])
+                            print('average difference between cells: ', numpy.average(delta_cell_ker))
+                        if prev_ker is not None:
+                            delta_time_ker = numpy.abs(now_ker - prev_ker)
+                            print('average difference between prev and now: ', numpy.average(delta_time_ker))
 
                 if count == fit_args['stop_count']:
                     return
@@ -744,14 +798,14 @@ class Command(BaseCommand):
         parser.add_argument('--smooth_f_coeff', type = float, default = .01)
         parser.add_argument('--depth', type = int, default = 3)
         parser.add_argument('--width', type = int, default = 32)
-        parser.add_argument('--batch_size', type = int, default = 2 * 16)
+        parser.add_argument('--batch_size', type = int, default = 16 * 16)
 
-        vis = 1000
+        vis = 6000
         parser.add_argument('--print_loss_every', type = int, default = vis)
         parser.add_argument('--visualize_fit_every', type = int, default = vis)
         parser.add_argument('--visualize_vq_every', type = int, default = vis)
 
-        parser.add_argument('--stop_count', type = int, default = 100000)
+        parser.add_argument('--stop_count', type = int, default = 60000)
         parser.add_argument(
             '--wanted_barcodes', type = int, nargs = '+',
             default = [83220, 83083]

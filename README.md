@@ -286,3 +286,80 @@ As for how to enter the info the right way, below we list some examples, some ge
 - It is reccomended to always use whole numbers. For instance, instead of 0.33, 0.33, 0.33, simply use 1, 1, 1
   If there are some very specific ratios that are too inexact to rationalize, you can try to have sub whole numbers.
 
+
+
+#TODO(sam): ML
+when having one cell on latent and the other on detailed predictions. 
+one of the cells could converge, but the other couldn't.
+We have to figure out why.
+
+- I will try to set both to detailed predictions. (this is working)
+- I will try to set both to latents. (this is not working)
+
+- I will try to use a simple path in the new code.
+- I will try to completely ignore the random sampling.
+- I will try to set kl to 0.
+
+
+This is confusing since all was well with only the latents active. 
+I will try to simply cutoff the non-latent branch and see what happens.
+also, change reporting frequency to 1000 because convergence too long.
+
+It seems the problem was convergence rates slower for latents.
+Next to try is the full latent model using the new code. 
+If after 6000 steps - 12000 steps we see signs of good curved convergence,
+it is manageable.
+If not, try the bigger model without the '0 times x + 1 times y' code
+
+
+#TODO(sam): make id->position fool-proof.
+
+- write a function which takes a list of ids and creates a dictionary
+{id:position}
+- create a full numpy array, then overwrite it using the dictionary.
+- in the compiled dataset, it should just be dictionaries and ids.
+- in the ml tensors, try to decouple iterations of the loop from each other.
+
+#TODO(sam): make the user interface work and set the data for some of the useful cells.
+it is ok if electrolyte, positive, negative separator are primitive.
+
+#TODO(sam): see the impact of adding cell(dry, electrolyte), dry(pos, neg)
+
+
+
+# Bug Investigation
+
+## latent features giving very bad fit
+Seems this was related to the KL divergence.
+
+There were many kl divergences for all the types of latents 
+(cell, pos, neg, electrolyte)
+This could lead to a miscalibration of the gradients with adam.
+
+There might be huge gains to be had in the loss function by optimizing the kl for unused latents.
+The solution which is expected to work is to sample the kl divergence according to the sampled latents
+instead of computing the "full kl".
+
+
+Alternatively, there could be a disconnect between train and test since during test, 
+we don't sample a gaussian, but we do during training. 
+This might be a problem of too steep a change in the simulator wrt cell features. 
+I don't believe this is happening.
+
+
+The evidence: removing the kl term completely doesn't do anything.
+Removing the sampling works, but I think that's because training with too much kl prevents convergence.
+
+
+This sampling makes things complicated and the benefit is small.
+
+Let's get rid of it for now and focus on other stuff.
+
+to do this, we need:
+
+1. remove the sampling.
+2. add a loss term within the latent layer, based on the deviation from zero.
+3. gather this loss as it is used and gate it as it is used.
+4. add a loss term at the combination of direct and indirect.
+5. add a loss term for the derivative of the indirect branch.
+6. include in the bigger model.

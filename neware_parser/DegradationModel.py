@@ -4,6 +4,8 @@ import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Dense, Layer
 
+import numpy
+
 #TODO(sam): for now, remove incentives/derivatives wrt cycle.
 # implement R, shift, Q_scale in terms of Strain.
 # should treat strain like a vector of cycles maybe.
@@ -25,7 +27,10 @@ from tensorflow.keras.layers import Dense, Layer
 # More generally, we don't know how the final value depends on the initial value.
 # What we can ask for, however is that Q_scale = Q_scale(Q_scale0, strain), and Q_scale(Q_scale0, 0) = Q_scale0
 
-def feedforward_nn_parameters(depth, width):
+def feedforward_nn_parameters(depth, width, last=None):
+    if last is None:
+        last = 1
+
     initial = Dense(
         width,
         activation = 'relu',
@@ -43,7 +48,7 @@ def feedforward_nn_parameters(depth, width):
     ]
 
     final = Dense(
-        1,
+        last,
         activation = None,
         use_bias = True,
         bias_initializer = 'zeros',
@@ -52,6 +57,14 @@ def feedforward_nn_parameters(depth, width):
     return {'initial': initial, 'bulk': bulk, 'final': final}
 
 
+def nn_call(nn_func, dependencies, training=True):
+    centers = nn_func['initial'](
+        tf.concat(dependencies, axis = 1),
+        training=training,
+    )
+    for d in nn_func['bulk']:
+        centers = d(centers, training=training)
+    return nn_func['final'](centers, training=training)
 
 
 
@@ -184,7 +197,16 @@ def incentive_combine(As):
 
 class DegradationModel(Model):
 
-    def __init__(self, num_keys, depth, width, n_channels=16):
+    def __init__(self, depth, width,
+                 cell_dict,
+                 pos_dict,
+                 neg_dict,
+                 electrolyte_dict,
+                 cell_latent_flags,
+                 cell_to_pos,
+                 cell_to_neg,
+                 cell_to_electrolyte,
+                n_channels=16):
         super(DegradationModel, self).__init__()
 
         self.nn_r = feedforward_nn_parameters(depth, width)
@@ -198,9 +220,22 @@ class DegradationModel(Model):
         self.nn_shift_strainless = feedforward_nn_parameters(depth, width)
 
 
-        self.dictionary = DictionaryLayer(
-            num_features = width,
-            num_keys = num_keys
+        # self.dictionary = PrimitiveDictionaryLayer(
+        #     num_features= width,
+        #     id_dict = cell_dict
+        # )
+        self.dictionary = DictionaryNetworkLayer(
+            depth=depth,
+            width=width,
+            cell_dict=cell_dict,
+            pos_dict=pos_dict,
+            neg_dict=neg_dict,
+            electrolyte_dict=electrolyte_dict,
+            cell_latent_flags=cell_latent_flags,
+            cell_to_pos=cell_to_pos,
+            cell_to_neg=cell_to_neg,
+            cell_to_electrolyte=cell_to_electrolyte,
+            num_features=width,
         )
 
         self.stress_to_encoded_layer = StressToEncodedLayer(
@@ -209,7 +244,7 @@ class DegradationModel(Model):
         self.nn_strain = feedforward_nn_parameters(depth, width)
 
         self.width = width
-        self.num_keys = num_keys
+        self.num_keys = self.dictionary.num_keys
         self.n_channels = n_channels
 
     # Begin: nn application functions ==========================================
@@ -223,27 +258,27 @@ class DegradationModel(Model):
             shift,
             cell_features
         )
-        return tf.nn.elu(self.nn_call(self.nn_soc, dependencies))
+        return tf.nn.elu(nn_call(self.nn_soc, dependencies, training=training))
 
     def theoretical_cap_strainless_direct(self,cell_features, training=True):
         dependencies = (
             cell_features
         )
-        return tf.nn.elu(self.nn_call(self.nn_theoretical_cap_strainless, dependencies))
+        return tf.nn.elu(nn_call(self.nn_theoretical_cap_strainless, dependencies, training=training))
 
     def shift_strainless_direct(self, current, cell_features, training=True):
         dependencies = (
             tf.abs(current),
             cell_features
         )
-        return self.nn_call(self.nn_shift_strainless, dependencies)
+        return nn_call(self.nn_shift_strainless, dependencies, training=training)
 
     def r_strainless_direct(self, cell_features, training=True):
         dependencies = (
             cell_features,
         )
 
-        return tf.nn.elu(self.nn_call(self.nn_r_strainless, dependencies))
+        return tf.nn.elu(nn_call(self.nn_r_strainless, dependencies, training=training))
 
 
     def theoretical_cap_direct(self, strain, current, theoretical_cap_strainless, training=True):
@@ -252,7 +287,7 @@ class DegradationModel(Model):
             # tf.abs(current),
             theoretical_cap_strainless,
         )
-        return tf.nn.elu(self.nn_call(self.nn_theoretical_cap, dependencies))
+        return tf.nn.elu(nn_call(self.nn_theoretical_cap, dependencies, training=training))
 
     def shift_direct(self, strain, current, shift_strainless, training=True):
         dependencies = (
@@ -260,14 +295,14 @@ class DegradationModel(Model):
             tf.abs(current),
             shift_strainless
         )
-        return self.nn_call(self.nn_shift, dependencies)
+        return nn_call(self.nn_shift, dependencies, training=training)
 
     def r_direct(self, strain, r_strainless, training=True):
         dependencies = (
             strain,
             r_strainless,
         )
-        return tf.nn.elu(self.nn_call(self.nn_r, dependencies))
+        return tf.nn.elu(nn_call(self.nn_r, dependencies, training=training))
 
 
 
@@ -294,7 +329,7 @@ class DegradationModel(Model):
             encoded_stress,
         )
 
-        return self.nn_call(self.nn_strain, dependencies)
+        return nn_call(self.nn_strain, dependencies)
 
 
     def stress_to_encoded_direct(self, svit_grid, count_matrix, training=True):
@@ -666,13 +701,6 @@ class DegradationModel(Model):
         return theoretical_cap * (soc_1 - self.add_current_dep(soc_0, params))
 
 
-    def nn_call(self, nn_func, dependencies):
-        centers = nn_func['initial'](
-            tf.concat(dependencies, axis = 1)
-        )
-        for d in nn_func['bulk']:
-            centers = d(centers)
-        return nn_func['final'](centers)
 
     def create_derivatives(
         self,
@@ -874,7 +902,7 @@ class DegradationModel(Model):
         count_matrix = x[9]
 
 
-        features, mean, log_sig = self.dictionary(indecies, training = training)
+        features, kl_loss = self.dictionary(indecies, training = training)
         # duplicate cycles and others for all the voltages
         # dimensions are now [batch, voltages, features]
         batch_count = cycle.shape[0]
@@ -1283,9 +1311,7 @@ class DegradationModel(Model):
                 ]
             )
 
-            kl_loss = tf.reduce_mean(
-                0.5 * (tf.exp(log_sig) + tf.square(mean) - 1. - log_sig)
-            )
+
 
             return {
                 "pred_cc_capacity": pred_cc_capacity,
@@ -1372,34 +1398,39 @@ class DegradationModel(Model):
 # stores cell features
 # key: index
 # value: feature (matrix)
-class DictionaryLayer(Layer):
+class PrimitiveDictionaryLayer(Layer):
 
-    def __init__(self, num_features, num_keys):
-        super(DictionaryLayer, self).__init__()
+    def __init__(self, num_features, id_dict):
+        super(PrimitiveDictionaryLayer, self).__init__()
         self.num_features = num_features
-        self.num_keys = num_keys
+        self.num_keys = 1 + max(id_dict.values())
+        self.id_dict = id_dict
         self.kernel = self.add_weight(
-            "kernel", shape = [self.num_keys, self.num_features * 2]
+            "kernel", shape = [self.num_keys, self.num_features]
         )
+    def get_main_ker(self):
+        return self.kernel.numpy()
 
     def call(self, input, training = True):
-        eps = tf.random.normal(
-            shape = [self.num_keys, self.num_features]
-        )
+        # eps = tf.random.normal(
+        #     shape = [self.num_keys, self.num_features]
+        # )
         mean = self.kernel[:, :self.num_features]
-        log_sig = self.kernel[:, self.num_features:]
+        # log_sig = self.kernel[:, self.num_features:]
 
-        if not training:
+        if True:#not training:
             features = mean
         else:
             features = mean + tf.exp(log_sig / 2.) * eps
 
         # tf.gather: "fetching in the dictionary"
         fetched_features = tf.gather(features, input, axis = 0)
-        fetched_mean = tf.gather(mean, input, axis = 0)
-        fetched_log_sig = tf.gather(log_sig, input, axis = 0)
 
-        return fetched_features, fetched_mean, fetched_log_sig
+        kl_loss = tf.reduce_mean(
+            0.5 * (tf.exp(log_sig) + tf.square(mean) - 1. - log_sig)
+        )
+
+        return fetched_features, kl_loss
 
     def sample(self, n_sample):
         eps = tf.random.normal(
@@ -1411,8 +1442,183 @@ class DictionaryLayer(Layer):
 
         fetched_mean = tf.gather(mean, indecies, axis = 0)
         fetched_log_sig = tf.gather(log_sig, indecies, axis = 0)
-        fetched_features = fetched_mean + tf.exp(fetched_log_sig / 2.) * eps
+        fetched_features = fetched_mean #+ tf.exp(fetched_log_sig / 2.) * eps
         return tf.stop_gradient(fetched_features)
+    def get_all(self, training = True):
+        eps = tf.random.normal(
+            shape = [self.num_keys, self.num_features])
+        mean = self.kernel[:, :self.num_features]
+        log_sig = self.kernel[:, self.num_features:]
+
+        if True:#not training:
+            features = mean
+        else:
+            features = mean + tf.exp(log_sig / 2.) * eps
+
+        kl_loss = tf.reduce_mean(
+            0.5 * (tf.exp(log_sig) + tf.square(mean) - 1. - log_sig)
+        )
+
+        return features, kl_loss
+
+
+# stores cell features
+# key: index
+# value: feature (matrix)
+class DictionaryNetworkLayer(Layer):
+    '''
+
+    The cell is a network of components:
+
+    cell(pos,neg,electrolyte)
+
+    pos = ... TODO(sam): this is not complete
+    neg = ...
+
+    electrolyte = ...
+
+    molecules = ...
+
+
+
+    '''
+
+    def __init__(self,
+                 num_features,
+                 depth,
+                 width,
+                 cell_dict,
+                 pos_dict,
+                 neg_dict,
+                 electrolyte_dict,
+                 cell_latent_flags,
+                 cell_to_pos,
+                 cell_to_neg,
+                 cell_to_electrolyte
+                 ):
+        super(DictionaryNetworkLayer, self).__init__()
+        self.num_features = num_features
+
+        self.cell_direct = PrimitiveDictionaryLayer(
+            num_features=num_features,
+            id_dict=cell_dict
+        )
+        self.num_keys= self.cell_direct.num_keys
+
+        self.pos_direct = PrimitiveDictionaryLayer(
+            num_features=num_features,
+            id_dict=pos_dict
+        )
+        self.neg_direct = PrimitiveDictionaryLayer(
+            num_features=num_features,
+            id_dict=neg_dict
+        )
+        self.electrolyte_direct = PrimitiveDictionaryLayer(
+            num_features=num_features,
+            id_dict=electrolyte_dict
+        )
+
+        #cell_latent_flags is a dict with barcodes as keys.
+        #latent_flags is a numpy array such that the indecies match cell_dict
+        latent_flags = numpy.zeros(
+            (self.cell_direct.num_keys,1),
+            dtype=numpy.float32
+        )
+
+        for cell_id in self.cell_direct.id_dict.keys():
+            latent_flags[self.cell_direct.id_dict[cell_id], 0] = cell_latent_flags[cell_id]
+
+        self.cell_latent_flags = tf.constant(latent_flags)
+
+        cell_pointers = numpy.zeros(
+            shape=(self.cell_direct.num_keys, 3),
+            dtype=numpy.int32,
+        )
+
+        #cell_to_pos: cell_id -> pos_id
+
+        for cell_id in self.cell_direct.id_dict.keys():
+            cell_pointers[self.cell_direct.id_dict[cell_id], 0] = pos_dict[cell_to_pos[cell_id]]
+            cell_pointers[self.cell_direct.id_dict[cell_id], 1] = neg_dict[cell_to_neg[cell_id]]
+            cell_pointers[self.cell_direct.id_dict[cell_id], 2] = electrolyte_dict[cell_to_electrolyte[cell_id]]
+
+        self.cell_pointers = tf.constant(cell_pointers)
+        self.cell_indirect = feedforward_nn_parameters(depth, width, last=num_features)
+
+    def get_main_ker(self):
+        return self.cell_direct.get_main_ker()
+
+    def call(self, input, training = True):
+
+        features_cell, kl_cell = self.cell_direct.get_all(training=training)
+        features_pos, kl_pos = self.pos_direct.get_all(training=training)
+        features_neg, kl_neg = self.neg_direct.get_all(training=training)
+        features_electrolyte, kl_electrolyte = self.electrolyte_direct.get_all(training=training)
+
+        fetched_features_cell_direct = tf.gather(
+            features_cell,
+            input,
+            axis=0
+        )
+
+        fetched_latent_cell = tf.gather(
+            self.cell_latent_flags,
+            input,
+            axis=0
+        )
+
+        fetched_pointers_cell = tf.gather(
+            self.cell_pointers,
+            input,
+            axis=0
+        )
+
+        pos_input = fetched_pointers_cell[:,0]
+        neg_input = fetched_pointers_cell[:,1]
+        electrolyte_input = fetched_pointers_cell[:,2]
+
+        fetched_features_pos = tf.gather(
+            features_pos,
+            pos_input,
+            axis=0
+        )
+        fetched_features_neg = tf.gather(
+            features_neg,
+            neg_input,
+            axis=0
+        )
+        fetched_features_electrolyte = tf.gather(
+            features_electrolyte,
+            electrolyte_input,
+            axis=0
+        )
+
+        cell_dependencies = (
+            fetched_features_pos,
+            fetched_features_neg,
+            fetched_features_electrolyte,
+        )
+        fetched_features_cell_indirect = nn_call(
+            self.cell_indirect,
+            cell_dependencies,
+            training=training
+        )
+
+        # fetched_features_cell = fetched_features_cell_direct
+        fetched_features_cell = (
+            (fetched_latent_cell * fetched_features_cell_direct) +
+            ((1. - fetched_latent_cell) * fetched_features_cell_indirect)
+        )
+
+        return fetched_features_cell, 0.#kl_cell + kl_pos + kl_neg + kl_electrolyte
+
+    def sample(self, n_sample):
+        indecies = tf.random.uniform(maxval = self.cell_direct.num_keys, shape = [n_sample],
+                                     dtype = tf.int32)
+
+        fetched_features, _ = self.call(input=indecies, training=False)
+        return tf.stop_gradient(fetched_features)
+
 
 
 

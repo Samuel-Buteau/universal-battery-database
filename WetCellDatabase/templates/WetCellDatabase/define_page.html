@@ -202,20 +202,20 @@ table, th, td {
         </td>
         {% endif %}
 
-    {% if define_dry_cell_form %}
-        <h2>Dry Cell Model:</h2>
+    {% if define_dry_cell_form and define_dry_cell_geometry_form%}
+        <td valign="top">
+        <h1>Dry Cell</h1>
+            {% include "WetCellDatabase/dry_cell.html" %}
+            <input type="submit" name = 'define_dry_cell' value="Define Dry Cell">
+            {% if define_dry_cell_lot_form %}
+            {% include "WetCellDatabase/lot_info.html" with lot_info_form=define_dry_cell_lot_form predefined=define_dry_cell_lot_form.predefined_dry_cell predefined_label="Predefined Dry Cell" %}
 
-        <table>{{ define_dry_cell_form.as_table }}</table>
-        {% if define_dry_cell_geometry_form %}
-            <table>{{ define_dry_cell_geometry_form.as_table }}</table>
+                <input type="submit" name = 'define_dry_cell_lot' value="Define Dry Cell Lot (AKA Box)">
+            {% endif %}
+        </td>
         {% endif %}
-        <input type="submit" name = 'define_dry_cell' value="Define Dry Cell">
-        {% if define_dry_cell_lot_form %}
 
-            <table>{{ define_dry_cell_lot_form.as_table }}</table>
-            <input type="submit" name = 'define_dry_cell_lot' value="Define Dry Cell Lot (AKA Box)">
-        {% endif %}
-    {% endif %}
+
     </table>
 
 </form>

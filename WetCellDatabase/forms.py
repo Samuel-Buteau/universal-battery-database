@@ -123,7 +123,10 @@ class ElectrodeInactiveForm(ModelForm):
                   ]
 
 class ElectrodeInactiveLotForm(ModelForm):
-    predefined_inactive_material = forms.ModelChoiceField(queryset=Component.objects.filter(Q(component_type=CONDUCTIVE_ADDITIVE)|Q(component_type=BINDER)), required=False)
+    predefined_inactive_material = forms.ModelChoiceField(
+        queryset=Component.objects.filter(
+            Q(component_type=CONDUCTIVE_ADDITIVE)|Q(component_type=BINDER)
+        ), required=False)
     class Meta:
         model = LotInfo
         exclude = []
@@ -131,7 +134,10 @@ class ElectrodeInactiveLotForm(ModelForm):
 
 
 class SeparatorMaterialForm(ModelForm):
-    coating = forms.ChoiceField(choices=coating_choices, required=False)
+    coating = forms.ChoiceField(
+        choices=coating_choices,
+        required=False
+    )
     class Meta:
         model = Component
         fields = [
@@ -147,7 +153,10 @@ class SeparatorMaterialForm(ModelForm):
         ]
 
 class SeparatorMaterialLotForm(ModelForm):
-    predefined_separator_material = forms.ModelChoiceField(queryset=Component.objects.filter(composite_type=SEPARATOR), required=False)
+    predefined_separator_material = forms.ModelChoiceField(
+        queryset=Component.objects.filter(composite_type=SEPARATOR),
+        required=False
+    )
     class Meta:
         model = LotInfo
         exclude = []
@@ -159,7 +168,10 @@ class CoatingForm(ModelForm):
         exclude = []
 
 class CoatingLotForm(ModelForm):
-    predefined_coating = forms.ModelChoiceField(queryset=Coating.objects.all(), required=False)
+    predefined_coating = forms.ModelChoiceField(
+        queryset=Coating.objects.all(),
+        required=False
+    )
     class Meta:
         model = LotInfo
         exclude = []
@@ -171,15 +183,17 @@ class ElectrolyteForm(ModelForm):
                   'notes']
 
 class ElectrolyteLotForm(ModelForm):
-    predefined_electrolyte = forms.ModelChoiceField(queryset=Composite.objects.filter(composite_type=ELECTROLYTE), required=False)
+    predefined_electrolyte = forms.ModelChoiceField(
+        queryset=Composite.objects.filter(composite_type=ELECTROLYTE),
+        required=False
+    )
     class Meta:
         model = LotInfo
         exclude = []
 
 
 class ElectrolyteCompositionForm(Form):
-
-    molecule = forms.ChoiceField(choices= choices_molecule(), required=False)
+    molecule = forms.ChoiceField(choices= choices_molecule, required=False)
     ratio = forms.CharField(required=False)
 
 class ElectrodeForm(ModelForm):
@@ -193,7 +207,12 @@ class ElectrodeForm(ModelForm):
 
 
 class ElectrodeLotForm(ModelForm):
-    predefined_electrode = forms.ModelChoiceField(queryset=Composite.objects.filter(Q(composite_type=CATHODE)|Q(composite_type=ANODE)), required=False)
+    predefined_electrode = forms.ModelChoiceField(
+        queryset=Composite.objects.filter(
+            Q(composite_type=CATHODE)|Q(composite_type=ANODE)
+        ),
+        required=False
+    )
     class Meta:
         model = LotInfo
         exclude = []
@@ -210,7 +229,10 @@ class ElectrodeGeometryForm(ModelForm):
 
 
 class ElectrodeMaterialStochiometryForm(Form):
-    atom = forms.ChoiceField(choices=ElectrodeMaterialStochiometry.ATOMS + [(None,'----')], required=False)
+    atom = forms.ChoiceField(
+        choices=ElectrodeMaterialStochiometry.ATOMS + [(None,'----')],
+        required=False
+    )
     stochiometry = forms.CharField(required=False)
 
 
@@ -221,7 +243,10 @@ class SeparatorForm(ModelForm):
         fields = ['proprietary','proprietary_name', 'notes', ]
 
 class SeparatorLotForm(ModelForm):
-    predefined_separator = forms.ModelChoiceField(queryset=Composite.objects.filter(composite_type=SEPARATOR), required=False)
+    predefined_separator = forms.ModelChoiceField(
+        queryset=Composite.objects.filter(composite_type=SEPARATOR),
+        required=False
+    )
     class Meta:
         model = LotInfo
         exclude = []
@@ -234,23 +259,38 @@ class SeparatorGeometryForm(ModelForm):
 
 
 class SeparatorCompositionForm(Form):
-    material = forms.ChoiceField(choices=separator_material_choices, required=False)
+    material = forms.ChoiceField(
+        choices=separator_material_choices,
+        required=False
+    )
     ratio = forms.CharField(required=False)
 
 
 
 
 class DryCellForm(ModelForm):
-    anode = forms.ChoiceField(choices=composite_choices(composite_type=ANODE), required=False)
-    cathode = forms.ChoiceField(choices=composite_choices(composite_type=CATHODE), required=False)
-    separator = forms.ChoiceField(choices=composite_choices(composite_type=SEPARATOR), required=False)
+    anode = forms.ChoiceField(
+        choices=lambda : composite_choices(composite_type=ANODE),
+        required=False
+    )
+    cathode = forms.ChoiceField(
+        choices=lambda : composite_choices(composite_type=CATHODE),
+        required=False
+    )
+    separator = forms.ChoiceField(
+        choices=lambda : composite_choices(composite_type=SEPARATOR),
+        required=False
+    )
 
     class Meta:
         model = DryCell
         exclude = ['geometry', 'anode', 'cathode', 'separator']
 
 class DryCellLotForm(ModelForm):
-    predefined_drycell = forms.ModelChoiceField(queryset=DryCell.objects.all(), required=False)
+    predefined_dry_cell = forms.ModelChoiceField(
+        queryset=DryCell.objects.all(),
+        required=False
+    )
     class Meta:
         model = LotInfo
         exclude = []
@@ -263,8 +303,14 @@ class DryCellGeometryForm(ModelForm):
 
 
 class WetCellForm(ModelForm):
-    dry_cell = forms.ChoiceField(choices=dry_cell_choices, required=False)
-    electrolyte = forms.ChoiceField(choices=composite_choices(composite_type=ELECTROLYTE), required=False)
+    dry_cell = forms.ChoiceField(
+        choices=dry_cell_choices,
+        required=False
+    )
+    electrolyte = forms.ChoiceField(
+        choices=lambda : composite_choices(composite_type=ELECTROLYTE),
+        required=False
+    )
 
     class Meta:
         model = WetCell
@@ -278,10 +324,13 @@ def initialize_mini_electrolyte(self, value=False, molecule=False, number=10):
             choices = dry_cell_choices, required=False)
 
     if molecule:
-        c_molecule = choices_molecule()
+        c_molecule = choices_molecule
     for i in range(number):
         if molecule:
-            self.fields['molecule_{}'.format(i)] = forms.ChoiceField(choices = c_molecule, required=False)
+            self.fields['molecule_{}'.format(i)] = forms.ChoiceField(
+                choices = c_molecule,
+                required=False
+            )
         if value:
             self.fields['value_{}'.format(i)] = forms.CharField(
                 required=False,
@@ -336,7 +385,7 @@ class SearchElectrolyteComponentForm(Form):
         (PROHIBITED, 'prohibited'),
         (ALLOWED, 'allowed'),
     ]
-    molecule = forms.ChoiceField(choices=choices_molecule(),required=False)
+    molecule = forms.ChoiceField(choices=choices_molecule,required=False)
     must_type = forms.ChoiceField(choices=MUST_TYPES, initial = MANDATORY)
     ratio = forms.FloatField(required=False)
     tolerance = forms.FloatField(required=False)

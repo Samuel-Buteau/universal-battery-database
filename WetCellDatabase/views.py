@@ -142,7 +142,8 @@ def define_page(request, mode=None):
                                 h['component_lot']= ComponentLot.objects.get(id=my_id)
                                 components_lot.append(h)
                             if lot_type == LotTypes.no_lot:
-                                h['component']=ComponentLot.objects.get(id=my_id)
+
+                                h['component']= Component.objects.get(id=my_id)
                                 components.append(h)
 
             return my_composite.define_if_possible(
@@ -291,6 +292,93 @@ def define_page(request, mode=None):
                     )
                     return my_content
 
+        if content == 'dry_cell':
+            simple_form = DryCellForm(
+                request.POST,
+                prefix='dry-cell-form'
+            )
+
+            simple_form_string = 'define_{}_form'.format(content)
+            define_dry_cell_geometry_form = DryCellGeometryForm(request.POST, prefix='dry-cell-geometry-form')
+
+            if not define_dry_cell_geometry_form.is_valid():
+                return None
+            else:
+                ar['define_dry_cell_geometry_form'] = define_dry_cell_geometry_form
+                dry_cell_geometry = DryCellGeometry(
+                    geometry_category=define_dry_cell_geometry_form.cleaned_data['geometry_category'],
+                    geometry_category_name=define_dry_cell_geometry_form.cleaned_data['geometry_category_name'],
+                    width=define_dry_cell_geometry_form.cleaned_data['width'],
+                    width_name=define_dry_cell_geometry_form.cleaned_data['width_name'],
+                    length=define_dry_cell_geometry_form.cleaned_data['length'],
+                    length_name=define_dry_cell_geometry_form.cleaned_data['length_name'],
+                    thickness=define_dry_cell_geometry_form.cleaned_data['thickness'],
+                    thickness_name=define_dry_cell_geometry_form.cleaned_data['thickness_name'],
+
+                )
+            if not simple_form.is_valid():
+                return None
+            else:
+                ar[simple_form_string] = simple_form
+                my_dry_cell = DryCell(
+                    proprietary=simple_form.cleaned_data['proprietary'],
+                    proprietary_name=simple_form.cleaned_data['proprietary_name'],
+                    notes=simple_form.cleaned_data['notes'],
+
+                )
+
+                #Cathode
+                my_id, lot_type = decode_lot_string(
+                    simple_form.cleaned_data['cathode']
+                )
+                cathode = None
+                if lot_type == LotTypes.no_lot:
+                    cathode = get_lot(
+                        Composite.objects.get(id=my_id),
+                        None,
+                        type='composite'
+                    )
+                elif lot_type == LotTypes.lot:
+                    cathode = CompositeLot.objects.get(id=my_id)
+
+                #Anode
+                my_id, lot_type = decode_lot_string(
+                    simple_form.cleaned_data['anode']
+                )
+                anode = None
+                if lot_type == LotTypes.no_lot:
+                    anode = get_lot(
+                        Composite.objects.get(id=my_id),
+                        None,
+                        type='composite'
+                    )
+                elif lot_type == LotTypes.lot:
+                    anode = CompositeLot.objects.get(id=my_id)
+
+                #Separator
+                my_id, lot_type = decode_lot_string(
+                    simple_form.cleaned_data['separator']
+                )
+                separator = None
+                if lot_type == LotTypes.no_lot:
+                    separator = get_lot(
+                        Composite.objects.get(id=my_id),
+                        None,
+                        type='composite'
+                    )
+                elif lot_type == LotTypes.lot:
+                    separator = CompositeLot.objects.get(id=my_id)
+
+
+
+                return my_dry_cell.define_if_possible(
+                    geometry=dry_cell_geometry,
+                    cathode=cathode,
+                    anode=anode,
+                    separator=separator,
+                )
+
+
     def define_lot(post, content=None):
         define_lot_form_string = 'define_{}_lot_form'.format(content)
         predefined_string = 'predefined_{}'.format(content)
@@ -335,6 +423,13 @@ def define_page(request, mode=None):
                 prefix='separator-lot-form'
             )
 
+        elif content == 'dry_cell':
+            define_lot_form = DryCellLotForm(
+                post,
+                prefix='dry-cell-lot-form'
+            )
+
+
         if define_lot_form.is_valid():
             ar[define_lot_form_string] = define_lot_form
             if define_lot_form.cleaned_data[predefined_string] is not None:
@@ -365,6 +460,10 @@ def define_page(request, mode=None):
                 elif content == 'electrolyte' or content == 'electrode' or content == 'separator':
                     type = 'composite'
                     lot = CompositeLot(composite = my_content)
+                elif content == 'dry_cell':
+                    type = 'dry_cell'
+                    lot = DryCellLot(composite=my_content)
+
                 else:
                     raise('not yet implemented {}'.format(content))
 
@@ -380,7 +479,9 @@ def define_page(request, mode=None):
             ('active_material','electrode'),
             ('separator_material','separator'),
             ('electrode','electrode'),
-            ('separator','separator')]:
+            ('separator','separator'),
+            ('dry_cell' , 'dry_cell')
+        ]:
             if context == mode:
                 if ('define_{}'.format(m) in request.POST) or ('define_{}_lot'.format(m) in request.POST):
                     if 'define_{}'.format(m) in request.POST:
@@ -388,22 +489,6 @@ def define_page(request, mode=None):
                     if 'define_{}_lot'.format(m) in request.POST:
                         define_lot(request.POST, content=m)
 
-        if mode == 'dry_cell':
-            if ('define_dry_cell' in request.POST) or ('define_dry_cell_lot' in request.POST):
-                define_dry_cell_form = DryCellForm(request.POST)
-                if define_dry_cell_form.is_valid():
-                    print(define_dry_cell_form.cleaned_data)
-                    ar['define_dry_cell_form'] = define_dry_cell_form
-                define_dry_cell_geometry_form = DryCellGeometry(request.POST)
-                if define_dry_cell_geometry_form.is_valid():
-                    print(define_dry_cell_geometry_form.cleaned_data)
-                    ar['define_dry_cell_geometry_form'] = define_dry_cell_geometry_form
-
-                if 'define_dry_cell_lot' in request.POST:
-                    define_dry_cell_lot_form = DryCellLotForm(request.POST)
-                    if define_dry_cell_lot_form.is_valid():
-                        print(define_dry_cell_lot_form.cleaned_data)
-                        ar['define_dry_cell_lot_form'] = define_dry_cell_lot_form
 
         if mode == 'wet_cell':
             if ('define_wet_cell' in request.POST) :

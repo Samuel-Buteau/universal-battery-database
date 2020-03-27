@@ -135,9 +135,6 @@ def print_unknown(val):
 class LotInfo(models.Model):
     notes = models.CharField(max_length=100, null=True, blank=True)
 
-    @property
-    def notes_name(self):
-        return self.notes is not None
 
     """
      dates, creator, notes, vendor are either unknown or known 
@@ -151,7 +148,7 @@ class LotInfo(models.Model):
 
 
     def is_valid(self):
-        if not self.notes_name and not self.creator_name and not self.date_name and not self.vendor_name:
+        if self.notes is None and not self.creator_name and not self.date_name and not self.vendor_name:
             return False
         if self.notes is None and self.creator is None and self.date is None and self.vendor is None:
             return False
@@ -172,7 +169,7 @@ class LotInfo(models.Model):
 
     def __str__(self):
         printed_name = ''
-        if self.notes_name:
+        if self.notes is not None:
             printed_name = self.notes
 
         extras = []
@@ -441,15 +438,19 @@ class ElectrodeMaterialStochiometry(models.Model):
         return self.pretty_print()
 
 def helper_return(
-        set_of_object_equals=None,
+        set_of_object_equal=None,
         my_self=None,
         electrode_geometry=None,
         separator_geometry=None,
         my_stochiometry_components=None,
         my_ratio_components=None,
-        lot_info=None
+        lot_info=None,
+        dry_cell_geometry=None,
+        anode=None,
+        cathode=None,
+        separator=None,
 ):
-    if not set_of_object_equals.exists():
+    if not set_of_object_equal.exists():
         # if string equals, we take care of it before passing it here.
 
         # we know for a fact that value fields don't exist.
@@ -457,6 +458,22 @@ def helper_return(
         if electrode_geometry is not None:
             electrode_geometry.save()
             my_self.electrode_geometry = electrode_geometry
+
+        if dry_cell_geometry is not None:
+            dry_cell_geometry.save()
+            my_self.geometry = dry_cell_geometry
+
+        if anode is not None:
+            anode.save()
+            my_self.anode = anode
+
+        if cathode is not None:
+            cathode.save()
+            my_self.cathode = cathode
+
+        if separator is not None:
+            separator.save()
+            my_self.separator = separator
 
         if separator_geometry is not None:
             separator_geometry.save()
@@ -477,7 +494,7 @@ def helper_return(
         return my_self
 
     else:
-        return set_of_object_equals[0]
+        return set_of_object_equal[0]
 
 
 
@@ -513,9 +530,6 @@ class Component(models.Model):
     UNITS_MISALIGNMENT = ('percent', '%')
 
     notes = models.CharField(max_length=1000, null=True, blank=True)
-    @property
-    def notes_name(self):
-        return self.notes is not None
 
     smiles = models.CharField(max_length=1000, null=True, blank=True)
     smiles_name = models.BooleanField(default=False, blank=True)
@@ -624,11 +638,9 @@ class Component(models.Model):
                                                               component_type_name=True)
         else:
             string_equality_query = string_equality_query & Q(component_type_name=False)
-        if self.notes_name:
-            string_equality_query = string_equality_query & Q(notes=self.notes,
-                                                              notes_name=True)
-        else:
-            string_equality_query = string_equality_query & Q(notes_name=False)
+
+        string_equality_query = string_equality_query & Q(notes=self.notes)
+
         if self.coating_lot_name:
             string_equality_query = string_equality_query & Q(coating_lot=self.coating_lot,
                                                               coating_lot_unknown=self.coating_lot_unknown,
@@ -717,7 +729,6 @@ class Component(models.Model):
                 self.smiles_name = True
                 self.composite_type_name = True
                 self.component_type_name = True
-                self.notes_name = True
                 self.coating_lot_name = True
                 self.particle_size_name = True
                 self.single_crystal_name = True
@@ -745,7 +756,7 @@ class Component(models.Model):
         if self.component_type == ACTIVE_MATERIAL:
             printed_name = self.print_stochiometry()
 
-        if self.notes_name:
+        if self.notes is not None:
             if printed_name == '':
                 printed_name = self.notes
             else:
@@ -913,9 +924,6 @@ class Composite(models.Model):
     composite_type_name = models.BooleanField(default=False, blank=True)
 
     notes = models.CharField(max_length=1000, null=True, blank=True)
-    @property
-    def notes_name(self):
-        return self.notes is not None
 
     electrode_geometry = models.OneToOneField(ElectrodeGeometry, on_delete=models.SET_NULL, null=True, blank=True)
     separator_geometry = models.OneToOneField(SeparatorGeometry, on_delete=models.SET_NULL, null=True, blank=True)
@@ -993,12 +1001,8 @@ class Composite(models.Model):
             string_equality_query = string_equality_query & Q(composite_type_name=False)
 
 
-        if self.notes_name:
-            string_equality_query = string_equality_query & Q(notes=self.notes,
-                                                              notes_name=True)
-        else:
-            string_equality_query = string_equality_query & Q(notes_name=False)
 
+        string_equality_query = string_equality_query & Q(notes=self.notes)
 
         if self.proprietary_name:
             string_equality_query = string_equality_query & Q(proprietary=self.proprietary,
@@ -1166,7 +1170,6 @@ class Composite(models.Model):
                 if (not set_of_object_equal.exists()) and string_equals:
                     self.proprietary_name = True
                     self.composite_type_name = True
-                    self.notes_name = True
                     if self.composite_type in [ANODE, CATHODE]:
                         electrode_geometry.loading_name = True
                         electrode_geometry.density_name = True
@@ -1229,7 +1232,7 @@ class Composite(models.Model):
                 )
 
         extras = []
-        if self.notes_name:
+        if self.notes is not None:
             if printed_name == '':
                 printed_name = self.notes
             else:
@@ -1287,17 +1290,14 @@ class DryCellGeometry(models.Model):
     geometry_category = models.CharField(max_length=2, choices=GEO_TYPES, blank=True)
     geometry_category_name = models.BooleanField(default=False, blank=True)
 
-    width = models.FloatField(null=True, blank=True)
+    width = models.FloatField(null=True, blank=True, help_text = UNITS_LENGTH)
     width_name = models.BooleanField(default=False, blank=True)
 
-    length = models.FloatField(null=True, blank=True)
+    length = models.FloatField(null=True, blank=True, help_text = UNITS_LENGTH)
     length_name = models.BooleanField(default=False, blank=True)
 
-    thickness = models.FloatField(null=True, blank=True)
+    thickness = models.FloatField(null=True, blank=True, help_text = UNITS_LENGTH)
     thickness_name = models.BooleanField(default=False, blank=True)
-    #seal_width_side = models.FloatField(null=True, blank=True)
-    #seal_width_top = models.FloatField(null=True, blank=True)
-    #metal_bag_sheet_thickness = models.FloatField(null=True, blank=True)
 
 
 
@@ -1309,35 +1309,13 @@ class DryCell(models.Model):
     UNITS_MAX_CHARGE_VOLTAGE = 'Volts (V)'
     UNITS_DCR_ESTIMATE = 'Ohms (\\Omega)'
 
-    name = models.CharField(max_length=300, null=True, blank=True)
+    notes = models.CharField(max_length=1000, null=True, blank=True)
+
     proprietary = models.BooleanField(default=False, blank=True)
-    #family = models.CharField(max_length=100,null=True, blank=True)
+    proprietary_name = models.BooleanField(default=False, blank=True)
 
-    version = models.CharField(max_length=100,null=True, blank=True)
-    version_name = models.BooleanField(default=False, blank=True)
-
-    description = models.CharField(max_length=10000,null=True, blank=True)
-    #marking_on_box = models.CharField(max_length=300, null=True, blank=True)
-    #quantity = models.IntegerField(null=True, blank=True)
-    #packing_date = models.DateField( null=True, blank=True)
-    #ship_date = models.DateField( null=True, blank=True)
-    #shipping_soc = models.FloatField(null=True, blank=True)
-    #energy_estimate = models.FloatField(null=True, blank=True)
-    #capacity_estimate = models.FloatField(null=True, blank=True)
-    #mass_estimate = models.FloatField(null=True, blank=True)
-    max_charge_voltage = models.FloatField(null=True, blank=True)
-    max_charge_voltage_name = models.BooleanField(default=False, blank=True)
-
-    #dcr_estimate = models.FloatField(null=True, blank=True)
-    #chemistry_freeze_date_requested = models.DateField(null=True, blank=True)
     geometry = models.OneToOneField(DryCellGeometry, on_delete=models.SET_NULL, null=True, blank=True)
     geometry_name = models.BooleanField(default=False, blank=True)
-
-    #negative_foil_vendor = models.CharField(max_length=100,null=True, blank=True)
-    #gasket_vendor = models.CharField(max_length=100,null=True, blank=True)
-    #can_vendor = models.CharField(max_length=100,null=True, blank=True)
-    #top_cap_vendor = models.CharField(max_length=100,null=True, blank=True)
-    #outer_tape_vendor = models.CharField(max_length=100,null=True, blank=True)
 
     cathode = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True, related_name='cathode', blank=True)
     cathode_name = models.BooleanField(default=False, blank=True)
@@ -1347,6 +1325,119 @@ class DryCell(models.Model):
 
     separator = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True, related_name='separator', blank=True)
     separator_name = models.BooleanField(default=False, blank=True)
+
+
+    #TODO(sam): define __str__ method
+    
+    def define_if_possible(self, geometry=None,cathode=None, anode=None,separator=None):
+        """
+        The objects are made of subobjects and visibility flags.
+        we want to make sure that among the objects created, no two (object,visibility) have the same (object projection)
+        furthermore, no two objects can have the same string.
+
+        If there is an object clash, return the preexisting object.
+        Else: if there is a string clash, set all visibility flags to True.
+        TODO: revamp this with the new abstraction.
+        """
+
+
+        object_equality_query = Q(
+            proprietary=self.proprietary,
+            notes=self.notes,
+            geometry__geometry_category=geometry.geometry_category,
+            geometry__width=geometry.width,
+            geometry__length=geometry.length,
+            geometry__thickness=geometry.thickness,
+            cathode=cathode,
+            anode=anode,
+            separator=separator,
+
+        )
+
+
+        string_equality_query = Q()
+
+        string_equality_query = string_equality_query & Q(notes=self.notes)
+
+        if self.proprietary_name:
+            string_equality_query = string_equality_query & Q(proprietary=self.proprietary,
+                                                              proprietary_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(proprietary_name=False)
+
+        if self.anode_name:
+            string_equality_query = string_equality_query & Q(anode=self.anode,
+                                                              anode_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(anode_name=False)
+
+        if self.cathode_name:
+            string_equality_query = string_equality_query & Q(cathode=self.cathode,
+                                                              cathode_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(cathode_name=False)
+
+        if self.separator_name:
+            string_equality_query = string_equality_query & Q(separator=self.separator,
+                                                              separator_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(separator_name=False)
+
+
+        if geometry.geometry_category_name:
+            string_equality_query = string_equality_query & Q(geometry__geometry_category=geometry.geometry_category,
+                                                              geometry__geometry_category_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(geometry__geometry_category_name=False)
+
+        if geometry.width_name:
+            string_equality_query = string_equality_query & Q(geometry__width=geometry.width,
+                                                              geometry__width_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(geometry__width_name=False)
+
+        if geometry.length_name:
+            string_equality_query = string_equality_query & Q(geometry__length=geometry.length,
+                                                              geometry__length_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(geometry__length_name=False)
+
+        if geometry.thickness_name:
+            string_equality_query = string_equality_query & Q(geometry__thickness=geometry.thickness,
+                                                              geometry__thickness_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(geometry__thickness_name=False)
+
+
+
+
+
+
+
+
+
+        set_of_object_equal = DryCell.objects.filter(object_equality_query)
+        string_equals = DryCell.objects.filter(string_equality_query).exists()
+
+        if (not set_of_object_equal.exists()) and string_equals:
+            self.proprietary_name = True
+            self.anode_name = True
+            self.cathode_name = True
+            self.separator_name = True
+            geometry.geometry_category_name = True
+            geometry.width_name = True
+            geometry.thickness_name = True
+            geometry.length_name = True
+
+        return helper_return(
+                set_of_object_equal=set_of_object_equal,
+                my_self=self,
+                dry_cell_geometry=geometry,
+                anode=anode,
+                cathode=cathode,
+                separator=separator,
+            )
+
 
 class DryCellLot(models.Model):
     dry_cell = models.ForeignKey(DryCell, on_delete=models.CASCADE, blank=True)

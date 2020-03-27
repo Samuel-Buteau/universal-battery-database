@@ -39,6 +39,11 @@ run in a separate terminal:
 This will process the tasks as they are defined.
 
 
+In order to quickly see the webpage and start developing, run
+> python manage.py runserver 0.0.0.0:8000
+
+and then go to your browser and type http://localhost:8000/ for the webpage.
+
 Then, the more tricky part is to install postgresql and configure it. 
 
 - make sure installation includes the PostgreSQL Unicode ODBC driver 

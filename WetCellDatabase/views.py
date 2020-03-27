@@ -211,11 +211,10 @@ def define_page(request, mode=None):
                         simple_form.cleaned_data['coating']
                     )
 
-                    my_component.coating_lot_unknown = False
                     my_component.coating_lot = None
 
                     if lot_type == LotTypes.unknown:
-                        my_component.coating_lot_unknown = False
+                        my_component.coating_lot = None
                     else:
                         if lot_type == LotTypes.no_lot:
                             my_component.coating_lot = get_lot(

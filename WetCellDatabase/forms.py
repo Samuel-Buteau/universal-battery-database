@@ -15,7 +15,6 @@ def coating_choices():
     return make_choices(
             no_lots= Coating.objects.all(),
             lots = CoatingLot.objects.exclude(lot_info=None),
-            none=True,
             unknown=True,
         )
 

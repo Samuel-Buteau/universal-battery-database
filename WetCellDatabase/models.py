@@ -339,10 +339,9 @@ POLY_CRYSTAL = 'po'
 MIXED_CRYSTAL = 'mx'
 UNKNOWN_CRYSTAL = 'un'
 CRYSTAL_TYPES = [
-    (SINGLE_CRYSTAL, 'single_crystal'),
-    (POLY_CRYSTAL, 'poly_crystal'),
-    (MIXED_CRYSTAL, 'mixed_crystal'),
-    (UNKNOWN_CRYSTAL, 'unknown'),
+    (SINGLE_CRYSTAL, 'Single'),
+    (POLY_CRYSTAL, 'Poly'),
+    (MIXED_CRYSTAL, 'Mixed'),
 ]
 
 
@@ -545,7 +544,6 @@ class Component(models.Model):
 
     coating_lot = models.ForeignKey(CoatingLot, on_delete=models.SET_NULL, null=True, blank=True)
     coating_lot_name = models.BooleanField(default=False, blank=True)
-    coating_lot_unknown = models.BooleanField(default=False, blank=True)
 
     particle_size = models.FloatField(null=True, blank=True, help_text = UNITS_SIZE[0])
     particle_size_name = models.BooleanField(default=False, blank=True)
@@ -573,16 +571,9 @@ class Component(models.Model):
 
         :return:
         """
-        if self.smiles is None and self.smiles_name:
-            return False
         if self.composite_type is None:
             return False
         if self.component_type is None:
-            return False
-        if self.coating_lot is not None and self.coating_lot_unknown:
-            return False
-
-        if self.single_crystal is None and self.single_crystal_name:
             return False
 
         return True
@@ -608,7 +599,6 @@ class Component(models.Model):
             component_type=self.component_type,
             notes=self.notes,
             coating_lot=self.coating_lot,
-            coating_lot_unknown=self.coating_lot_unknown,
             particle_size=self.particle_size,
             single_crystal=self.single_crystal,
             turbostratic_misalignment=self.turbostratic_misalignment,
@@ -623,11 +613,13 @@ class Component(models.Model):
                                                               proprietary_name=True)
         else:
             string_equality_query = string_equality_query & Q(proprietary_name=False)
+
         if self.smiles_name:
             string_equality_query = string_equality_query & Q(smiles=self.smiles,
                                                               smiles_name=True)
         else:
             string_equality_query = string_equality_query & Q(smiles_name=False)
+
         if self.composite_type_name:
             string_equality_query = string_equality_query & Q(composite_type=self.composite_type,
                                                               composite_type_name=True)
@@ -643,7 +635,6 @@ class Component(models.Model):
 
         if self.coating_lot_name:
             string_equality_query = string_equality_query & Q(coating_lot=self.coating_lot,
-                                                              coating_lot_unknown=self.coating_lot_unknown,
                                                               coating_lot_name=True)
         else:
             string_equality_query = string_equality_query & Q(coating_lot_name=False)
@@ -778,10 +769,16 @@ class Component(models.Model):
             extras.append('SIZE={}{}'.format(particle_size, self.UNITS_SIZE[1]))
 
         if self.smiles_name:
-            extras.append('SMILES={}'.format(self.smiles))
+            smiles = '?'
+            if self.smiles is not None:
+                smiles = self.smiles
+            extras.append('SMILES={}'.format(smiles))
 
         if self.single_crystal_name:
-            extras.append(self.get_single_crystal_display())
+            single_crystal = '?'
+            if self.single_crystal is not None:
+                single_crystal = self.get_single_crystal_display()
+            extras.append('CRYSTAL={}'.format(single_crystal))
 
         if self.natural_name:
             if self.natural is None:
@@ -807,10 +804,7 @@ class Component(models.Model):
 
         if self.coating_lot_name:
             if self.coating_lot is None:
-                if self.coating_lot_unknown:
-                    extras.append('COAT=?')
-                else:
-                    extras.append('NO COAT')
+                extras.append('COAT=?')
             else:
                 extras.append('COAT={}'.format(self.coating_lot))
 
@@ -945,20 +939,20 @@ class Composite(models.Model):
         if self.composite_type in [ANODE,CATHODE]:
             if electrode_geometry is None:
                 return False
-            if electrode_geometry.loading is None and electrode_geometry.loading_name:
-                return False
-            if electrode_geometry.density is None and electrode_geometry.density_name:
-                return False
-            if electrode_geometry.thickness is None and electrode_geometry.thickness_name:
-                return False
+            # if electrode_geometry.loading is None and electrode_geometry.loading_name:
+            #     return False
+            # if electrode_geometry.density is None and electrode_geometry.density_name:
+            #     return False
+            # if electrode_geometry.thickness is None and electrode_geometry.thickness_name:
+            #     return False
 
         if self.composite_type == SEPARATOR:
             if separator_geometry is None:
                 return False
-            if separator_geometry.thickness is None and separator_geometry.thickness_name:
-                return False
-            if separator_geometry.width is None and separator_geometry.width_name:
-                return False
+            # if separator_geometry.thickness is None and separator_geometry.thickness_name:
+            #     return False
+            # if separator_geometry.width is None and separator_geometry.width_name:
+            #     return False
 
         #so far, this is valid.
         return True
@@ -1246,17 +1240,32 @@ class Composite(models.Model):
             extras.append(secret)
         if self.electrode_geometry is not None:
             if self.electrode_geometry.loading_name:
-                extras.append('LOADING={:2.2f}{}'.format(self.electrode_geometry.loading,ElectrodeGeometry.UNITS_LOADING[1]))
+                if self.electrode_geometry.loading is None:
+                    extras.append('LOADING=?')
+                else:
+                    extras.append('LOADING={:2.2f}{}'.format(self.electrode_geometry.loading,ElectrodeGeometry.UNITS_LOADING[1]))
             if self.electrode_geometry.density_name:
-                extras.append('DENSITY={:2.2f}{}'.format(self.electrode_geometry.density,ElectrodeGeometry.UNITS_DENSITY[1]))
+                if self.electrode_geometry.density is None:
+                    extras.append('DENSITY=?')
+                else:
+                    extras.append('DENSITY={:2.2f}{}'.format(self.electrode_geometry.density,ElectrodeGeometry.UNITS_DENSITY[1]))
             if self.electrode_geometry.thickness_name:
-                extras.append('THICKNESS={:2.2f}{}'.format(self.electrode_geometry.thickness,ElectrodeGeometry.UNITS_THICKNESS[1]))
+                if self.electrode_geometry.thickness is None:
+                    extras.append('THICKNESS=?')
+                else:
+                    extras.append('THICKNESS={:2.2f}{}'.format(self.electrode_geometry.thickness,ElectrodeGeometry.UNITS_THICKNESS[1]))
 
         if self.separator_geometry is not None:
             if self.separator_geometry.thickness_name:
-                extras.append('THICKNESS={:2.2f}{}'.format(self.separator_geometry.thickness,SeparatorGeometry.UNITS[1]))
+                if self.separator_geometry.thickness is None:
+                    extras.append('THICKNESS=?')
+                else:
+                    extras.append('THICKNESS={:2.2f}{}'.format(self.separator_geometry.thickness,SeparatorGeometry.UNITS[1]))
             if self.separator_geometry.width_name:
-                extras.append('WIDTH={:2.2f}{}'.format(self.separator_geometry.width, SeparatorGeometry.UNITS[1]))
+                if self.separator_geometry.width is None:
+                    extras.append('WIDTH=?')
+                else:
+                    extras.append('WIDTH={:2.2f}{}'.format(self.separator_geometry.width, SeparatorGeometry.UNITS[1]))
 
 
         if self.composite_type_name:
@@ -1326,9 +1335,79 @@ class DryCell(models.Model):
     separator = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True, related_name='separator', blank=True)
     separator_name = models.BooleanField(default=False, blank=True)
 
+    def is_valid(self, geometry=None):
 
-    #TODO(sam): define __str__ method
-    
+
+        if geometry is None:
+            return False
+        else:
+            return True
+
+    def __str__(self):
+        printed_name = ''
+        extras = []
+        if self.notes is not None:
+            if printed_name == '':
+                printed_name = self.notes
+            else:
+                printed_name = '{} ({})'.format(printed_name,self.notes)
+
+        if self.proprietary_name:
+            if self.proprietary:
+                secret = "SECRET"
+            else:
+                secret = "NOT SECRET"
+            extras.append(secret)
+        if self.geometry is not None:
+            if self.geometry.geometry_category_name:
+                if self.geometry.geometry_category is None:
+                    extras.append('GEO=?')
+                else:
+                    extras.append(
+                        'GEO={}'.format(
+                            self.geometry.get_geometry_category_display()))
+            if self.geometry.width_name:
+                if self.geometry.width is None:
+                    extras.append('WIDTH=?')
+                else:
+                    extras.append('WIDTH={:2.2f}{}'.format(self.geometry.width,DryCellGeometry.UNITS_LENGTH))
+            if self.geometry.length_name:
+                if self.geometry.length is None:
+                    extras.append('LENGT=?')
+                else:
+                    extras.append('LENGT={:2.2f}{}'.format(self.geometry.length,DryCellGeometry.UNITS_LENGTH))
+            if self.geometry.thickness_name:
+                if self.geometry.thickness is None:
+                    extras.append('THICK=?')
+                else:
+                    extras.append('THICK={:2.2f}{}'.format(self.geometry.thickness,DryCellGeometry.UNITS_LENGTH))
+        if self.cathode_name:
+            if self.cathode is None:
+                extras.append('CATH=?')
+            else:
+                extras.append(
+                    'CATH={}'.format(self.cathode.__str__())
+                )
+        if self.anode_name:
+            if self.anode is None:
+                extras.append('ANOD=?')
+            else:
+                extras.append(
+                    'ANOD={}'.format(self.anode.__str__())
+                )
+        if self.separator_name:
+            if self.separator is None:
+                extras.append('SEPA=?')
+            else:
+                extras.append(
+                    'SEPA={}'.format(self.separator.__str__())
+                )
+
+        if len(extras) != 0:
+            return "{} [{}]".format(printed_name, ','.join(extras))
+        else:
+            return printed_name
+
     def define_if_possible(self, geometry=None,cathode=None, anode=None,separator=None):
         """
         The objects are made of subobjects and visibility flags.
@@ -1339,7 +1418,8 @@ class DryCell(models.Model):
         Else: if there is a string clash, set all visibility flags to True.
         TODO: revamp this with the new abstraction.
         """
-
+        if not self.is_valid(geometry):
+            return None
 
         object_equality_query = Q(
             proprietary=self.proprietary,
@@ -1355,9 +1435,7 @@ class DryCell(models.Model):
         )
 
 
-        string_equality_query = Q()
-
-        string_equality_query = string_equality_query & Q(notes=self.notes)
+        string_equality_query = Q(notes=self.notes)
 
         if self.proprietary_name:
             string_equality_query = string_equality_query & Q(proprietary=self.proprietary,
@@ -1407,12 +1485,6 @@ class DryCell(models.Model):
                                                               geometry__thickness_name=True)
         else:
             string_equality_query = string_equality_query & Q(geometry__thickness_name=False)
-
-
-
-
-
-
 
 
 

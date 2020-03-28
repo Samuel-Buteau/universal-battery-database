@@ -8,13 +8,13 @@ def choices_molecule():
     return make_choices(
             none=True,
             no_lots=Component.objects.filter(composite_type=ELECTROLYTE),
-            lots=ComponentLot.objects.filter(component__composite_type=ELECTROLYTE).exclude(lot_info=None)
+            lots=ComponentLot.objects.filter(component__composite_type=ELECTROLYTE).exclude(lot_info__isnull=True)
         )
 
 def coating_choices():
     return make_choices(
             no_lots= Coating.objects.all(),
-            lots = CoatingLot.objects.exclude(lot_info=None),
+            lots = CoatingLot.objects.exclude(lot_info__isnull=True),
             unknown=True,
         )
 
@@ -22,21 +22,21 @@ def material_choices():
     return make_choices(
             no_lots= Component.objects.filter(Q(composite_type=ANODE) | Q(composite_type=CATHODE)),
             lots= ComponentLot.objects.filter(
-            Q(component__composite_type=ANODE) | Q(component__composite_type=CATHODE)).exclude(lot_info=None),
+            Q(component__composite_type=ANODE) | Q(component__composite_type=CATHODE)).exclude(lot_info__isnull=True),
             none=True,
         )
 
 def separator_material_choices():
     return make_choices(
             no_lots= Component.objects.filter(composite_type=SEPARATOR),
-            lots= ComponentLot.objects.filter(component__composite_type=SEPARATOR).exclude(lot_info=None),
+            lots= ComponentLot.objects.filter(component__composite_type=SEPARATOR).exclude(lot_info__isnull=True),
             none=True,
         )
 
 def composite_choices(composite_type=None):
     return make_choices(
         no_lots=Composite.objects.filter(composite_type=composite_type),
-        lots=CompositeLot.objects.filter(composite__composite_type=composite_type),
+        lots=CompositeLot.objects.filter(composite__composite_type=composite_type).exclude(lot_info__isnull=True),
         none=True,
     )
 
@@ -44,7 +44,7 @@ def dry_cell_choices():
     return make_choices(
             none=True,
             no_lots=DryCell.objects.all(),
-            lots=DryCellLot.objects.exclude(lot_info=None)
+            lots=DryCellLot.objects.exclude(lot_info__isnull=True)
         )
 
 
@@ -301,7 +301,8 @@ class DryCellGeometryForm(ModelForm):
         exclude = []
 
 
-class WetCellForm(ModelForm):
+class WetCellForm(Form):
+    barcode = forms.IntegerField(required=False)
     dry_cell = forms.ChoiceField(
         choices=dry_cell_choices,
         required=False
@@ -311,9 +312,15 @@ class WetCellForm(ModelForm):
         required=False
     )
 
-    class Meta:
-        model = WetCell
-        fields = ['cell_id']
+
+
+class WetCellParametersForm(WetCellForm):
+    start_barcode = forms.IntegerField(required=False)
+    end_barcode = forms.IntegerField(required=False)
+    override_existing = forms.BooleanField(required=False)
+
+    def __init__(self, *args, **kwargs):
+        super(WetCellParametersForm, self).__init__(*args, **kwargs)
 
 
 def initialize_mini_electrolyte(self, value=False, molecule=False, number=10):
@@ -341,6 +348,7 @@ def initialize_mini_electrolyte(self, value=False, molecule=False, number=10):
 class ElectrolyteBulkParametersForm(ElectrolyteForm):
     start_barcode = forms.IntegerField(required=False)
     end_barcode = forms.IntegerField(required=False)
+    override_existing = forms.BooleanField(required=False)
 
     def __init__(self, *args, **kwargs):
         super(ElectrolyteBulkParametersForm, self).__init__(*args, **kwargs)

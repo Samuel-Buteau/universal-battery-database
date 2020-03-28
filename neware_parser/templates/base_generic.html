@@ -14,7 +14,9 @@
   <a href="{% url 'WetCellDatabase:define_page' mode='electrolyte' %}"> Define Electrolyte.</a>
   <a href="{% url 'WetCellDatabase:define_page' mode='electrode' %}"> Define Electrode.</a>
   <a href="{% url 'WetCellDatabase:define_page' mode='separator' %}"> Define Separator.</a>
-  <a href="{% url 'WetCellDatabase:define_bulk_electrolyte'  %}"> Define Electrolytes in Bulk.</a>
+  <br>
+  <a href="{% url 'WetCellDatabase:define_wet_cell_bulk' predefined='False' %}"> Register Cells in Bulk (Electrolyte Definition).</a>
+  <a href="{% url 'WetCellDatabase:define_wet_cell_bulk' predefined='True' %}"> Register Cells in Bulk (Predefined Electrolyte).</a>
 
   <br>
   <a href="{% url 'WetCellDatabase:search_page' %}"> Search Stuff.</a>

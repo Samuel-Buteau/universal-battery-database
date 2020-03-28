@@ -10,7 +10,7 @@ app_name = 'WetCellDatabase'
 urlpatterns = [
     url(r'^define/(?P<mode>\w+)/$', views.define_page, name='define_page'),
     path('search/', views.search_page, name='search_page'),
-    path('define_bulk_electroyte/', views.define_bulk_electrolyte, name='define_bulk_electrolyte'),
+    url(r'^define_wet_cell_bulk/(?P<predefined>\w+)/$', views.define_wet_cell_bulk, name='define_wet_cell_bulk'),
 
 ]
 

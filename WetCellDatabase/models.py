@@ -1444,19 +1444,23 @@ class DryCell(models.Model):
             string_equality_query = string_equality_query & Q(proprietary_name=False)
 
         if self.anode_name:
-            string_equality_query = string_equality_query & Q(anode=self.anode,
+            print('anode_name', anode)
+            string_equality_query = string_equality_query & Q(anode=anode,
                                                               anode_name=True)
         else:
+            print('not anode_name')
             string_equality_query = string_equality_query & Q(anode_name=False)
 
         if self.cathode_name:
-            string_equality_query = string_equality_query & Q(cathode=self.cathode,
+            print('cathode_name', cathode)
+            string_equality_query = string_equality_query & Q(cathode=cathode,
                                                               cathode_name=True)
         else:
+            print('not cathode_name')
             string_equality_query = string_equality_query & Q(cathode_name=False)
 
         if self.separator_name:
-            string_equality_query = string_equality_query & Q(separator=self.separator,
+            string_equality_query = string_equality_query & Q(separator=separator,
                                                               separator_name=True)
         else:
             string_equality_query = string_equality_query & Q(separator_name=False)
@@ -1489,7 +1493,9 @@ class DryCell(models.Model):
 
 
         set_of_object_equal = DryCell.objects.filter(object_equality_query)
+        print('set objects equal: ', set_of_object_equal)
         string_equals = DryCell.objects.filter(string_equality_query).exists()
+        print('set of string equal: ', DryCell.objects.filter(string_equality_query))
 
         if (not set_of_object_equal.exists()) and string_equals:
             self.proprietary_name = True
@@ -1555,3 +1561,15 @@ class WetCell(models.Model):
     dry_cell = models.ForeignKey(DryCellLot, on_delete=models.SET_NULL, null=True, blank=True)
 
 
+    def __str__(self):
+        cell_id_str = 'No Barcode'
+        if self.cell_id is not None:
+            cell_id_str = '{}'.format(self.cell_id)
+        electrolyte_str = '?'
+        if self.electrolyte is not None:
+            electrolyte_str = '{}'.format(self.electrolyte)
+        dry_cell_str = '?'
+        if self.dry_cell is not None:
+            dry_cell_str = '{}'.format(self.dry_cell)
+
+        return 'BARCODE: {}, ELECTROLYTE: {}, DRY CELL: {}'.format(cell_id_str, electrolyte_str, dry_cell_str)

@@ -4,6 +4,7 @@ from django.db.models import Max, Min
 
 from neware_parser.models import *
 from neware_parser.neware_processing_functions import *
+from WetCellDatabase.models import *
 
 '''
 Shortened Variable Names:
@@ -20,31 +21,47 @@ Shortened Variable Names:
 
 
 def get_pos_id_from_cell_id(cell_id):
-    #TODO(sam): this needs to talk to database
-    if cell_id == 83220:
-        return 2
-    elif cell_id == 83083:
-        return 1
-    else:
-        return None
+    wet_cells = WetCell.objects.filter(cell_id=cell_id)
+    if wet_cells.exists():
+        wet_cell = wet_cells[0]
+        dry_cell = wet_cell.dry_cell
+        if dry_cell is None:
+            return None, None
+        dry_cell = dry_cell.dry_cell
+        if dry_cell is None:
+            return None, None
+        cathode = dry_cell.cathode
+        if cathode is None:
+            return None, None
+        else:
+            return cathode.id, str(cathode)
 
 def get_neg_id_from_cell_id(cell_id):
-    #TODO(sam): this needs to talk to database
-    if cell_id == 83220:
-        return 0
-    elif cell_id == 83083:
-        return 3
-    else:
-        return None
+    wet_cells = WetCell.objects.filter(cell_id=cell_id)
+    if wet_cells.exists():
+        wet_cell = wet_cells[0]
+        dry_cell = wet_cell.dry_cell
+        if dry_cell is None:
+            return None, None
+        dry_cell = dry_cell.dry_cell
+        if dry_cell is None:
+            return None, None
+        anode = dry_cell.anode
+        if anode is None:
+            return None, None
+        else:
+            return anode.id, str(anode)
+
 
 def get_electrolyte_id_from_cell_id(cell_id):
-    #TODO(sam): this needs to talk to database
-    if cell_id == 83220:
-        return 250
-    elif cell_id == 83083:
-        return None#100
-    else:
-        return None
+    wet_cells = WetCell.objects.filter(cell_id=cell_id)
+    if wet_cells.exists():
+        wet_cell = wet_cells[0]
+        electrolyte = wet_cell.electrolyte
+        if electrolyte is None:
+            return None, None
+        else:
+            return electrolyte.id, str(electrolyte)
 
 # === Begin: make my barcodes ==================================================
 
@@ -371,14 +388,19 @@ def initial_processing(my_barcodes, fit_args):
                 
     """
 
+
+
     cell_id_to_pos_id = {}
     cell_id_to_neg_id = {}
     cell_id_to_electrolyte_id = {}
     cell_id_to_latent = {}
+    pos_to_pos_name = {}
+    neg_to_neg_name = {}
+    electrolyte_to_electrolyte_name = {}
     for cell_id in my_barcodes:
-        pos = get_pos_id_from_cell_id(cell_id)
-        neg = get_neg_id_from_cell_id(cell_id)
-        electrolyte = get_electrolyte_id_from_cell_id(cell_id)
+        pos, pos_name = get_pos_id_from_cell_id(cell_id)
+        neg, neg_name = get_neg_id_from_cell_id(cell_id)
+        electrolyte, electrolyte_name = get_electrolyte_id_from_cell_id(cell_id)
         if pos is None or neg is None or electrolyte is None:
             cell_id_to_latent[cell_id] = 1.
         else:
@@ -386,11 +408,22 @@ def initial_processing(my_barcodes, fit_args):
             cell_id_to_pos_id[cell_id] = pos
             cell_id_to_neg_id[cell_id] = neg
             cell_id_to_electrolyte_id[cell_id] = electrolyte
+            pos_to_pos_name[pos] = pos_name
+            neg_to_neg_name[neg] = neg_name
+            electrolyte_to_electrolyte_name[electrolyte] = electrolyte_name
 
+    max_cap = 0.
+    for barcode in all_data.keys():
 
+        cyc_grp_dict = all_data[barcode]['cyc_grp_dict']
+        # find largest cap measured for this cell (max over all cycle groups)
+        for k in cyc_grp_dict.keys():
+            max_cap = max(
+                max_cap, max(abs(cyc_grp_dict[k]['main_data']['last_cc_capacity'])))
 
 
     return {
+        'max_cap': max_cap,
         'all_data':all_data,
         'voltage_grid':voltage_grid_degradation,
         'current_grid':current_grid,
@@ -400,6 +433,10 @@ def initial_processing(my_barcodes, fit_args):
         'cell_id_to_neg_id':cell_id_to_neg_id,
         'cell_id_to_electrolyte_id':cell_id_to_electrolyte_id,
         'cell_id_to_latent':cell_id_to_latent,
+    }, {
+        'pos_to_pos_name':pos_to_pos_name,
+        'neg_to_neg_name': neg_to_neg_name,
+        'electrolyte_to_electrolyte_name':electrolyte_to_electrolyte_name
     }
 
 
@@ -408,7 +445,7 @@ def compile_dataset(fit_args):
     if not os.path.exists(fit_args['path_to_dataset']):
         os.mkdir(fit_args['path_to_dataset'])
     my_barcodes = make_my_barcodes(fit_args)
-    pick = initial_processing(my_barcodes, fit_args)
+    pick, pick_names = initial_processing(my_barcodes, fit_args)
     with open(
         os.path.join(
             fit_args['path_to_dataset'],
@@ -418,6 +455,14 @@ def compile_dataset(fit_args):
     ) as f:
         pickle.dump(pick, f, pickle.HIGHEST_PROTOCOL)
 
+    with open(
+        os.path.join(
+            fit_args['path_to_dataset'],
+            'dataset_ver_{}_names.file'.format(fit_args['dataset_version'])
+        ),
+        'wb'
+    ) as f:
+        pickle.dump(pick_names, f, pickle.HIGHEST_PROTOCOL)
 
 class Command(BaseCommand):
 

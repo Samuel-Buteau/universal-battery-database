@@ -56,11 +56,12 @@ def numpy_acc(my_dict, my_key, my_dat):
 
 # ==== Begin: initial processing ===============================================
 
-def initial_processing(my_data, barcodes, fit_args):
+def initial_processing(my_data, my_names, barcodes, fit_args):
     print('entered initial_processing')
     """
     my_data has the following structure:
         my_data: a dictionary indexed by various data:
+            - 'max_cap': a single number. the maximum capacity across the dataset.
             - 'voltage_grid': 1D array of voltages
             - 'current_grid': 1D array of log currents
             - 'temperature_grid': 1D array of temperatures
@@ -141,6 +142,8 @@ def initial_processing(my_data, barcodes, fit_args):
     number_of_compiled_cycles = 0
     number_of_reference_cycles = 0
 
+    max_cap = my_data['max_cap']
+
     numpy_acc(
         compiled_data,
         'voltage_grid',
@@ -155,6 +158,15 @@ def initial_processing(my_data, barcodes, fit_args):
         compiled_data,
         'sign_grid',
         numpy.array([my_data['sign_grid']])
+    )
+
+    my_data['current_grid'] = my_data['current_grid'] - numpy.log(max_cap)
+
+    # the current grid is adjusted by the max capacity of the barcode. It is in log space, so I/Q becomes log(I) - log(Q)
+    numpy_acc(
+        compiled_data,
+        'current_grid',
+        numpy.array([my_data['current_grid']])
     )
 
     cell_id_list = numpy.array(barcodes)
@@ -179,24 +191,10 @@ def initial_processing(my_data, barcodes, fit_args):
     electrolyte_id_list = numpy.array(sorted(list(set(cell_id_to_electrolyte_id.values()))))
 
 
-
     for barcode_count, barcode in enumerate(barcodes):
 
-        max_cap = 0.
         cyc_grp_dict = my_data['all_data'][barcode]['cyc_grp_dict']
-        # find largest cap measured for this cell (max over all cycle groups)
-        for k in cyc_grp_dict.keys():
-            max_cap = max(
-                max_cap, max(abs(cyc_grp_dict[k]['main_data']['last_cc_capacity'])))
 
-        my_data['all_data'][barcode]['current_grid'] = my_data['current_grid'] - numpy.log(max_cap)
-
-        # the current grid is adjusted by the max capacity of the barcode. It is in log space, so I/Q becomes log(I) - log(Q)
-        numpy_acc(
-            compiled_data,
-            'current_grid',
-            numpy.array([my_data['all_data'][barcode]['current_grid']])
-        )
 
         for k_count, k in enumerate(cyc_grp_dict.keys()):
 
@@ -350,7 +348,7 @@ def initial_processing(my_data, barcodes, fit_args):
                 neighborhood_data_i[NEIGHBORHOOD_VALID_CYC_INDEX] = 0 # a weight based on prevalance. Set later
                 neighborhood_data_i[NEIGHBORHOOD_SIGN_GRID_INDEX] = 0
                 neighborhood_data_i[NEIGHBORHOOD_VOLTAGE_GRID_INDEX] = 0
-                neighborhood_data_i[NEIGHBORHOOD_CURRENT_GRID_INDEX] = barcode_count
+                neighborhood_data_i[NEIGHBORHOOD_CURRENT_GRID_INDEX] = 0
                 neighborhood_data_i[NEIGHBORHOOD_TEMPERATURE_GRID_INDEX] = 0
 
 
@@ -448,6 +446,15 @@ def initial_processing(my_data, barcodes, fit_args):
         train_ds = mirrored_strategy.experimental_distribute_dataset(
             train_ds_)
 
+
+        pos_to_pos_name = {}
+        neg_to_neg_name = {}
+        electrolyte_to_electrolyte_name = {}
+        if my_names is not None:
+            pos_to_pos_name = my_names['pos_to_pos_name']
+            neg_to_neg_name = my_names['neg_to_neg_name']
+            electrolyte_to_electrolyte_name = my_names['electrolyte_to_electrolyte_name']
+
         degradation_model = DegradationModel(
             width = fit_args['width'],
             depth = fit_args['depth'],
@@ -459,6 +466,10 @@ def initial_processing(my_data, barcodes, fit_args):
             cell_to_neg=cell_id_to_neg_id,
             cell_to_electrolyte=cell_id_to_electrolyte_id,
             cell_latent_flags=cell_id_to_latent,
+            pos_to_pos_name=pos_to_pos_name,
+            neg_to_neg_name=neg_to_neg_name,
+            electrolyte_to_electrolyte_name=electrolyte_to_electrolyte_name
+
 
         )
 
@@ -766,12 +777,23 @@ def ml_smoothing(fit_args):
         'dataset_ver_{}.file'.format(fit_args['dataset_version'])
     )
 
+    dataset_names_path = os.path.join(
+        fit_args['path_to_dataset'],
+        'dataset_ver_{}_names.file'.format(fit_args['dataset_version'])
+    )
+
     if not os.path.exists(dataset_path):
         print("Path \"" + dataset_path + "\" does not exist.")
         return
 
     with open(dataset_path, 'rb') as f:
         my_data = pickle.load(f)
+
+    my_names = None
+    if os.path.exists(dataset_names_path):
+        with open(dataset_names_path, 'rb') as f:
+            my_names = pickle.load(f)
+
 
     barcodes = list(my_data['all_data'].keys())
 
@@ -784,7 +806,7 @@ def ml_smoothing(fit_args):
         return
 
     train_and_evaluate(
-        initial_processing(my_data, barcodes, fit_args), barcodes, fit_args)
+        initial_processing(my_data, my_names, barcodes, fit_args), barcodes, fit_args)
 
 
 class Command(BaseCommand):

@@ -88,7 +88,7 @@ def make_legend(key):
 def get_svit_and_count(my_data, barcode):
     n_sign = len(my_data['sign_grid'])
     n_voltage = len(my_data['voltage_grid'])
-    n_current = len(my_data['all_data'][barcode]['current_grid'])
+    n_current = len(my_data['current_grid'])
     n_temperature = len(my_data['temperature_grid'])
 
     count_matrix = np.reshape(
@@ -116,7 +116,7 @@ def get_svit_and_count(my_data, barcode):
 
             np.tile(
                 np.reshape(
-                    my_data['all_data'][barcode]['current_grid'],
+                    my_data['current_grid'],
                     [1, 1, n_current, 1, 1]
                 ),
                 [n_sign, n_voltage, 1, n_temperature, 1]

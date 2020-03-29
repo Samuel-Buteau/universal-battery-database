@@ -206,16 +206,34 @@ class DegradationModel(Model):
                  cell_to_pos,
                  cell_to_neg,
                  cell_to_electrolyte,
+                 pos_to_pos_name,
+                 neg_to_neg_name,
+                 electrolyte_to_electrolyte_name,
                 n_channels=16):
         super(DegradationModel, self).__init__()
-        print('cell_dict', cell_dict)
-        print('pos_dict', pos_dict)
-        print('neg_dict', neg_dict)
-        print('electrolyte_dict', electrolyte_dict)
-        print('cell_latent_flags', cell_latent_flags)
-        print('cell_to_pos', cell_to_pos)
-        print('cell_to_neg', cell_to_neg)
-        print('cell_to_electrolyte', cell_to_electrolyte)
+        print(    'cell_id:  Known Components (Y/N):')
+        for k in cell_latent_flags.keys():
+            known = 'Y'
+            if cell_latent_flags[k] > .5:
+                known = 'N'
+            print('{}              {}'.format(k, known))
+            if known == 'Y':
+                pos_id = cell_to_pos[k]
+                if pos_id in pos_to_pos_name.keys():
+                    print('      cathode: {}'.format(pos_to_pos_name[pos_id]))
+                else:
+                    print('      cathode id: {}'.format(pos_id))
+                neg_id = cell_to_neg[k]
+                if neg_id in neg_to_neg_name.keys():
+                    print('      anode: {}'.format(neg_to_neg_name[neg_id]))
+                else:
+                    print('      anode id: {}'.format(neg_id))
+                electrolyte_id = cell_to_electrolyte[k]
+                if electrolyte_id in electrolyte_to_electrolyte_name.keys():
+                    print('      electrolyte: {}'.format(electrolyte_to_electrolyte_name[electrolyte_id]))
+                else:
+                    print('      electrolyte id: {}'.format(electrolyte_id))
+
 
         self.nn_r = feedforward_nn_parameters(depth, width)
         self.nn_theoretical_cap = feedforward_nn_parameters(depth, width)

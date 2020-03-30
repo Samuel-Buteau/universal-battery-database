@@ -13,7 +13,7 @@ COMPLETION
 
 - create the various modes of definition 
  (override, always produce a valid name, etc.)
-- use electrolyte composition in the ML model
+- ~~use electrolyte composition in the ML model~~
 - make visualization of the embeddings of various molecules.
 
 

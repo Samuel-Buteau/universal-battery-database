@@ -36,6 +36,9 @@ def get_pos_id_from_cell_id(cell_id):
         else:
             return cathode.id, str(cathode)
 
+    return None, None
+
+
 def get_neg_id_from_cell_id(cell_id):
     wet_cells = WetCell.objects.filter(cell_id=cell_id)
     if wet_cells.exists():
@@ -52,6 +55,7 @@ def get_neg_id_from_cell_id(cell_id):
         else:
             return anode.id, str(anode)
 
+    return None, None
 
 def get_electrolyte_id_from_cell_id(cell_id):
     wet_cells = WetCell.objects.filter(cell_id=cell_id)
@@ -63,6 +67,26 @@ def get_electrolyte_id_from_cell_id(cell_id):
         else:
             return electrolyte.id, str(electrolyte)
 
+    return None, None
+
+
+def get_component_from_electrolyte(electrolyte):
+    weight_dict = {'solvent':{}, 'salt':{}, 'additive':{}}
+    name_dict = {'solvent':{}, 'salt':{}, 'additive':{}}
+    electrolyte_lots = CompositeLot.objects.filter(id=electrolyte)
+    if electrolyte_lots.exists():
+        electrolyte_lot = electrolyte_lots[0]
+        if electrolyte_lot.composite is not None:
+            my_electrolyte = electrolyte_lot.composite
+            my_components = my_electrolyte.components
+
+            for component in my_components.order_by('id'):
+                for st, s in [('solvent',SOLVENT),('salt',SALT),('additive',ADDITIVE)]:
+                    if component.component_lot.component.component_type == s:
+                        name_dict[st][component.component_lot.id] = str(component.component_lot)
+                        weight_dict[st][component.component_lot.id] = [component.ratio]
+
+    return weight_dict, name_dict
 # === Begin: make my barcodes ==================================================
 
 def make_my_barcodes(fit_args):
@@ -394,9 +418,16 @@ def initial_processing(my_barcodes, fit_args):
     cell_id_to_neg_id = {}
     cell_id_to_electrolyte_id = {}
     cell_id_to_latent = {}
+    electrolyte_id_to_latent = {}
+    electrolyte_id_to_solvent_id_weight = {}
+    electrolyte_id_to_salt_id_weight = {}
+    electrolyte_id_to_additive_id_weight = {}
+
     pos_to_pos_name = {}
     neg_to_neg_name = {}
     electrolyte_to_electrolyte_name = {}
+    molecule_to_molecule_name = {}
+
     for cell_id in my_barcodes:
         pos, pos_name = get_pos_id_from_cell_id(cell_id)
         neg, neg_name = get_neg_id_from_cell_id(cell_id)
@@ -404,13 +435,35 @@ def initial_processing(my_barcodes, fit_args):
         if pos is None or neg is None or electrolyte is None:
             cell_id_to_latent[cell_id] = 1.
         else:
+            pos_to_pos_name[pos] = pos_name
+            neg_to_neg_name[neg] = neg_name
+            electrolyte_to_electrolyte_name[electrolyte] = electrolyte_name
+
             cell_id_to_latent[cell_id] = 0.
             cell_id_to_pos_id[cell_id] = pos
             cell_id_to_neg_id[cell_id] = neg
             cell_id_to_electrolyte_id[cell_id] = electrolyte
-            pos_to_pos_name[pos] = pos_name
-            neg_to_neg_name[neg] = neg_name
-            electrolyte_to_electrolyte_name[electrolyte] = electrolyte_name
+
+            component_weight, component_name = get_component_from_electrolyte(electrolyte)
+
+            if (
+                    any([s[0] is None for s in component_weight['solvent'].values()]) or
+                    any([s[0] is None for s in component_weight['salt'].values()]) or
+                    any([s[0] is None for s in component_weight['additive'].values()])
+                ):
+                electrolyte_id_to_latent[electrolyte] = 1.
+            else:
+                for k in component_name['solvent'].keys():
+                    molecule_to_molecule_name[k] = component_name['solvent'][k]
+                for k in component_name['salt'].keys():
+                    molecule_to_molecule_name[k] = component_name['salt'][k]
+                for k in component_name['additive'].keys():
+                    molecule_to_molecule_name[k] = component_name['additive'][k]
+
+                electrolyte_id_to_latent[electrolyte] = 0.
+                electrolyte_id_to_solvent_id_weight[electrolyte] = [(sid, component_weight['solvent'][sid][0]) for sid in component_weight['solvent'].keys()]
+                electrolyte_id_to_salt_id_weight[electrolyte]= [(sid, component_weight['salt'][sid][0]) for sid in component_weight['salt'].keys()]
+                electrolyte_id_to_additive_id_weight[electrolyte]= [(sid, component_weight['additive'][sid][0]) for sid in component_weight['additive'].keys()]
 
     max_cap = 0.
     for barcode in all_data.keys():
@@ -433,10 +486,15 @@ def initial_processing(my_barcodes, fit_args):
         'cell_id_to_neg_id':cell_id_to_neg_id,
         'cell_id_to_electrolyte_id':cell_id_to_electrolyte_id,
         'cell_id_to_latent':cell_id_to_latent,
+        'electrolyte_id_to_latent':electrolyte_id_to_latent,
+        'electrolyte_id_to_solvent_id_weight':electrolyte_id_to_solvent_id_weight,
+        'electrolyte_id_to_salt_id_weight':electrolyte_id_to_salt_id_weight,
+        'electrolyte_id_to_additive_id_weight':electrolyte_id_to_additive_id_weight,
     }, {
         'pos_to_pos_name':pos_to_pos_name,
         'neg_to_neg_name': neg_to_neg_name,
-        'electrolyte_to_electrolyte_name':electrolyte_to_electrolyte_name
+        'electrolyte_to_electrolyte_name':electrolyte_to_electrolyte_name,
+        'molecule_to_molecule_name':molecule_to_molecule_name,
     }
 
 

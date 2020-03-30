@@ -53,6 +53,11 @@ def numpy_acc(my_dict, my_key, my_dat):
 
     return my_dict
 
+def three_level_flatten(iterables):
+    for it1 in iterables:
+        for it2 in it1:
+            for element in it2:
+                yield element
 
 # ==== Begin: initial processing ===============================================
 
@@ -175,6 +180,11 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
     cell_id_to_electrolyte_id = {}
     cell_id_to_latent = {}
 
+    electrolyte_id_to_latent = {}
+    electrolyte_id_to_solvent_id_weight = {}
+    electrolyte_id_to_salt_id_weight = {}
+    electrolyte_id_to_additive_id_weight = {}
+
     for cell_id in cell_id_list:
         if cell_id in my_data['cell_id_to_pos_id'].keys():
             cell_id_to_pos_id[cell_id] = my_data['cell_id_to_pos_id'][cell_id]
@@ -185,6 +195,37 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
         if cell_id in my_data['cell_id_to_latent'].keys():
             cell_id_to_latent[cell_id] = my_data['cell_id_to_latent'][cell_id]
 
+        if cell_id_to_latent[cell_id] < 0.5:
+            electrolyte_id = cell_id_to_electrolyte_id[cell_id]
+            if electrolyte_id in my_data['electrolyte_id_to_solvent_id_weight'].keys():
+                electrolyte_id_to_solvent_id_weight[electrolyte_id] = my_data['electrolyte_id_to_solvent_id_weight'][electrolyte_id]
+            if electrolyte_id in my_data['electrolyte_id_to_salt_id_weight'].keys():
+                electrolyte_id_to_salt_id_weight[electrolyte_id] = my_data['electrolyte_id_to_salt_id_weight'][
+                    electrolyte_id]
+            if electrolyte_id in my_data['electrolyte_id_to_additive_id_weight'].keys():
+                electrolyte_id_to_additive_id_weight[electrolyte_id] = my_data['electrolyte_id_to_additive_id_weight'][
+                    electrolyte_id]
+
+            if electrolyte_id in my_data['electrolyte_id_to_latent'].keys():
+                electrolyte_id_to_latent[electrolyte_id] = my_data['electrolyte_id_to_latent'][electrolyte_id]
+
+    mess = [
+        [[s[0] for s in siw] for siw in electrolyte_id_to_solvent_id_weight.values()],
+        [[s[0] for s in siw] for siw in electrolyte_id_to_salt_id_weight.values()],
+        [[s[0] for s in siw] for siw in electrolyte_id_to_additive_id_weight.values()],
+    ]
+
+    print(mess)
+
+    molecule_id_list = numpy.array(
+        sorted(
+            list(
+                set(
+                    list(three_level_flatten(mess))
+                )
+            )
+        )
+    )
 
     pos_id_list = numpy.array(sorted(list(set(cell_id_to_pos_id.values()))))
     neg_id_list = numpy.array(sorted(list(set(cell_id_to_neg_id.values()))))
@@ -454,6 +495,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
             pos_to_pos_name = my_names['pos_to_pos_name']
             neg_to_neg_name = my_names['neg_to_neg_name']
             electrolyte_to_electrolyte_name = my_names['electrolyte_to_electrolyte_name']
+            molecule_to_molecule_name = my_names['molecule_to_molecule_name']
 
         degradation_model = DegradationModel(
             width = fit_args['width'],
@@ -462,14 +504,22 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
             pos_dict=id_dict_from_id_list(pos_id_list),
             neg_dict=id_dict_from_id_list(neg_id_list),
             electrolyte_dict=id_dict_from_id_list(electrolyte_id_list),
+            molecule_dict = id_dict_from_id_list(molecule_id_list),
+
             cell_to_pos=cell_id_to_pos_id,
             cell_to_neg=cell_id_to_neg_id,
             cell_to_electrolyte=cell_id_to_electrolyte_id,
             cell_latent_flags=cell_id_to_latent,
+
+            electrolyte_to_solvent=electrolyte_id_to_solvent_id_weight,
+            electrolyte_to_salt=electrolyte_id_to_salt_id_weight,
+            electrolyte_to_additive=electrolyte_id_to_additive_id_weight,
+            electrolyte_latent_flags=electrolyte_id_to_latent,
+
             pos_to_pos_name=pos_to_pos_name,
             neg_to_neg_name=neg_to_neg_name,
-            electrolyte_to_electrolyte_name=electrolyte_to_electrolyte_name
-
+            electrolyte_to_electrolyte_name=electrolyte_to_electrolyte_name,
+            molecule_to_molecule_name=molecule_to_molecule_name,
 
         )
 
@@ -539,6 +589,9 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                         prev_ker = now_ker
                         now_ker = ker
 
+                        #TODO(sam):
+                            # this analysis should be more thorough, but how to generalize to
+                            # more than two barcodes? for now, there is very little use for that.
                         if now_ker is not None:
                             delta_cell_ker = numpy.abs(now_ker[0] - now_ker[1])
                             print('average difference between cells: ', numpy.average(delta_cell_ker))
@@ -546,7 +599,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                             delta_time_ker = numpy.abs(now_ker - prev_ker)
                             print('average difference between prev and now: ', numpy.average(delta_time_ker))
 
-                if count == fit_args['stop_count']:
+                if count >= fit_args['stop_count']:
                     return
 
 

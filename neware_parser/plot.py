@@ -448,7 +448,7 @@ def plot_capacity(plot_params, init_returns):
                 )
 
                 pred_cap = tf.reshape(
-                    test_results["pred_theo_capacity"],
+                    test_results["pred_Q_scale"],
                     shape = [-1]
                 )
 

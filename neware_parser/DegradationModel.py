@@ -236,13 +236,13 @@ class DegradationModel(Model):
 
 
         self.nn_r = feedforward_nn_parameters(depth, width)
-        self.nn_theoretical_cap = feedforward_nn_parameters(depth, width)
-        self.nn_soc = feedforward_nn_parameters(depth, width)
+        self.nn_Q_scale = feedforward_nn_parameters(depth, width)
+        self.nn_Q = feedforward_nn_parameters(depth, width)
         self.nn_shift = feedforward_nn_parameters(depth, width)
 
 
         self.nn_r_strainless = feedforward_nn_parameters(depth, width)
-        self.nn_theoretical_cap_strainless = feedforward_nn_parameters(depth, width)
+        self.nn_Q_scale_strainless = feedforward_nn_parameters(depth, width)
         self.nn_shift_strainless = feedforward_nn_parameters(depth, width)
 
 
@@ -480,19 +480,19 @@ class DegradationModel(Model):
     def eq_voltage_direct(self, voltage, current, resistance, training=True):
         return voltage - current * resistance
 
-    def soc_direct(self, voltage, shift, cell_features, training=True):
+    def Q_direct(self, voltage, shift, cell_features, training=True):
         dependencies = (
             voltage,
             shift,
             cell_features
         )
-        return tf.nn.elu(nn_call(self.nn_soc, dependencies, training=training))
+        return tf.nn.elu(nn_call(self.nn_Q, dependencies, training=training))
 
-    def theoretical_cap_strainless_direct(self,cell_features, training=True):
+    def Q_scale_strainless_direct(self,cell_features, training=True):
         dependencies = (
             cell_features
         )
-        return tf.nn.elu(nn_call(self.nn_theoretical_cap_strainless, dependencies, training=training))
+        return tf.nn.elu(nn_call(self.nn_Q_scale_strainless, dependencies, training=training))
 
     def shift_strainless_direct(self, current, cell_features, training=True):
         dependencies = (
@@ -509,13 +509,13 @@ class DegradationModel(Model):
         return tf.nn.elu(nn_call(self.nn_r_strainless, dependencies, training=training))
 
 
-    def theoretical_cap_direct(self, strain, current, theoretical_cap_strainless, training=True):
+    def Q_scale_direct(self, strain, current, Q_scale_strainless, training=True):
         dependencies = (
             strain,
             # tf.abs(current),
-            theoretical_cap_strainless,
+            Q_scale_strainless,
         )
-        return tf.nn.elu(nn_call(self.nn_theoretical_cap, dependencies, training=training))
+        return tf.nn.elu(nn_call(self.nn_Q_scale, dependencies, training=training))
 
     def shift_direct(self, strain, current, shift_strainless, training=True):
         dependencies = (
@@ -569,8 +569,8 @@ class DegradationModel(Model):
             training = training
         )
 
-    def soc_for_derivative(self, params, training=True):
-        return self.soc_direct(
+    def Q_for_derivative(self, params, training=True):
+        return self.Q_direct(
             cell_features = self.cell_features_direct(
                 features = params['features'],
                 training=training
@@ -580,7 +580,7 @@ class DegradationModel(Model):
         )
 
 
-    def theoretical_cap_for_derivative(self, params, training=True):
+    def Q_scale_for_derivative(self, params, training=True):
         norm_cycle = self.norm_cycle(
                 params = {
                     'cycle':    params['cycle'],
@@ -593,7 +593,7 @@ class DegradationModel(Model):
             training=training
         )
 
-        strainless = self.theoretical_cap_strainless_direct(cell_features, training=training)
+        strainless = self.Q_scale_strainless_direct(cell_features, training=training)
 
         encoded_stress = self.stress_to_encoded_direct(
             svit_grid=params['svit_grid'],
@@ -607,10 +607,10 @@ class DegradationModel(Model):
             training=training
         )
 
-        return self.theoretical_cap_direct(
+        return self.Q_scale_direct(
             strain = strain,
             current = params['current'],
-            theoretical_cap_strainless = strainless,
+            Q_scale_strainless = strainless,
             training = training
         )
 
@@ -716,7 +716,7 @@ class DegradationModel(Model):
         )
 
 
-        theoretical_cap_strainless = self.theoretical_cap_strainless_direct(
+        Q_scale_strainless = self.Q_scale_strainless_direct(
             cell_features = cell_features,
             training=training
         )
@@ -734,10 +734,10 @@ class DegradationModel(Model):
         )
 
 
-        theoretical_cap = self.theoretical_cap_direct(
+        Q_scale = self.Q_scale_direct(
             strain=strain,
             current = params['constant_current'],
-            theoretical_cap_strainless = theoretical_cap_strainless,
+            Q_scale_strainless = Q_scale_strainless,
             training=training
         )
 
@@ -762,7 +762,7 @@ class DegradationModel(Model):
             training=training
         )
 
-        soc_0 = self.soc_direct(
+        Q_0 = self.Q_direct(
             voltage = eq_voltage_0,
             shift = shift_0,
             cell_features = cell_features,
@@ -789,7 +789,7 @@ class DegradationModel(Model):
         )
 
 
-        soc_1 = self.soc_direct(
+        Q_1 = self.Q_direct(
             voltage = eq_voltage_1,
             shift = self.add_volt_dep(shift_1, params),
             cell_features = self.add_volt_dep(
@@ -799,8 +799,8 @@ class DegradationModel(Model):
             training=training
         )
 
-        return self.add_volt_dep(theoretical_cap, params) * (
-            soc_1 - self.add_volt_dep(soc_0, params))
+        return self.add_volt_dep(Q_scale, params) * (
+            Q_1 - self.add_volt_dep(Q_0, params))
 
     def cv_capacity(self, params, training=True):
         norm_constant = self.norm_constant_direct(features = params['features'], training=training)
@@ -857,29 +857,29 @@ class DegradationModel(Model):
             training=training
         )
 
-        soc_0 = self.soc_direct(
+        Q_0 = self.Q_direct(
             voltage = eq_voltage_0,
             shift = cc_shift,
             cell_features = cell_features,
             training=training
         )
 
-        #NOTE(sam): if there truly is no dependency on current for theoretical_cap,
+        #NOTE(sam): if there truly is no dependency on current for Q_scale,
         # then we can restructure the code below.
-        theoretical_cap_strainless = self.theoretical_cap_strainless_direct(
+        Q_scale_strainless = self.Q_scale_strainless_direct(
             cell_features = cell_features,
             training=training
         )
 
-        theoretical_cap = self.theoretical_cap_direct(
+        Q_scale = self.Q_scale_direct(
             strain= self.add_current_dep(
                 strain,
                 params,
                 strain.shape[1]
             ),
             current = params['cv_current'],
-            theoretical_cap_strainless = self.add_current_dep(
-                theoretical_cap_strainless,
+            Q_scale_strainless = self.add_current_dep(
+                Q_scale_strainless,
                 params
             ),
             training=training
@@ -915,7 +915,7 @@ class DegradationModel(Model):
         )
 
 
-        soc_1 = self.soc_direct(
+        Q_1 = self.Q_direct(
             voltage = eq_voltage_1,
             shift = cv_shift,
             cell_features = self.add_current_dep(
@@ -926,7 +926,7 @@ class DegradationModel(Model):
             training=training
         )
 
-        return theoretical_cap * (soc_1 - self.add_current_dep(soc_0, params))
+        return Q_scale * (Q_1 - self.add_current_dep(Q_0, params))
 
 
 
@@ -1233,8 +1233,8 @@ class DegradationModel(Model):
             # For now, we just use {the first count matrix we get} a bunch of times.
 
 
-            soc, soc_der = self.create_derivatives(
-                self.soc_for_derivative,
+            Q, Q_der = self.create_derivatives(
+                self.Q_for_derivative,
                 params = {
                     'voltage':  sampled_voltages,
                     'features': sampled_features,
@@ -1245,12 +1245,12 @@ class DegradationModel(Model):
                 shift_der = 3,
             )
 
-            soc_loss = .0001 * incentive_combine(
+            Q_loss = .0001 * incentive_combine(
                 [
                     (
                         1.,
                         incentive_magnitude(
-                            soc,
+                            Q,
                             Target.Small,
                             Level.Proportional
                         )
@@ -1258,21 +1258,21 @@ class DegradationModel(Model):
                     (
                         100.,
                         incentive_inequality(
-                            soc, Inequality.GreaterThan, 0,
+                            Q, Inequality.GreaterThan, 0,
                             Level.Strong
                         )
                     ),
                     (
                         10000.,
                         incentive_inequality(
-                            soc_der['d_voltage'], Inequality.GreaterThan, 0.05,
+                            Q_der['d_voltage'], Inequality.GreaterThan, 0.05,
                             Level.Strong
                         )
                     ),
                     (
                         100.,
                         incentive_magnitude(
-                            soc_der['d3_voltage'],
+                            Q_der['d3_voltage'],
                             Target.Small,
                             Level.Proportional
                         )
@@ -1280,7 +1280,7 @@ class DegradationModel(Model):
                     (
                         .01,
                         incentive_magnitude(
-                            soc_der['d_features'],
+                            Q_der['d_features'],
                             Target.Small,
                             Level.Proportional
                         )
@@ -1288,7 +1288,7 @@ class DegradationModel(Model):
                     (
                         .01,
                         incentive_magnitude(
-                            soc_der['d2_features'],
+                            Q_der['d2_features'],
                             Target.Small,
                             Level.Strong
                         )
@@ -1296,7 +1296,7 @@ class DegradationModel(Model):
                     (
                         100.,
                         incentive_magnitude(
-                            soc_der['d_shift'],
+                            Q_der['d_shift'],
                             Target.Small,
                             Level.Proportional
                         )
@@ -1305,7 +1305,7 @@ class DegradationModel(Model):
                     (
                         100.,
                         incentive_magnitude(
-                            soc_der['d2_shift'],
+                            Q_der['d2_shift'],
                             Target.Small,
                             Level.Proportional
                         )
@@ -1313,7 +1313,7 @@ class DegradationModel(Model):
                     (
                         100.,
                         incentive_magnitude(
-                            soc_der['d3_shift'],
+                            Q_der['d3_shift'],
                             Target.Small,
                             Level.Proportional
                         )
@@ -1321,8 +1321,8 @@ class DegradationModel(Model):
                 ]
             )
 
-            theoretical_cap, theoretical_cap_der = self.create_derivatives(
-                self.theoretical_cap_for_derivative,
+            Q_scale, Q_scale_der = self.create_derivatives(
+                self.Q_scale_for_derivative,
                 params = {
                     'cycle':       sampled_cycles,
                     'current':     sampled_constant_current,
@@ -1335,40 +1335,40 @@ class DegradationModel(Model):
                 features_der = 2,
             )
 
-            theo_cap_loss = .0001 * incentive_combine(
+            Q_scale_loss = .0001 * incentive_combine(
                 [
                     (
                         100.,
                         incentive_inequality(
-                            theoretical_cap, Inequality.GreaterThan, 0.01,
+                            Q_scale, Inequality.GreaterThan, 0.01,
                             Level.Strong
                         )
                     ),
                     (
                         100.,
                         incentive_inequality(
-                            theoretical_cap, Inequality.LessThan, 1,
+                            Q_scale, Inequality.LessThan, 1,
                             Level.Strong
                         )
                     ),
                     (
                         1.,
                         incentive_inequality(
-                            theoretical_cap_der['d_cycle'], Inequality.LessThan, 0,
+                            Q_scale_der['d_cycle'], Inequality.LessThan, 0,
                             Level.Proportional
                         )
                     ),
                     (
                         .1,
                         incentive_inequality(
-                            theoretical_cap_der['d2_cycle'], Inequality.LessThan, 0,
+                            Q_scale_der['d2_cycle'], Inequality.LessThan, 0,
                             Level.Proportional
                         )
                     ),
                     (
                         100.,
                         incentive_magnitude(
-                            theoretical_cap_der['d_cycle'],
+                            Q_scale_der['d_cycle'],
                             Target.Small,
                             Level.Proportional
                         )
@@ -1377,7 +1377,7 @@ class DegradationModel(Model):
                     (
                         100.,
                         incentive_magnitude(
-                            theoretical_cap_der['d2_cycle'],
+                            Q_scale_der['d2_cycle'],
                             Target.Small,
                             Level.Proportional
                         )
@@ -1385,7 +1385,7 @@ class DegradationModel(Model):
                     (
                         100.,
                         incentive_magnitude(
-                            theoretical_cap_der['d3_cycle'],
+                            Q_scale_der['d3_cycle'],
                             Target.Small,
                             Level.Proportional
                         )
@@ -1394,7 +1394,7 @@ class DegradationModel(Model):
                     (
                         1.,
                         incentive_magnitude(
-                            theoretical_cap_der['d_features'],
+                            Q_scale_der['d_features'],
                             Target.Small,
                             Level.Proportional
                         )
@@ -1402,7 +1402,7 @@ class DegradationModel(Model):
                     (
                         1.,
                         incentive_magnitude(
-                            theoretical_cap_der['d2_features'],
+                            Q_scale_der['d2_features'],
                             Target.Small,
                             Level.Strong
                         )
@@ -1570,8 +1570,8 @@ class DegradationModel(Model):
             return {
                 "pred_cc_capacity": pred_cc_capacity,
                 "pred_cv_capacity": pred_cv_capacity,
-                "soc_loss":         soc_loss,
-                "theo_cap_loss":    theo_cap_loss,
+                "Q_loss":           Q_loss,
+                "Q_scale_loss":     Q_scale_loss,
                 "r_loss":           r_loss,
                 "shift_loss":       shift_loss,
                 "z_cell_loss":      z_cell_loss,
@@ -1602,7 +1602,7 @@ class DegradationModel(Model):
             )
 
 
-            theoretical_cap_strainless = self.theoretical_cap_strainless_direct(
+            Q_scale_strainless = self.Q_scale_strainless_direct(
                 cell_features=cell_features,
                 training=training
             )
@@ -1618,10 +1618,10 @@ class DegradationModel(Model):
                 training=training
             )
 
-            theoretical_cap = self.theoretical_cap_direct(
+            Q_scale = self.Q_scale_direct(
                 strain=strain,
                 current=params['constant_current'],
-                theoretical_cap_strainless=theoretical_cap_strainless,
+                Q_scale_strainless=Q_scale_strainless,
                 training=training
             )
 
@@ -1644,7 +1644,7 @@ class DegradationModel(Model):
                 "pred_cc_capacity":   pred_cc_capacity,
                 "pred_cv_capacity":   pred_cv_capacity,
                 "pred_r":             resistance,
-                "pred_theo_capacity": theoretical_cap,
+                "pred_Q_scale": Q_scale,
                 "pred_shift":         shift,
             }
 

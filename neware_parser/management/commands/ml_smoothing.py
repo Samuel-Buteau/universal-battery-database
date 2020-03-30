@@ -501,7 +501,6 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
 
     template = 'Epoch {}, Count {}'
     start = time.time()
-    print("hello")
     end = time.time()
     prev_ker = None
     now_ker = None
@@ -746,8 +745,8 @@ def train_step(params, fit_args):
 
         loss = (
             cc_capacity_loss + 0.05 * cv_capacity_loss
-            + train_results["soc_loss"]
-            + train_results["theo_cap_loss"]
+            + train_results["Q_loss"]
+            + train_results["Q_scale_loss"]
             + train_results["r_loss"]
             + train_results["shift_loss"]
             + fit_args['z_cell_coeff'] * train_results["z_cell_loss"]

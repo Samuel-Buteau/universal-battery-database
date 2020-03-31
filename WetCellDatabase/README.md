@@ -5,6 +5,7 @@
 - ~~make sure the adding of these are in accordance with the double equality principles.~~
 - ~~load the data into the compiled dataset.~~
 - create a delete page
+
 ----------------------
 
 COMPLETION
@@ -54,3 +55,19 @@ COMPLETION
 
 - ~~instead of normalizing things by each cell's max_cap, compute the total max_cap and normalize by that.~~
 - ~~make the current grid universal and work exactly like other grids.~~
+
+
+#TODO: physical grounding of shift
+
+- ~~Feed a capacity tensor to the model (CC)~~
+- ~~write a prediction for voltage (CC)~~
+
+- When testing, have a way to:
+    - ~~bypass this process with dummy values~~
+    - plot the results.
+    
+There seems to be "out of bound" Q values in the model, caused by very large shift
+parameters.
+
+- visualize Vplus, Vminus, V_total for various values of shift. 
+(and include out of bound values)

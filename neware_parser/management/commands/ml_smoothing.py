@@ -777,12 +777,14 @@ def train_step(params, fit_args):
                 cv_current,
                 svit_grid,
                 count_matrix,
+                cc_capacity
             ),
             training = True
         )
 
         pred_cc_capacity = train_results["pred_cc_capacity"]
         pred_cv_capacity = train_results["pred_cv_capacity"]
+        pred_cc_voltage = train_results["pred_cc_voltage"]
 
         cc_capacity_loss = (
             tf.reduce_mean(
@@ -794,9 +796,14 @@ def train_step(params, fit_args):
                 cv_mask_2 * cv_mask * tf.square(cv_capacity - pred_cv_capacity))
             / (1e-10 + tf.reduce_mean(cv_mask_2 * cv_mask))
         )
+        cc_voltage_loss = (
+            tf.reduce_mean(
+                cc_mask_2 * cc_mask * tf.square(cc_voltage - pred_cc_voltage))
+            / (1e-10 + tf.reduce_mean(cc_mask_2 * cc_mask))
+        )
 
         loss = (
-            cc_capacity_loss + 0.05 * cv_capacity_loss
+            cc_capacity_loss + 0.05 * cv_capacity_loss + 0.05 * cc_voltage_loss
             + train_results["Q_loss"]
             + train_results["Q_scale_loss"]
             + train_results["r_loss"]

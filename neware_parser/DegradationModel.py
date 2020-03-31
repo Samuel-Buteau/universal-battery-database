@@ -261,18 +261,24 @@ class DegradationModel(Model):
                                 print('      {} id {}'.format(w, s))
 
 
-        self.nn_r = feedforward_nn_parameters(depth, width)
+        self.nn_R = feedforward_nn_parameters(depth, width)
         self.nn_Q_scale = feedforward_nn_parameters(depth, width)
         self.nn_Q = feedforward_nn_parameters(depth, width)
         self.nn_shift = feedforward_nn_parameters(depth, width)
+        self.nn_V_plus = feedforward_nn_parameters(depth, width)
+        self.nn_V_minus = feedforward_nn_parameters(depth, width)
 
 
-        self.nn_r_strainless = feedforward_nn_parameters(depth, width)
+        self.nn_R_strainless = feedforward_nn_parameters(depth, width)
         self.nn_Q_scale_strainless = feedforward_nn_parameters(depth, width)
         self.nn_shift_strainless = feedforward_nn_parameters(depth, width)
 
 
         self.num_features = width
+
+        self.nn_pos_projection = feedforward_nn_parameters(depth, width, last=self.num_features)
+        self.nn_neg_projection = feedforward_nn_parameters(depth, width, last=self.num_features)
+
 
         self.cell_direct = PrimitiveDictionaryLayer(
             num_features=self.num_features,
@@ -750,13 +756,82 @@ class DegradationModel(Model):
         else:
             loss = 0.
 
-        return features_cell, loss
+        return features_cell, loss, features_pos, features_neg, fetched_latent_cell
 
 
     # Begin: nn application functions ==========================================
 
     def eq_voltage_direct(self, voltage, current, resistance, training=True):
         return voltage - current * resistance
+
+    def pos_projection_direct(self, cell_features, training=True):
+        dependencies = (
+            cell_features
+        )
+        return nn_call(self.nn_pos_projection, dependencies, training=training)
+
+    def neg_projection_direct(self, cell_features, training=True):
+        dependencies = (
+            cell_features
+        )
+        return nn_call(self.nn_neg_projection, dependencies, training=training)
+
+
+    def V_plus_direct(self, Q, cell_features, training=True):
+        pos_cell_features = self.pos_projection_direct(
+            cell_features=cell_features,
+            training=training
+        )
+        dependencies = (
+            Q,
+            pos_cell_features
+        )
+        return nn_call(self.nn_V_plus, dependencies, training=training)
+
+    def V_plus_for_derivative(self, params, training=True):
+        return self.V_plus_direct(
+            cell_features=self.cell_features_direct(
+                features=params['features'],
+                training=training
+            ),
+            Q=params['Q'],
+            training=training
+        )
+    def V_minus_for_derivative(self, params, training=True):
+        return self.V_minus_direct(
+            cell_features=self.cell_features_direct(
+                features=params['features'],
+                training=training
+            ),
+            Q=params['Q'],
+            training=training
+        )
+
+    def V_minus_direct(self, Q, cell_features, training=True):
+        neg_cell_features = self.neg_projection_direct(
+            cell_features=cell_features,
+            training=training
+        )
+        dependencies = (
+            Q,
+            neg_cell_features
+        )
+        return nn_call(self.nn_V_minus, dependencies, training=training)
+
+    def V_direct(self, Q, shift, cell_features, training=True):
+        V_plus = self.V_plus_direct(
+            Q=Q,
+            cell_features=cell_features,
+            training=training
+        )
+        V_minus = self.V_minus_direct(
+            Q=(Q-shift),
+            cell_features=cell_features,
+            training=training
+        )
+
+        return V_plus - V_minus
+
 
     def Q_direct(self, voltage, shift, cell_features, training=True):
         dependencies = (
@@ -779,12 +854,12 @@ class DegradationModel(Model):
         )
         return nn_call(self.nn_shift_strainless, dependencies, training=training)
 
-    def r_strainless_direct(self, cell_features, training=True):
+    def R_strainless_direct(self, cell_features, training=True):
         dependencies = (
             cell_features,
         )
 
-        return tf.nn.elu(nn_call(self.nn_r_strainless, dependencies, training=training))
+        return tf.nn.elu(nn_call(self.nn_R_strainless, dependencies, training=training))
 
 
     def Q_scale_direct(self, strain, current, Q_scale_strainless, training=True):
@@ -803,12 +878,12 @@ class DegradationModel(Model):
         )
         return nn_call(self.nn_shift, dependencies, training=training)
 
-    def r_direct(self, strain, r_strainless, training=True):
+    def R_direct(self, strain, R_strainless, training=True):
         dependencies = (
             strain,
-            r_strainless,
+            R_strainless,
         )
-        return tf.nn.elu(nn_call(self.nn_r, dependencies, training=training))
+        return tf.nn.elu(nn_call(self.nn_R, dependencies, training=training))
 
 
 
@@ -946,7 +1021,7 @@ class DegradationModel(Model):
             training=training
         )
 
-        strainless = self.r_strainless_direct(
+        strainless = self.R_strainless_direct(
             cell_features=cell_features,
             training=training
         )
@@ -963,11 +1038,20 @@ class DegradationModel(Model):
             training=training
         )
 
-        return self.r_direct(
+        return self.R_direct(
             strain = strain,
-            r_strainless = strainless,
+            R_strainless = strainless,
             training = training
         )
+
+    def reciprocal_Q(self, params, training=True):
+        cell_features = self.cell_features_direct(features = params['features'], training=training)
+        V = self.V_direct(Q=params['Q'], shift=params['shift'], cell_features=cell_features, training=training)
+        return self.Q_direct(voltage=V, shift=params['shift'], cell_features=cell_features, training=training)
+    def reciprocal_V(self, params, training=True):
+        cell_features = self.cell_features_direct(features = params['features'], training=training)
+        Q= self.Q_direct(voltage=params['voltage'], shift=params['shift'], cell_features=cell_features, training=training)
+        return self.V_direct(Q=Q, shift=params['shift'], cell_features=cell_features, training=training)
 
 
     def cc_capacity_part2(self, params, training=True):
@@ -1006,7 +1090,7 @@ class DegradationModel(Model):
             training=training
         )
 
-        resistance_strainless = self.r_strainless_direct(
+        resistance_strainless = self.R_strainless_direct(
             cell_features = cell_features,
             training=training
         )
@@ -1027,9 +1111,9 @@ class DegradationModel(Model):
             training=training
         )
 
-        resistance = self.r_direct(
+        resistance = self.R_direct(
             strain=strain,
-            r_strainless= resistance_strainless,
+            R_strainless= resistance_strainless,
             training=training
         )
 
@@ -1116,14 +1200,14 @@ class DegradationModel(Model):
             training=training
         )
 
-        resistance_strainless = self.r_strainless_direct(
+        resistance_strainless = self.R_strainless_direct(
             cell_features=cell_features,
             training=training
         )
 
-        resistance = self.r_direct(
+        resistance = self.R_direct(
             strain=strain,
-            r_strainless=resistance_strainless,
+            R_strainless=resistance_strainless,
             training=training
         )
 
@@ -1212,11 +1296,7 @@ class DegradationModel(Model):
         self,
         nn,
         params,
-        voltage_der = 0,
-        cycle_der = 0,
-        features_der = 0,
-        current_der = 0,
-        shift_der = 0
+        der_params
     ):
         """
         derivatives will only be taken inside forall statements.
@@ -1232,138 +1312,53 @@ class DegradationModel(Model):
         :return:
         """
         derivatives = {}
-        if cycle_der >= 1:
-            cycle = params['cycle']
-        if voltage_der >= 1:
-            voltage = params['voltage']
-        if current_der >= 1:
-            current = params['current']
-        if features_der >= 1:
-            features = params['features']
-        if shift_der >= 1:
-            shift = params['shift']
 
         with tf.GradientTape(persistent = True) as tape_d3:
-            if cycle_der >= 3:
-                tape_d3.watch(cycle)
-            if voltage_der >= 3:
-                tape_d3.watch(voltage)
-            if current_der >= 3:
-                tape_d3.watch(current)
-            if features_der >= 3:
-                tape_d3.watch(features)
-            if shift_der >= 3:
-                tape_d3.watch(shift)
+            for k in der_params.keys():
+                if der_params[k] >= 3:
+                    tape_d3.watch(params[k])
 
             with tf.GradientTape(persistent = True) as tape_d2:
-                if cycle_der >= 2:
-                    tape_d2.watch(cycle)
-                if voltage_der >= 2:
-                    tape_d2.watch(voltage)
-                if current_der >= 2:
-                    tape_d2.watch(current)
-                if features_der >= 2:
-                    tape_d2.watch(features)
-                if shift_der >= 2:
-                    tape_d2.watch(shift)
+                for k in der_params.keys():
+                    if der_params[k] >= 2:
+                        tape_d2.watch(params[k])
 
                 with tf.GradientTape(persistent = True) as tape_d1:
-                    if cycle_der >= 1:
-                        tape_d1.watch(cycle)
-                    if voltage_der >= 1:
-                        tape_d1.watch(voltage)
-                    if current_der >= 1:
-                        tape_d1.watch(current)
-                    if features_der >= 1:
-                        tape_d1.watch(features)
-                    if shift_der >= 1:
-                        tape_d1.watch(shift)
+                    for k in der_params.keys():
+                        if der_params[k] >= 1:
+                            tape_d1.watch(params[k])
 
                     res = tf.reshape(nn(params), [-1, 1])
 
-                if cycle_der >= 1:
-                    derivatives['d_cycle'] = tape_d1.batch_jacobian(
-                        source = cycle,
-                        target = res
-                    )[:, 0, :]
-                if voltage_der >= 1:
-                    derivatives['d_voltage'] = tape_d1.batch_jacobian(
-                        source = voltage,
-                        target = res
-                    )[:, 0, :]
-                if current_der >= 1:
-                    derivatives['d_current'] = tape_d1.batch_jacobian(
-                        source = current,
-                        target = res
-                    )[:, 0, :]
-                if shift_der >= 1:
-                    derivatives['d_shift'] = tape_d1.batch_jacobian(
-                        source = shift,
-                        target = res
-                    )[:, 0, :]
-                if features_der >= 1:
-                    derivatives['d_features'] = tape_d1.batch_jacobian(
-                        source = features,
-                        target = res
-                    )[:, 0, :]
+                for k in der_params.keys():
+                    if der_params[k] >= 1:
+                        derivatives['d_'+k] = tape_d1.batch_jacobian(
+                            source=params[k],
+                            target=res
+                        )[:, 0, :]
 
                 del tape_d1
 
-            if cycle_der >= 2:
-                derivatives['d2_cycle'] = tape_d2.batch_jacobian(
-                    source = cycle,
-                    target = derivatives['d_cycle']
-                )[:, 0, :]
-            if voltage_der >= 2:
-                derivatives['d2_voltage'] = tape_d2.batch_jacobian(
-                    source = voltage,
-                    target = derivatives['d_voltage']
-                )[:, 0, :]
-            if current_der >= 2:
-                derivatives['d2_current'] = tape_d2.batch_jacobian(
-                    source = current,
-                    target = derivatives['d_current']
-                )[:, 0, :]
-            if shift_der >= 2:
-                derivatives['d2_shift'] = tape_d2.batch_jacobian(
-                    source = shift,
-                    target = derivatives['d_shift']
-                )[:, 0, :]
-
-            if features_der >= 2:
-                derivatives['d2_features'] = tape_d2.batch_jacobian(
-                    source = features,
-                    target = derivatives['d_features']
-                )
+            for k in der_params.keys():
+                if der_params[k] >= 2:
+                    derivatives['d2_'+k] = tape_d2.batch_jacobian(
+                        source=params[k],
+                        target=derivatives['d_'+k]
+                    )
+                    if k != 'features':
+                        derivatives['d2_' + k] = derivatives['d2_'+k][:,0,:]
 
             del tape_d2
 
-        if cycle_der >= 3:
-            derivatives['d3_cycle'] = tape_d3.batch_jacobian(
-                source = cycle,
-                target = derivatives['d2_cycle']
-            )[:, 0, :]
-        if voltage_der >= 3:
-            derivatives['d3_voltage'] = tape_d3.batch_jacobian(
-                source = voltage,
-                target = derivatives['d2_voltage']
-            )[:, 0, :]
-        if current_der >= 3:
-            derivatives['d3_current'] = tape_d3.batch_jacobian(
-                source = current,
-                target = derivatives['d2_current']
-            )[:, 0, :]
-        if shift_der >= 3:
-            derivatives['d3_shift'] = tape_d3.batch_jacobian(
-                source = shift,
-                target = derivatives['d2_shift']
-            )[:, 0, :]
+        for k in der_params.keys():
+            if der_params[k] >= 3:
+                derivatives['d3_'+k] = tape_d3.batch_jacobian(
+                    source=params[k],
+                    target=derivatives['d2_'+k]
+                )
+                if k != 'features':
+                    derivatives['d3_' + k] = derivatives['d3_'+k][:,0,:]
 
-        if features_der >= 3:
-            derivatives['d3_features'] = tape_d3.batch_jacobian(
-                source = features,
-                target = derivatives['d2_features']
-            )
 
         del tape_d3
 
@@ -1408,7 +1403,7 @@ class DegradationModel(Model):
         count_matrix = x[9]
 
 
-        features, _ = self.z_cell_from_indecies(
+        features, _, _, _, _ = self.z_cell_from_indecies(
             indecies=indecies,
             training=training,
             sample=False
@@ -1454,6 +1449,12 @@ class DegradationModel(Model):
                 maxval = 5.,
                 shape = [n_sample, 1]
             )
+            sampled_Qs = tf.random.uniform(
+                minval=0.,
+                maxval=1.,
+                shape=[n_sample, 1]
+            )
+
             sampled_cycles = tf.random.uniform(
                 minval = -10.,
                 maxval = 10.,
@@ -1465,7 +1466,7 @@ class DegradationModel(Model):
                 shape = [n_sample, 1]
             )
 
-            sampled_features, _ = self.z_cell_from_indecies(
+            sampled_features, _, sampled_pos, sampled_neg, sampled_latent = self.z_cell_from_indecies(
                 indecies=tf.random.uniform(
                     maxval=self.cell_direct.num_keys,
                     shape = [n_sample],
@@ -1501,14 +1502,142 @@ class DegradationModel(Model):
                 ),
                 axis=0
             )
-            #TODO(sam): sampling the svit_grid is not super useful.
-            #TODO(sam): sampling the count matrix doesn't really make sense
-            # because the valid count matrices are a very small subspace
-            # one way to do this is to cluster all the count matrices into X clusters
-            # then, we sample some cluster centers.
-            # we could also program a protocol simulator, generate 100000 count matrices,
-            # then train a generative model and use that...
-            # For now, we just use {the first count matrix we get} a bunch of times.
+
+            sampled_cell_features = self.cell_features_direct(
+                features =sampled_features,
+                training=training
+            )
+            predicted_pos = self.pos_projection_direct(
+                cell_features=sampled_cell_features,
+                training=training
+            )
+
+
+            predicted_neg = self.neg_projection_direct(
+                cell_features=sampled_cell_features,
+                training=training
+            )
+
+            projection_loss = .1*incentive_combine(
+                [
+                    (1., ((1.- sampled_latent)*incentive_inequality(
+                sampled_pos, Inequality.Equals, predicted_pos,
+                Level.Proportional
+                )
+            )),
+                    (1., ((1.- sampled_latent)*incentive_inequality(
+                sampled_neg, Inequality.Equals, predicted_neg,
+                Level.Proportional
+                )
+            )),
+                ]
+            )
+
+            reciprocal_Q = self.reciprocal_Q(
+                params={
+                    'Q':  sampled_Qs,
+                    'features': sampled_features,
+                    'shift':    sampled_shift
+                },
+                training=training
+            )
+            reciprocal_V = self.reciprocal_V(
+                params={
+                    'voltage': sampled_voltages,
+                    'features': sampled_features,
+                    'shift': sampled_shift
+                },
+                training=training
+            )
+
+            V_plus, V_plus_der = self.create_derivatives(
+                self.V_plus_for_derivative,
+                params={
+                    'Q': sampled_Qs,
+                    'features': sampled_features,
+                },
+                der_params={
+                    'Q': 1,
+                }
+            )
+            V_minus, V_minus_der = self.create_derivatives(
+                self.V_minus_for_derivative,
+                params={
+                    'Q': sampled_Qs,
+                    'features': sampled_features,
+                },
+                der_params={
+                    'Q': 1,
+                }
+            )
+
+
+
+
+            reciprocal_loss = 1. * incentive_combine(
+                [
+                    (
+                        1.,
+                        incentive_inequality(
+                            sampled_voltages, Inequality.Equals, reciprocal_V,
+                            Level.Proportional
+                        )
+                    ),
+                    (
+                        1.,
+                        incentive_inequality(
+                            sampled_Qs, Inequality.Equals, reciprocal_Q,
+                            Level.Proportional
+                        )
+                    ),
+                    (
+                        .01,
+                        incentive_magnitude(
+                            V_minus, Target.Small,
+                            Level.Proportional
+                        )
+                    ),
+                    (
+                        .01,
+                        incentive_magnitude(
+                            V_plus, Target.Small,
+                            Level.Proportional
+                        )
+                    ),
+
+                    (
+                        .1,
+                        incentive_inequality(
+                            V_minus, Inequality.GreaterThan, 0.,
+                            Level.Strong
+                        )
+                    ),
+                    (
+                        .1,
+                        incentive_inequality(
+                            V_minus_der['d_Q'], Inequality.LessThan, 0.,
+                            Level.Strong
+                        )
+                    ),
+
+                    (
+                        .1,
+                        incentive_inequality(
+                            V_plus, Inequality.GreaterThan, 0.,
+                            Level.Strong
+                        )
+                    ),
+                    (
+                        .1,
+                        incentive_inequality(
+                            V_plus_der['d_Q'], Inequality.GreaterThan, 0.,
+                            Level.Strong
+                        )
+                    ),
+
+                ]
+            )
+
 
 
             Q, Q_der = self.create_derivatives(
@@ -1518,9 +1647,11 @@ class DegradationModel(Model):
                     'features': sampled_features,
                     'shift':    sampled_shift
                 },
-                voltage_der = 3,
-                features_der = 2,
-                shift_der = 3,
+                der_params = {
+                    'voltage':3,
+                    'features':2,
+                    'shift':3,
+                }
             )
 
             Q_loss = .0001 * incentive_combine(
@@ -1608,9 +1739,11 @@ class DegradationModel(Model):
                     'svit_grid':   sampled_svit_grid,
                     'count_matrix':sampled_count_matrix
                 },
-                cycle_der = 3,
-                current_der = 0,
-                features_der = 2,
+                der_params={
+                    'cycle': 3,
+                    'current': 0,
+                    'features': 2,
+                }
             )
 
             Q_scale_loss = .0001 * incentive_combine(
@@ -1698,9 +1831,11 @@ class DegradationModel(Model):
                     'svit_grid': sampled_svit_grid,
                     'count_matrix': sampled_count_matrix
                 },
-                cycle_der = 3,
-                current_der = 3,
-                features_der = 2,
+                der_params={
+                    'cycle': 3,
+                    'current': 3,
+                    'features': 3,
+                }
             )
 
             shift_loss = .0001 * incentive_combine(
@@ -1770,9 +1905,11 @@ class DegradationModel(Model):
                     'svit_grid': sampled_svit_grid,
                     'count_matrix': sampled_count_matrix
                 },
-                cycle_der = 3,
-                features_der = 2,
+                der_params={
+                    'cycle': 3,
+                    'features': 2,
 
+                }
             )
 
             r_loss = .0001 * incentive_combine(
@@ -1833,7 +1970,7 @@ class DegradationModel(Model):
                 ]
             )
 
-            _, z_cell_loss = self.z_cell_from_indecies(
+            _, z_cell_loss, _, _, _ = self.z_cell_from_indecies(
                 indecies=tf.range(
                     self.cell_direct.num_keys,
                     dtype=tf.int32,
@@ -1853,6 +1990,8 @@ class DegradationModel(Model):
                 "r_loss":           r_loss,
                 "shift_loss":       shift_loss,
                 "z_cell_loss":      z_cell_loss,
+                "reciprocal_loss":  reciprocal_loss,
+                "projection_loss":  projection_loss,
             }
 
         else:
@@ -1891,7 +2030,7 @@ class DegradationModel(Model):
                 training=training
             )
 
-            resistance_strainless = self.r_strainless_direct(
+            resistance_strainless = self.R_strainless_direct(
                 cell_features=cell_features,
                 training=training
             )
@@ -1910,9 +2049,9 @@ class DegradationModel(Model):
                 training=training
             )
 
-            resistance = self.r_direct(
+            resistance = self.R_direct(
                 strain=strain,
-                r_strainless=resistance_strainless,
+                R_strainless=resistance_strainless,
                 training=training
             )
 
@@ -1921,8 +2060,8 @@ class DegradationModel(Model):
 
                 "pred_cc_capacity":   pred_cc_capacity,
                 "pred_cv_capacity":   pred_cv_capacity,
-                "pred_r":             resistance,
-                "pred_Q_scale": Q_scale,
+                "pred_R":             resistance,
+                "pred_Q_scale":       Q_scale,
                 "pred_shift":         shift,
             }
 

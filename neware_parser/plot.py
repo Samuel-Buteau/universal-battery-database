@@ -494,7 +494,7 @@ def plot_capacity(plot_params, init_returns):
                     svit_and_count['count_matrix']
                 )
 
-                pred_cap = tf.reshape(test_results["pred_r"], shape = [-1])
+                pred_cap = tf.reshape(test_results["pred_R"], shape = [-1])
 
                 ax1.plot(cycle, pred_cap, c = COLORS[k_count])
 

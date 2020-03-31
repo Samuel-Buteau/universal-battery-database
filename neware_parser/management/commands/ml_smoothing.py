@@ -215,7 +215,6 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
         [[s[0] for s in siw] for siw in electrolyte_id_to_additive_id_weight.values()],
     ]
 
-    print(mess)
 
     molecule_id_list = numpy.array(
         sorted(
@@ -803,6 +802,8 @@ def train_step(params, fit_args):
             + train_results["r_loss"]
             + train_results["shift_loss"]
             + fit_args['z_cell_coeff'] * train_results["z_cell_loss"]
+            + .1 * train_results["reciprocal_loss"]
+            + .1 * train_results["projection_loss"]
         )
 
     gradients = tape.gradient(loss, degradation_model.trainable_variables)

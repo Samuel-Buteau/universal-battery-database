@@ -150,9 +150,11 @@ def plot_vq(plot_params, init_returns):
     for barcode_count, barcode in enumerate(barcodes):
         fig, axs = plt.subplots(nrows = 3, figsize = [5, 10], sharex = True)
 
-        for typ, off, mode, x_leg, y_leg in [('dchg', 0, 'cc', 0.5, 1),
-                                             ('chg', 1, 'cc', 0.5, 0.5),
-                                             ('chg', 2, 'cv', 0., 0.5)]:
+        for typ, off, mode, x_leg, y_leg in [
+            ('dchg', 0, 'cc', 0.5, 1),
+            ('chg', 1, 'cc', 0.5, 0.5),
+            ('chg', 2, 'cv', 0., 0.5)
+        ]:
             list_of_keys = get_list_of_keys(
                 my_data['all_data'][barcode]['cyc_grp_dict'], typ
             )
@@ -191,8 +193,10 @@ def plot_vq(plot_params, init_returns):
                     if mode == 'cc':
                         y_lim = [2.95, 4.35]
                     elif mode == 'cv':
-                        y_lim = [min([key[2] for key in list_of_keys]) - 0.05,
-                                 0.05 + max([key[0] for key in list_of_keys])]
+                        y_lim = [
+                            min([key[2] for key in list_of_keys]) - 0.05,
+                            0.05 + max([key[0] for key in list_of_keys])
+                        ]
 
                     valids = vq_mask > .5
 
@@ -516,7 +520,6 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
     cycle_v = init_returns["cycle_v"]
 
     for barcode_count, barcode in enumerate(barcodes):
-
         svit_and_count = get_svit_and_count(my_data, barcode)
         fig = plt.figure(figsize = [11, 10])
         cyc_grp_dict = my_data['all_data'][barcode]['cyc_grp_dict']
@@ -530,10 +533,11 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
         plt.close(fig)
 
 
-def test_all_voltages(cycle, constant_current, end_current_prev,
-                      end_voltage_prev, end_voltage, barcode_count,
-                      degradation_model, voltages, currents, svit_grid,
-                      count_matrix):
+def test_all_voltages(
+    cycle, constant_current, end_current_prev, end_voltage_prev, end_voltage,
+    barcode_count, degradation_model,
+    voltages, currents, svit_grid, count_matrix
+):
     expanded_cycle = tf.constant(cycle, shape = [1, 1])
     expanded_constant_current = tf.constant(constant_current, shape = [1, 1])
     expanded_end_current_prev = tf.constant(end_current_prev, shape = [1, 1])
@@ -562,9 +566,10 @@ def test_all_voltages(cycle, constant_current, end_current_prev,
     )
 
 
-def test_single_voltage(cycle, v, constant_current, end_current_prev,
-                        end_voltage_prev, end_voltage, currents, barcode_count,
-                        degradation_model, svit_grid, count_matrix):
+def test_single_voltage(
+    cycle, v, constant_current, end_current_prev, end_voltage_prev, end_voltage,
+    currents, barcode_count, degradation_model, svit_grid, count_matrix
+):
     expanded_cycle = tf.expand_dims(cycle, axis = 1)
     expanded_constant_current = tf.constant(
         constant_current,
@@ -582,10 +587,12 @@ def test_single_voltage(cycle, v, constant_current, end_current_prev,
 
     indecies = tf.tile(tf.expand_dims(barcode_count, axis = 0), [len(cycle)])
 
-    expanded_svit_grid = tf.tile(tf.constant([svit_grid]),
-                                 [len(cycle), 1, 1, 1, 1, 1])
-    expanded_count_matrix = tf.tile(tf.constant([count_matrix]),
-                                    [len(cycle), 1, 1, 1, 1, 1])
+    expanded_svit_grid = tf.tile(
+        tf.constant([svit_grid]), [len(cycle), 1, 1, 1, 1, 1]
+    )
+    expanded_count_matrix = tf.tile(
+        tf.constant([count_matrix]), [len(cycle), 1, 1, 1, 1, 1]
+    )
 
     return degradation_model(
         (
@@ -596,8 +603,10 @@ def test_single_voltage(cycle, v, constant_current, end_current_prev,
             expanded_end_voltage,
             indecies,
             tf.constant(v, shape = [len(cycle), 1]),
-            tf.tile(tf.reshape(currents, shape = [1, len(currents)]),
-                    [len(cycle), 1]),
+            tf.tile(
+                tf.reshape(currents, shape = [1, len(currents)]),
+                [len(cycle), 1]
+            ),
             expanded_svit_grid,
             expanded_count_matrix
         ),
@@ -607,10 +616,7 @@ def test_single_voltage(cycle, v, constant_current, end_current_prev,
 
 def savefig(figname, fit_args, barcode, count):
     plt.savefig(
-        os.path.join(
-            fit_args['path_to_plots'],
-            figname.format(barcode, count)
-        ),
+        os.path.join(fit_args['path_to_plots'], figname.format(barcode, count)),
         dpi = 300
     )
 

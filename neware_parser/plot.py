@@ -301,20 +301,20 @@ def plot_capacity_vs_cycle_number(plot_params, init_returns):
                 )
             )
 
+            main_data = cyc_grp_dict[k]['main_data']
+
             if k[-1] == 'dchg':
                 sign_change = -1.
             else:
                 sign_change = +1.
 
             if mode == 'cc':
-                cap = sign_change * \
-                      cyc_grp_dict[k]['main_data']['last_cc_capacity']
+                cap = sign_change * main_data['last_cc_capacity']
             elif mode == 'cv':
-                cap = sign_change * \
-                      cyc_grp_dict[k]['main_data']['last_cv_capacity']
+                cap = sign_change * main_data['last_cv_capacity']
 
             ax1.scatter(
-                cyc_grp_dict[k]['main_data']['cycle_number'],
+                main_data['cycle_number'],
                 cap,
                 c = COLORS[k_count],
                 s = 5,

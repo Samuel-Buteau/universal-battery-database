@@ -310,13 +310,15 @@ def plot_capacity(plot_params, init_returns):
 
         fig = plt.figure(figsize = [11, 10])
 
+        cyc_grp_dict = my_data['all_data'][barcode]['cyc_grp_dict']
+
         for typ, off, mode in [
             ('dchg', 0, 'cc'), ('chg', 1, 'cc'), ('chg', 2, 'cv')
         ]:
             list_of_patches = []
             list_of_keys = [
                 key for key
-                in my_data['all_data'][barcode]['cyc_grp_dict'].keys()
+                in cyc_grp_dict.keys()
                 if key[-1] == typ
             ]
             list_of_keys.sort(
@@ -343,17 +345,12 @@ def plot_capacity(plot_params, init_returns):
 
                 if mode == 'cc':
                     cap = sign_change * \
-                          my_data['all_data'][barcode]['cyc_grp_dict'][k][
-                              'main_data'][
-                              'last_cc_capacity']
+                          cyc_grp_dict[k]['main_data']['last_cc_capacity']
                 elif mode == 'cv':
                     cap = sign_change * \
-                          my_data['all_data'][barcode]['cyc_grp_dict'][k][
-                              'main_data'][
-                              'last_cv_capacity']
+                          cyc_grp_dict[k]['main_data']['last_cv_capacity']
                 ax1.scatter(
-                    my_data['all_data'][barcode]['cyc_grp_dict'][k][
-                        'main_data']['cycle_number'],
+                    cyc_grp_dict[k]['main_data']['cycle_number'],
                     cap,
                     c = COLORS[k_count],
                     s = 5,
@@ -367,31 +364,17 @@ def plot_capacity(plot_params, init_returns):
                 else:
                     sign_change = +1.
 
-                cycle = [
-                    x for x in np.arange(0., 6000., 20.)
-                ]
+                cycle = [x for x in np.arange(0., 6000., 20.)]
 
-                my_cycle = [
-                    (cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle
-                ]
+                my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
 
                 if mode == 'cc':
-                    target_voltage = \
-                        my_data['all_data'][barcode]['cyc_grp_dict'][k][
-                            'avg_last_cc_voltage']
-                    target_currents = [
-                        my_data['all_data'][barcode]['cyc_grp_dict'][k][
-                            'avg_constant_current']]
+                    target_voltage = cyc_grp_dict[k]['avg_last_cc_voltage']
+                    target_currents = [cyc_grp_dict[k]['avg_constant_current']]
                 elif mode == 'cv':
-                    target_voltage = \
-                        my_data['all_data'][barcode]['cyc_grp_dict'][k][
-                            'avg_end_voltage']
-                    curr_min = abs(
-                        my_data['all_data'][barcode]['cyc_grp_dict'][k][
-                            'avg_constant_current'])
-                    curr_max = abs(
-                        my_data['all_data'][barcode]['cyc_grp_dict'][k][
-                            'avg_end_current'])
+                    target_voltage = cyc_grp_dict[k]['avg_end_voltage']
+                    curr_min = abs(cyc_grp_dict[k]['avg_constant_current'])
+                    curr_max = abs(cyc_grp_dict[k]['avg_end_current'])
 
                     if curr_min == curr_max:
                         target_currents = np.array([curr_min])
@@ -407,14 +390,10 @@ def plot_capacity(plot_params, init_returns):
                 test_results = test_single_voltage(
                     my_cycle,
                     target_voltage,
-                    my_data['all_data'][barcode]['cyc_grp_dict'][k][
-                        'avg_constant_current'],
-                    my_data['all_data'][barcode]['cyc_grp_dict'][k][
-                        'avg_end_current_prev'],
-                    my_data['all_data'][barcode]['cyc_grp_dict'][k][
-                        'avg_end_voltage_prev'],
-                    my_data['all_data'][barcode]['cyc_grp_dict'][k][
-                        'avg_end_voltage'],
+                    cyc_grp_dict[k]['avg_constant_current'],
+                    cyc_grp_dict[k]['avg_end_current_prev'],
+                    cyc_grp_dict[k]['avg_end_voltage_prev'],
+                    cyc_grp_dict[k]['avg_end_voltage'],
                     target_currents,
                     barcode_count, degradation_model,
                     svit_and_count['svit_grid'],

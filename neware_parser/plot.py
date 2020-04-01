@@ -148,16 +148,16 @@ def plot_vq(plot_params, init_returns):
     y_lim = [2.95, 4.35]
 
     for barcode_count, barcode in enumerate(barcodes):
+
         fig, axs = plt.subplots(nrows = 3, figsize = [5, 10], sharex = True)
+        cyc_grp_dict = my_data['all_data'][barcode]['cyc_grp_dict']
 
         for typ, off, mode, x_leg, y_leg in [
             ('dchg', 0, 'cc', 0.5, 1),
             ('chg', 1, 'cc', 0.5, 0.5),
             ('chg', 2, 'cv', 0., 0.5)
         ]:
-            list_of_keys = get_list_of_keys(
-                my_data['all_data'][barcode]['cyc_grp_dict'], typ
-            )
+            list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
 
             list_of_patches = []
             ax = axs[off]
@@ -167,7 +167,7 @@ def plot_vq(plot_params, init_returns):
                 else:
                     sign_change = +1.
 
-                barcode_k = my_data['all_data'][barcode]['cyc_grp_dict'][k][
+                barcode_k = cyc_grp_dict[k][
                     'main_data']
 
                 if mode == 'cc':
@@ -227,10 +227,8 @@ def plot_vq(plot_params, init_returns):
                 v_min = min(k[3], k[4])
                 v_max = max(k[3], k[4])
                 v_range = np.arange(v_min, v_max, 0.05)
-                curr_min = abs(my_data['all_data'][barcode]['cyc_grp_dict'][k][
-                                   'avg_constant_current'])
-                curr_max = abs(my_data['all_data'][barcode]['cyc_grp_dict'][k][
-                                   'avg_end_current'])
+                curr_min = abs(cyc_grp_dict[k]['avg_constant_current'])
+                curr_max = abs(cyc_grp_dict[k]['avg_end_current'])
 
                 if curr_min == curr_max:
                     current_range = np.array([curr_min])
@@ -247,14 +245,10 @@ def plot_vq(plot_params, init_returns):
 
                     test_results = test_all_voltages(
                         scaled_cyc,
-                        my_data['all_data'][barcode]['cyc_grp_dict'][k][
-                            'avg_constant_current'],
-                        my_data['all_data'][barcode]['cyc_grp_dict'][k][
-                            'avg_end_current_prev'],
-                        my_data['all_data'][barcode]['cyc_grp_dict'][k][
-                            'avg_end_voltage_prev'],
-                        my_data['all_data'][barcode]['cyc_grp_dict'][k][
-                            'avg_end_voltage'],
+                        cyc_grp_dict[k]['avg_constant_current'],
+                        cyc_grp_dict[k]['avg_end_current_prev'],
+                        cyc_grp_dict[k]['avg_end_voltage_prev'],
+                        cyc_grp_dict[k]['avg_end_voltage'],
                         barcode_count,
                         degradation_model,
                         v_range,

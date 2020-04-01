@@ -432,33 +432,20 @@ def plot_capacity(plot_params, init_returns):
                     label = make_legend(k)
                 ))
 
-                cycle = [
-                    x for x in np.arange(0., 6000., 20.)
-                ]
+                cycle = [x for x in np.arange(0., 6000., 20.)]
 
-                my_cycle = [
-                    (cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle
-                ]
+                my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
 
-                target_voltage = \
-                    cyc_grp_dict[k][
-                        'avg_last_cc_voltage']
-                target_currents = [
-                    cyc_grp_dict[k][
-                        'avg_constant_current']
-                ]
+                target_voltage = cyc_grp_dict[k]['avg_last_cc_voltage']
+                target_currents = [cyc_grp_dict[k]['avg_constant_current']]
 
                 test_results = test_single_voltage(
                     my_cycle,
                     target_voltage,
-                    cyc_grp_dict[k][
-                        'avg_constant_current'],
-                    cyc_grp_dict[k][
-                        'avg_end_current_prev'],
-                    cyc_grp_dict[k][
-                        'avg_end_voltage_prev'],
-                    cyc_grp_dict[k][
-                        'avg_end_voltage'],
+                    cyc_grp_dict[k]['avg_constant_current'],
+                    cyc_grp_dict[k]['avg_end_current_prev'],
+                    cyc_grp_dict[k]['avg_end_voltage_prev'],
+                    cyc_grp_dict[k]['avg_end_voltage'],
                     target_currents,
                     barcode_count, degradation_model,
                     svit_and_count['svit_grid'],
@@ -476,11 +463,10 @@ def plot_capacity(plot_params, init_returns):
                        bbox_to_anchor = (0.7, 1), loc = 'upper left')
 
         for typ, off, mode in [('dchg', 4, 'cc')]:
-            list_of_patches = []
-            list_of_keys = [key for key in
-                            cyc_grp_dict.keys()
-                            if
-                            key[-1] == typ]
+
+            list_of_keys = [
+                key for key in cyc_grp_dict.keys() if key[-1] == typ
+            ]
             list_of_keys.sort(key = lambda k: (
                 round(20. * k[0]), round(20. * k[1]), round(20. * k[2]),
                 round(20. * k[3]), round(20. * k[4])))
@@ -497,24 +483,16 @@ def plot_capacity(plot_params, init_returns):
                     (cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle
                 ]
 
-                target_voltage = \
-                    cyc_grp_dict[k][
-                        'avg_last_cc_voltage']
-                target_currents = [
-                    cyc_grp_dict[k][
-                        'avg_constant_current']]
+                target_voltage = cyc_grp_dict[k]['avg_last_cc_voltage']
+                target_currents = [cyc_grp_dict[k]['avg_constant_current']]
 
                 test_results = test_single_voltage(
                     my_cycle,
                     target_voltage,
-                    cyc_grp_dict[k][
-                        'avg_constant_current'],
-                    cyc_grp_dict[k][
-                        'avg_end_current_prev'],
-                    cyc_grp_dict[k][
-                        'avg_end_voltage_prev'],
-                    cyc_grp_dict[k][
-                        'avg_end_voltage'],
+                    cyc_grp_dict[k]['avg_constant_current'],
+                    cyc_grp_dict[k]['avg_end_current_prev'],
+                    cyc_grp_dict[k]['avg_end_voltage_prev'],
+                    cyc_grp_dict[k]['avg_end_voltage'],
                     target_currents,
                     barcode_count, degradation_model,
                     svit_and_count['svit_grid'],
@@ -547,24 +525,16 @@ def plot_capacity(plot_params, init_returns):
                     (cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle
                 ]
 
-                target_voltage = \
-                    cyc_grp_dict[k][
-                        'avg_last_cc_voltage']
-                target_currents = [
-                    cyc_grp_dict[k][
-                        'avg_constant_current']]
+                target_voltage = cyc_grp_dict[k]['avg_last_cc_voltage']
+                target_currents = [cyc_grp_dict[k]['avg_constant_current']]
 
                 test_results = test_single_voltage(
                     my_cycle,
                     target_voltage,
-                    cyc_grp_dict[k][
-                        'avg_constant_current'],
-                    cyc_grp_dict[k][
-                        'avg_end_current_prev'],
-                    cyc_grp_dict[k][
-                        'avg_end_voltage_prev'],
-                    cyc_grp_dict[k][
-                        'avg_end_voltage'],
+                    cyc_grp_dict[k]['avg_constant_current'],
+                    cyc_grp_dict[k]['avg_end_current_prev'],
+                    cyc_grp_dict[k]['avg_end_voltage_prev'],
+                    cyc_grp_dict[k]['avg_end_voltage'],
                     target_currents,
                     barcode_count, degradation_model,
                     svit_and_count['svit_grid'],

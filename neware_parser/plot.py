@@ -317,9 +317,7 @@ def plot_capacity(plot_params, init_returns):
         ]:
             list_of_patches = []
             list_of_keys = [
-                key for key
-                in cyc_grp_dict.keys()
-                if key[-1] == typ
+                key for key in cyc_grp_dict.keys() if key[-1] == typ
             ]
             list_of_keys.sort(
                 key = lambda k: (
@@ -406,6 +404,7 @@ def plot_capacity(plot_params, init_returns):
                     )
                 elif mode == 'cv':
                     pred_cap = test_results["pred_cv_capacity"].numpy()[:, -1]
+
                 ax1.plot(cycle, sign_change * pred_cap, c = COLORS[k_count])
 
             ax1.legend(
@@ -417,10 +416,9 @@ def plot_capacity(plot_params, init_returns):
 
         for typ, off, mode in [('dchg', 3, 'cc')]:
             list_of_patches = []
-            list_of_keys = [key for key in
-                            my_data['all_data'][barcode]['cyc_grp_dict'].keys()
-                            if
-                            key[-1] == typ]
+            list_of_keys = [
+                key for key in cyc_grp_dict.keys() if key[-1] == typ
+            ]
             list_of_keys.sort(key = lambda k: (
                 round(20. * k[0]), round(20. * k[1]), round(20. * k[2]),
                 round(20. * k[3]), round(20. * k[4])))
@@ -443,23 +441,23 @@ def plot_capacity(plot_params, init_returns):
                 ]
 
                 target_voltage = \
-                    my_data['all_data'][barcode]['cyc_grp_dict'][k][
+                    cyc_grp_dict[k][
                         'avg_last_cc_voltage']
                 target_currents = [
-                    my_data['all_data'][barcode]['cyc_grp_dict'][k][
+                    cyc_grp_dict[k][
                         'avg_constant_current']
                 ]
 
                 test_results = test_single_voltage(
                     my_cycle,
                     target_voltage,
-                    my_data['all_data'][barcode]['cyc_grp_dict'][k][
+                    cyc_grp_dict[k][
                         'avg_constant_current'],
-                    my_data['all_data'][barcode]['cyc_grp_dict'][k][
+                    cyc_grp_dict[k][
                         'avg_end_current_prev'],
-                    my_data['all_data'][barcode]['cyc_grp_dict'][k][
+                    cyc_grp_dict[k][
                         'avg_end_voltage_prev'],
-                    my_data['all_data'][barcode]['cyc_grp_dict'][k][
+                    cyc_grp_dict[k][
                         'avg_end_voltage'],
                     target_currents,
                     barcode_count, degradation_model,
@@ -480,7 +478,7 @@ def plot_capacity(plot_params, init_returns):
         for typ, off, mode in [('dchg', 4, 'cc')]:
             list_of_patches = []
             list_of_keys = [key for key in
-                            my_data['all_data'][barcode]['cyc_grp_dict'].keys()
+                            cyc_grp_dict.keys()
                             if
                             key[-1] == typ]
             list_of_keys.sort(key = lambda k: (
@@ -500,22 +498,22 @@ def plot_capacity(plot_params, init_returns):
                 ]
 
                 target_voltage = \
-                    my_data['all_data'][barcode]['cyc_grp_dict'][k][
+                    cyc_grp_dict[k][
                         'avg_last_cc_voltage']
                 target_currents = [
-                    my_data['all_data'][barcode]['cyc_grp_dict'][k][
+                    cyc_grp_dict[k][
                         'avg_constant_current']]
 
                 test_results = test_single_voltage(
                     my_cycle,
                     target_voltage,
-                    my_data['all_data'][barcode]['cyc_grp_dict'][k][
+                    cyc_grp_dict[k][
                         'avg_constant_current'],
-                    my_data['all_data'][barcode]['cyc_grp_dict'][k][
+                    cyc_grp_dict[k][
                         'avg_end_current_prev'],
-                    my_data['all_data'][barcode]['cyc_grp_dict'][k][
+                    cyc_grp_dict[k][
                         'avg_end_voltage_prev'],
-                    my_data['all_data'][barcode]['cyc_grp_dict'][k][
+                    cyc_grp_dict[k][
                         'avg_end_voltage'],
                     target_currents,
                     barcode_count, degradation_model,
@@ -530,7 +528,7 @@ def plot_capacity(plot_params, init_returns):
         for typ, off, mode in [('dchg', 5, 'cc')]:
             list_of_patches = []
             list_of_keys = [key for key in
-                            my_data['all_data'][barcode]['cyc_grp_dict'].keys()
+                            cyc_grp_dict.keys()
                             if
                             key[-1] == typ]
             list_of_keys.sort(key = lambda k: (
@@ -550,22 +548,22 @@ def plot_capacity(plot_params, init_returns):
                 ]
 
                 target_voltage = \
-                    my_data['all_data'][barcode]['cyc_grp_dict'][k][
+                    cyc_grp_dict[k][
                         'avg_last_cc_voltage']
                 target_currents = [
-                    my_data['all_data'][barcode]['cyc_grp_dict'][k][
+                    cyc_grp_dict[k][
                         'avg_constant_current']]
 
                 test_results = test_single_voltage(
                     my_cycle,
                     target_voltage,
-                    my_data['all_data'][barcode]['cyc_grp_dict'][k][
+                    cyc_grp_dict[k][
                         'avg_constant_current'],
-                    my_data['all_data'][barcode]['cyc_grp_dict'][k][
+                    cyc_grp_dict[k][
                         'avg_end_current_prev'],
-                    my_data['all_data'][barcode]['cyc_grp_dict'][k][
+                    cyc_grp_dict[k][
                         'avg_end_voltage_prev'],
-                    my_data['all_data'][barcode]['cyc_grp_dict'][k][
+                    cyc_grp_dict[k][
                         'avg_end_voltage'],
                     target_currents,
                     barcode_count, degradation_model,

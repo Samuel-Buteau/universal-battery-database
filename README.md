@@ -4,7 +4,7 @@
 2. you must download a dataset file and put it in the appropriate folder
 3. you must create a file called config.ini in neware_parser/, and put the following content within:
 
->[DEFAULT]
+`[DEFAULT]`
 
 > Database = d
 

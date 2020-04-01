@@ -310,23 +310,31 @@ def plot_capacity(plot_params, init_returns):
 
         fig = plt.figure(figsize = [11, 10])
 
-        for typ, off, mode in [('dchg', 0, 'cc'), ('chg', 1, 'cc'),
-                               ('chg', 2, 'cv')]:
+        for typ, off, mode in [
+            ('dchg', 0, 'cc'), ('chg', 1, 'cc'), ('chg', 2, 'cv')
+        ]:
             list_of_patches = []
-            list_of_keys = [key for key in
-                            my_data['all_data'][barcode]['cyc_grp_dict'].keys()
-                            if
-                            key[-1] == typ]
-            list_of_keys.sort(key = lambda k: (
-                round(20. * k[0]), round(20. * k[1]), round(20. * k[2]),
-                round(20. * k[3]), round(20. * k[4])))
+            list_of_keys = [
+                key for key
+                in my_data['all_data'][barcode]['cyc_grp_dict'].keys()
+                if key[-1] == typ
+            ]
+            list_of_keys.sort(
+                key = lambda k: (
+                    round(20. * k[0]), round(20. * k[1]), round(20. * k[2]),
+                    round(20. * k[3]), round(20. * k[4])
+                )
+            )
 
             ax1 = fig.add_subplot(6, 1, 1 + off)
             ax1.set_ylabel("capacity")
 
             for k_count, k in enumerate(list_of_keys):
-                list_of_patches.append(mpatches.Patch(color = COLORS[k_count],
-                                                      label = make_legend(k)))
+                list_of_patches.append(
+                    mpatches.Patch(
+                        color = COLORS[k_count], label = make_legend(k)
+                    )
+                )
 
                 if k[-1] == 'dchg':
                     sign_change = -1.

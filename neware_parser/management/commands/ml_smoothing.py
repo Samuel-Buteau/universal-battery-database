@@ -638,7 +638,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                     if (count % fit_args['visualize_fit_every']) == 0:
                         start = time.time()
                         print("time to simulate: ", start - end)
-                        plot_capacity(plot_params, init_returns)
+                        plot_capacity_vs_cycle_number(plot_params, init_returns)
                         plot_vq(plot_params, init_returns)
                         end = time.time()
                         print("time to plot: ", end - start)

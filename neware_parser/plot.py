@@ -441,24 +441,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
                 bbox_to_anchor = (0.7, 1), loc = 'upper left'
             )
 
-    barcodes = plot_params["barcodes"]
-    count = plot_params["count"]
-    fit_args = plot_params["fit_args"]
-
-    degradation_model = init_returns["degradation_model"]
-    my_data = init_returns["my_data"]
-    cycle_m = init_returns["cycle_m"]
-    cycle_v = init_returns["cycle_v"]
-
-    for barcode_count, barcode in enumerate(barcodes):
-
-        svit_and_count = get_svit_and_count(my_data, barcode)
-        fig = plt.figure(figsize = [11, 10])
-        cyc_grp_dict = my_data['all_data'][barcode]['cyc_grp_dict']
-
-        plot_capacities()
-        plot_q_scale()
-
+    def plot_resistance():
         for typ, off, mode in [('dchg', 4, 'cc')]:
 
             list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
@@ -491,6 +474,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
 
                 ax1.plot(cycle, pred_cap, c = COLORS[k_count])
 
+    def plot_shift():
         for typ, off, mode in [('dchg', 5, 'cc')]:
 
             list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
@@ -521,6 +505,26 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
                 pred_cap = tf.reshape(test_results["pred_shift"], shape = [-1])
 
                 ax1.plot(cycle, pred_cap, c = COLORS[k_count])
+
+    barcodes = plot_params["barcodes"]
+    count = plot_params["count"]
+    fit_args = plot_params["fit_args"]
+
+    degradation_model = init_returns["degradation_model"]
+    my_data = init_returns["my_data"]
+    cycle_m = init_returns["cycle_m"]
+    cycle_v = init_returns["cycle_v"]
+
+    for barcode_count, barcode in enumerate(barcodes):
+
+        svit_and_count = get_svit_and_count(my_data, barcode)
+        fig = plt.figure(figsize = [11, 10])
+        cyc_grp_dict = my_data['all_data'][barcode]['cyc_grp_dict']
+
+        plot_capacities()
+        plot_q_scale()
+        plot_resistance()
+        plot_shift()
 
         savefig('Cap_{}_Count_{}.png', fit_args, barcode, count)
         plt.close(fig)

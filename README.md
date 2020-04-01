@@ -17,24 +17,27 @@ Backend = sqlite3
 SecretKey = verysecretkeyhaha
 ```
 
-
-TODO: somebody with more linux/mac os x knowledge should fill this part for those systems.
-
 ## Windows 10
-install dependencies with 
-> pip -r requirements.txt
+
+Install dependencies with
+```
+pip -r requirements.txt
+```
 
 In order to allow background tasks, 
 which are super useful in this case,
 run in a separate terminal:
-> python manage.py process_tasks
+```
+python manage.py process_tasks
+```
 
 This will process the tasks as they are defined.
 
 
-In order to quickly see the webpage and start developing, run
-> python manage.py runserver 0.0.0.0:8000
-
+To quickly see the webpage and start developing, run
+```
+python manage.py runserver 0.0.0.0:8000
+```
 and then go to your browser and type http://localhost:8000/ for the webpage.
 
 Then, the more tricky part is to install postgresql and configure it. 
@@ -47,70 +50,77 @@ Then, the more tricky part is to install postgresql and configure it.
 - add the bin path of the install to the Path variable.
 
 - run the following:
-> psql -U postgres
+```
+psql -U postgres
+```
 
 (Then, you enter the password that you hopefully still remember!!)
-> CREATE DATABASE myproject;
+```
+CREATE DATABASE myproject;
 
-> CREATE USER myuser WITH PASSWORD ‘mypassword’;
+CREATE USER myuser WITH PASSWORD ‘mypassword’;
 
-> GRANT ALL PRIVILEGES ON DATABASE myproject TO myuser;
+GRANT ALL PRIVILEGES ON DATABASE myproject TO myuser;
+```
 
 
 - add a file called config.ini in the root directory, with the following content (feel free to modify):
->[DEFAULT]
-
->Database = myproject
-
->User = myuser
-
->Password = mypassword
-
->Host = localhost
-
->Port = 5432
-
+```
+[DEFAULT]
+Database = myproject
+User = myuser
+Password = mypassword
+Host = localhost
+Port = 5432
+```
 
 This is for security purposes.
 
 TODO(samuel): before releasing the database itself, also make sure the sensitive contents are removed. 
 
+## Linux (and MacOS)
 
-# How to implement new file formats
-The code has a simple bottleneck where text files are imputted and a python data gets output. this function is called read_neware.
+TODO
+
+
+# Implementing New File Formats
+
+The code has a simple bottleneck where text files are inputted and a python data gets output. This function is called `read_neware`.
 The output of the function should be the same for neware inputs, maccor inputs, moli inputs, etc...
 
-The way I imagine this is a different function for each cycler vendor (neware, maccor, moli, etc...), perhaps read_neware, read_maccor, ...
+The way I imagine this is a different function for each cycler vendor (neware, maccor, moli, etc...), perhaps `read_neware`, `read_maccor`, ...
 
-And then, once the file has been given the metadata 'neware', the data import routine will call read_neware.
+And then, once the file has been given the metadata 'neware', the data import routine will call `read_neware`.
 
-The output format is an ordered dict of ordered dicts of tuples with the first element of the tuple being something like 'CC_Chg' for constant current charge step, 
+The output format is an ordered dictionary of ordered dictionaries of tuples with the first element of the tuple being something like `CC_Chg` for constant current charge step, 
 and the second element of the tuple is a list of lists containing voltage current capacity time data.
 
-for instance, if data is the output, data[30][62]  would be a tuple corresponding to the step 62, cycle 30.
-data[30][62][0] might be 'CC_DChg' and data[30][62][1] might be a list of lists.
-data[30][62][1][3,:] would be a list like [voltage1, capacity1, current1, datetime1, accuracy_in_seconds]
-here accuracy_in_seconds is a boolean variable saying whether datetime1
- should be trusted down to the seconds or down to the minutes.
+For instance, if data is the output, `data[30][62]` would be a tuple corresponding to the step 62, cycle 30.
+`data[30][62][0]` might be `CC_DChg` and `data[30][62][1]` might be a list of lists.
+`data[30][62][1][3,:]` would be a list like `[voltage1, capacity1, current1, datetime1, accuracy_in_seconds]`
+here `accuracy_in_seconds` is a boolean variable saying whether `datetime1` should be trusted down to the seconds or down to the minutes.
  
- Note(Samuel): by the way I know this is a bit ducktapy, please feel free to use pandas or whatever you kids use these days ;P
- 
+Note(Samuel): by the way I know this is a bit ducktapy, please feel free to use pandas or whatever you kids use these days ;P
+
+TODO(Harvey): Maybe we **should** migrate to Pandas when we have time. I can look into it.
+
  
 # Theoretical Overview 
- Most abstractly, we have cells and we have experimental observations, and the goal is to learn the mapping between the two.
+
+Most abstractly, we have cells and we have experimental observations, and the goal is to learn the mapping between the two.
  
- For simplicity, take the case where all experimental observations are of long term cycling. 
+For simplicity, take the case where all experimental observations are of long term cycling. 
  
- we can imagine each distinct cell has some hidden feature vector F. Then, for every observed cycle number, we have many observed voltages for which the capacity is observed (it becomes our prediction target).
- The mapping from F, cyc, V to Cap depends on two factors:
-  - the general cumulative cycling conditions, such as the average current used for charge/discharge, the average depth of charge/discharge, as well as the average temperature.
-  - the specific conditions for the given cycle (the actual currents for this cycle, actual depth of discharge, actual temperature, etc.)
+We can imagine each distinct cell has some hidden feature vector F. Then, for every observed cycle number, we have many observed voltages for which the capacity is observed (it becomes our prediction target).
+The mapping from F, cyc, V to Cap depends on two factors:
+  1. The general cumulative cycling conditions, such as the average current used for charge/discharge, the average depth of charge/discharge, as well as the average temperature.
+  2. The specific conditions for the given cycle (the actual currents for this cycle, actual depth of discharge, actual temperature, etc.)
  
- This mapping, though a black box at first, can be broken down into more structured sub-components (we call this "mechanism-level").
+This mapping, though a black box at first, can be broken down into more structured sub-components (we call this "mechanism-level").
  
- Also, the feature representation of a cell F itself can be broken down. First, a cell has subcomponents: Electrolyte, DryCell.
- Therefore, each component can be represented by feature vectors E, D, and a mapping from (E,D) to F may be learned.
- This level of description (level 1) forces some generalization since the number of dry cells is much smaller than the number of cells.
+Also, the feature representation of a cell F itself can be broken down. First, a cell has subcomponents: Electrolyte, DryCell.
+Therefore, each component can be represented by feature vectors E, D, and a mapping from (E, D) to F may be learned.
+This level of description (level 1) forces some generalization since the number of dry cells is much smaller than the number of cells.
  
 - We can break down further DryCell as a combination of Anode, Cathode, Separator, and Geometry.
 - We can also break down further Electrolyte as a weighted combination of Molecules. This is a great help to generalization since 700 electrolytes can be expressed as a combination of 30 molecules, with 500 electrolytes using less than 10, and generally the combinations are sparse.
@@ -118,7 +128,7 @@ here accuracy_in_seconds is a boolean variable saying whether datetime1
 - The Separator has some SeparatorGeometry as well as a weighted combination of Materials.
 - The ActiveMaterials have some numerical features as well as a weighted combination of atoms.
 - The Molecules have a graph of Atoms. 
-- the Geometry can be characterised numerically.
+- The Geometry can be characterized numerically.
 
 In this way, there is a directed acyclic graph connecting these various entities, and we can have multiple levels of descriptions.
 In turn, each level of description is limited in the kinds of generalizations possible. For instance, if we stop at F, we can't know anything about what would happed to a different cell, even if the dataset was rich enough to take a good guess.
@@ -133,7 +143,7 @@ Furthermore, the predicted Capacity can only depend on the cycle number *through
 We want two objects to never have the same name.
 we want two names to never have the same object. 
 
-if an object is a list of pairs of labels and objects or it is just a "leaf" object
+If an object is a list of pairs of labels and objects or it is just a "leaf" object
 so 
 data Obj = Leaf x | Collection [(label, Bool, Obj)]
 
@@ -165,14 +175,16 @@ eq2 (a, x) (b, y) = eq2 x y
 
 Based on these two properties, we always want to maintain the propriety that the list of objects in the database is unique with respect to eq and to eq2.
 
-## object creation
-We have 3 modes of creation: 
-1. create new: if object already exists, don't do anything and return existing. Otherwise, create and return, but if string already exists, set to all visible
-2. override visibility: if object already exists, modify visibility flags. If new string already exists, keep old visibility flags, otherwise modify.
-3. modify a specific target. First, exclude the target id from the search and do the same thing as "create new" except modify rather than create and use the target id 
+## Object Creation
+
+We have 3 modes of creation:
+
+1. Create new: If object already exists, don't do anything and return existing. Otherwise, create and return, but if string already exists, set to all visible.
+2. Override visibility: If object already exists, modify visibility flags. If new string already exists, keep old visibility flags, otherwise modify.
+3. Modify a specific target. First, exclude the target id from the search and do the same thing as "create new" except modify rather than create and use the target id.
 
 We never want to create an object if there is another object satisfying object equality (eq2) in the database.
-if given such an object, we return one of the equality set (eq2) and don't create anything.
+If given such an object, we return one of the equality set (eq2) and don't create anything.
 
 From this point, assume eq2 does not hold.
 We never want to create an object if there is another object satisfying string equality (eq) in the database. 
@@ -271,10 +283,10 @@ This mapping can evolve over time. First we must represent with a fixed lenght
 First, there needs to be some concept of unknown value, since the info can be missing sometimes.
 TODO: list the ways to handle missing value in the definition page
 
-TODO: when validating, null means unapplicable or unknown. there needs to be a flag to distinguish between the two.
+TODO: when validating, null means inapplicable or unknown. there needs to be a flag to distinguish between the two.
 for ratios, missing always means unknown
 
-In terms of modelling, any value which can be Unknown should be given a latent variable per cell, electrolyte, ...
+In terms of modeling, any value which can be Unknown should be given a latent variable per cell, electrolyte, ...
 and the general way to handle this is indicator*known + (1-indicator)*latent where indicator is 0 in case of unknown and 1 in case of known and where latent is trainable.
 This might be slightly inefficient, but at most 2x, and having this systematic mechanism will avoid headaches later.
 

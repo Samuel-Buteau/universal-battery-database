@@ -293,7 +293,6 @@ def plot_vq(plot_params, init_returns):
 
 def plot_capacity_vs_cycle_number(plot_params, init_returns):
     def plot_measured():
-
         for k_count, k in enumerate(list_of_keys):
             list_of_patches.append(
                 mpatches.Patch(
@@ -321,6 +320,60 @@ def plot_capacity_vs_cycle_number(plot_params, init_returns):
                 label = make_legend(k)
             )
 
+    def plot_predicted():
+        for k_count, k in enumerate(list_of_keys):
+
+            if k[-1] == 'dchg':
+                sign_change = -1.
+            else:
+                sign_change = +1.
+
+            cycle = [x for x in np.arange(0., 6000., 20.)]
+
+            my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
+
+            if mode == 'cc':
+                target_voltage = cyc_grp_dict[k]['avg_last_cc_voltage']
+                target_currents = [cyc_grp_dict[k]['avg_constant_current']]
+            elif mode == 'cv':
+                target_voltage = cyc_grp_dict[k]['avg_end_voltage']
+                curr_min = abs(cyc_grp_dict[k]['avg_constant_current'])
+                curr_max = abs(cyc_grp_dict[k]['avg_end_current'])
+
+                if curr_min == curr_max:
+                    target_currents = np.array([curr_min])
+                else:
+                    target_currents = sign_change * np.exp(
+                        np.arange(
+                            np.log(curr_min),
+                            np.log(curr_max),
+                            .05 * (np.log(curr_max) - np.log(curr_min))
+                        )
+                    )
+
+            test_results = test_single_voltage(
+                my_cycle,
+                target_voltage,
+                cyc_grp_dict[k]['avg_constant_current'],
+                cyc_grp_dict[k]['avg_end_current_prev'],
+                cyc_grp_dict[k]['avg_end_voltage_prev'],
+                cyc_grp_dict[k]['avg_end_voltage'],
+                target_currents,
+                barcode_count, degradation_model,
+                svit_and_count['svit_grid'],
+                svit_and_count['count_matrix']
+            )
+
+            if mode == 'cc':
+                pred_cap = tf.reshape(
+                    test_results["pred_cc_capacity"],
+                    shape = [-1]
+                )
+            elif mode == 'cv':
+                pred_cap = test_results["pred_cv_capacity"].numpy()[:, -1]
+
+            ax1.plot(cycle, sign_change * pred_cap, c = COLORS[k_count])
+
     barcodes = plot_params["barcodes"]
     count = plot_params["count"]
     fit_args = plot_params["fit_args"]
@@ -339,6 +392,7 @@ def plot_capacity_vs_cycle_number(plot_params, init_returns):
         for typ, off, mode in [
             ('dchg', 0, 'cc'), ('chg', 1, 'cc'), ('chg', 2, 'cv')
         ]:
+            
             list_of_patches = []
             list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
 
@@ -346,59 +400,7 @@ def plot_capacity_vs_cycle_number(plot_params, init_returns):
             ax1.set_ylabel("capacity")
 
             plot_measured()
-
-            for k_count, k in enumerate(list_of_keys):
-
-                if k[-1] == 'dchg':
-                    sign_change = -1.
-                else:
-                    sign_change = +1.
-
-                cycle = [x for x in np.arange(0., 6000., 20.)]
-
-                my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
-
-                if mode == 'cc':
-                    target_voltage = cyc_grp_dict[k]['avg_last_cc_voltage']
-                    target_currents = [cyc_grp_dict[k]['avg_constant_current']]
-                elif mode == 'cv':
-                    target_voltage = cyc_grp_dict[k]['avg_end_voltage']
-                    curr_min = abs(cyc_grp_dict[k]['avg_constant_current'])
-                    curr_max = abs(cyc_grp_dict[k]['avg_end_current'])
-
-                    if curr_min == curr_max:
-                        target_currents = np.array([curr_min])
-                    else:
-                        target_currents = sign_change * np.exp(
-                            np.arange(
-                                np.log(curr_min),
-                                np.log(curr_max),
-                                .05 * (np.log(curr_max) - np.log(curr_min))
-                            )
-                        )
-
-                test_results = test_single_voltage(
-                    my_cycle,
-                    target_voltage,
-                    cyc_grp_dict[k]['avg_constant_current'],
-                    cyc_grp_dict[k]['avg_end_current_prev'],
-                    cyc_grp_dict[k]['avg_end_voltage_prev'],
-                    cyc_grp_dict[k]['avg_end_voltage'],
-                    target_currents,
-                    barcode_count, degradation_model,
-                    svit_and_count['svit_grid'],
-                    svit_and_count['count_matrix']
-                )
-
-                if mode == 'cc':
-                    pred_cap = tf.reshape(
-                        test_results["pred_cc_capacity"],
-                        shape = [-1]
-                    )
-                elif mode == 'cv':
-                    pred_cap = test_results["pred_cv_capacity"].numpy()[:, -1]
-
-                ax1.plot(cycle, sign_change * pred_cap, c = COLORS[k_count])
+            plot_predicted()
 
             ax1.legend(
                 handles = list_of_patches,

@@ -216,8 +216,9 @@ def plot_vq(plot_params, init_returns):
 
             cycle = [0, 6000 / 2, 6000]
             for k_count, k in enumerate(list_of_keys):
-                list_of_patches.append(mpatches.Patch(color = COLORS[k_count],
-                                                      label = make_legend(k)))
+                list_of_patches.append(mpatches.Patch(
+                    color = COLORS[k_count], label = make_legend(k)
+                ))
 
                 if k[-1] == 'dchg':
                     sign_change = -1.
@@ -234,8 +235,12 @@ def plot_vq(plot_params, init_returns):
                     current_range = np.array([curr_min])
                 else:
                     current_range = sign_change * np.exp(
-                        np.arange(np.log(curr_min), np.log(curr_max),
-                                  .05 * (np.log(curr_max) - np.log(curr_min))))
+                        np.arange(
+                            np.log(curr_min),
+                            np.log(curr_max),
+                            .05 * (np.log(curr_max) - np.log(curr_min))
+                        )
+                    )
 
                 svit_and_count = get_svit_and_count(my_data, barcode)
 
@@ -258,13 +263,15 @@ def plot_vq(plot_params, init_returns):
                     )
 
                     if mode == 'cc':
-                        pred_cap = tf.reshape(test_results["pred_cc_capacity"],
-                                              shape = [-1])
+                        pred_cap = tf.reshape(
+                            test_results["pred_cc_capacity"], shape = [-1]
+                        )
                         yrange = v_range
                     elif mode == 'cv':
                         yrange = current_range
-                        pred_cap = tf.reshape(test_results["pred_cv_capacity"],
-                                              shape = [-1])
+                        pred_cap = tf.reshape(
+                            test_results["pred_cv_capacity"], shape = [-1]
+                        )
 
                     ax.set_xlim(x_lim)
                     if mode == 'cc':
@@ -280,8 +287,10 @@ def plot_vq(plot_params, init_returns):
 
                     )
 
-            ax.legend(handles = list_of_patches, fontsize = 'small',
-                      bbox_to_anchor = (x_leg, y_leg), loc = 'upper left')
+            ax.legend(
+                handles = list_of_patches, fontsize = 'small',
+                bbox_to_anchor = (x_leg, y_leg), loc = 'upper left'
+            )
 
         fig.tight_layout()
         fig.subplots_adjust(hspace = 0)

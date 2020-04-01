@@ -394,23 +394,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
                 loc = 'upper left'
             )
 
-    barcodes = plot_params["barcodes"]
-    count = plot_params["count"]
-    fit_args = plot_params["fit_args"]
-
-    degradation_model = init_returns["degradation_model"]
-    my_data = init_returns["my_data"]
-    cycle_m = init_returns["cycle_m"]
-    cycle_v = init_returns["cycle_v"]
-
-    for barcode_count, barcode in enumerate(barcodes):
-
-        svit_and_count = get_svit_and_count(my_data, barcode)
-        fig = plt.figure(figsize = [11, 10])
-        cyc_grp_dict = my_data['all_data'][barcode]['cyc_grp_dict']
-
-        plot_capacities()
-
+    def plot_q_scale():
         for typ, off, mode in [('dchg', 3, 'cc')]:
 
             list_of_patches = []
@@ -456,6 +440,24 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
                 handles = list_of_patches, fontsize = 'small',
                 bbox_to_anchor = (0.7, 1), loc = 'upper left'
             )
+
+    barcodes = plot_params["barcodes"]
+    count = plot_params["count"]
+    fit_args = plot_params["fit_args"]
+
+    degradation_model = init_returns["degradation_model"]
+    my_data = init_returns["my_data"]
+    cycle_m = init_returns["cycle_m"]
+    cycle_v = init_returns["cycle_v"]
+
+    for barcode_count, barcode in enumerate(barcodes):
+
+        svit_and_count = get_svit_and_count(my_data, barcode)
+        fig = plt.figure(figsize = [11, 10])
+        cyc_grp_dict = my_data['all_data'][barcode]['cyc_grp_dict']
+
+        plot_capacities()
+        plot_q_scale()
 
         for typ, off, mode in [('dchg', 4, 'cc')]:
 

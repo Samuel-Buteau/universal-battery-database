@@ -71,3 +71,5 @@ parameters.
 
 - visualize Vplus, Vminus, V_total for various values of shift. 
 (and include out of bound values)
+
+prev commit gets stuck needs investigation

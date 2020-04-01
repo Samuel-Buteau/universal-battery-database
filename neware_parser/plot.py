@@ -296,6 +296,35 @@ def plot_vq(plot_params, init_returns):
 
 
 def plot_capacity(plot_params, init_returns):
+    def plot_measured():
+
+        for k_count, k in enumerate(list_of_keys):
+            list_of_patches.append(
+                mpatches.Patch(
+                    color = COLORS[k_count], label = make_legend(k)
+                )
+            )
+
+            if k[-1] == 'dchg':
+                sign_change = -1.
+            else:
+                sign_change = +1.
+
+            if mode == 'cc':
+                cap = sign_change * \
+                      cyc_grp_dict[k]['main_data']['last_cc_capacity']
+            elif mode == 'cv':
+                cap = sign_change * \
+                      cyc_grp_dict[k]['main_data']['last_cv_capacity']
+
+            ax1.scatter(
+                cyc_grp_dict[k]['main_data']['cycle_number'],
+                cap,
+                c = COLORS[k_count],
+                s = 5,
+                label = make_legend(k)
+            )
+
     barcodes = plot_params["barcodes"]
     count = plot_params["count"]
     fit_args = plot_params["fit_args"]
@@ -306,10 +335,9 @@ def plot_capacity(plot_params, init_returns):
     cycle_v = init_returns["cycle_v"]
 
     for barcode_count, barcode in enumerate(barcodes):
+
         svit_and_count = get_svit_and_count(my_data, barcode)
-
         fig = plt.figure(figsize = [11, 10])
-
         cyc_grp_dict = my_data['all_data'][barcode]['cyc_grp_dict']
 
         for typ, off, mode in [
@@ -329,32 +357,7 @@ def plot_capacity(plot_params, init_returns):
             ax1 = fig.add_subplot(6, 1, 1 + off)
             ax1.set_ylabel("capacity")
 
-            for k_count, k in enumerate(list_of_keys):
-                list_of_patches.append(
-                    mpatches.Patch(
-                        color = COLORS[k_count], label = make_legend(k)
-                    )
-                )
-
-                if k[-1] == 'dchg':
-                    sign_change = -1.
-                else:
-                    sign_change = +1.
-
-                if mode == 'cc':
-                    cap = sign_change * \
-                          cyc_grp_dict[k]['main_data']['last_cc_capacity']
-                elif mode == 'cv':
-                    cap = sign_change * \
-                          cyc_grp_dict[k]['main_data']['last_cv_capacity']
-
-                ax1.scatter(
-                    cyc_grp_dict[k]['main_data']['cycle_number'],
-                    cap,
-                    c = COLORS[k_count],
-                    s = 5,
-                    label = make_legend(k)
-                )
+            plot_measured()
 
             for k_count, k in enumerate(list_of_keys):
 

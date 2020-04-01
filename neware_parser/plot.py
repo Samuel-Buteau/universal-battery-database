@@ -347,6 +347,7 @@ def plot_capacity(plot_params, init_returns):
                 elif mode == 'cv':
                     cap = sign_change * \
                           cyc_grp_dict[k]['main_data']['last_cv_capacity']
+
                 ax1.scatter(
                     cyc_grp_dict[k]['main_data']['cycle_number'],
                     cap,
@@ -397,6 +398,7 @@ def plot_capacity(plot_params, init_returns):
                     svit_and_count['svit_grid'],
                     svit_and_count['count_matrix']
                 )
+
                 if mode == 'cc':
                     pred_cap = tf.reshape(
                         test_results["pred_cc_capacity"],
@@ -415,13 +417,15 @@ def plot_capacity(plot_params, init_returns):
             )
 
         for typ, off, mode in [('dchg', 3, 'cc')]:
+
             list_of_patches = []
             list_of_keys = [
                 key for key in cyc_grp_dict.keys() if key[-1] == typ
             ]
             list_of_keys.sort(key = lambda k: (
                 round(20. * k[0]), round(20. * k[1]), round(20. * k[2]),
-                round(20. * k[3]), round(20. * k[4])))
+                round(20. * k[3]), round(20. * k[4])
+            ))
 
             ax1 = fig.add_subplot(6, 1, 1 + off)
             ax1.set_ylabel("Q scale")
@@ -459,8 +463,10 @@ def plot_capacity(plot_params, init_returns):
 
                 ax1.plot(cycle, pred_cap, c = COLORS[k_count])
 
-            ax1.legend(handles = list_of_patches, fontsize = 'small',
-                       bbox_to_anchor = (0.7, 1), loc = 'upper left')
+            ax1.legend(
+                handles = list_of_patches, fontsize = 'small',
+                bbox_to_anchor = (0.7, 1), loc = 'upper left'
+            )
 
         for typ, off, mode in [('dchg', 4, 'cc')]:
 
@@ -469,19 +475,16 @@ def plot_capacity(plot_params, init_returns):
             ]
             list_of_keys.sort(key = lambda k: (
                 round(20. * k[0]), round(20. * k[1]), round(20. * k[2]),
-                round(20. * k[3]), round(20. * k[4])))
+                round(20. * k[3]), round(20. * k[4])
+            ))
 
             ax1 = fig.add_subplot(6, 1, 1 + off)
             ax1.set_ylabel("resistance")
 
             for k_count, k in enumerate(list_of_keys):
-                cycle = [
-                    x for x in np.arange(0., 6000., 20.)
-                ]
+                cycle = [x for x in np.arange(0., 6000., 20.)]
 
-                my_cycle = [
-                    (cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle
-                ]
+                my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
 
                 target_voltage = cyc_grp_dict[k]['avg_last_cc_voltage']
                 target_currents = [cyc_grp_dict[k]['avg_constant_current']]
@@ -504,26 +507,22 @@ def plot_capacity(plot_params, init_returns):
                 ax1.plot(cycle, pred_cap, c = COLORS[k_count])
 
         for typ, off, mode in [('dchg', 5, 'cc')]:
-            list_of_patches = []
-            list_of_keys = [key for key in
-                            cyc_grp_dict.keys()
-                            if
-                            key[-1] == typ]
+
+            list_of_keys = [
+                key for key in cyc_grp_dict.keys() if key[-1] == typ
+            ]
             list_of_keys.sort(key = lambda k: (
                 round(20. * k[0]), round(20. * k[1]), round(20. * k[2]),
-                round(20. * k[3]), round(20. * k[4])))
+                round(20. * k[3]), round(20. * k[4])
+            ))
 
             ax1 = fig.add_subplot(6, 1, 1 + off)
             ax1.set_ylabel("shift")
 
             for k_count, k in enumerate(list_of_keys):
-                cycle = [
-                    x for x in np.arange(0., 6000., 20.)
-                ]
+                cycle = [x for x in np.arange(0., 6000., 20.)]
 
-                my_cycle = [
-                    (cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle
-                ]
+                my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
 
                 target_voltage = cyc_grp_dict[k]['avg_last_cc_voltage']
                 target_currents = [cyc_grp_dict[k]['avg_constant_current']]

@@ -99,26 +99,15 @@ def get_svit_and_count(my_data, barcode):
     svit_grid = np.concatenate(
         (
             np.tile(
-                np.reshape(
-                    my_data['sign_grid'],
-                    [n_sign, 1, 1, 1, 1]
-                ),
+                np.reshape(my_data['sign_grid'], [n_sign, 1, 1, 1, 1]),
                 [1, n_voltage, n_current, n_temperature, 1]
             ),
-
             np.tile(
-                np.reshape(
-                    my_data['voltage_grid'],
-                    [1, n_voltage, 1, 1, 1]
-                ),
+                np.reshape(my_data['voltage_grid'], [1, n_voltage, 1, 1, 1]),
                 [n_sign, 1, n_current, n_temperature, 1]
             ),
-
             np.tile(
-                np.reshape(
-                    my_data['current_grid'],
-                    [1, 1, n_current, 1, 1]
-                ),
+                np.reshape(my_data['current_grid'], [1, 1, n_current, 1, 1]),
                 [n_sign, n_voltage, 1, n_temperature, 1]
             ),
             np.tile(
@@ -130,7 +119,6 @@ def get_svit_and_count(my_data, barcode):
             ),
         ),
         axis = -1
-
     )
     return {'svit_grid': svit_grid, 'count_matrix': count_matrix}
 

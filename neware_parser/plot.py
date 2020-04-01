@@ -153,13 +153,9 @@ def plot_vq(plot_params, init_returns):
         for typ, off, mode, x_leg, y_leg in [('dchg', 0, 'cc', 0.5, 1),
                                              ('chg', 1, 'cc', 0.5, 0.5),
                                              ('chg', 2, 'cv', 0., 0.5)]:
-            list_of_keys = [key for key in
-                            my_data['all_data'][barcode]['cyc_grp_dict'].keys()
-                            if
-                            key[-1] == typ]
-            list_of_keys.sort(key = lambda k: (
-                round(20. * k[0]), round(20. * k[1]), round(20. * k[2]),
-                round(20. * k[3]), round(20. * k[4])))
+            list_of_keys = get_list_of_keys(
+                my_data['all_data'][barcode]['cyc_grp_dict'], typ
+            )
 
             list_of_patches = []
             ax = axs[off]
@@ -344,15 +340,7 @@ def plot_capacity(plot_params, init_returns):
             ('dchg', 0, 'cc'), ('chg', 1, 'cc'), ('chg', 2, 'cv')
         ]:
             list_of_patches = []
-            list_of_keys = [
-                key for key in cyc_grp_dict.keys() if key[-1] == typ
-            ]
-            list_of_keys.sort(
-                key = lambda k: (
-                    round(20. * k[0]), round(20. * k[1]), round(20. * k[2]),
-                    round(20. * k[3]), round(20. * k[4])
-                )
-            )
+            list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
 
             ax1 = fig.add_subplot(6, 1, 1 + off)
             ax1.set_ylabel("capacity")
@@ -422,13 +410,7 @@ def plot_capacity(plot_params, init_returns):
         for typ, off, mode in [('dchg', 3, 'cc')]:
 
             list_of_patches = []
-            list_of_keys = [
-                key for key in cyc_grp_dict.keys() if key[-1] == typ
-            ]
-            list_of_keys.sort(key = lambda k: (
-                round(20. * k[0]), round(20. * k[1]), round(20. * k[2]),
-                round(20. * k[3]), round(20. * k[4])
-            ))
+            list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
 
             ax1 = fig.add_subplot(6, 1, 1 + off)
             ax1.set_ylabel("Q scale")
@@ -473,13 +455,7 @@ def plot_capacity(plot_params, init_returns):
 
         for typ, off, mode in [('dchg', 4, 'cc')]:
 
-            list_of_keys = [
-                key for key in cyc_grp_dict.keys() if key[-1] == typ
-            ]
-            list_of_keys.sort(key = lambda k: (
-                round(20. * k[0]), round(20. * k[1]), round(20. * k[2]),
-                round(20. * k[3]), round(20. * k[4])
-            ))
+            list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
 
             ax1 = fig.add_subplot(6, 1, 1 + off)
             ax1.set_ylabel("resistance")
@@ -511,13 +487,7 @@ def plot_capacity(plot_params, init_returns):
 
         for typ, off, mode in [('dchg', 5, 'cc')]:
 
-            list_of_keys = [
-                key for key in cyc_grp_dict.keys() if key[-1] == typ
-            ]
-            list_of_keys.sort(key = lambda k: (
-                round(20. * k[0]), round(20. * k[1]), round(20. * k[2]),
-                round(20. * k[3]), round(20. * k[4])
-            ))
+            list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
 
             ax1 = fig.add_subplot(6, 1, 1 + off)
             ax1.set_ylabel("shift")
@@ -658,3 +628,16 @@ def get_nearest_point(xys, y):
             best = xys[i, :]
 
     return best
+
+
+def get_list_of_keys(cyc_grp_dict, typ):
+    list_of_keys = [
+        key for key in cyc_grp_dict.keys() if key[-1] == typ
+    ]
+    list_of_keys.sort(
+        key = lambda k: (
+            round(20. * k[0]), round(20. * k[1]), round(20. * k[2]),
+            round(20. * k[3]), round(20. * k[4])
+        )
+    )
+    return list_of_keys

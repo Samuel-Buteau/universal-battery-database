@@ -291,7 +291,7 @@ def plot_vq(plot_params, init_returns):
         plt.close(fig)
 
 
-def plot_capacity_vs_cycle_number(plot_params, init_returns):
+def plot_things_vs_cycle_number(plot_params, init_returns):
     def plot_capacities():
         def plot_measured():
             for k_count, k in enumerate(list_of_keys):

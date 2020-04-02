@@ -582,6 +582,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                         print("time to simulate: ", start - end)
                         plot_capacity(plot_params, init_returns)
                         plot_vq(plot_params, init_returns)
+                        plot_v_curves(plot_params, init_returns)
                         end = time.time()
                         print("time to plot: ", end - start)
                         ker = init_returns["degradation_model"].cell_direct.kernel.numpy()
@@ -803,7 +804,7 @@ def train_step(params, fit_args):
         )
 
         loss = (
-            cc_capacity_loss + 0.05 * cv_capacity_loss + 0.05 * cc_voltage_loss
+              0.05 * cv_capacity_loss + 1. * cc_voltage_loss +cc_capacity_loss
             + train_results["Q_loss"]
             + train_results["Q_scale_loss"]
             + train_results["r_loss"]
@@ -811,6 +812,7 @@ def train_step(params, fit_args):
             + fit_args['z_cell_coeff'] * train_results["z_cell_loss"]
             + .1 * train_results["reciprocal_loss"]
             + .1 * train_results["projection_loss"]
+            + .1 * train_results["out_of_bounds_loss"]
         )
 
     gradients = tape.gradient(loss, degradation_model.trainable_variables)

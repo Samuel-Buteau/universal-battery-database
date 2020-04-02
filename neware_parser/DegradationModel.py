@@ -786,10 +786,26 @@ class DegradationModel(Model):
             Q,
             pos_cell_features
         )
-        return nn_call(self.nn_V_plus, dependencies, training=training)
+
+        out_of_bound_loss = incentive_combine(
+            [
+                (1.,
+                 incentive_inequality(
+                     Q, Inequality.LessThan, 1.,
+                     Level.Strong
+                 )),
+                (1.,
+                 incentive_inequality(
+                     Q, Inequality.GreaterThan, 0.,
+                     Level.Strong
+                 )
+                 ),
+            ]
+        )
+        return nn_call(self.nn_V_plus, dependencies, training=training), out_of_bound_loss
 
     def V_plus_for_derivative(self, params, training=True):
-        return self.V_plus_direct(
+        v_p, loss = self.V_plus_direct(
             cell_features=self.cell_features_direct(
                 features=params['features'],
                 training=training
@@ -797,8 +813,10 @@ class DegradationModel(Model):
             Q=params['Q'],
             training=training
         )
+        return v_p
+
     def V_minus_for_derivative(self, params, training=True):
-        return self.V_minus_direct(
+        v_m, loss = self.V_minus_direct(
             cell_features=self.cell_features_direct(
                 features=params['features'],
                 training=training
@@ -806,31 +824,51 @@ class DegradationModel(Model):
             Q=params['Q'],
             training=training
         )
+        return v_m
 
     def V_minus_direct(self, Q, cell_features, training=True):
         neg_cell_features = self.neg_projection_direct(
             cell_features=cell_features,
             training=training
         )
+
+        out_of_bound_loss = incentive_combine(
+            [
+                (1.,
+                 incentive_inequality(
+                     Q, Inequality.LessThan, 1.,
+                     Level.Strong
+                 )),
+                (1.,
+                 incentive_inequality(
+                     Q, Inequality.GreaterThan, 0.,
+                     Level.Strong
+                 )
+                 ),
+            ]
+        )
+
         dependencies = (
             Q,
             neg_cell_features
         )
-        return nn_call(self.nn_V_minus, dependencies, training=training)
+
+
+        return nn_call(self.nn_V_minus, dependencies, training=training), out_of_bound_loss
 
     def V_direct(self, Q, shift, cell_features, training=True):
-        V_plus = self.V_plus_direct(
+        V_plus, loss_plus = self.V_plus_direct(
             Q=Q,
             cell_features=cell_features,
             training=training
         )
-        V_minus = self.V_minus_direct(
+        V_minus, loss_minus = self.V_minus_direct(
             Q=(Q-shift),
             cell_features=cell_features,
             training=training
         )
 
-        return V_plus - V_minus
+        return V_plus - V_minus, loss_minus + loss_plus
 
 
     def Q_direct(self, voltage, shift, cell_features, training=True):
@@ -1046,8 +1084,9 @@ class DegradationModel(Model):
 
     def reciprocal_Q(self, params, training=True):
         cell_features = self.cell_features_direct(features = params['features'], training=training)
-        V = self.V_direct(Q=params['Q'], shift=params['shift'], cell_features=cell_features, training=training)
-        return self.Q_direct(voltage=V, shift=params['shift'], cell_features=cell_features, training=training)
+        V, out_of_bounds_loss = self.V_direct(Q=params['Q'], shift=params['shift'], cell_features=cell_features, training=training)
+        return self.Q_direct(voltage=V, shift=params['shift'], cell_features=cell_features, training=training), out_of_bounds_loss
+
     def reciprocal_V(self, params, training=True):
         cell_features = self.cell_features_direct(features = params['features'], training=training)
         Q= self.Q_direct(voltage=params['voltage'], shift=params['shift'], cell_features=cell_features, training=training)
@@ -1259,8 +1298,8 @@ class DegradationModel(Model):
             training=training
         )
 
-        voltage = self.V_direct(
-            Q=q_over_q - self.add_volt_dep(Q_0, params),
+        voltage, out_of_bounds_loss = self.V_direct(
+            Q=q_over_q + self.add_volt_dep(Q_0, params),
             shift = self.add_volt_dep(shift_1, params),
             cell_features= self.add_volt_dep(
                 cell_features,
@@ -1272,7 +1311,7 @@ class DegradationModel(Model):
 
         cc_voltage = voltage + self.add_volt_dep(resistance*params['constant_current'], params)
 
-        return cc_voltage
+        return cc_voltage, out_of_bounds_loss
 
 
 
@@ -1499,6 +1538,93 @@ class DegradationModel(Model):
             ),
             [params["batch_count"] * params["current_count"], dim]
         )
+    def get_v_curves(self, barcode, shift, voltage, Q):
+        """
+
+        :param barcode:
+        a barcode
+        :param shift:
+        a 1-D array of shifts
+        :param voltage:
+        a 1-D array of voltages
+        :param Q:
+        a 1-D array of Qs
+        :param training:
+        :return:
+        returns a dictionary containing keys:
+            - 'V_plus': a 1-D matrix such that V_plus[j]
+                      corresponds to Q[j]
+            - 'V_minus': a 2-D matrix such that V_minus[i][j]
+                      corresponds to shift[i] and Q[j]
+            - 'V': a 2-D matrix such that V[i][j]
+                      corresponds to shift[i] and Q[j]
+            - 'Q': a 2-D matrix such that Q[i][k]
+                      corresponds to shift[i] and voltage[k]
+        """
+        training = False
+        indecies = tf.constant(
+            self.cell_direct.id_dict[barcode],
+            shape = [1]
+        )
+
+        features, _, _, _, _ = self.z_cell_from_indecies(
+            indecies=indecies,
+            training=training,
+            sample=False
+        )
+        cell_features = self.cell_features_direct(
+            features=features,
+            training=training
+        )
+
+        V_plus, _ = self.V_plus_direct(
+            Q=tf.reshape(Q, [-1, 1]),
+            cell_features = tf.tile(cell_features, [Q.shape[0], 1]),
+            training=training
+        )
+        V_plus = tf.reshape(V_plus, [-1])
+
+        Q_big = tf.reshape(tf.tile(tf.reshape(Q, [1, -1, 1]), [shift.shape[0],1, 1]), [-1, 1])
+        shift_big = tf.reshape(tf.tile(tf.reshape(shift, [-1, 1, 1]), [1,Q.shape[0],1]),[-1,1])
+
+        cell_features_big = tf.reshape(tf.tile(tf.reshape(cell_features, [1,1, -1]), [shift.shape[0], Q.shape[0], 1]), [-1, cell_features.shape[1]])
+        V_minus, _ = self.V_minus_direct(
+            Q=Q_big - shift_big,
+            cell_features=cell_features_big,
+            training=training
+        )
+
+        V_minus = tf.reshape(V_minus, [shift.shape[0], Q.shape[0]])
+
+        V, _ = self.V_direct(
+            Q=Q_big,
+            shift=shift_big,
+            cell_features=cell_features_big,
+            training=training,
+        )
+
+        V = tf.reshape(V, [shift.shape[0], Q.shape[0]])
+
+        voltage_big = tf.reshape(tf.tile(tf.reshape(voltage, [1, -1, 1]), [shift.shape[0], 1, 1]), [-1, 1])
+        shift_big = tf.reshape(tf.tile(tf.reshape(shift, [-1, 1, 1]), [1, voltage.shape[0], 1]), [-1, 1])
+
+        cell_features_big = tf.reshape(tf.tile(tf.reshape(cell_features, [1, 1, -1]), [shift.shape[0], voltage.shape[0], 1]),
+                                       [-1, cell_features.shape[1]])
+
+        Q = self.Q_direct(
+            voltage=voltage_big,
+            shift= shift_big,
+            cell_features=cell_features_big,
+            training=training
+        )
+        Q = tf.reshape(Q, [shift.shape[0], voltage.shape[0]])
+
+        return {
+            'V_plus':V_plus,
+            'V_minus':V_minus,
+            'V':V,
+            'Q':Q,
+        }
 
     def call(self, x, training = False):
 
@@ -1553,7 +1679,7 @@ class DegradationModel(Model):
         if training:
             cc_capacity = x[10]
             params['cc_capacity'] = cc_capacity
-            cc_voltage = self.cc_voltage(params, training=training)
+            cc_voltage, out_of_bounds_loss = self.cc_voltage(params, training=training)
             pred_cc_voltage = tf.reshape(cc_voltage, [-1, voltage_count])
 
             # NOTE(sam): this is an example of a forall. (for all voltages,
@@ -1648,7 +1774,7 @@ class DegradationModel(Model):
                 ]
             )
 
-            reciprocal_Q = self.reciprocal_Q(
+            reciprocal_Q, oob_loss_1 = self.reciprocal_Q(
                 params={
                     'Q':  sampled_Qs,
                     'features': sampled_features,
@@ -1656,7 +1782,7 @@ class DegradationModel(Model):
                 },
                 training=training
             )
-            reciprocal_V = self.reciprocal_V(
+            reciprocal_V, oob_loss_2 = self.reciprocal_V(
                 params={
                     'voltage': sampled_voltages,
                     'features': sampled_features,
@@ -1686,7 +1812,24 @@ class DegradationModel(Model):
                 }
             )
 
-
+            oob_loss_3 = incentive_combine(
+                [
+                    (
+                        1.,
+                        incentive_inequality(
+                            reciprocal_Q, Inequality.GreaterThan, 0.,
+                            Level.Strong
+                        )
+                    ),
+                    (
+                        1.,
+                        incentive_inequality(
+                            reciprocal_Q, Inequality.LessThan, 1.,
+                            Level.Strong
+                        )
+                    ),
+                ]
+            )
 
 
             reciprocal_loss = 1. * incentive_combine(
@@ -1881,17 +2024,25 @@ class DegradationModel(Model):
             Q_scale_loss = .0001 * incentive_combine(
                 [
                     (
-                        100.,
+                        10000.,
                         incentive_inequality(
-                            Q_scale, Inequality.GreaterThan, 0.01,
+                            Q_scale, Inequality.GreaterThan, 0.1,
                             Level.Strong
                         )
                     ),
                     (
-                        100.,
+                        20000.,
                         incentive_inequality(
-                            Q_scale, Inequality.LessThan, 1,
+                            Q_scale, Inequality.LessThan, 1.2,
                             Level.Strong
+                        )
+                    ),
+
+                    (
+                        10.,
+                        incentive_inequality(
+                            Q_scale, Inequality.Equals, 1,
+                            Level.Proportional
                         )
                     ),
                     (
@@ -1987,6 +2138,15 @@ class DegradationModel(Model):
                         )
                     ),
                     (
+                        10.,
+                        incentive_magnitude(
+                            shift,
+                            Target.Small,
+                            Level.Proportional
+                        )
+                    ),
+
+                    (
                         100.,
                         incentive_magnitude(
                             shift_der['d_current'],
@@ -2047,7 +2207,7 @@ class DegradationModel(Model):
             r_loss = .0001 * incentive_combine(
                 [
                     (
-                        100.,
+                        10000.,
                         incentive_inequality(
                             r,
                             Inequality.GreaterThan,
@@ -2056,15 +2216,6 @@ class DegradationModel(Model):
                         )
                     ),
 
-                    (
-                        100.,
-                        incentive_inequality(
-                            r,
-                            Inequality.GreaterThan,
-                            0.01,
-                            Level.Strong
-                        )
-                    ),
                     (
                         10.,
                         incentive_magnitude(
@@ -2115,16 +2266,17 @@ class DegradationModel(Model):
 
 
             return {
-                "pred_cc_capacity": pred_cc_capacity,
-                "pred_cv_capacity": pred_cv_capacity,
-                "pred_cc_voltage":  pred_cc_voltage,
-                "Q_loss":           Q_loss,
-                "Q_scale_loss":     Q_scale_loss,
-                "r_loss":           r_loss,
-                "shift_loss":       shift_loss,
-                "z_cell_loss":      z_cell_loss,
-                "reciprocal_loss":  reciprocal_loss,
-                "projection_loss":  projection_loss,
+                "pred_cc_capacity":    pred_cc_capacity,
+                "pred_cv_capacity":    pred_cv_capacity,
+                "pred_cc_voltage":     pred_cc_voltage,
+                "Q_loss":              Q_loss,
+                "Q_scale_loss":        Q_scale_loss,
+                "r_loss":              r_loss,
+                "shift_loss":          shift_loss,
+                "z_cell_loss":         z_cell_loss,
+                "reciprocal_loss":     reciprocal_loss,
+                "projection_loss":     projection_loss,
+                "out_of_bounds_loss":  out_of_bounds_loss + oob_loss_1 + oob_loss_2 + oob_loss_3,
             }
 
         else:

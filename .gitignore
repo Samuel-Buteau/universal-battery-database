@@ -1,3 +1,5 @@
+run_smoothing.sh
+
 .idea\
 *.xml
 *.gz

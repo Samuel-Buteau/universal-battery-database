@@ -78,10 +78,21 @@ This is for security purposes.
 
 TODO(samuel): before releasing the database itself, also make sure the sensitive contents are removed. 
 
-## Linux (and MacOS)
+## Linux (and macOS)
 
 TODO
 
+# Using the Software
+
+## ML Smoothing (Linux and macOS)
+
+Create a file called `run_smoothing.sh` (which is already in gitignore) that specifies the dataset version and takes in two arguments: output path and notes (optional). Then call `smoothing.sh` with these three arguments. Example `run_ml_smoothing.sh`:
+```
+# $1 specifies the outputpath for figures and $2 is an optional text for notes
+sh smoothing.sh $1 TESTING0 $2
+```
+
+Then simply run `sh run_smoothing.sh path-figures optional-note-to-self` in a Bash environment.
 
 # Implementing New File Formats
 

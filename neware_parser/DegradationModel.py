@@ -272,7 +272,6 @@ class DegradationModel(Model):
         )
 
         self.num_features = width
-        self.num_keys = self.cell_direct.num_keys
 
         """ feedforward neural networks """
 
@@ -311,6 +310,8 @@ class DegradationModel(Model):
         self.molecule_direct = PrimitiveDictionaryLayer(
             num_features = self.num_features, id_dict = molecule_dict
         )
+
+        self.num_keys = self.cell_direct.num_keys
 
         # cell_latent_flags is a dict with barcodes as keys.
         # latent_flags is a numpy array such that the indecies match cell_dict

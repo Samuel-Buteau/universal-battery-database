@@ -872,10 +872,19 @@ class DegradationModel(Model):
 
 
     def Q_direct(self, voltage, shift, cell_features, training=True):
+        pos_cell_features = self.pos_projection_direct(
+            cell_features=cell_features,
+            training=training
+        )
+        neg_cell_features = self.neg_projection_direct(
+            cell_features=cell_features,
+            training=training
+        )
         dependencies = (
             voltage,
             shift,
-            cell_features
+            pos_cell_features,
+            neg_cell_features
         )
         return tf.nn.elu(nn_call(self.nn_Q, dependencies, training=training))
 

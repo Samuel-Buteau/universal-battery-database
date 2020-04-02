@@ -259,7 +259,8 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
 
     for barcode_count, barcode in enumerate(barcodes):
 
-        cyc_grp_dict = my_data['all_data'][barcode]['cyc_grp_dict']
+        all_data = my_data['all_data'][barcode]
+        cyc_grp_dict = all_data['cyc_grp_dict']
 
         for k_count, k in enumerate(cyc_grp_dict.keys()):
             main_data = cyc_grp_dict[k]['main_data']
@@ -402,7 +403,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
 
                 center_cycle = float(cyc)
                 reference_cycles\
-                    = my_data['all_data'][barcode]['all_reference_mats']\
+                    = all_data['all_reference_mats']\
                     ['cycle_number']
 
                 index_of_closest_reference = numpy.argmin(
@@ -434,15 +435,15 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
                 main_data['cycle_number']
             )
 
-            all_data = my_data['all_data'][barcode]
+
 
             number_of_reference_cycles += len(
-                my_data['all_data'][barcode]['all_reference_mats']['cycle_number'])
+                all_data['all_reference_mats']['cycle_number'])
             numpy_acc(compiled_data, 'reference_cycle',
-                      my_data['all_data'][barcode]['all_reference_mats'][
+                      all_data['all_reference_mats'][
                           'cycle_number'])
             numpy_acc(compiled_data, 'count_matrix',
-                      my_data['all_data'][barcode]['all_reference_mats'][
+                      all_data['all_reference_mats'][
                           'count_matrix'])
 
             numpy_acc(compiled_data, 'cycle',

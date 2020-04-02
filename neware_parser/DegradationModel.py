@@ -228,37 +228,37 @@ class DegradationModel(Model):
             if known == 'Y':
                 pos_id = cell_to_pos[k]
                 if pos_id in pos_to_pos_name.keys():
-                    print('      cathode: {}'.format(pos_to_pos_name[pos_id]))
+                    print('\tcathode: {}'.format(pos_to_pos_name[pos_id]))
                 else:
-                    print('      cathode id: {}'.format(pos_id))
+                    print('\tcathode id: {}'.format(pos_id))
                 neg_id = cell_to_neg[k]
                 if neg_id in neg_to_neg_name.keys():
-                    print('      anode: {}'.format(neg_to_neg_name[neg_id]))
+                    print('\tanode: {}'.format(neg_to_neg_name[neg_id]))
                 else:
-                    print('      anode id: {}'.format(neg_id))
+                    print('\tanode id: {}'.format(neg_id))
                 electrolyte_id = cell_to_electrolyte[k]
                 if electrolyte_id in electrolyte_to_electrolyte_name.keys():
-                    print('      electrolyte: {}'.format(electrolyte_to_electrolyte_name[electrolyte_id]))
+                    print('\telectrolyte: {}'.format(electrolyte_to_electrolyte_name[electrolyte_id]))
                 else:
-                    print('      electrolyte id: {}'.format(electrolyte_id))
+                    print('\telectrolyte id: {}'.format(electrolyte_id))
 
                 electrolyte_known = 'Y'
                 if electrolyte_latent_flags[electrolyte_id] > .5:
                     electrolyte_known = 'N'
-                print('      Known Electrolyte Components :{}'.format(electrolyte_known))
+                print('\tKnown Electrolyte Components :{}'.format(electrolyte_known))
                 if electrolyte_known == 'Y':
                     for st, electrolyte_to in [
                                 ('solvents', electrolyte_to_solvent),
                                 ('salts', electrolyte_to_salt),
                                 ('additive', electrolyte_to_additive),
                             ]:
-                        print('      {}:'.format(st))
+                        print('\t{}:'.format(st))
                         components = electrolyte_to[electrolyte_id]
                         for s, w in components:
                             if s in molecule_to_molecule_name.keys():
-                                print('      {} {}'.format(w, molecule_to_molecule_name[s]))
+                                print('\t{} {}'.format(w, molecule_to_molecule_name[s]))
                             else:
-                                print('      {} id {}'.format(w, s))
+                                print('\t{} id {}'.format(w, s))
 
 
         self.nn_R = feedforward_nn_parameters(depth, width)

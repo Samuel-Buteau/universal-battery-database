@@ -480,7 +480,6 @@ class DegradationModel(Model):
             electrolyte_indices,
             axis = 0
         )
-
         fetched_pointers_electrolyte_reshaped = tf.reshape(
             fetched_pointers_electrolyte,
             [-1]
@@ -491,11 +490,13 @@ class DegradationModel(Model):
             training = training,
             sample = sample
         )
-
         features_molecule_reshaped = tf.reshape(
             features_molecule,
-            [-1, self.n_solvent_max + self.n_salt_max + self.n_additive_max,
-             self.molecule_direct.num_features]
+            [
+                -1,
+                self.n_solvent_max + self.n_salt_max + self.n_additive_max,
+                self.molecule_direct.num_features
+            ]
         )
 
         if training:
@@ -523,24 +524,30 @@ class DegradationModel(Model):
             axis = 1
         )
         features_salt = tf.reduce_sum(
-            fetched_molecule_weights[:,
-            self.n_solvent_max:self.n_solvent_max + self.n_salt_max, :],
+            fetched_molecule_weights[
+            :, self.n_solvent_max:self.n_solvent_max + self.n_salt_max, :
+            ],
             axis = 1
         )
         features_additive = tf.reduce_sum(
-            fetched_molecule_weights[:,
-            self.n_solvent_max + self.n_salt_max:self.n_solvent_max +
-                                                 self.n_salt_max +
-                                                 self.n_additive_max,
-            :],
+            fetched_molecule_weights[
+            :,
+            self.n_solvent_max + self.n_salt_max:
+            self.n_solvent_max + self.n_salt_max + self.n_additive_max,
+            :
+            ],
             axis = 1
         )
 
         if training:
             fetched_molecule_loss_weights = tf.reshape(
                 fetched_weights_electrolyte,
-                [-1, self.n_solvent_max + self.n_salt_max + self.n_additive_max,
-                 1]) * loss_molecule_reshaped
+                [
+                    -1,
+                    self.n_solvent_max + self.n_salt_max + self.n_additive_max,
+                    1
+                ]
+            ) * loss_molecule_reshaped
             loss_solvent = tf.reshape(total_solvent, [-1, 1]) * tf.reduce_sum(
                 fetched_molecule_loss_weights[:, 0:self.n_solvent_max, :],
                 axis = 1
@@ -551,11 +558,12 @@ class DegradationModel(Model):
                 axis = 1
             )
             loss_additive = tf.reduce_sum(
-                fetched_molecule_loss_weights[:,
-                self.n_solvent_max + self.n_salt_max:self.n_solvent_max +
-                                                     self.n_salt_max +
-                                                     self.n_additive_max,
-                :],
+                fetched_molecule_loss_weights[
+                :,
+                self.n_solvent_max + self.n_salt_max:
+                self.n_solvent_max + self.n_salt_max + self.n_additive_max,
+                :
+                ],
                 axis = 1
             )
 

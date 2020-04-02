@@ -261,55 +261,54 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
         cyc_grp_dict = my_data['all_data'][barcode]['cyc_grp_dict']
 
         for k_count, k in enumerate(cyc_grp_dict.keys()):
+            main_data = cyc_grp_dict[k]['main_data']
 
             # normalize capacity_vector with max_cap
-            my_data['all_data'][barcode]['cyc_grp_dict'][k]['main_data'][
-                'cc_capacity_vector'] = (
+            cyc_grp_dict[k]['main_data']['cc_capacity_vector'] = (
                 1. / max_cap * cyc_grp_dict[k]['main_data'][
                 'cc_capacity_vector']
             )
 
-            my_data['all_data'][barcode]['cyc_grp_dict'][k]['main_data'][
-                'cv_capacity_vector'] = (
+            cyc_grp_dict[k]['main_data']['cv_capacity_vector'] = (
                 1. / max_cap * cyc_grp_dict[k]['main_data'][
                 'cv_capacity_vector']
             )
 
-            my_data['all_data'][barcode]['cyc_grp_dict'][k]['main_data'][
+            cyc_grp_dict[k]['main_data'][
                 'cv_current_vector'] = (
                 1. / max_cap * cyc_grp_dict[k]['main_data']['cv_current_vector']
             )
 
-            my_data['all_data'][barcode]['cyc_grp_dict'][k]['main_data'][
+            cyc_grp_dict[k]['main_data'][
                 'last_cc_capacity'] = (
                 1. / max_cap * cyc_grp_dict[k]['main_data']['last_cc_capacity']
             )
 
-            my_data['all_data'][barcode]['cyc_grp_dict'][k]['main_data'][
+            cyc_grp_dict[k]['main_data'][
                 'last_cv_capacity'] = (
                 1. / max_cap * cyc_grp_dict[k]['main_data']['last_cv_capacity']
             )
 
-            my_data['all_data'][barcode]['cyc_grp_dict'][k]['main_data'][
+            cyc_grp_dict[k]['main_data'][
                 'constant_current'] = (
                 1. / max_cap * cyc_grp_dict[k]['main_data']['constant_current']
             )
-            my_data['all_data'][barcode]['cyc_grp_dict'][k]['main_data'][
+            cyc_grp_dict[k]['main_data'][
                 'end_current_prev'] = (
                 1. / max_cap * cyc_grp_dict[k]['main_data']['end_current_prev']
             )
 
-            my_data['all_data'][barcode]['cyc_grp_dict'][k][
+            cyc_grp_dict[k][
                 'avg_constant_current'] = (
                 1. / max_cap * cyc_grp_dict[k]['avg_constant_current']
             )
 
-            my_data['all_data'][barcode]['cyc_grp_dict'][k][
+            cyc_grp_dict[k][
                 'avg_end_current'] = (
                 1. / max_cap * cyc_grp_dict[k]['avg_end_current']
             )
 
-            my_data['all_data'][barcode]['cyc_grp_dict'][k][
+            cyc_grp_dict[k][
                 'avg_end_current_prev'] = (
                 1. / max_cap * cyc_grp_dict[k]['avg_end_current_prev']
             )

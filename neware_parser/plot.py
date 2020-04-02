@@ -647,3 +647,41 @@ def get_nearest_point(xys, y):
             best = xys[i, :]
 
     return best
+
+def plot_v_curves(plot_params, init_returns):
+    # for now, this is a 2 by 2 plot.
+    barcodes = plot_params["barcodes"]
+    count = plot_params["count"]
+    fit_args = plot_params["fit_args"]
+    degradation_model = init_returns["degradation_model"]
+    shift = np.linspace(start=-.1, stop=.1, num=4, dtype=np.float32)
+    voltage = np.linspace(start=1., stop=5.5, num=64, dtype=np.float32)
+    Q = np.linspace(start=-0.5, stop=1.5, num=64, dtype=np.float32)
+
+    for barcode in barcodes:
+
+        fig, axs = plt.subplots(nrows=2,ncols=2, figsize=[10, 10], sharex=True, sharey=True)
+
+        gathered_axs = []
+        for ax_i in axs:
+            for ax_j in ax_i:
+                gathered_axs.append(ax_j)
+
+        res = degradation_model.get_v_curves(
+            barcode=barcode,
+            shift=tf.constant(shift),
+            voltage=tf.constant(voltage),
+            Q=tf.constant(Q),
+        )
+        for j in range(len(shift)):
+            ax = gathered_axs[j]
+
+            ax.plot(Q, res['V_plus'], label='V_+')
+            ax.plot(Q, res['V_minus'][j], label='V_-')
+            ax.plot(Q, res['V'][j], label='V_full')
+            ax.plot(res['Q'][j], voltage, label='Q_full (inverted)')
+
+        ax.legend()
+
+        savefig('v_curves_{}_{}.png', fit_args, barcode, count)
+        plt.close(fig)

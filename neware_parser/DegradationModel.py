@@ -204,7 +204,7 @@ def print_cell_info(
     pos_to_pos_name, neg_to_neg_name = names[0], names[1]
     electrolyte_to_electrolyte_name = names[2]
     molecule_to_molecule_name = names[3]
-    print('cell_id: Known Components (Y/N):\n')
+    print('\ncell_id: Known Components (Y/N):\n')
     for k in cell_latent_flags.keys():
         known = 'Y'
         if cell_latent_flags[k] > .5:

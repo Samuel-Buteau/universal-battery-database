@@ -420,64 +420,64 @@ class DegradationModel(Model):
         self.width = width
         self.n_channels = n_channels
 
-    def z_cell_from_indecies(
-        self, indecies,
+    def z_cell_from_indices(
+        self, indices,
         training = True, sample = False, compute_derivatives = False
     ):
 
         features_cell_direct, loss_cell = self.cell_direct(
-            indecies,
+            indices,
             training = training,
             sample = False
         )
 
         fetched_latent_cell = tf.gather(
             self.cell_latent_flags,
-            indecies,
+            indices,
             axis = 0
         )
         fetched_pointers_cell = tf.gather(
             self.cell_pointers,
-            indecies,
+            indices,
             axis = 0
         )
 
-        pos_indecies = fetched_pointers_cell[:, 0]
-        neg_indecies = fetched_pointers_cell[:, 1]
-        electrolyte_indecies = fetched_pointers_cell[:, 2]
+        pas_indices = fetched_pointers_cell[:, 0]
+        neg_indices = fetched_pointers_cell[:, 1]
+        electrolyte_indices = fetched_pointers_cell[:, 2]
 
         features_pos, loss_pos = self.pos_direct(
-            pos_indecies,
+            pas_indices,
             training = training,
             sample = sample
         )
 
         features_neg, loss_neg = self.neg_direct(
-            neg_indecies,
+            neg_indices,
             training = training,
             sample = sample
         )
 
         features_electrolyte_direct, loss_electrolyte_direct = \
             self.electrolyte_direct(
-                electrolyte_indecies,
+                electrolyte_indices,
                 training = training,
                 sample = sample
             )
 
         fetched_latent_electrolyte = tf.gather(
             self.electrolyte_latent_flags,
-            electrolyte_indecies,
+            electrolyte_indices,
             axis = 0
         )
         fetched_pointers_electrolyte = tf.gather(
             self.electrolyte_pointers,
-            electrolyte_indecies,
+            electrolyte_indices,
             axis = 0
         )
         fetched_weights_electrolyte = tf.gather(
             self.electrolyte_weights,
-            electrolyte_indecies,
+            electrolyte_indices,
             axis = 0
         )
 
@@ -1621,8 +1621,8 @@ class DegradationModel(Model):
             shape = [1]
         )
 
-        features, _, _, _, _ = self.z_cell_from_indecies(
-            indecies = indecies,
+        features, _, _, _, _ = self.z_cell_from_indices(
+            indices = indecies,
             training = training,
             sample = False
         )
@@ -1704,8 +1704,8 @@ class DegradationModel(Model):
         svit_grid = x[8]
         count_matrix = x[9]
 
-        features, _, _, _, _ = self.z_cell_from_indecies(
-            indecies = indecies,
+        features, _, _, _, _ = self.z_cell_from_indices(
+            indices = indecies,
             training = training,
             sample = False
         )
@@ -1774,8 +1774,8 @@ class DegradationModel(Model):
             )
 
             sampled_features, _, sampled_pos, sampled_neg, sampled_latent = \
-                self.z_cell_from_indecies(
-                    indecies = tf.random.uniform(
+                self.z_cell_from_indices(
+                    indices = tf.random.uniform(
                         maxval = self.cell_direct.num_keys,
                         shape = [n_sample],
                         dtype = tf.int32,
@@ -2315,8 +2315,8 @@ class DegradationModel(Model):
                 ]
             )
 
-            _, z_cell_loss, _, _, _ = self.z_cell_from_indecies(
-                indecies = tf.range(
+            _, z_cell_loss, _, _, _ = self.z_cell_from_indices(
+                indices = tf.range(
                     self.cell_direct.num_keys,
                     dtype = tf.int32,
                 ),

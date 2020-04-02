@@ -2430,7 +2430,7 @@ class PrimitiveDictionaryLayer(Layer):
     def get_main_ker(self):
         return self.kernel.numpy()
 
-    def call(self, input, training = True, sample = False):
+    def __call__(self, input, training = True, sample = False):
         fetched_features = tf.gather(self.kernel, input, axis = 0)
         if training:
             features_loss = .1 * incentive_magnitude(
@@ -2480,7 +2480,7 @@ class StressToEncodedLayer(Layer):
             "output_kernel", shape = [1, 1, 1, self.n_channels, self.n_channels]
         )
 
-    def call(self, input, training = True):
+    def __call__(self, input, training = True):
         svit_grid = input[
             0]  # tensor; dim: [batch, n_sign, n_voltage, n_current,
         # n_temperature, 4]

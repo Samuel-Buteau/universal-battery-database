@@ -205,56 +205,57 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
         if cell_id in my_data['cell_id_to_neg_id'].keys():
             cell_id_to_neg_id[cell_id] = my_data['cell_id_to_neg_id'][cell_id]
         if cell_id in my_data['cell_id_to_electrolyte_id'].keys():
-            cell_id_to_electrolyte_id[cell_id] = \
-                my_data['cell_id_to_electrolyte_id'][cell_id]
+            cell_id_to_electrolyte_id[cell_id]\
+                = my_data['cell_id_to_electrolyte_id'][cell_id]
         if cell_id in my_data['cell_id_to_latent'].keys():
             cell_id_to_latent[cell_id] = my_data['cell_id_to_latent'][cell_id]
 
         if cell_id_to_latent[cell_id] < 0.5:
             electrolyte_id = cell_id_to_electrolyte_id[cell_id]
-            if electrolyte_id in my_data[
-                'electrolyte_id_to_solvent_id_weight'].keys():
-                electrolyte_id_to_solvent_id_weight[electrolyte_id] = \
-                    my_data['electrolyte_id_to_solvent_id_weight'][
-                        electrolyte_id]
-            if electrolyte_id in my_data[
-                'electrolyte_id_to_salt_id_weight'].keys():
-                electrolyte_id_to_salt_id_weight[electrolyte_id] = \
-                    my_data['electrolyte_id_to_salt_id_weight'][
-                        electrolyte_id]
-            if electrolyte_id in my_data[
-                'electrolyte_id_to_additive_id_weight'].keys():
-                electrolyte_id_to_additive_id_weight[electrolyte_id] = \
-                    my_data['electrolyte_id_to_additive_id_weight'][
-                        electrolyte_id]
+            if electrolyte_id\
+                in my_data['electrolyte_id_to_solvent_id_weight'].keys():
+                electrolyte_id_to_solvent_id_weight[electrolyte_id]\
+                    = my_data['electrolyte_id_to_solvent_id_weight']\
+                    [electrolyte_id]
+            if electrolyte_id\
+                in my_data['electrolyte_id_to_salt_id_weight'].keys():
+                electrolyte_id_to_salt_id_weight[electrolyte_id]\
+                    = my_data['electrolyte_id_to_salt_id_weight']\
+                    [electrolyte_id]
+            if electrolyte_id\
+                in my_data['electrolyte_id_to_additive_id_weight'].keys():
+                electrolyte_id_to_additive_id_weight[electrolyte_id]\
+                    = my_data['electrolyte_id_to_additive_id_weight']\
+                    [electrolyte_id]
 
             if electrolyte_id in my_data['electrolyte_id_to_latent'].keys():
-                electrolyte_id_to_latent[electrolyte_id] = \
-                    my_data['electrolyte_id_to_latent'][electrolyte_id]
+                electrolyte_id_to_latent[electrolyte_id]\
+                    = my_data['electrolyte_id_to_latent'][electrolyte_id]
 
     mess = [
-        [[s[0] for s in siw] for siw in
-         electrolyte_id_to_solvent_id_weight.values()],
-        [[s[0] for s in siw] for siw in
-         electrolyte_id_to_salt_id_weight.values()],
-        [[s[0] for s in siw] for siw in
-         electrolyte_id_to_additive_id_weight.values()],
+        [
+            [s[0] for s in siw] for siw in
+            electrolyte_id_to_solvent_id_weight.values()
+        ],
+        [
+            [s[0] for s in siw] for siw in
+            electrolyte_id_to_salt_id_weight.values()
+        ],
+        [
+            [s[0] for s in siw] for siw in
+            electrolyte_id_to_additive_id_weight.values()
+        ],
     ]
 
     molecule_id_list = numpy.array(
-        sorted(
-            list(
-                set(
-                    list(three_level_flatten(mess))
-                )
-            )
-        )
+        sorted(list(set(list(three_level_flatten(mess)))))
     )
 
     pos_id_list = numpy.array(sorted(list(set(cell_id_to_pos_id.values()))))
     neg_id_list = numpy.array(sorted(list(set(cell_id_to_neg_id.values()))))
     electrolyte_id_list = numpy.array(
-        sorted(list(set(cell_id_to_electrolyte_id.values()))))
+        sorted(list(set(cell_id_to_electrolyte_id.values())))
+    )
 
     for barcode_count, barcode in enumerate(barcodes):
 
@@ -264,54 +265,27 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
             main_data = cyc_grp_dict[k]['main_data']
 
             # normalize capacity_vector with max_cap
-            main_data['cc_capacity_vector'] = (
-                1. / max_cap * main_data[
-                'cc_capacity_vector']
-            )
+            main_data['cc_capacity_vector']\
+                = 1. / max_cap * main_data['cc_capacity_vector']
+            main_data['cv_capacity_vector']\
+                = 1. / max_cap * main_data['cv_capacity_vector']
+            main_data['cv_current_vector']\
+                = 1. / max_cap * main_data['cv_current_vector']
+            main_data['last_cc_capacity']\
+                = 1. / max_cap * main_data['last_cc_capacity']
+            main_data['last_cv_capacity']\
+                = 1. / max_cap * main_data['last_cv_capacity']
+            main_data['constant_current']\
+                = 1. / max_cap * main_data['constant_current']
+            main_data['end_current_prev']\
+                = 1. / max_cap * main_data['end_current_prev']
 
-            main_data['cv_capacity_vector'] = (
-                1. / max_cap * main_data[
-                'cv_capacity_vector']
-            )
-
-            main_data[
-                'cv_current_vector'] = (
-                1. / max_cap * main_data['cv_current_vector']
-            )
-
-            main_data[
-                'last_cc_capacity'] = (
-                1. / max_cap * main_data['last_cc_capacity']
-            )
-
-            main_data[
-                'last_cv_capacity'] = (
-                1. / max_cap * main_data['last_cv_capacity']
-            )
-
-            main_data[
-                'constant_current'] = (
-                1. / max_cap * main_data['constant_current']
-            )
-            main_data[
-                'end_current_prev'] = (
-                1. / max_cap * main_data['end_current_prev']
-            )
-
-            cyc_grp_dict[k][
-                'avg_constant_current'] = (
-                1. / max_cap * cyc_grp_dict[k]['avg_constant_current']
-            )
-
-            cyc_grp_dict[k][
-                'avg_end_current'] = (
-                1. / max_cap * cyc_grp_dict[k]['avg_end_current']
-            )
-
-            cyc_grp_dict[k][
-                'avg_end_current_prev'] = (
-                1. / max_cap * cyc_grp_dict[k]['avg_end_current_prev']
-            )
+            cyc_grp_dict[k]['avg_constant_current']\
+                = 1. / max_cap * cyc_grp_dict[k]['avg_constant_current']
+            cyc_grp_dict[k]['avg_end_current']\
+                = 1. / max_cap * cyc_grp_dict[k]['avg_end_current']
+            cyc_grp_dict[k]['avg_end_current_prev']\
+                = 1. / max_cap * cyc_grp_dict[k]['avg_end_current_prev']
 
             # range of cycles which exist for this cycle group
             min_cyc = min(main_data['cycle_number'])
@@ -417,31 +391,28 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
                 neighborhood_data_i[NEIGHBORHOOD_MAX_CYC_INDEX] = max_cyc_index
                 neighborhood_data_i[NEIGHBORHOOD_RATE_INDEX] = k_count
                 neighborhood_data_i[NEIGHBORHOOD_BARCODE_INDEX] = barcode_count
-                neighborhood_data_i[
-                    NEIGHBORHOOD_ABSOLUTE_CYCLE_INDEX] = \
-                    number_of_compiled_cycles
-                neighborhood_data_i[
-                    NEIGHBORHOOD_VALID_CYC_INDEX] = 0  # a weight based on
-                # prevalance. Set later
+                neighborhood_data_i[NEIGHBORHOOD_ABSOLUTE_CYCLE_INDEX]\
+                    = number_of_compiled_cycles
+                # a weight based on prevalence. Set later
+                neighborhood_data_i[NEIGHBORHOOD_VALID_CYC_INDEX] = 0
                 neighborhood_data_i[NEIGHBORHOOD_SIGN_GRID_INDEX] = 0
                 neighborhood_data_i[NEIGHBORHOOD_VOLTAGE_GRID_INDEX] = 0
                 neighborhood_data_i[NEIGHBORHOOD_CURRENT_GRID_INDEX] = 0
                 neighborhood_data_i[NEIGHBORHOOD_TEMPERATURE_GRID_INDEX] = 0
 
                 center_cycle = float(cyc)
-                reference_cycles = \
-                    my_data['all_data'][barcode]['all_reference_mats'][
-                        'cycle_number']
+                reference_cycles\
+                    = my_data['all_data'][barcode]['all_reference_mats']\
+                    ['cycle_number']
 
                 index_of_closest_reference = numpy.argmin(
                     abs(center_cycle - reference_cycles)
                 )
 
-                neighborhood_data_i[
-                    NEIGHBORHOOD_ABSOLUTE_REFERENCE_INDEX] = \
-                    number_of_reference_cycles
-                neighborhood_data_i[
-                    NEIGHBORHOOD_REFERENCE_INDEX] = index_of_closest_reference
+                neighborhood_data_i[NEIGHBORHOOD_ABSOLUTE_REFERENCE_INDEX]\
+                    = number_of_reference_cycles
+                neighborhood_data_i[NEIGHBORHOOD_REFERENCE_INDEX]\
+                    = index_of_closest_reference
 
                 neighborhood_data.append(
                     neighborhood_data_i
@@ -454,14 +425,16 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
 
                 # the empty slot becomes the count of added neighborhoods, which
                 # are used to counterbalance the bias toward longer cycle life
-                neighborhood_data[:, NEIGHBORHOOD_VALID_CYC_INDEX] = \
-                    valid_cycles
+                neighborhood_data[:, NEIGHBORHOOD_VALID_CYC_INDEX]\
+                    = valid_cycles
 
                 numpy_acc(compiled_data, 'neighborhood_data', neighborhood_data)
 
             number_of_compiled_cycles += len(
                 main_data['cycle_number']
             )
+
+            all_data = my_data['all_data'][barcode]
 
             number_of_reference_cycles += len(
                 my_data['all_data'][barcode]['all_reference_mats']['cycle_number'])

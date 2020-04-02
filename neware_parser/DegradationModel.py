@@ -195,74 +195,81 @@ def incentive_combine(As):
     return sum([a[0] * tf.reduce_mean(a[1]) for a in As])
 
 
+def print_cell_info(
+    cell_latent_flags, cell_to_pos, cell_to_neg, cell_to_electrolyte,
+
+    electrolyte_to_solvent, electrolyte_to_salt, electrolyte_to_additive,
+    electrolyte_latent_flags, names
+):
+    pos_to_pos_name, neg_to_neg_name = names[0], names[1]
+    electrolyte_to_electrolyte_name = names[2]
+    molecule_to_molecule_name = names[3]
+    print('cell_id: Known Components (Y/N):\n')
+    for k in cell_latent_flags.keys():
+        known = 'Y'
+        if cell_latent_flags[k] > .5:
+            known = 'N'
+        print('{}\t\t{}'.format(k, known))
+        if known == 'Y':
+            pos_id = cell_to_pos[k]
+            if pos_id in pos_to_pos_name.keys():
+                print('\tcathode:\t\t\t{}'.format(pos_to_pos_name[pos_id]))
+            else:
+                print('\tcathode id:\t\t\t{}'.format(pos_id))
+            neg_id = cell_to_neg[k]
+            if neg_id in neg_to_neg_name.keys():
+                print('\tanode:\t\t\t\t{}'.format(neg_to_neg_name[neg_id]))
+            else:
+                print('\tanode id:\t\t\t{}'.format(neg_id))
+            electrolyte_id = cell_to_electrolyte[k]
+            if electrolyte_id in electrolyte_to_electrolyte_name.keys():
+                print('\telectrolyte:\t\t\t{}'.format(
+                    electrolyte_to_electrolyte_name[electrolyte_id]))
+            else:
+                print('\telectrolyte id:\t\t\t{}'.format(electrolyte_id))
+
+            electrolyte_known = 'Y'
+            if electrolyte_latent_flags[electrolyte_id] > .5:
+                electrolyte_known = 'N'
+            print('\tKnown Electrolyte Components:\t{}'.format(
+                electrolyte_known))
+            if electrolyte_known == 'Y':
+                for st, electrolyte_to in [
+                    ('solvents', electrolyte_to_solvent),
+                    ('salts', electrolyte_to_salt),
+                    ('additive', electrolyte_to_additive),
+                ]:
+                    print('\t{}:'.format(st))
+                    components = electrolyte_to[electrolyte_id]
+                    for s, w in components:
+                        if s in molecule_to_molecule_name.keys():
+                            print('\t\t{} {}'.format(
+                                w, molecule_to_molecule_name[s])
+                            )
+                        else:
+                            print('\t\t{} id {}'.format(w, s))
+        print()
+
+
 class DegradationModel(Model):
 
-    def __init__(self, depth, width,
-                 cell_dict,
-                 pos_dict,
-                 neg_dict,
-                 electrolyte_dict,
-                 molecule_dict,
-                 cell_latent_flags,
-                 cell_to_pos,
-                 cell_to_neg,
-                 cell_to_electrolyte,
+    def __init__(
+        self, depth, width,
+        cell_dict, pos_dict, neg_dict, electrolyte_dict, molecule_dict,
+        cell_latent_flags, cell_to_pos, cell_to_neg, cell_to_electrolyte,
 
-                 electrolyte_to_solvent,
-                 electrolyte_to_salt,
-                 electrolyte_to_additive,
-                 electrolyte_latent_flags,
+        electrolyte_to_solvent, electrolyte_to_salt, electrolyte_to_additive,
+        electrolyte_latent_flags, names,
 
-                 pos_to_pos_name,
-                 neg_to_neg_name,
-                 electrolyte_to_electrolyte_name,
-                 molecule_to_molecule_name,
-                 n_channels = 16):
+        n_channels = 16
+    ):
         super(DegradationModel, self).__init__()
-        print('cell_id:  Known Components (Y/N):')
-        for k in cell_latent_flags.keys():
-            known = 'Y'
-            if cell_latent_flags[k] > .5:
-                known = 'N'
-            print('{}              {}'.format(k, known))
-            if known == 'Y':
-                pos_id = cell_to_pos[k]
-                if pos_id in pos_to_pos_name.keys():
-                    print('\tcathode: {}'.format(pos_to_pos_name[pos_id]))
-                else:
-                    print('\tcathode id: {}'.format(pos_id))
-                neg_id = cell_to_neg[k]
-                if neg_id in neg_to_neg_name.keys():
-                    print('\tanode: {}'.format(neg_to_neg_name[neg_id]))
-                else:
-                    print('\tanode id: {}'.format(neg_id))
-                electrolyte_id = cell_to_electrolyte[k]
-                if electrolyte_id in electrolyte_to_electrolyte_name.keys():
-                    print('\telectrolyte: {}'.format(
-                        electrolyte_to_electrolyte_name[electrolyte_id]))
-                else:
-                    print('\telectrolyte id: {}'.format(electrolyte_id))
 
-                electrolyte_known = 'Y'
-                if electrolyte_latent_flags[electrolyte_id] > .5:
-                    electrolyte_known = 'N'
-                print('\tKnown Electrolyte Components :{}'.format(
-                    electrolyte_known))
-                if electrolyte_known == 'Y':
-                    for st, electrolyte_to in [
-                        ('solvents', electrolyte_to_solvent),
-                        ('salts', electrolyte_to_salt),
-                        ('additive', electrolyte_to_additive),
-                    ]:
-                        print('\t{}:'.format(st))
-                        components = electrolyte_to[electrolyte_id]
-                        for s, w in components:
-                            if s in molecule_to_molecule_name.keys():
-                                print('\t{} {}'.format(w,
-                                                       molecule_to_molecule_name[
-                                                           s]))
-                            else:
-                                print('\t{} id {}'.format(w, s))
+        print_cell_info(
+            cell_latent_flags, cell_to_pos, cell_to_neg, cell_to_electrolyte,
+            electrolyte_to_solvent, electrolyte_to_salt,
+            electrolyte_to_additive, electrolyte_latent_flags, names
+        )
 
         self.nn_R = feedforward_nn_parameters(depth, width)
         self.nn_Q_scale = feedforward_nn_parameters(depth, width)

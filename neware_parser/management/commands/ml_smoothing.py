@@ -572,10 +572,12 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
             electrolyte_to_additive = electrolyte_id_to_additive_id_weight,
             electrolyte_latent_flags = electrolyte_id_to_latent,
 
-            pos_to_pos_name = pos_to_pos_name,
-            neg_to_neg_name = neg_to_neg_name,
-            electrolyte_to_electrolyte_name = electrolyte_to_electrolyte_name,
-            molecule_to_molecule_name = molecule_to_molecule_name,
+            names = (
+                pos_to_pos_name,
+                neg_to_neg_name,
+                electrolyte_to_electrolyte_name,
+                molecule_to_molecule_name,
+            )
 
         )
 

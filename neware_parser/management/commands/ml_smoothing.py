@@ -264,38 +264,38 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
             main_data = cyc_grp_dict[k]['main_data']
 
             # normalize capacity_vector with max_cap
-            cyc_grp_dict[k]['main_data']['cc_capacity_vector'] = (
-                1. / max_cap * cyc_grp_dict[k]['main_data'][
+            main_data['cc_capacity_vector'] = (
+                1. / max_cap * main_data[
                 'cc_capacity_vector']
             )
 
-            cyc_grp_dict[k]['main_data']['cv_capacity_vector'] = (
-                1. / max_cap * cyc_grp_dict[k]['main_data'][
+            main_data['cv_capacity_vector'] = (
+                1. / max_cap * main_data[
                 'cv_capacity_vector']
             )
 
-            cyc_grp_dict[k]['main_data'][
+            main_data[
                 'cv_current_vector'] = (
-                1. / max_cap * cyc_grp_dict[k]['main_data']['cv_current_vector']
+                1. / max_cap * main_data['cv_current_vector']
             )
 
-            cyc_grp_dict[k]['main_data'][
+            main_data[
                 'last_cc_capacity'] = (
-                1. / max_cap * cyc_grp_dict[k]['main_data']['last_cc_capacity']
+                1. / max_cap * main_data['last_cc_capacity']
             )
 
-            cyc_grp_dict[k]['main_data'][
+            main_data[
                 'last_cv_capacity'] = (
-                1. / max_cap * cyc_grp_dict[k]['main_data']['last_cv_capacity']
+                1. / max_cap * main_data['last_cv_capacity']
             )
 
-            cyc_grp_dict[k]['main_data'][
+            main_data[
                 'constant_current'] = (
-                1. / max_cap * cyc_grp_dict[k]['main_data']['constant_current']
+                1. / max_cap * main_data['constant_current']
             )
-            cyc_grp_dict[k]['main_data'][
+            main_data[
                 'end_current_prev'] = (
-                1. / max_cap * cyc_grp_dict[k]['main_data']['end_current_prev']
+                1. / max_cap * main_data['end_current_prev']
             )
 
             cyc_grp_dict[k][
@@ -314,8 +314,8 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
             )
 
             # range of cycles which exist for this cycle group
-            min_cyc = min(cyc_grp_dict[k]['main_data']['cycle_number'])
-            max_cyc = max(cyc_grp_dict[k]['main_data']['cycle_number'])
+            min_cyc = min(main_data['cycle_number'])
+            max_cyc = max(main_data['cycle_number'])
 
             '''
             - now create neighborhoods, which contains the cycles,
@@ -370,8 +370,8 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
                 # False when cycle_number falls outside out of
                 # [below_cyc, above_cyc] interval
                 mask = numpy.logical_and(
-                    below_cyc <= cyc_grp_dict[k]['main_data']['cycle_number'],
-                    cyc_grp_dict[k]['main_data']['cycle_number'] <= above_cyc
+                    below_cyc <= main_data['cycle_number'],
+                    main_data['cycle_number'] <= above_cyc
                 )
 
                 # the indecies for the cyc_grp_dict[k] array which correspond
@@ -460,7 +460,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
                 numpy_acc(compiled_data, 'neighborhood_data', neighborhood_data)
 
             number_of_compiled_cycles += len(
-                cyc_grp_dict[k]['main_data']['cycle_number']
+                main_data['cycle_number']
             )
 
             number_of_reference_cycles += len(
@@ -473,27 +473,27 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
                           'count_matrix'])
 
             numpy_acc(compiled_data, 'cycle',
-                      cyc_grp_dict[k]['main_data']['cycle_number'])
+                      main_data['cycle_number'])
             numpy_acc(compiled_data, 'cc_voltage_vector',
-                      cyc_grp_dict[k]['main_data']['cc_voltage_vector'])
+                      main_data['cc_voltage_vector'])
             numpy_acc(compiled_data, 'cc_capacity_vector',
-                      cyc_grp_dict[k]['main_data']['cc_capacity_vector'])
+                      main_data['cc_capacity_vector'])
             numpy_acc(compiled_data, 'cc_mask_vector',
-                      cyc_grp_dict[k]['main_data']['cc_mask_vector'])
+                      main_data['cc_mask_vector'])
             numpy_acc(compiled_data, 'cv_current_vector',
-                      cyc_grp_dict[k]['main_data']['cv_current_vector'])
+                      main_data['cv_current_vector'])
             numpy_acc(compiled_data, 'cv_capacity_vector',
-                      cyc_grp_dict[k]['main_data']['cv_capacity_vector'])
+                      main_data['cv_capacity_vector'])
             numpy_acc(compiled_data, 'cv_mask_vector',
-                      cyc_grp_dict[k]['main_data']['cv_mask_vector'])
+                      main_data['cv_mask_vector'])
             numpy_acc(compiled_data, 'constant_current',
-                      cyc_grp_dict[k]['main_data']['constant_current'])
+                      main_data['constant_current'])
             numpy_acc(compiled_data, 'end_current_prev',
-                      cyc_grp_dict[k]['main_data']['end_current_prev'])
+                      main_data['end_current_prev'])
             numpy_acc(compiled_data, 'end_voltage_prev',
-                      cyc_grp_dict[k]['main_data']['end_voltage_prev'])
+                      main_data['end_voltage_prev'])
             numpy_acc(compiled_data, 'end_voltage',
-                      cyc_grp_dict[k]['main_data']['end_voltage'])
+                      main_data['end_voltage'])
 
     neighborhood_data = tf.constant(compiled_data['neighborhood_data'])
 

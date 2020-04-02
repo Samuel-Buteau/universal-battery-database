@@ -271,6 +271,11 @@ class DegradationModel(Model):
             electrolyte_to_additive, electrolyte_latent_flags, names
         )
 
+        self.num_features = width
+        self.num_keys = self.cell_direct.num_keys
+
+        """ feedforward neural networks """
+
         self.nn_R = feedforward_nn_parameters(depth, width)
         self.nn_Q_scale = feedforward_nn_parameters(depth, width)
         self.nn_Q = feedforward_nn_parameters(depth, width)
@@ -282,37 +287,29 @@ class DegradationModel(Model):
         self.nn_Q_scale_strainless = feedforward_nn_parameters(depth, width)
         self.nn_shift_strainless = feedforward_nn_parameters(depth, width)
 
-        self.num_features = width
+        self.nn_pos_projection = feedforward_nn_parameters(
+            depth, width, last = self.num_features
+        )
+        self.nn_neg_projection = feedforward_nn_parameters(
+            depth, width, last = self.num_features
+        )
 
-        self.nn_pos_projection = feedforward_nn_parameters(depth, width,
-                                                           last =
-                                                           self.num_features)
-        self.nn_neg_projection = feedforward_nn_parameters(depth, width,
-                                                           last =
-                                                           self.num_features)
+        """ Primitive Dictionary Layer variables """
 
         self.cell_direct = PrimitiveDictionaryLayer(
-            num_features = self.num_features,
-            id_dict = cell_dict
+            num_features = self.num_features, id_dict = cell_dict
         )
-        self.num_keys = self.cell_direct.num_keys
-
         self.pos_direct = PrimitiveDictionaryLayer(
-            num_features = self.num_features,
-            id_dict = pos_dict
+            num_features = self.num_features, id_dict = pos_dict
         )
         self.neg_direct = PrimitiveDictionaryLayer(
-            num_features = self.num_features,
-            id_dict = neg_dict
+            num_features = self.num_features, id_dict = neg_dict
         )
         self.electrolyte_direct = PrimitiveDictionaryLayer(
-            num_features = self.num_features,
-            id_dict = electrolyte_dict
+            num_features = self.num_features, id_dict = electrolyte_dict
         )
-
         self.molecule_direct = PrimitiveDictionaryLayer(
-            num_features = self.num_features,
-            id_dict = molecule_dict
+            num_features = self.num_features, id_dict = molecule_dict
         )
 
         # cell_latent_flags is a dict with barcodes as keys.
@@ -330,58 +327,62 @@ class DegradationModel(Model):
         self.cell_latent_flags = tf.constant(latent_flags)
 
         cell_pointers = numpy.zeros(
-            shape = (self.cell_direct.num_keys, 3),
-            dtype = numpy.int32,
+            shape = (self.cell_direct.num_keys, 3), dtype = numpy.int32
         )
 
         for cell_id in self.cell_direct.id_dict.keys():
             if cell_id in cell_to_pos.keys():
-                cell_pointers[self.cell_direct.id_dict[cell_id], 0] = pos_dict[
-                    cell_to_pos[cell_id]]
+                cell_pointers[self.cell_direct.id_dict[cell_id], 0] = \
+                    pos_dict[cell_to_pos[cell_id]]
             if cell_id in cell_to_neg.keys():
-                cell_pointers[self.cell_direct.id_dict[cell_id], 1] = neg_dict[
-                    cell_to_neg[cell_id]]
+                cell_pointers[self.cell_direct.id_dict[cell_id], 1] = \
+                    neg_dict[cell_to_neg[cell_id]]
             if cell_id in cell_to_electrolyte.keys():
                 cell_pointers[self.cell_direct.id_dict[cell_id], 2] = \
                     electrolyte_dict[cell_to_electrolyte[cell_id]]
 
         self.cell_pointers = tf.constant(cell_pointers)
-        self.cell_indirect = feedforward_nn_parameters(depth, width,
-                                                       last = self.num_features)
+        self.cell_indirect = feedforward_nn_parameters(
+            depth, width, last = self.num_features
+        )
 
         self.n_solvent_max = numpy.max(
-            [len(v) for v in electrolyte_to_solvent.values()])
+            [len(v) for v in electrolyte_to_solvent.values()]
+        )
         self.n_salt_max = numpy.max(
-            [len(v) for v in electrolyte_to_salt.values()])
+            [len(v) for v in electrolyte_to_salt.values()]
+        )
         self.n_additive_max = numpy.max(
-            [len(v) for v in electrolyte_to_additive.values()])
+            [len(v) for v in electrolyte_to_additive.values()]
+        )
 
         # electrolyte latent flags
         latent_flags = numpy.ones(
-            (self.electrolyte_direct.num_keys, 1),
-            dtype = numpy.float32
+            (self.electrolyte_direct.num_keys, 1), dtype = numpy.float32
         )
 
         for electrolyte_id in self.electrolyte_direct.id_dict.keys():
             if electrolyte_id in electrolyte_latent_flags.keys():
                 latent_flags[
-                    self.electrolyte_direct.id_dict[electrolyte_id], 0] = \
-                    electrolyte_latent_flags[electrolyte_id]
+                    self.electrolyte_direct.id_dict[electrolyte_id], 0
+                ] = electrolyte_latent_flags[electrolyte_id]
 
         self.electrolyte_latent_flags = tf.constant(latent_flags)
 
         # electrolyte pointers and weights
 
         pointers = numpy.zeros(
-            shape = (self.electrolyte_direct.num_keys,
-                     self.n_solvent_max + self.n_salt_max +
-                     self.n_additive_max),
+            shape = (
+                self.electrolyte_direct.num_keys,
+                self.n_solvent_max + self.n_salt_max + self.n_additive_max
+            ),
             dtype = numpy.int32,
         )
         weights = numpy.zeros(
-            shape = (self.electrolyte_direct.num_keys,
-                     self.n_solvent_max + self.n_salt_max +
-                     self.n_additive_max),
+            shape = (
+                self.electrolyte_direct.num_keys,
+                self.n_solvent_max + self.n_salt_max + self.n_additive_max
+            ),
             dtype = numpy.float32,
         )
 
@@ -395,19 +396,21 @@ class DegradationModel(Model):
                     my_components = electrolyte_to[electrolyte_id]
                     for i in range(len(my_components)):
                         molecule_id, weight = my_components[i]
-                        pointers[self.electrolyte_direct.id_dict[
-                                     electrolyte_id], i + reference_index] = \
-                            molecule_dict[molecule_id]
-                        weights[self.electrolyte_direct.id_dict[
-                                    electrolyte_id], i + reference_index] = \
-                            weight
+                        pointers[
+                            self.electrolyte_direct.id_dict[electrolyte_id],
+                            i + reference_index
+                        ] = molecule_dict[molecule_id]
+                        weights[
+                            self.electrolyte_direct.id_dict[electrolyte_id],
+                            i + reference_index
+                        ] = weight
 
         self.electrolyte_pointers = tf.constant(pointers)
         self.electrolyte_weights = tf.constant(weights)
 
-        self.electrolyte_indirect = feedforward_nn_parameters(depth, width,
-                                                              last =
-                                                              self.num_features)
+        self.electrolyte_indirect = feedforward_nn_parameters(
+            depth, width, last = self.num_features
+        )
 
         self.stress_to_encoded_layer = StressToEncodedLayer(
             n_channels = n_channels

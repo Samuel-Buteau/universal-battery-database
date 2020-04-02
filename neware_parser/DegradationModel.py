@@ -2398,7 +2398,7 @@ class PrimitiveDictionaryLayer(Layer):
             eps = tf.random.normal(
                 shape=[input.shape[0], self.num_features]
             )
-            fetched_features + self.sample_epsilon * eps
+            fetched_features=fetched_features + self.sample_epsilon * eps
 
 
         return fetched_features, features_loss

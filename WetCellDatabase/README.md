@@ -69,7 +69,6 @@ COMPLETION
 There seems to be "out of bound" Q values in the model, caused by very large shift
 parameters.
 
-- visualize Vplus, Vminus, V_total for various values of shift. 
-(and include out of bound values)
+- ~~visualize Vplus, Vminus, V_total for various values of shift. 
+(and include out of bound values)~~
 
-prev commit gets stuck needs investigation

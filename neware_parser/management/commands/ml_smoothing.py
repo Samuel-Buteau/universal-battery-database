@@ -209,7 +209,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
             cell_id_to_neg_id[cell_id] = my_data['cell_id_to_neg_id'][cell_id]
         if cell_id in my_data['cell_id_to_electrolyte_id'].keys():
             cell_id_to_electrolyte_id[cell_id] = \
-            my_data['cell_id_to_electrolyte_id'][cell_id]
+                my_data['cell_id_to_electrolyte_id'][cell_id]
         if cell_id in my_data['cell_id_to_latent'].keys():
             cell_id_to_latent[cell_id] = my_data['cell_id_to_latent'][cell_id]
 
@@ -218,21 +218,22 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
             if electrolyte_id in my_data[
                 'electrolyte_id_to_solvent_id_weight'].keys():
                 electrolyte_id_to_solvent_id_weight[electrolyte_id] = \
-                my_data['electrolyte_id_to_solvent_id_weight'][electrolyte_id]
+                    my_data['electrolyte_id_to_solvent_id_weight'][
+                        electrolyte_id]
             if electrolyte_id in my_data[
                 'electrolyte_id_to_salt_id_weight'].keys():
                 electrolyte_id_to_salt_id_weight[electrolyte_id] = \
-                my_data['electrolyte_id_to_salt_id_weight'][
-                    electrolyte_id]
+                    my_data['electrolyte_id_to_salt_id_weight'][
+                        electrolyte_id]
             if electrolyte_id in my_data[
                 'electrolyte_id_to_additive_id_weight'].keys():
                 electrolyte_id_to_additive_id_weight[electrolyte_id] = \
-                my_data['electrolyte_id_to_additive_id_weight'][
-                    electrolyte_id]
+                    my_data['electrolyte_id_to_additive_id_weight'][
+                        electrolyte_id]
 
             if electrolyte_id in my_data['electrolyte_id_to_latent'].keys():
                 electrolyte_id_to_latent[electrolyte_id] = \
-                my_data['electrolyte_id_to_latent'][electrolyte_id]
+                    my_data['electrolyte_id_to_latent'][electrolyte_id]
 
     mess = [
         [[s[0] for s in siw] for siw in
@@ -433,8 +434,8 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
 
                 center_cycle = float(cyc)
                 reference_cycles = \
-                my_data['all_data'][barcode]['all_reference_mats'][
-                    'cycle_number']
+                    my_data['all_data'][barcode]['all_reference_mats'][
+                        'cycle_number']
 
                 index_of_closest_reference = numpy.argmin(
                     abs(center_cycle - reference_cycles)

@@ -72,3 +72,14 @@ parameters.
 - ~~visualize Vplus, Vminus, V_total for various values of shift. 
 (and include out of bound values)~~
 
+
+
+With the visualization in place, problems are visible;
+
+- The optimization is unstable (i.e. many runs lead to different outcomes)
+  this can be mitigated by going to bigger neural nets, but this seems wasteful for 
+  simple things like resistance.
+- With a much higher sampling number for the forall penalties, some of the penalities 
+  might be too effective. We need to rebalance them to more reasonable values.
+  question: if we sample even more, can we reduce further the magnitude of the penalties?
+  this might further stabilize training. 

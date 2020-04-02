@@ -715,7 +715,7 @@ class DegradationModel(Model):
             eps = tf.random.normal(
                 shape = [features_cell.shape[0], self.num_features]
             )
-            features_cell + self.cell_direct.sample_epsilon * eps
+            features_cell += self.cell_direct.sample_epsilon * eps
 
         if training:
             loss_input_electrolyte_indirect = (

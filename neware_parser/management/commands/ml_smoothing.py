@@ -68,8 +68,6 @@ def three_level_flatten(iterables):
                 yield element
 
 
-# ==== Begin: initial processing ===============================================
-
 def initial_processing(my_data, my_names, barcodes, fit_args):
     """
     my_data has the following structure:
@@ -457,17 +455,17 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
 
                 # the empty slot becomes the count of added neighborhoods, which
                 # are used to counterbalance the bias toward longer cycle life
-                neighborhood_data[:,
-                NEIGHBORHOOD_VALID_CYC_INDEX] = valid_cycles
+                neighborhood_data[:, NEIGHBORHOOD_VALID_CYC_INDEX] = \
+                    valid_cycles
 
                 numpy_acc(compiled_data, 'neighborhood_data', neighborhood_data)
 
             number_of_compiled_cycles += len(
-                cyc_grp_dict[k]['main_data']['cycle_number'])
+                cyc_grp_dict[k]['main_data']['cycle_number']
+            )
 
             number_of_reference_cycles += len(
-                my_data['all_data'][barcode]['all_reference_mats'][
-                    'cycle_number'])
+                my_data['all_data'][barcode]['all_reference_mats']['cycle_number'])
             numpy_acc(compiled_data, 'reference_cycle',
                       my_data['all_data'][barcode]['all_reference_mats'][
                           'cycle_number'])
@@ -597,10 +595,6 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
     }
 
 
-# === End: initial processing ==================================================
-
-# === Begin: train =============================================================
-
 def train_and_evaluate(init_returns, barcodes, fit_args):
     mirrored_strategy = init_returns["mirrored_strategy"]
 
@@ -643,7 +637,8 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                         end = time.time()
                         print("time to plot: ", end - start)
                         ker = init_returns[
-                            "degradation_model"].cell_direct.kernel.numpy()
+                            "degradation_model"
+                        ].cell_direct.kernel.numpy()
                         prev_ker = now_ker
                         now_ker = ker
 
@@ -654,21 +649,21 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                         # little use for that.
                         if now_ker is not None:
                             delta_cell_ker = numpy.abs(now_ker[0] - now_ker[1])
-                            print('average difference between cells: ',
-                                  numpy.average(delta_cell_ker))
+                            print(
+                                'average difference between cells: ',
+                                numpy.average(delta_cell_ker)
+                            )
                         if prev_ker is not None:
                             delta_time_ker = numpy.abs(now_ker - prev_ker)
-                            print('average difference between prev and now: ',
-                                  numpy.average(delta_time_ker))
+                            print(
+                                'average difference between prev and now: ',
+                                numpy.average(delta_time_ker)
+                            )
                         print()
 
                 if count >= fit_args['stop_count']:
                     return
 
-
-# === End: train ===============================================================
-
-# === Begin: train step ========================================================
 
 def train_step(params, fit_args):
     neighborhood = params["neighborhood"]
@@ -707,14 +702,14 @@ def train_step(params, fit_args):
     then cycle numbers and vq curves are gathered
     '''
 
-    cycle_indecies_lerp = tf.random.uniform(
+    cycle_indices_lerp = tf.random.uniform(
         [batch_size2], minval = 0., maxval = 1., dtype = tf.float32)
-    cycle_indecies = tf.cast(
-        (1. - cycle_indecies_lerp) * tf.cast(
+    cycle_indices = tf.cast(
+        (1. - cycle_indices_lerp) * tf.cast(
             neighborhood[:, NEIGHBORHOOD_MIN_CYC_INDEX]
             + neighborhood[:, NEIGHBORHOOD_ABSOLUTE_CYCLE_INDEX],
             tf.float32
-        ) + (cycle_indecies_lerp) * tf.cast(
+        ) + cycle_indices_lerp * tf.cast(
             neighborhood[:, NEIGHBORHOOD_MAX_CYC_INDEX]
             + neighborhood[:, NEIGHBORHOOD_ABSOLUTE_CYCLE_INDEX],
             tf.float32
@@ -786,53 +781,47 @@ def train_step(params, fit_args):
          temperature_grid_dim, 1],
     )
 
-    cycle = tf.gather(
-        cycle_tensor,
-        indices = cycle_indecies, axis = 0
-    )
+    cycle = tf.gather(cycle_tensor, indices = cycle_indices, axis = 0)
     constant_current = tf.gather(
-        constant_current_tensor,
-        indices = cycle_indecies, axis = 0
+        constant_current_tensor, indices = cycle_indices, axis = 0
     )
     end_current_prev = tf.gather(
-        end_current_prev_tensor,
-        indices = cycle_indecies, axis = 0
+        end_current_prev_tensor, indices = cycle_indices, axis = 0
     )
     end_voltage_prev = tf.gather(
-        end_voltage_prev_tensor,
-        indices = cycle_indecies, axis = 0
+        end_voltage_prev_tensor, indices = cycle_indices, axis = 0
     )
-
     end_voltage = tf.gather(
-        end_voltage_tensor,
-        indices = cycle_indecies, axis = 0
+        end_voltage_tensor, indices = cycle_indices, axis = 0
     )
 
-    cc_capacity = tf.gather(cc_capacity_tensor, indices = cycle_indecies)
-    cc_voltage = tf.gather(cc_voltage_tensor, indices = cycle_indecies)
-    cc_mask = tf.gather(cc_mask_tensor, indices = cycle_indecies)
+    cc_capacity = tf.gather(cc_capacity_tensor, indices = cycle_indices)
+    cc_voltage = tf.gather(cc_voltage_tensor, indices = cycle_indices)
+    cc_mask = tf.gather(cc_mask_tensor, indices = cycle_indices)
     cc_mask_2 = tf.tile(
         tf.reshape(
-            1. / (tf.cast(neighborhood[:, NEIGHBORHOOD_VALID_CYC_INDEX],
-                          tf.float32)),
+            1. / tf.cast(
+                neighborhood[:, NEIGHBORHOOD_VALID_CYC_INDEX], tf.float32
+            ),
             [batch_size2, 1]
         ),
         [1, cc_voltage.shape[1]]
     )
 
-    cv_capacity = tf.gather(cv_capacity_tensor, indices = cycle_indecies)
-    cv_current = tf.gather(cv_current_tensor, indices = cycle_indecies)
-    cv_mask = tf.gather(cv_mask_tensor, indices = cycle_indecies)
+    cv_capacity = tf.gather(cv_capacity_tensor, indices = cycle_indices)
+    cv_current = tf.gather(cv_current_tensor, indices = cycle_indices)
+    cv_mask = tf.gather(cv_mask_tensor, indices = cycle_indices)
     cv_mask_2 = tf.tile(
         tf.reshape(
-            1. / (tf.cast(neighborhood[:, NEIGHBORHOOD_VALID_CYC_INDEX],
-                          tf.float32)),
+            1. / tf.cast(
+                neighborhood[:, NEIGHBORHOOD_VALID_CYC_INDEX], tf.float32
+            ),
             [batch_size2, 1]
         ),
         [1, cv_current.shape[1]]
     )
 
-    cell_indecies = neighborhood[:, NEIGHBORHOOD_BARCODE_INDEX]
+    cell_indices = neighborhood[:, NEIGHBORHOOD_BARCODE_INDEX]
 
     with tf.GradientTape() as tape:
         train_results = degradation_model(
@@ -842,7 +831,7 @@ def train_step(params, fit_args):
                 tf.expand_dims(end_current_prev, axis = 1),
                 tf.expand_dims(end_voltage_prev, axis = 1),
                 tf.expand_dims(end_voltage, axis = 1),
-                cell_indecies,
+                cell_indices,
                 cc_voltage,
                 cv_current,
                 svit_grid,
@@ -858,18 +847,18 @@ def train_step(params, fit_args):
 
         cc_capacity_loss = (
             tf.reduce_mean(
-                cc_mask_2 * cc_mask * tf.square(cc_capacity - pred_cc_capacity))
-            / (1e-10 + tf.reduce_mean(cc_mask_2 * cc_mask))
+                cc_mask_2 * cc_mask * tf.square(cc_capacity - pred_cc_capacity)
+            ) / (1e-10 + tf.reduce_mean(cc_mask_2 * cc_mask))
         )
         cv_capacity_loss = (
             tf.reduce_mean(
-                cv_mask_2 * cv_mask * tf.square(cv_capacity - pred_cv_capacity))
-            / (1e-10 + tf.reduce_mean(cv_mask_2 * cv_mask))
+                cv_mask_2 * cv_mask * tf.square(cv_capacity - pred_cv_capacity)
+            ) / (1e-10 + tf.reduce_mean(cv_mask_2 * cv_mask))
         )
         cc_voltage_loss = (
             tf.reduce_mean(
-                cc_mask_2 * cc_mask * tf.square(cc_voltage - pred_cc_voltage))
-            / (1e-10 + tf.reduce_mean(cc_mask_2 * cc_mask))
+                cc_mask_2 * cc_mask * tf.square(cc_voltage - pred_cc_voltage)
+            ) / (1e-10 + tf.reduce_mean(cc_mask_2 * cc_mask))
         )
 
         loss = (
@@ -889,8 +878,6 @@ def train_step(params, fit_args):
         zip(gradients, degradation_model.trainable_variables)
     )
 
-
-# === End : train step =========================================================
 
 @tf.function
 def dist_train_step(mirrored_strategy, train_step_params, fit_args):

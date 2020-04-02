@@ -4,48 +4,125 @@ from .models import *
 from django.forms import BaseModelFormSet
 from django.db.models import Q
 
-def choices_molecule():
+def molecule_choices(none=True):
     return make_choices(
-            none=True,
+            none=none,
             no_lots=Component.objects.filter(composite_type=ELECTROLYTE),
             lots=ComponentLot.objects.filter(component__composite_type=ELECTROLYTE).exclude(lot_info__isnull=True)
         )
 
-def coating_choices():
+def coating_choices(unknown=True):
     return make_choices(
             no_lots= Coating.objects.all(),
             lots = CoatingLot.objects.exclude(lot_info__isnull=True),
-            unknown=True,
+            unknown=unknown,
         )
 
-def material_choices():
+def material_choices(none=True):
     return make_choices(
             no_lots= Component.objects.filter(Q(composite_type=ANODE) | Q(composite_type=CATHODE)),
             lots= ComponentLot.objects.filter(
             Q(component__composite_type=ANODE) | Q(component__composite_type=CATHODE)).exclude(lot_info__isnull=True),
-            none=True,
+            none=none,
         )
 
-def separator_material_choices():
+def separator_material_choices(none=True):
     return make_choices(
             no_lots= Component.objects.filter(composite_type=SEPARATOR),
             lots= ComponentLot.objects.filter(component__composite_type=SEPARATOR).exclude(lot_info__isnull=True),
-            none=True,
+            none=none,
         )
 
-def composite_choices(composite_type=None):
+def composite_choices(composite_type=None, none=True):
     return make_choices(
         no_lots=Composite.objects.filter(composite_type=composite_type),
         lots=CompositeLot.objects.filter(composite__composite_type=composite_type).exclude(lot_info__isnull=True),
-        none=True,
+        none=none,
     )
 
-def dry_cell_choices():
+def dry_cell_choices(none=True):
     return make_choices(
-            none=True,
+            none=none,
             no_lots=DryCell.objects.all(),
             lots=DryCellLot.objects.exclude(lot_info__isnull=True)
         )
+
+
+class DeleteForm(forms.Form):
+    delete_molecules = forms.MultipleChoiceField(
+        choices=lambda: molecule_choices(
+            none=False
+        ),
+        widget=forms.CheckboxSelectMultiple(),
+        required=False
+    )
+
+    delete_electrolytes = forms.MultipleChoiceField(
+        choices=lambda : composite_choices(
+            composite_type=ELECTROLYTE,
+            none=False
+        ),
+        widget=forms.CheckboxSelectMultiple(),
+        required = False
+    )
+
+    delete_coatings = forms.MultipleChoiceField(
+        choices=lambda: coating_choices(
+            unknown=False
+        ),
+        widget=forms.CheckboxSelectMultiple(),
+        required=False
+    )
+
+    delete_materials = forms.MultipleChoiceField(
+        choices=lambda : material_choices(
+            none=False
+        ),
+        widget=forms.CheckboxSelectMultiple(),
+        required = False
+    )
+
+    delete_anodes = forms.MultipleChoiceField(
+        choices=lambda: composite_choices(
+            composite_type=ANODE,
+            none=False
+        ),
+        widget=forms.CheckboxSelectMultiple(),
+        required=False
+    )
+    delete_cathodes = forms.MultipleChoiceField(
+        choices=lambda: composite_choices(
+            composite_type=CATHODE,
+            none = False
+        ),
+        widget = forms.CheckboxSelectMultiple(),
+        required = False
+    )
+
+    delete_separator_materials = forms.MultipleChoiceField(
+        choices=lambda : separator_material_choices(
+            none=False
+        ),
+        widget=forms.CheckboxSelectMultiple(),
+        required = False
+    )
+
+    delete_separators = forms.MultipleChoiceField(
+        choices=lambda: composite_choices(
+            composite_type=SEPARATOR,
+            none=False
+        ),
+        widget=forms.CheckboxSelectMultiple(),
+        required=False
+    )
+
+    delete_dry_cells = forms.MultipleChoiceField(
+        choices=lambda : dry_cell_choices(
+            none=False
+        ),
+        widget=forms.CheckboxSelectMultiple(),
+        required = False
+    )
 
 
 class ElectrolyteMoleculeForm(ModelForm):
@@ -192,7 +269,7 @@ class ElectrolyteLotForm(ModelForm):
 
 
 class ElectrolyteCompositionForm(Form):
-    molecule = forms.ChoiceField(choices= choices_molecule, required=False)
+    molecule = forms.ChoiceField(choices= molecule_choices, required=False)
     ratio = forms.CharField(required=False)
 
 class ElectrodeForm(ModelForm):
@@ -330,7 +407,7 @@ def initialize_mini_electrolyte(self, value=False, molecule=False, number=10):
             choices = dry_cell_choices, required=False)
 
     if molecule:
-        c_molecule = choices_molecule
+        c_molecule = molecule_choices
     for i in range(number):
         if molecule:
             self.fields['molecule_{}'.format(i)] = forms.ChoiceField(
@@ -392,7 +469,7 @@ class SearchElectrolyteComponentForm(Form):
         (PROHIBITED, 'prohibited'),
         (ALLOWED, 'allowed'),
     ]
-    molecule = forms.ChoiceField(choices=choices_molecule,required=False)
+    molecule = forms.ChoiceField(choices=molecule_choices, required=False)
     must_type = forms.ChoiceField(choices=MUST_TYPES, initial = MANDATORY)
     ratio = forms.FloatField(required=False)
     tolerance = forms.FloatField(required=False)

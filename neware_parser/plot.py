@@ -654,13 +654,13 @@ def plot_v_curves(plot_params, init_returns):
     count = plot_params["count"]
     fit_args = plot_params["fit_args"]
     degradation_model = init_returns["degradation_model"]
-    shift = np.linspace(start=-.1, stop=.1, num=4, dtype=np.float32)
-    voltage = np.linspace(start=1., stop=5.5, num=64, dtype=np.float32)
-    Q = np.linspace(start=-0.5, stop=1.5, num=64, dtype=np.float32)
+    shift = np.linspace(start=-.2, stop=.2, num=9, dtype=np.float32)
+    voltage = np.linspace(start=2., stop=5.5, num=64, dtype=np.float32)
+    Q = np.linspace(start=-0.25, stop=1.25, num=64, dtype=np.float32)
 
     for barcode in barcodes:
 
-        fig, axs = plt.subplots(nrows=2,ncols=2, figsize=[10, 10], sharex=True, sharey=True)
+        fig, axs = plt.subplots(nrows=3,ncols=3, figsize=[10, 10], sharex=True, sharey=True)
 
         gathered_axs = []
         for ax_i in axs:
@@ -680,8 +680,10 @@ def plot_v_curves(plot_params, init_returns):
             ax.plot(Q, res['V_minus'][j], label='V_-')
             ax.plot(Q, res['V'][j], label='V_full')
             ax.plot(res['Q'][j], voltage, label='Q_full (inverted)')
+            ax.axvline(shift[j], 0, 1)
 
         ax.legend()
 
+        fig.tight_layout()
         savefig('v_curves_{}_{}.png', fit_args, barcode, count)
         plt.close(fig)

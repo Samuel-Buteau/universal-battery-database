@@ -882,9 +882,9 @@ class Command(BaseCommand):
         parser.add_argument('--smooth_coeff', type = float, default = .05)
         parser.add_argument('--const_f_coeff', type = float, default = .0)
         parser.add_argument('--smooth_f_coeff', type = float, default = .01)
-        parser.add_argument('--depth', type = int, default = 3)
-        parser.add_argument('--width', type = int, default = 32)
-        parser.add_argument('--batch_size', type = int, default = 16 * 16)
+        parser.add_argument('--depth', type = int, default = 5)
+        parser.add_argument('--width', type = int, default = 48)
+        parser.add_argument('--batch_size', type = int, default = 4 * 16)
 
         vis = 1000
         parser.add_argument('--print_loss_every', type = int, default = vis)

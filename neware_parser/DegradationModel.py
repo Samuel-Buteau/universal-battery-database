@@ -1684,15 +1684,15 @@ class DegradationModel(Model):
 
             # NOTE(sam): this is an example of a forall. (for all voltages,
             # and all cell features)
-            n_sample = 64
+            n_sample = 4*32
             sampled_voltages = tf.random.uniform(
                 minval = 2.5,
                 maxval = 5.,
                 shape = [n_sample, 1]
             )
             sampled_Qs = tf.random.uniform(
-                minval=0.,
-                maxval=1.,
+                minval=-.25,
+                maxval=1.25,
                 shape=[n_sample, 1]
             )
 
@@ -1719,8 +1719,8 @@ class DegradationModel(Model):
             sampled_features = tf.stop_gradient(sampled_features)
 
             sampled_shift = tf.random.uniform(
-                minval = -1.,
-                maxval = 1.,
+                minval = -.5,
+                maxval = .5,
                 shape = [n_sample, 1]
             )
             sampled_svit_grid = tf.gather(
@@ -1761,12 +1761,12 @@ class DegradationModel(Model):
 
             projection_loss = .1*incentive_combine(
                 [
-                    (1., ((1.- sampled_latent)*incentive_inequality(
+                    (10., ((1.- sampled_latent)*incentive_inequality(
                 sampled_pos, Inequality.Equals, predicted_pos,
                 Level.Proportional
                 )
             )),
-                    (1., ((1.- sampled_latent)*incentive_inequality(
+                    (10., ((1.- sampled_latent)*incentive_inequality(
                 sampled_neg, Inequality.Equals, predicted_neg,
                 Level.Proportional
                 )
@@ -1832,17 +1832,17 @@ class DegradationModel(Model):
             )
 
 
-            reciprocal_loss = 1. * incentive_combine(
+            reciprocal_loss = .5 * incentive_combine(
                 [
                     (
-                        1.,
+                        2.,
                         incentive_inequality(
                             sampled_voltages, Inequality.Equals, reciprocal_V,
                             Level.Proportional
                         )
                     ),
                     (
-                        1.,
+                        2.,
                         incentive_inequality(
                             sampled_Qs, Inequality.Equals, reciprocal_Q,
                             Level.Proportional
@@ -1864,7 +1864,7 @@ class DegradationModel(Model):
                     ),
 
                     (
-                        .1,
+                        10.,
                         incentive_inequality(
                             V_minus, Inequality.GreaterThan, 0.,
                             Level.Strong
@@ -1872,7 +1872,7 @@ class DegradationModel(Model):
                     ),
 
                     (
-                        .1,
+                        10.,
                         incentive_inequality(
                             V_minus, Inequality.LessThan, 5.,
                             Level.Strong
@@ -1880,7 +1880,7 @@ class DegradationModel(Model):
                     ),
 
                     (
-                        .1,
+                        1.,
                         incentive_inequality(
                             V_minus_der['d_Q'], Inequality.LessThan, 0.,
                             Level.Strong
@@ -1888,14 +1888,14 @@ class DegradationModel(Model):
                     ),
 
                     (
-                        .1,
+                        10.,
                         incentive_inequality(
                             V_plus, Inequality.GreaterThan, 0.,
                             Level.Strong
                         )
                     ),
                     (
-                        .1,
+                        10.,
                         incentive_inequality(
                             V_plus, Inequality.LessThan, 5.,
                             Level.Strong
@@ -1903,7 +1903,7 @@ class DegradationModel(Model):
                     ),
 
                     (
-                        .1,
+                        1.,
                         incentive_inequality(
                             V_plus_der['d_Q'], Inequality.GreaterThan, 0.,
                             Level.Strong
@@ -1949,7 +1949,7 @@ class DegradationModel(Model):
                     (
                         10000.,
                         incentive_inequality(
-                            Q_der['d_voltage'], Inequality.GreaterThan, 0.05,
+                            Q_der['d_voltage'], Inequality.GreaterThan, 0.01,
                             Level.Strong
                         )
                     ),
@@ -2124,21 +2124,21 @@ class DegradationModel(Model):
             shift_loss = .0001 * incentive_combine(
                 [
                     (
-                        100.,
+                        10000.,
                         incentive_inequality(
                             shift, Inequality.GreaterThan, -1,
                             Level.Strong
                         )
                     ),
                     (
-                        100.,
+                        10000.,
                         incentive_inequality(
                             shift, Inequality.LessThan, 1,
                             Level.Strong
                         )
                     ),
                     (
-                        10.,
+                        100.,
                         incentive_magnitude(
                             shift,
                             Target.Small,

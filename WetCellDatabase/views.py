@@ -1040,3 +1040,84 @@ def search_page(request):
 
     return render(request, 'WetCellDatabase/search_page.html', ar)
 
+
+
+def delete_page(request):
+    ar = {}
+    if request.method == 'POST':
+        form = DeleteForm(request.POST)
+        if form.is_valid():
+            todos = [
+                (
+                    'delete_molecules',
+                    ComponentLot,
+                    Component,
+                    lambda my_id: Q(component__id=my_id)
+                ),
+
+                (
+                    'delete_electrolytes',
+                    CompositeLot,
+                    Composite,
+                    lambda my_id: Q(composite__id=my_id)
+                ),
+                (
+                    'delete_coatings',
+                    CoatingLot,
+                    Coating,
+                    lambda my_id: Q(coating__id=my_id)
+                ),
+                (
+                    'delete_materials',
+                    ComponentLot,
+                    Component,
+                    lambda my_id: Q(component__id=my_id)
+                ),
+                (
+                    'delete_anodes',
+                    CompositeLot,
+                    Composite,
+                    lambda my_id: Q(composite__id=my_id)
+                ),
+                (
+                    'delete_cathodes',
+                    CompositeLot,
+                    Composite,
+                    lambda my_id: Q(composite__id=my_id)
+                ),
+                (
+                    'delete_separator_materials',
+                    ComponentLot,
+                    Component,
+                    lambda my_id: Q(component__id=my_id)
+                ),
+                (
+                    'delete_separators',
+                    CompositeLot,
+                    Composite,
+                    lambda my_id: Q(composite__id=my_id)
+                ),
+
+                (
+                    'delete_dry_cells',
+                    DryCellLot,
+                    DryCell,
+                    lambda my_id: Q(dry_cell__id=my_id)
+                ),
+            ]
+            for name, cat_lot, cat, f in todos:
+                things = form.cleaned_data.get(name)
+                for thing_s in things:
+                    my_id, lot_type = decode_lot_string(thing_s)
+                    # my_ = None
+                    if lot_type == LotTypes.lot:
+                        cat_lot.objects.filter(id=my_id).delete()
+                    if lot_type == LotTypes.no_lot:
+                        cat_lot.objects.filter(f(my_id)).delete()
+                        cat.objects.filter(id=my_id).delete()
+
+    else:
+        form = DeleteForm
+
+    ar['form'] =form
+    return render(request, 'WetCellDatabase/delete_page.html', ar)

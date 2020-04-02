@@ -71,7 +71,6 @@ def three_level_flatten(iterables):
 # ==== Begin: initial processing ===============================================
 
 def initial_processing(my_data, my_names, barcodes, fit_args):
-    print('entered initial_processing')
     """
     my_data has the following structure:
         my_data: a dictionary indexed by various data:
@@ -609,9 +608,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
     count = 0
 
     template = 'Epoch {}, Count {}'
-    start = time.time()
     end = time.time()
-    prev_ker = None
     now_ker = None
     with mirrored_strategy.scope():
         for epoch in range(EPOCHS):
@@ -663,6 +660,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                             delta_time_ker = numpy.abs(now_ker - prev_ker)
                             print('average difference between prev and now: ',
                                   numpy.average(delta_time_ker))
+                        print()
 
                 if count >= fit_args['stop_count']:
                     return
@@ -902,6 +900,11 @@ def dist_train_step(mirrored_strategy, train_step_params, fit_args):
 
 
 def ml_smoothing(fit_args):
+    print(
+        "Num GPUs Available: ",
+        len(tf.config.experimental.list_physical_devices('GPU'))
+    )
+
     if not os.path.exists(fit_args['path_to_plots']):
         os.mkdir(fit_args['path_to_plots'])
 

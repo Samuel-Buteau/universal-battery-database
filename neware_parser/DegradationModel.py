@@ -3,6 +3,7 @@ import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Dense, Layer
 
+from neware_parser.StressToEncodedLayer import StressToEncodedLayer
 from neware_parser.loss_calculator import *
 
 
@@ -1909,85 +1910,3 @@ class PrimitiveDictionaryLayer(Layer):
             fetched_features = fetched_features + self.sample_epsilon * eps
 
         return fetched_features, features_loss
-
-
-class StressToEncodedLayer(Layer):
-    def __init__(self, n_channels):
-        super(StressToEncodedLayer, self).__init__()
-        self.n_channels = n_channels
-        self.input_kernel = self.add_weight(
-            "input_kernel", shape = [1, 1, 1, 4 + 1, self.n_channels]
-        )
-
-        self.v_i_kernel_1 = self.add_weight(
-            "v_i_kernel_1", shape = [3, 3, 1, self.n_channels, self.n_channels]
-        )
-
-        self.v_i_kernel_2 = self.add_weight(
-            "v_i_kernel_2", shape = [3, 3, 1, self.n_channels, self.n_channels]
-        )
-
-        self.t_kernel = self.add_weight(
-            "t_kernel", shape = [1, 1, 3, self.n_channels, self.n_channels]
-        )
-
-        self.output_kernel = self.add_weight(
-            "output_kernel", shape = [1, 1, 1, self.n_channels, self.n_channels]
-        )
-
-    def __call__(self, input, training = True):
-        svit_grid = input[
-            0]  # tensor; dim: [batch, n_sign, n_voltage, n_current,
-        # n_temperature, 4]
-        count_matrix = input[
-            1]  # tensor; dim: [batch, n_sign, n_voltage, n_current,
-        # n_temperature, 1]
-
-        count_matrix_0 = count_matrix[:, 0, :, :, :, :]
-        count_matrix_1 = count_matrix[:, 1, :, :, :, :]
-
-        svit_grid_0 = svit_grid[:, 0, :, :, :, :]
-        svit_grid_1 = svit_grid[:, 1, :, :, :, :]
-
-        val_0 = tf.concat(
-            (
-                svit_grid_0,
-                count_matrix_0,
-            ),
-            axis = -1
-        )
-        val_1 = tf.concat(
-            (
-                svit_grid_1,
-                count_matrix_1,
-            ),
-            axis = -1
-        )
-
-        filters = [
-            (self.input_kernel, 'none'),
-            (self.v_i_kernel_1, 'relu'),
-            (self.t_kernel, 'relu'),
-            (self.v_i_kernel_2, 'relu'),
-            (self.output_kernel, 'none')
-        ]
-
-        for fil, activ in filters:
-            val_0 = tf.nn.convolution(input = val_0, filters = fil,
-                                      padding = 'SAME')
-            val_1 = tf.nn.convolution(input = val_1, filters = fil,
-                                      padding = 'SAME')
-
-            if activ is 'relu':
-                val_0 = tf.nn.relu(val_0)
-                val_1 = tf.nn.relu(val_1)
-
-        # each entry is scaled by its count.
-        val_0 = val_0 * count_matrix_0
-        val_1 = val_1 * count_matrix_1
-
-        # then we take the average over all the grid.
-        val_0 = tf.reduce_mean(val_0, axis = [1, 2, 3], keepdims = False)
-        val_1 = tf.reduce_mean(val_1, axis = [1, 2, 3], keepdims = False)
-
-        return (val_0 + val_1)

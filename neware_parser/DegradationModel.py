@@ -882,12 +882,12 @@ class DegradationModel(Model):
         )
 
     def cc_capacity(self, params, training = True):
-        norm_constant = self.norm_constant_direct(
-            features = params['features'], training = training
-        )
+
         norm_cycle = self.norm_cycle_direct(
             cycle = params['cycle'],
-            norm_constant = norm_constant,
+            norm_constant = self.norm_constant_direct(
+                features = params['features'], training = training
+            ),
             training = training
         )
 
@@ -895,15 +895,13 @@ class DegradationModel(Model):
             features = params['features'], training = training
         )
 
-        encoded_stress = self.stress_to_encoded_direct(
-            svit_grid = params['svit_grid'],
-            count_matrix = params['count_matrix'],
-        )
-
         strain = self.stress_to_strain_direct(
             norm_cycle = norm_cycle,
             cell_features = cell_features,
-            encoded_stress = encoded_stress,
+            encoded_stress = self.stress_to_encoded_direct(
+                svit_grid = params['svit_grid'],
+                count_matrix = params['count_matrix'],
+            ),
             training = training
         )
 
@@ -1139,7 +1137,7 @@ class DegradationModel(Model):
             training = training
         )
 
-        # NOTE(sam): if there truly is no dependency on current for q_scale,
+        # NOTE (sam): if there truly is no dependency on current for q_scale,
         # then we can restructure the code below.
         q_scale_strainless = self.q_scale_strainless_direct(
             cell_features = cell_features,
@@ -1323,8 +1321,9 @@ class DegradationModel(Model):
         dependencies = (
             cell_features
         )
-        return tf.nn.elu(nn_call(self.nn_q_scale_strainless, dependencies,
-                                 training = training))
+        return tf.nn.elu(nn_call(
+            self.nn_q_scale_strainless, dependencies, training = training)
+        )
 
     def shift_strainless_direct(self, current, cell_features, training = True):
         dependencies = (

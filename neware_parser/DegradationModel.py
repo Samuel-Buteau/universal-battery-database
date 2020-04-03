@@ -300,6 +300,120 @@ def get_norm_cycle(params):
     )
 
 
+def calculate_shift_loss(shift, shift_der):
+    incentive_combine([
+        (
+            10000.,
+            incentive_inequality(
+                shift, Inequality.GreaterThan, -1,
+                Level.Strong
+            )
+        ),
+        (
+            10000.,
+            incentive_inequality(
+                shift, Inequality.LessThan, 1,
+                Level.Strong
+            )
+        ),
+        (
+            100.,
+            incentive_magnitude(
+                shift,
+                Target.Small,
+                Level.Proportional
+            )
+        ),
+
+        (
+            100.,
+            incentive_magnitude(
+                shift_der['d_current'],
+                Target.Small,
+                Level.Proportional
+            )
+        ),
+        (
+            100.,
+            incentive_magnitude(
+                shift_der['d2_current'],
+                Target.Small,
+                Level.Proportional
+            )
+        ),
+        (
+            100.,
+            incentive_magnitude(
+                shift_der['d3_current'],
+                Target.Small,
+                Level.Proportional
+            )
+        ),
+        (
+            1.,
+            incentive_magnitude(
+                shift_der['d_features'],
+                Target.Small,
+                Level.Proportional
+            )
+        ),
+        (
+            1.,
+            incentive_magnitude(
+                shift_der['d2_features'],
+                Target.Small,
+                Level.Strong
+            )
+        )
+    ])
+
+
+def calculate_r_loss(r, r_der):
+    return incentive_combine([
+        (
+            10000.,
+            incentive_inequality(
+                r,
+                Inequality.GreaterThan,
+                0.01,
+                Level.Strong
+            )
+        ),
+        (
+            10.,
+            incentive_magnitude(
+                r_der['d2_cycle'],
+                Target.Small,
+                Level.Proportional
+            )
+        ),
+        (
+            100.,
+            incentive_magnitude(
+                r_der['d3_cycle'],
+                Target.Small,
+                Level.Proportional
+            )
+        ),
+        (
+            1.,
+            incentive_magnitude(
+                r_der['d_features'],
+                Target.Small,
+                Level.Proportional
+            )
+        ),
+        (
+            1.,
+            incentive_magnitude(
+                r_der['d2_features'],
+                Target.Small,
+                Level.Strong
+            )
+        )
+    ])
+
+
 class DegradationModel(Model):
 
     def __init__(
@@ -2152,72 +2266,7 @@ class DegradationModel(Model):
                 },
                 der_params = {'cycle': 3, 'current': 3, 'features': 3}
             )
-
-            shift_loss = .0001 * incentive_combine([
-                (
-                    10000.,
-                    incentive_inequality(
-                        shift, Inequality.GreaterThan, -1,
-                        Level.Strong
-                    )
-                ),
-                (
-                    10000.,
-                    incentive_inequality(
-                        shift, Inequality.LessThan, 1,
-                        Level.Strong
-                    )
-                ),
-                (
-                    100.,
-                    incentive_magnitude(
-                        shift,
-                        Target.Small,
-                        Level.Proportional
-                    )
-                ),
-
-                (
-                    100.,
-                    incentive_magnitude(
-                        shift_der['d_current'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                ),
-                (
-                    100.,
-                    incentive_magnitude(
-                        shift_der['d2_current'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                ),
-                (
-                    100.,
-                    incentive_magnitude(
-                        shift_der['d3_current'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                ),
-                (
-                    1.,
-                    incentive_magnitude(
-                        shift_der['d_features'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                ),
-                (
-                    1.,
-                    incentive_magnitude(
-                        shift_der['d2_features'],
-                        Target.Small,
-                        Level.Strong
-                    )
-                )
-            ])
+            shift_loss = .0001 * calculate_shift_loss(shift, shift_der)
 
             r, r_der = self.create_derivatives(
                 self.r_for_derivative,
@@ -2229,53 +2278,7 @@ class DegradationModel(Model):
                 },
                 der_params = {'cycle': 3, 'features': 2}
             )
-
-            r_loss = .0001 * incentive_combine([
-                (
-                    10000.,
-                    incentive_inequality(
-                        r,
-                        Inequality.GreaterThan,
-                        0.01,
-                        Level.Strong
-                    )
-                ),
-
-                (
-                    10.,
-                    incentive_magnitude(
-                        r_der['d2_cycle'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                ),
-
-                (
-                    100.,
-                    incentive_magnitude(
-                        r_der['d3_cycle'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                ),
-
-                (
-                    1.,
-                    incentive_magnitude(
-                        r_der['d_features'],
-                        Target.Small,
-                        Level.Proportional
-                    )
-                ),
-                (
-                    1.,
-                    incentive_magnitude(
-                        r_der['d2_features'],
-                        Target.Small,
-                        Level.Strong
-                    )
-                )
-            ])
+            r_loss = .0001 * calculate_r_loss(r, r_der)
 
             _, z_cell_loss, _, _, _ = self.z_cell_from_indices(
                 indices = tf.range(
@@ -2291,6 +2294,7 @@ class DegradationModel(Model):
                 "pred_cc_capacity": pred_cc_capacity,
                 "pred_cv_capacity": pred_cv_capacity,
                 "pred_cc_voltage": pred_cc_voltage,
+
                 "q_loss": q_loss,
                 "q_scale_loss": q_scale_loss,
                 "r_loss": r_loss,

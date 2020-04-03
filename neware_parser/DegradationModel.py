@@ -1705,9 +1705,9 @@ class DegradationModel(Model):
         if training:
             cc_capacity = x[10]
             params['cc_capacity'] = cc_capacity
-            cc_voltage, out_of_bounds_loss = self.cc_voltage(params,
-                                                             training =
-                                                             training)
+            cc_voltage, out_of_bounds_loss = self.cc_voltage(
+                params, training = training
+            )
             pred_cc_voltage = tf.reshape(cc_voltage, [-1, voltage_count])
 
             # NOTE(sam): this is an example of a forall. (for all voltages,
@@ -1733,16 +1733,16 @@ class DegradationModel(Model):
                 maxval = 10.,
                 shape = [n_sample, 1]
             )
-            sampled_features, _, sampled_pos, sampled_neg, sampled_latent\
-                = self.z_cell_from_indices(
-                indices = tf.random.uniform(
-                    maxval = self.cell_direct.num_keys,
-                    shape = [n_sample],
-                    dtype = tf.int32,
-                ),
-                training = False,
-                sample = True
-            )
+            sampled_features, _, sampled_pos, sampled_neg, sampled_latent =\
+                self.z_cell_from_indices(
+                    indices = tf.random.uniform(
+                        maxval = self.cell_direct.num_keys,
+                        shape = [n_sample],
+                        dtype = tf.int32,
+                    ),
+                    training = False,
+                    sample = True
+                )
             sampled_features = tf.stop_gradient(sampled_features)
 
             sampled_shift = tf.random.uniform(

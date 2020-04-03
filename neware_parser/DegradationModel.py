@@ -1085,16 +1085,18 @@ class DegradationModel(Model):
         return cc_voltage, out_of_bounds_loss
 
     def cv_capacity(self, params, training = True):
-        norm_constant = self.norm_constant_direct(features = params['features'],
-                                                  training = training)
+        norm_constant = self.norm_constant_direct(
+            features = params['features'], training = training
+        )
         norm_cycle = self.norm_cycle_direct(
             cycle = params['cycle'],
             norm_constant = norm_constant,
             training = training
         )
 
-        cell_features = self.cell_features_direct(features = params['features'],
-                                                  training = training)
+        cell_features = self.cell_features_direct(
+            features = params['features'], training = training
+        )
 
         encoded_stress = self.stress_to_encoded_direct(
             svit_grid = params['svit_grid'],
@@ -1400,7 +1402,7 @@ class DegradationModel(Model):
     """ For derivative variable methods """
 
     def v_plus_for_derivative(self, params, training = True):
-        v_p, loss = self.v_plus_direct(
+        v_plus, loss = self.v_plus_direct(
             cell_features = self.cell_features_direct(
                 features = params['features'],
                 training = training
@@ -1408,7 +1410,7 @@ class DegradationModel(Model):
             q = params['q'],
             training = training
         )
-        return v_p
+        return v_plus
 
     def v_minus_for_derivative(self, params, training = True):
         v_m, loss = self.v_minus_direct(

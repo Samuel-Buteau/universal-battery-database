@@ -155,8 +155,7 @@ def plot_vq(plot_params, init_returns):
                 else:
                     sign_change = +1.
 
-                barcode_k = cyc_grp_dict[k][
-                    'main_data']
+                barcode_k = cyc_grp_dict[k]['main_data']
 
                 if mode == 'cc':
                     capacity_tensor = barcode_k['cc_capacity_vector']
@@ -266,7 +265,6 @@ def plot_vq(plot_params, init_returns):
                             mult * COLORS[k_count][1],
                             mult * COLORS[k_count][2],
                         ),
-
                     )
 
             ax.legend(
@@ -504,6 +502,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
     cycle_m = init_returns["cycle_m"]
     cycle_v = init_returns["cycle_v"]
 
+    # for each cell, plot the quantities of interest
     for barcode_count, barcode in enumerate(barcodes):
         svit_and_count = get_svit_and_count(my_data, barcode)
         fig = plt.figure(figsize = [11, 10])

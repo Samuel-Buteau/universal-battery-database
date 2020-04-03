@@ -425,7 +425,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
                 )
 
                 pred_cap = tf.reshape(
-                    test_results["pred_Q_scale"],
+                    test_results["pred_q_scale"],
                     shape = [-1]
                 )
 
@@ -645,7 +645,7 @@ def plot_v_curves(plot_params, init_returns):
     degradation_model = init_returns["degradation_model"]
     shift = np.linspace(start = -.2, stop = .2, num = 9, dtype = np.float32)
     voltage = np.linspace(start = 2., stop = 5.5, num = 64, dtype = np.float32)
-    Q = np.linspace(start = -0.25, stop = 1.25, num = 64, dtype = np.float32)
+    q = np.linspace(start = -0.25, stop = 1.25, num = 64, dtype = np.float32)
 
     for barcode in barcodes:
 
@@ -661,15 +661,15 @@ def plot_v_curves(plot_params, init_returns):
             barcode = barcode,
             shift = tf.constant(shift),
             voltage = tf.constant(voltage),
-            Q = tf.constant(Q),
+            q = tf.constant(q),
         )
         for j in range(len(shift)):
             ax = gathered_axs[j]
 
-            ax.plot(Q, res['V_plus'], label = 'V_+')
-            ax.plot(Q, res['V_minus'][j], label = 'V_-')
-            ax.plot(Q, res['V'][j], label = 'V_full')
-            ax.plot(res['Q'][j], voltage, label = 'Q_full (inverted)')
+            ax.plot(q, res['v_plus'], label = 'v_+')
+            ax.plot(q, res['v_minus'][j], label = 'v_-')
+            ax.plot(q, res['v'][j], label = 'v_full')
+            ax.plot(res['q'][j], voltage, label = 'q_full (inverted)')
             ax.axvline(shift[j], 0, 1)
 
         ax.legend()

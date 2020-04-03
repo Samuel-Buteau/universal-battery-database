@@ -7,7 +7,7 @@ from tensorflow.keras.layers import Dense, Layer
 
 
 # TODO(sam): for now, remove incentives/derivatives wrt cycle.
-# implement R, shift, Q_scale in terms of Strain.
+# implement R, shift, q_scale in terms of Strain.
 # should treat strain like a vector of cycles maybe.
 # One of the problems with incentives vs regular loss is if high dimentions,
 # measure of data is zero, so either the incentives are overwhelming everywhere,
@@ -19,15 +19,15 @@ from tensorflow.keras.layers import Dense, Layer
 # but how to set the training flag easily?
 # right now, everything takes training flag and passes it to all the children
 
-# TODO(sam): how to constrain the cycle dependence of R, shift, Q_scale
+# TODO(sam): how to constrain the cycle dependence of R, shift, q_scale
 # without having to always go through StressToStrain?
 # one way is to express R = R_0(cell_features) * R(strain),
-# Q_shift = Q_shift0(cell_features) + Q_shift(strain),
-# Q_scale = Q_scale0(cell_features) + Q_scale(strain)
+# q_shift = q_shift0(cell_features) + q_shift(strain),
+# q_scale = q_scale0(cell_features) + q_scale(strain)
 # More generally, we don't know how the final value depends on the initial
 # value.
-# What we can ask for, however is that Q_scale = Q_scale(Q_scale0, strain),
-# and Q_scale(Q_scale0, 0) = Q_scale0
+# What we can ask for, however is that q_scale = q_scale(q_scale0, strain),
+# and q_scale(q_scale0, 0) = q_scale0
 
 def feedforward_nn_parameters(depth, width, last = None):
     if last is None:
@@ -858,17 +858,19 @@ class DegradationModel(Model):
     def reciprocal_q(self, params, training = True):
         cell_features = self.cell_features_direct(features = params['features'],
                                                   training = training)
-        V, out_of_bounds_loss = self.v_direct(q = params['Q'],
-                                              shift = params['shift'],
-                                              cell_features = cell_features,
-                                              training = training)
-        return self.q_direct(voltage = V, shift = params['shift'],
-                             cell_features = cell_features,
-                             training = training), out_of_bounds_loss
+        v, out_of_bounds_loss = self.v_direct(
+            q = params['q'], shift = params['shift'],
+            cell_features = cell_features, training = training
+        )
+        return self.q_direct(
+            voltage = v, shift = params['shift'],
+            cell_features = cell_features, training = training
+        ), out_of_bounds_loss
 
     def reciprocal_v(self, params, training = True):
-        cell_features = self.cell_features_direct(features = params['features'],
-                                                  training = training)
+        cell_features = self.cell_features_direct(
+            features = params['features'], training = training
+        )
         q = self.q_direct(
             voltage = params['voltage'], shift = params['shift'],
             cell_features = cell_features, training = training
@@ -1402,7 +1404,7 @@ class DegradationModel(Model):
                 features = params['features'],
                 training = training
             ),
-            q = params['Q'],
+            q = params['q'],
             training = training
         )
         return v_p
@@ -1413,7 +1415,7 @@ class DegradationModel(Model):
                 features = params['features'],
                 training = training
             ),
-            q = params['Q'],
+            q = params['q'],
             training = training
         )
         return v_m
@@ -1610,7 +1612,7 @@ class DegradationModel(Model):
 
     # add voltage dependence ([cyc] -> [cyc, vol])
 
-    def get_v_curves(self, barcode, shift, voltage, Q):
+    def get_v_curves(self, barcode, shift, voltage, q):
         """
 
         :param barcode:
@@ -1619,18 +1621,18 @@ class DegradationModel(Model):
         a 1-D array of shifts
         :param voltage:
         a 1-D array of voltages
-        :param Q:
-        a 1-D array of Qs
+        :param q:
+        a 1-D array of qs
         :param training:
         :return:
         returns a dictionary containing keys:
             - 'v_plus': a 1-D matrix such that v_plus[j]
-                      corresponds to Q[j]
+                      corresponds to q[j]
             - 'v_minus': a 2-D matrix such that v_minus[i][j]
-                      corresponds to shift[i] and Q[j]
-            - 'V': a 2-D matrix such that V[i][j]
-                      corresponds to shift[i] and Q[j]
-            - 'Q': a 2-D matrix such that Q[i][k]
+                      corresponds to shift[i] and q[j]
+            - 'v': a 2-D matrix such that v[i][j]
+                      corresponds to shift[i] and q[j]
+            - 'q': a 2-D matrix such that q[i][k]
                       corresponds to shift[i] and voltage[k]
         """
         training = False
@@ -1650,20 +1652,20 @@ class DegradationModel(Model):
         )
 
         v_plus, _ = self.v_plus_direct(
-            q = tf.reshape(Q, [-1, 1]),
-            cell_features = tf.tile(cell_features, [Q.shape[0], 1]),
+            q = tf.reshape(q, [-1, 1]),
+            cell_features = tf.tile(cell_features, [q.shape[0], 1]),
             training = training
         )
         v_plus = tf.reshape(v_plus, [-1])
 
         q_big = tf.reshape(
-            tf.tile(tf.reshape(Q, [1, -1, 1]), [shift.shape[0], 1, 1]), [-1, 1])
+            tf.tile(tf.reshape(q, [1, -1, 1]), [shift.shape[0], 1, 1]), [-1, 1])
         shift_big = tf.reshape(
-            tf.tile(tf.reshape(shift, [-1, 1, 1]), [1, Q.shape[0], 1]), [-1, 1])
+            tf.tile(tf.reshape(shift, [-1, 1, 1]), [1, q.shape[0], 1]), [-1, 1])
 
         cell_features_big = tf.reshape(
             tf.tile(tf.reshape(cell_features, [1, 1, -1]),
-                    [shift.shape[0], Q.shape[0], 1]),
+                    [shift.shape[0], q.shape[0], 1]),
             [-1, cell_features.shape[1]])
         v_minus, _ = self.v_minus_direct(
             q = q_big - shift_big,
@@ -1671,16 +1673,16 @@ class DegradationModel(Model):
             training = training
         )
 
-        v_minus = tf.reshape(v_minus, [shift.shape[0], Q.shape[0]])
+        v_minus = tf.reshape(v_minus, [shift.shape[0], q.shape[0]])
 
-        V, _ = self.v_direct(
+        v, _ = self.v_direct(
             q = q_big,
             shift = shift_big,
             cell_features = cell_features_big,
             training = training,
         )
 
-        V = tf.reshape(V, [shift.shape[0], Q.shape[0]])
+        v = tf.reshape(v, [shift.shape[0], q.shape[0]])
 
         voltage_big = tf.reshape(
             tf.tile(tf.reshape(voltage, [1, -1, 1]), [shift.shape[0], 1, 1]),
@@ -1694,19 +1696,19 @@ class DegradationModel(Model):
                     [shift.shape[0], voltage.shape[0], 1]),
             [-1, cell_features.shape[1]])
 
-        Q = self.q_direct(
+        q = self.q_direct(
             voltage = voltage_big,
             shift = shift_big,
             cell_features = cell_features_big,
             training = training
         )
-        Q = tf.reshape(Q, [shift.shape[0], voltage.shape[0]])
+        q = tf.reshape(q, [shift.shape[0], voltage.shape[0]])
 
         return {
             'v_plus': v_plus,
             'v_minus': v_minus,
-            'V': V,
-            'Q': Q,
+            'v': v,
+            'q': q,
         }
 
     def call(self, x, training = False):
@@ -1856,15 +1858,15 @@ class DegradationModel(Model):
                 ]
             )
 
-            reciprocal_Q, oob_loss_1 = self.reciprocal_q(
+            reciprocal_q, oob_loss_1 = self.reciprocal_q(
                 params = {
-                    'Q': sampled_qs,
+                    'q': sampled_qs,
                     'features': sampled_features,
                     'shift': sampled_shift
                 },
                 training = training
             )
-            reciprocal_V, oob_loss_2 = self.reciprocal_v(
+            reciprocal_v, oob_loss_2 = self.reciprocal_v(
                 params = {
                     'voltage': sampled_voltages,
                     'features': sampled_features,
@@ -1873,24 +1875,24 @@ class DegradationModel(Model):
                 training = training
             )
 
-            V_plus, V_plus_der = self.create_derivatives(
+            v_plus, v_plus_der = self.create_derivatives(
                 self.v_plus_for_derivative,
                 params = {
-                    'Q': sampled_qs,
+                    'q': sampled_qs,
                     'features': sampled_features,
                 },
                 der_params = {
-                    'Q': 1,
+                    'q': 1,
                 }
             )
-            V_minus, V_minus_der = self.create_derivatives(
+            v_minus, v_minus_der = self.create_derivatives(
                 self.v_minus_for_derivative,
                 params = {
-                    'Q': sampled_qs,
+                    'q': sampled_qs,
                     'features': sampled_features,
                 },
                 der_params = {
-                    'Q': 1,
+                    'q': 1,
                 }
             )
 
@@ -1899,14 +1901,14 @@ class DegradationModel(Model):
                     (
                         1.,
                         incentive_inequality(
-                            reciprocal_Q, Inequality.GreaterThan, 0.,
+                            reciprocal_q, Inequality.GreaterThan, 0.,
                             Level.Strong
                         )
                     ),
                     (
                         1.,
                         incentive_inequality(
-                            reciprocal_Q, Inequality.LessThan, 1.,
+                            reciprocal_q, Inequality.LessThan, 1.,
                             Level.Strong
                         )
                     ),
@@ -1918,28 +1920,28 @@ class DegradationModel(Model):
                     (
                         2.,
                         incentive_inequality(
-                            sampled_voltages, Inequality.Equals, reciprocal_V,
+                            sampled_voltages, Inequality.Equals, reciprocal_v,
                             Level.Proportional
                         )
                     ),
                     (
                         2.,
                         incentive_inequality(
-                            sampled_qs, Inequality.Equals, reciprocal_Q,
+                            sampled_qs, Inequality.Equals, reciprocal_q,
                             Level.Proportional
                         )
                     ),
                     (
                         .01,
                         incentive_magnitude(
-                            V_minus, Target.Small,
+                            v_minus, Target.Small,
                             Level.Proportional
                         )
                     ),
                     (
                         .01,
                         incentive_magnitude(
-                            V_plus, Target.Small,
+                            v_plus, Target.Small,
                             Level.Proportional
                         )
                     ),
@@ -1947,7 +1949,7 @@ class DegradationModel(Model):
                     (
                         10.,
                         incentive_inequality(
-                            V_minus, Inequality.GreaterThan, 0.,
+                            v_minus, Inequality.GreaterThan, 0.,
                             Level.Strong
                         )
                     ),
@@ -1955,7 +1957,7 @@ class DegradationModel(Model):
                     (
                         10.,
                         incentive_inequality(
-                            V_minus, Inequality.LessThan, 5.,
+                            v_minus, Inequality.LessThan, 5.,
                             Level.Strong
                         )
                     ),
@@ -1963,7 +1965,7 @@ class DegradationModel(Model):
                     (
                         1.,
                         incentive_inequality(
-                            V_minus_der['d_Q'], Inequality.LessThan, 0.,
+                            v_minus_der['d_q'], Inequality.LessThan, 0.,
                             Level.Strong
                         )
                     ),
@@ -1971,14 +1973,14 @@ class DegradationModel(Model):
                     (
                         10.,
                         incentive_inequality(
-                            V_plus, Inequality.GreaterThan, 0.,
+                            v_plus, Inequality.GreaterThan, 0.,
                             Level.Strong
                         )
                     ),
                     (
                         10.,
                         incentive_inequality(
-                            V_plus, Inequality.LessThan, 5.,
+                            v_plus, Inequality.LessThan, 5.,
                             Level.Strong
                         )
                     ),
@@ -1986,7 +1988,7 @@ class DegradationModel(Model):
                     (
                         1.,
                         incentive_inequality(
-                            V_plus_der['d_Q'], Inequality.GreaterThan, 0.,
+                            v_plus_der['d_q'], Inequality.GreaterThan, 0.,
                             Level.Strong
                         )
                     ),
@@ -1994,7 +1996,7 @@ class DegradationModel(Model):
                 ]
             )
 
-            Q, Q_der = self.create_derivatives(
+            q, q_der = self.create_derivatives(
                 self.q_for_derivative,
                 params = {
                     'voltage': sampled_voltages,
@@ -2008,12 +2010,12 @@ class DegradationModel(Model):
                 }
             )
 
-            Q_loss = .0001 * incentive_combine(
+            q_loss = .0001 * incentive_combine(
                 [
                     (
                         1.,
                         incentive_magnitude(
-                            Q,
+                            q,
                             Target.Small,
                             Level.Proportional
                         )
@@ -2021,21 +2023,21 @@ class DegradationModel(Model):
                     (
                         100.,
                         incentive_inequality(
-                            Q, Inequality.GreaterThan, 0,
+                            q, Inequality.GreaterThan, 0,
                             Level.Strong
                         )
                     ),
                     (
                         10000.,
                         incentive_inequality(
-                            Q_der['d_voltage'], Inequality.GreaterThan, 0.01,
+                            q_der['d_voltage'], Inequality.GreaterThan, 0.01,
                             Level.Strong
                         )
                     ),
                     (
                         100.,
                         incentive_magnitude(
-                            Q_der['d3_voltage'],
+                            q_der['d3_voltage'],
                             Target.Small,
                             Level.Proportional
                         )
@@ -2043,7 +2045,7 @@ class DegradationModel(Model):
                     (
                         .01,
                         incentive_magnitude(
-                            Q_der['d_features'],
+                            q_der['d_features'],
                             Target.Small,
                             Level.Proportional
                         )
@@ -2051,7 +2053,7 @@ class DegradationModel(Model):
                     (
                         .01,
                         incentive_magnitude(
-                            Q_der['d2_features'],
+                            q_der['d2_features'],
                             Target.Small,
                             Level.Strong
                         )
@@ -2059,7 +2061,7 @@ class DegradationModel(Model):
                     (
                         100.,
                         incentive_magnitude(
-                            Q_der['d_shift'],
+                            q_der['d_shift'],
                             Target.Small,
                             Level.Proportional
                         )
@@ -2068,7 +2070,7 @@ class DegradationModel(Model):
                     (
                         100.,
                         incentive_magnitude(
-                            Q_der['d2_shift'],
+                            q_der['d2_shift'],
                             Target.Small,
                             Level.Proportional
                         )
@@ -2076,7 +2078,7 @@ class DegradationModel(Model):
                     (
                         100.,
                         incentive_magnitude(
-                            Q_der['d3_shift'],
+                            q_der['d3_shift'],
                             Target.Small,
                             Level.Proportional
                         )
@@ -2084,7 +2086,7 @@ class DegradationModel(Model):
                 ]
             )
 
-            q_scale, Q_scale_der = self.create_derivatives(
+            q_scale, q_scale_der = self.create_derivatives(
                 self.q_scale_for_derivative,
                 params = {
                     'cycle': sampled_cycles,
@@ -2100,7 +2102,7 @@ class DegradationModel(Model):
                 }
             )
 
-            Q_scale_loss = .0001 * incentive_combine(
+            q_scale_loss = .0001 * incentive_combine(
                 [
                     (
                         10000.,
@@ -2127,21 +2129,21 @@ class DegradationModel(Model):
                     (
                         1.,
                         incentive_inequality(
-                            Q_scale_der['d_cycle'], Inequality.LessThan, 0,
+                            q_scale_der['d_cycle'], Inequality.LessThan, 0,
                             Level.Proportional
                         )
                     ),
                     (
                         .1,
                         incentive_inequality(
-                            Q_scale_der['d2_cycle'], Inequality.LessThan, 0,
+                            q_scale_der['d2_cycle'], Inequality.LessThan, 0,
                             Level.Proportional
                         )
                     ),
                     (
                         100.,
                         incentive_magnitude(
-                            Q_scale_der['d_cycle'],
+                            q_scale_der['d_cycle'],
                             Target.Small,
                             Level.Proportional
                         )
@@ -2150,7 +2152,7 @@ class DegradationModel(Model):
                     (
                         100.,
                         incentive_magnitude(
-                            Q_scale_der['d2_cycle'],
+                            q_scale_der['d2_cycle'],
                             Target.Small,
                             Level.Proportional
                         )
@@ -2158,7 +2160,7 @@ class DegradationModel(Model):
                     (
                         100.,
                         incentive_magnitude(
-                            Q_scale_der['d3_cycle'],
+                            q_scale_der['d3_cycle'],
                             Target.Small,
                             Level.Proportional
                         )
@@ -2167,7 +2169,7 @@ class DegradationModel(Model):
                     (
                         1.,
                         incentive_magnitude(
-                            Q_scale_der['d_features'],
+                            q_scale_der['d_features'],
                             Target.Small,
                             Level.Proportional
                         )
@@ -2175,7 +2177,7 @@ class DegradationModel(Model):
                     (
                         1.,
                         incentive_magnitude(
-                            Q_scale_der['d2_features'],
+                            q_scale_der['d2_features'],
                             Target.Small,
                             Level.Strong
                         )
@@ -2345,8 +2347,8 @@ class DegradationModel(Model):
                 "pred_cc_capacity": pred_cc_capacity,
                 "pred_cv_capacity": pred_cv_capacity,
                 "pred_cc_voltage": pred_cc_voltage,
-                "Q_loss": Q_loss,
-                "Q_scale_loss": Q_scale_loss,
+                "q_loss": q_loss,
+                "q_scale_loss": q_scale_loss,
                 "r_loss": r_loss,
                 "shift_loss": shift_loss,
                 "z_cell_loss": z_cell_loss,
@@ -2423,7 +2425,7 @@ class DegradationModel(Model):
                 "pred_cc_capacity": pred_cc_capacity,
                 "pred_cv_capacity": pred_cv_capacity,
                 "pred_R": resistance,
-                "pred_Q_scale": q_scale,
+                "pred_q_scale": q_scale,
                 "pred_shift": shift,
             }
 

@@ -403,8 +403,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
 
                 center_cycle = float(cyc)
                 reference_cycles\
-                    = all_data['all_reference_mats']\
-                    ['cycle_number']
+                    = all_data['all_reference_mats']['cycle_number']
 
                 index_of_closest_reference = numpy.argmin(
                     abs(center_cycle - reference_cycles)
@@ -415,9 +414,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
                 neighborhood_data_i[NEIGHBORHOOD_REFERENCE_INDEX]\
                     = index_of_closest_reference
 
-                neighborhood_data.append(
-                    neighborhood_data_i
-                )
+                neighborhood_data.append(neighborhood_data_i)
 
             if valid_cycles != 0:
                 neighborhood_data = numpy.array(
@@ -431,43 +428,60 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
 
                 numpy_acc(compiled_data, 'neighborhood_data', neighborhood_data)
 
-            number_of_compiled_cycles += len(
-                main_data['cycle_number']
+            number_of_compiled_cycles += len(main_data['cycle_number'])
+            number_of_reference_cycles += len(
+                all_data['all_reference_mats']['cycle_number']
             )
 
-
-
-            number_of_reference_cycles += len(
-                all_data['all_reference_mats']['cycle_number'])
-            numpy_acc(compiled_data, 'reference_cycle',
-                      all_data['all_reference_mats'][
-                          'cycle_number'])
-            numpy_acc(compiled_data, 'count_matrix',
-                      all_data['all_reference_mats'][
-                          'count_matrix'])
-
-            numpy_acc(compiled_data, 'cycle',
-                      main_data['cycle_number'])
-            numpy_acc(compiled_data, 'cc_voltage_vector',
-                      main_data['cc_voltage_vector'])
-            numpy_acc(compiled_data, 'cc_capacity_vector',
-                      main_data['cc_capacity_vector'])
-            numpy_acc(compiled_data, 'cc_mask_vector',
-                      main_data['cc_mask_vector'])
-            numpy_acc(compiled_data, 'cv_current_vector',
-                      main_data['cv_current_vector'])
-            numpy_acc(compiled_data, 'cv_capacity_vector',
-                      main_data['cv_capacity_vector'])
-            numpy_acc(compiled_data, 'cv_mask_vector',
-                      main_data['cv_mask_vector'])
-            numpy_acc(compiled_data, 'constant_current',
-                      main_data['constant_current'])
-            numpy_acc(compiled_data, 'end_current_prev',
-                      main_data['end_current_prev'])
-            numpy_acc(compiled_data, 'end_voltage_prev',
-                      main_data['end_voltage_prev'])
-            numpy_acc(compiled_data, 'end_voltage',
-                      main_data['end_voltage'])
+            numpy_acc(
+                compiled_data, 'reference_cycle',
+                all_data['all_reference_mats']['cycle_number']
+            )
+            numpy_acc(
+                compiled_data, 'count_matrix',
+                all_data['all_reference_mats']['count_matrix']
+            )
+            numpy_acc(compiled_data, 'cycle', main_data['cycle_number'])
+            numpy_acc(
+                compiled_data, 'cc_voltage_vector',
+                main_data['cc_voltage_vector']
+            )
+            numpy_acc(
+                compiled_data, 'cc_capacity_vector',
+                main_data['cc_capacity_vector']
+            )
+            numpy_acc(
+                compiled_data, 'cc_mask_vector',
+                main_data['cc_mask_vector']
+            )
+            numpy_acc(
+                compiled_data, 'cv_current_vector',
+                main_data['cv_current_vector']
+            )
+            numpy_acc(
+                compiled_data, 'cv_capacity_vector',
+                main_data['cv_capacity_vector']
+            )
+            numpy_acc(
+                compiled_data, 'cv_mask_vector',
+                main_data['cv_mask_vector']
+            )
+            numpy_acc(
+                compiled_data, 'constant_current',
+                main_data['constant_current']
+            )
+            numpy_acc(
+                compiled_data, 'end_current_prev',
+                main_data['end_current_prev']
+            )
+            numpy_acc(
+                compiled_data, 'end_voltage_prev',
+                main_data['end_voltage_prev']
+            )
+            numpy_acc(
+                compiled_data, 'end_voltage',
+                main_data['end_voltage']
+            )
 
     neighborhood_data = tf.constant(compiled_data['neighborhood_data'])
 
@@ -511,8 +525,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
             neighborhood_data
         ).repeat(2).shuffle(100000).batch(batch_size)
 
-        train_ds = mirrored_strategy.experimental_distribute_dataset(
-            train_ds_)
+        train_ds = mirrored_strategy.experimental_distribute_dataset(train_ds_)
 
         pos_to_pos_name = {}
         neg_to_neg_name = {}
@@ -520,8 +533,8 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
         if my_names is not None:
             pos_to_pos_name = my_names['pos_to_pos_name']
             neg_to_neg_name = my_names['neg_to_neg_name']
-            electrolyte_to_electrolyte_name = my_names[
-                'electrolyte_to_electrolyte_name']
+            electrolyte_to_electrolyte_name\
+                = my_names['electrolyte_to_electrolyte_name']
             molecule_to_molecule_name = my_names['molecule_to_molecule_name']
 
         degradation_model = DegradationModel(
@@ -571,14 +584,14 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
 def train_and_evaluate(init_returns, barcodes, fit_args):
     mirrored_strategy = init_returns["mirrored_strategy"]
 
-    EPOCHS = 100000
+    epochs = 100000
     count = 0
 
     template = 'Epoch {}, Count {}'
     end = time.time()
     now_ker = None
     with mirrored_strategy.scope():
-        for epoch in range(EPOCHS):
+        for epoch in range(epochs):
             for neighborhood in init_returns["train_ds"]:
                 count += 1
 

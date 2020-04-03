@@ -1951,23 +1951,14 @@ class DegradationModel(Model):
             training = training
         )
 
-    def create_derivatives(
-        self,
-        nn,
-        params,
-        der_params
-    ):
+    def create_derivatives(self, nn, params, der_params):
         """
         derivatives will only be taken inside forall statements.
         if auxiliary variables must be given, create a lambda.
 
+        :param der_params:
         :param nn:
         :param params:
-        :param voltage_der:
-        :param cycle_der:
-        :param features_der:
-        :param current_der:
-        :param shift_der:
         :return:
         """
         derivatives = {}
@@ -2026,16 +2017,10 @@ class DegradationModel(Model):
 
     def get_v_curves(self, barcode, shift, voltage, q):
         """
-
-        :param barcode:
-        a barcode
-        :param shift:
-        a 1-D array of shifts
-        :param voltage:
-        a 1-D array of voltages
-        :param q:
-        a 1-D array of qs
-        :param training:
+        :param barcode: a barcode
+        :param shift: a 1-D array of shifts
+        :param voltage: a 1-D array of voltages
+        :param q: a 1-D array of qs
         :return:
         returns a dictionary containing keys:
             - 'v_plus': a 1-D matrix such that v_plus[j]
@@ -2048,13 +2033,13 @@ class DegradationModel(Model):
                       corresponds to shift[i] and voltage[k]
         """
         training = False
-        indecies = tf.constant(
+        indices = tf.constant(
             self.cell_direct.id_dict[barcode],
             shape = [1]
         )
 
         features, _, _, _, _ = self.z_cell_from_indices(
-            indices = indecies,
+            indices = indices,
             training = training,
             sample = False
         )

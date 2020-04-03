@@ -285,12 +285,19 @@ def get_cell_features(features):
     return features[:, 1:]
 
 
-def get_norm_cycle(cycle, norm_constant):
+def get_norm_cycle_direct(cycle, norm_constant):
     return cycle * (1e-10 + tf.exp(-norm_constant))
 
 
 def calculate_eq_voltage(voltage, current, resistance):
     return voltage - current * resistance
+
+
+def get_norm_cycle(params, training = True):
+    return get_norm_cycle_direct(
+        norm_constant = get_norm_constant(params['features']),
+        cycle = params['cycle']
+    )
 
 
 class DegradationModel(Model):
@@ -863,12 +870,6 @@ class DegradationModel(Model):
 
     """ General variable methods """
 
-    def norm_cycle(self, params, training = True):
-        return get_norm_cycle(
-            norm_constant = get_norm_constant(params['features']),
-            cycle = params['cycle']
-        )
-
     def reciprocal_q(self, params, training = True):
         cell_features = get_cell_features(features = params['features'])
         v, out_of_bounds_loss = self.v_direct(
@@ -893,7 +894,7 @@ class DegradationModel(Model):
 
     def cc_capacity(self, params, training = True):
 
-        norm_cycle = get_norm_cycle(
+        norm_cycle = get_norm_cycle_direct(
             cycle = params['cycle'],
             norm_constant = get_norm_constant(features = params['features'])
         )
@@ -984,7 +985,7 @@ class DegradationModel(Model):
 
     def cc_voltage(self, params, training = True):
         norm_constant = get_norm_constant(features = params['features'])
-        norm_cycle = get_norm_cycle(
+        norm_cycle = get_norm_cycle_direct(
             cycle = params['cycle'],
             norm_constant = norm_constant,
         )
@@ -1073,7 +1074,7 @@ class DegradationModel(Model):
 
     def cv_capacity(self, params, training = True):
         norm_constant = get_norm_constant(features = params['features'])
-        norm_cycle = get_norm_cycle(
+        norm_cycle = get_norm_cycle_direct(
             cycle = params['cycle'], norm_constant = norm_constant
         )
 
@@ -1393,7 +1394,7 @@ class DegradationModel(Model):
         )
 
     def q_scale_for_derivative(self, params, training = True):
-        norm_cycle = self.norm_cycle(
+        norm_cycle = get_norm_cycle(
             params = {
                 'cycle': params['cycle'],
                 'features': params['features']
@@ -1425,7 +1426,7 @@ class DegradationModel(Model):
         )
 
     def shift_for_derivative(self, params, training = True):
-        norm_cycle = self.norm_cycle(
+        norm_cycle = get_norm_cycle(
             params = {
                 'cycle': params['cycle'],
                 'features': params['features']
@@ -1460,7 +1461,7 @@ class DegradationModel(Model):
         )
 
     def r_for_derivative(self, params, training = True):
-        norm_cycle = self.norm_cycle(
+        norm_cycle = get_norm_cycle(
             params = {
                 'cycle': params['cycle'],
                 'features': params['features']
@@ -2311,7 +2312,7 @@ class DegradationModel(Model):
 
             norm_constant = get_norm_constant(features = params['features'])
 
-            norm_cycle = get_norm_cycle(
+            norm_cycle = get_norm_cycle_direct(
                 cycle = params['cycle'], norm_constant = norm_constant,
             )
 

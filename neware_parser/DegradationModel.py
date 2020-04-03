@@ -856,8 +856,9 @@ class DegradationModel(Model):
         )
 
     def reciprocal_q(self, params, training = True):
-        cell_features = self.cell_features_direct(features = params['features'],
-                                                  training = training)
+        cell_features = self.cell_features_direct(
+            features = params['features'], training = training
+        )
         v, out_of_bounds_loss = self.v_direct(
             q = params['q'], shift = params['shift'],
             cell_features = cell_features, training = training

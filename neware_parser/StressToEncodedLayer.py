@@ -27,12 +27,11 @@ class StressToEncodedLayer(Layer):
         )
 
     def __call__(self, input, training = True):
-        svit_grid = input[
-            0]  # tensor; dim: [batch, n_sign, n_voltage, n_current,
-        # n_temperature, 4]
-        count_matrix = input[
-            1]  # tensor; dim: [batch, n_sign, n_voltage, n_current,
-        # n_temperature, 1]
+        # tensor; dim: [batch, n_sign, n_voltage, n_current, n_temperature, 4]
+        svit_grid = input[0]
+
+        # tensor; dim: [batch, n_sign, n_voltage, n_current, n_temperature, 1]
+        count_matrix = input[1]
 
         count_matrix_0 = count_matrix[:, 0, :, :, :, :]
         count_matrix_1 = count_matrix[:, 1, :, :, :, :]
@@ -40,20 +39,8 @@ class StressToEncodedLayer(Layer):
         svit_grid_0 = svit_grid[:, 0, :, :, :, :]
         svit_grid_1 = svit_grid[:, 1, :, :, :, :]
 
-        val_0 = tf.concat(
-            (
-                svit_grid_0,
-                count_matrix_0,
-            ),
-            axis = -1
-        )
-        val_1 = tf.concat(
-            (
-                svit_grid_1,
-                count_matrix_1,
-            ),
-            axis = -1
-        )
+        val_0 = tf.concat((svit_grid_0, count_matrix_0), axis = -1)
+        val_1 = tf.concat((svit_grid_1, count_matrix_1), axis = -1)
 
         filters = [
             (self.input_kernel, 'none'),
@@ -64,10 +51,12 @@ class StressToEncodedLayer(Layer):
         ]
 
         for fil, activ in filters:
-            val_0 = tf.nn.convolution(input = val_0, filters = fil,
-                                      padding = 'SAME')
-            val_1 = tf.nn.convolution(input = val_1, filters = fil,
-                                      padding = 'SAME')
+            val_0 = tf.nn.convolution(
+                input = val_0, filters = fil, padding = 'SAME'
+            )
+            val_1 = tf.nn.convolution(
+                input = val_1, filters = fil, padding = 'SAME'
+            )
 
             if activ is 'relu':
                 val_0 = tf.nn.relu(val_0)
@@ -81,4 +70,4 @@ class StressToEncodedLayer(Layer):
         val_0 = tf.reduce_mean(val_0, axis = [1, 2, 3], keepdims = False)
         val_1 = tf.reduce_mean(val_1, axis = [1, 2, 3], keepdims = False)
 
-        return (val_0 + val_1)
+        return val_0 + val_1

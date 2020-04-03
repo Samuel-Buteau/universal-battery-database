@@ -72,23 +72,23 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
     """
     my_data has the following structure:
         my_data: a dictionary indexed by various data:
-            - 'max_cap': a single number. the maximum capacity across the 
+            - 'max_cap': a single number. the maximum capacity across the
             dataset.
             - 'voltage_grid': 1D array of voltages
             - 'current_grid': 1D array of log currents
             - 'temperature_grid': 1D array of temperatures
             - 'sign_grid': 1D array of signs
-            - 'cell_id_to_pos_id': a dictionary indexed by barcode yielding a 
+            - 'cell_id_to_pos_id': a dictionary indexed by barcode yielding a
             positive electrode id.
-            - 'cell_id_to_neg_id': a dictionary indexed by barcode yielding a 
+            - 'cell_id_to_neg_id': a dictionary indexed by barcode yielding a
             positive electrode id.
-            - 'cell_id_to_electrolyte_id': a dictionary indexed by barcode 
+            - 'cell_id_to_electrolyte_id': a dictionary indexed by barcode
             yielding a positive electrode id.
-            - 'cell_id_to_latent': a dictionary indexed by barcode yielding 
-                         1 if the cell is latent, 
+            - 'cell_id_to_latent': a dictionary indexed by barcode yielding
+                         1 if the cell is latent,
                          0 if made of known pos,neg,electrolyte
-                
-            - 'all_data': a dictionary indexed by barcode. 
+
+            - 'all_data': a dictionary indexed by barcode.
                Each barcode yields:
                 - 'all_reference_mats': structured array with dtype =
                     [
@@ -181,7 +181,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
     my_data['current_grid'] = my_data['current_grid'] - numpy.log(max_cap)
 
     # the current grid is adjusted by the max capacity of the barcode. It is
-    # in log space, so I/Q becomes log(I) - log(Q)
+    # in log space, so I/q becomes log(I) - log(q)
     numpy_acc(
         compiled_data,
         'current_grid',
@@ -379,8 +379,8 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
                 - record the absolute index into the table of cycles
                   (len(cycles_full)).
                 - keep a slot empty for later
-                
- 
+
+
                 '''
                 # TODO(sam): here, figure out where the reference cycle is,
                 #  and note the index
@@ -849,8 +849,8 @@ def train_step(params, fit_args):
 
         loss = (
             0.05 * cv_capacity_loss + 1. * cc_voltage_loss + cc_capacity_loss
-            + train_results["Q_loss"]
-            + train_results["Q_scale_loss"]
+            + train_results["q_loss"]
+            + train_results["q_scale_loss"]
             + train_results["r_loss"]
             + train_results["shift_loss"]
             + fit_args['z_cell_coeff'] * train_results["z_cell_loss"]

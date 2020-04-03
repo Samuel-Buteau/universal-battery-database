@@ -277,19 +277,19 @@ def add_current_dep(thing, params, dim = 1):
     )
 
 
-def get_norm_constant(features, training = True):
+def get_norm_constant(features):
     return features[:, 0:1]
 
 
-def get_cell_features(features, training = True):
+def get_cell_features(features):
     return features[:, 1:]
 
 
-def get_norm_cycle(cycle, norm_constant, training = True):
+def get_norm_cycle(cycle, norm_constant):
     return cycle * (1e-10 + tf.exp(-norm_constant))
 
 
-def calculate_eq_voltage(voltage, current, resistance, training = True):
+def calculate_eq_voltage(voltage, current, resistance):
     return voltage - current * resistance
 
 
@@ -865,16 +865,12 @@ class DegradationModel(Model):
 
     def norm_cycle(self, params, training = True):
         return get_norm_cycle(
-            norm_constant = get_norm_constant(
-                params['features'], training = training
-            ),
+            norm_constant = get_norm_constant(params['features']),
             cycle = params['cycle']
         )
 
     def reciprocal_q(self, params, training = True):
-        cell_features = get_cell_features(
-            features = params['features'], training = training
-        )
+        cell_features = get_cell_features(features = params['features'])
         v, out_of_bounds_loss = self.v_direct(
             q = params['q'], shift = params['shift'],
             cell_features = cell_features, training = training
@@ -885,9 +881,7 @@ class DegradationModel(Model):
         ), out_of_bounds_loss
 
     def reciprocal_v(self, params, training = True):
-        cell_features = get_cell_features(
-            features = params['features'], training = training
-        )
+        cell_features = get_cell_features(features = params['features'])
         q = self.q_direct(
             voltage = params['voltage'], shift = params['shift'],
             cell_features = cell_features, training = training
@@ -901,15 +895,10 @@ class DegradationModel(Model):
 
         norm_cycle = get_norm_cycle(
             cycle = params['cycle'],
-            norm_constant = get_norm_constant(
-                features = params['features'], training = training
-            ),
-            training = training
+            norm_constant = get_norm_constant(features = params['features'])
         )
 
-        cell_features = get_cell_features(
-            features = params['features'], training = training
-        )
+        cell_features = get_cell_features(features = params['features'])
 
         strain = self.stress_to_strain_direct(
             norm_cycle = norm_cycle,
@@ -954,8 +943,7 @@ class DegradationModel(Model):
         eq_voltage_0 = calculate_eq_voltage(
             voltage = params['end_voltage_prev'],
             current = params['end_current_prev'],
-            resistance = resistance,
-            training = training
+            resistance = resistance
         )
 
         q_0 = self.q_direct(
@@ -968,8 +956,7 @@ class DegradationModel(Model):
         eq_voltage_1 = calculate_eq_voltage(
             voltage = params['voltage'],
             current = add_volt_dep(params['constant_current'], params),
-            resistance = add_volt_dep(resistance, params),
-            training = training
+            resistance = add_volt_dep(resistance, params)
         )
 
         shift_1 = self.shift_direct(
@@ -996,18 +983,13 @@ class DegradationModel(Model):
         return add_volt_dep(q_scale, params) * (q_1 - add_volt_dep(q_0, params))
 
     def cc_voltage(self, params, training = True):
-        norm_constant = get_norm_constant(
-            features = params['features'], training = training
-        )
+        norm_constant = get_norm_constant(features = params['features'])
         norm_cycle = get_norm_cycle(
             cycle = params['cycle'],
             norm_constant = norm_constant,
-            training = training
         )
 
-        cell_features = get_cell_features(
-            features = params['features'], training = training
-        )
+        cell_features = get_cell_features(features = params['features'])
         encoded_stress = self.stress_to_encoded_direct(
             svit_grid = params['svit_grid'],
             count_matrix = params['count_matrix'],
@@ -1051,7 +1033,6 @@ class DegradationModel(Model):
             voltage = params['end_voltage_prev'],
             current = params['end_current_prev'],
             resistance = resistance,
-            training = training
         )
         q_0 = self.q_direct(
             voltage = eq_voltage_0,
@@ -1091,18 +1072,12 @@ class DegradationModel(Model):
         return cc_voltage, out_of_bounds_loss
 
     def cv_capacity(self, params, training = True):
-        norm_constant = get_norm_constant(
-            features = params['features'], training = training
-        )
+        norm_constant = get_norm_constant(features = params['features'])
         norm_cycle = get_norm_cycle(
-            cycle = params['cycle'],
-            norm_constant = norm_constant,
-            training = training
+            cycle = params['cycle'], norm_constant = norm_constant
         )
 
-        cell_features = get_cell_features(
-            features = params['features'], training = training
-        )
+        cell_features = get_cell_features(features = params['features'])
 
         encoded_stress = self.stress_to_encoded_direct(
             svit_grid = params['svit_grid'],
@@ -1143,7 +1118,6 @@ class DegradationModel(Model):
             voltage = params['end_voltage_prev'],
             current = params['end_current_prev'],
             resistance = resistance,
-            training = training
         )
 
         q_0 = self.q_direct(
@@ -1178,7 +1152,6 @@ class DegradationModel(Model):
             voltage = add_current_dep(params['end_voltage'], params),
             current = params['cv_current'],
             resistance = add_current_dep(resistance, params),
-            training = training
         )
 
         cv_shift_strainless = self.shift_strainless_direct(
@@ -1398,10 +1371,7 @@ class DegradationModel(Model):
 
     def v_plus_for_derivative(self, params, training = True):
         v_plus, loss = self.v_plus_direct(
-            cell_features = get_cell_features(
-                features = params['features'],
-                training = training
-            ),
+            cell_features = get_cell_features(features = params['features']),
             q = params['q'],
             training = training
         )
@@ -1409,10 +1379,7 @@ class DegradationModel(Model):
 
     def v_minus_for_derivative(self, params, training = True):
         v_m, loss = self.v_minus_direct(
-            cell_features = get_cell_features(
-                features = params['features'],
-                training = training
-            ),
+            cell_features = get_cell_features(features = params['features']),
             q = params['q'],
             training = training
         )
@@ -1420,10 +1387,7 @@ class DegradationModel(Model):
 
     def q_for_derivative(self, params, training = True):
         return self.q_direct(
-            cell_features = get_cell_features(
-                features = params['features'],
-                training = training
-            ),
+            cell_features = get_cell_features(features = params['features']),
             voltage = params['voltage'],
             shift = params['shift']
         )
@@ -1436,10 +1400,7 @@ class DegradationModel(Model):
             },
             training = training
         )
-        cell_features = get_cell_features(
-            features = params['features'],
-            training = training
-        )
+        cell_features = get_cell_features(features = params['features'])
 
         strainless = self.q_scale_strainless_direct(cell_features,
                                                     training = training)
@@ -1471,10 +1432,7 @@ class DegradationModel(Model):
             },
             training = training
         )
-        cell_features = get_cell_features(
-            features = params['features'],
-            training = training
-        )
+        cell_features = get_cell_features(features = params['features'])
 
         encoded_stress = self.stress_to_encoded_direct(
             svit_grid = params['svit_grid'],
@@ -1509,10 +1467,7 @@ class DegradationModel(Model):
             },
             training = training
         )
-        cell_features = get_cell_features(
-            features = params['features'],
-            training = training
-        )
+        cell_features = get_cell_features(features = params['features'])
 
         strainless = self.r_strainless_direct(
             cell_features = cell_features,
@@ -1644,10 +1599,7 @@ class DegradationModel(Model):
             training = training,
             sample = False
         )
-        cell_features = get_cell_features(
-            features = features,
-            training = training
-        )
+        cell_features = get_cell_features(features = features)
 
         v_plus, _ = self.v_plus_direct(
             q = tf.reshape(q, [-1, 1]),
@@ -1828,8 +1780,7 @@ class DegradationModel(Model):
             )
 
             sampled_cell_features = get_cell_features(
-                features = sampled_features,
-                training = training
+                features = sampled_features
             )
             predicted_pos = self.pos_projection_direct(
                 cell_features = sampled_cell_features,
@@ -2358,17 +2309,13 @@ class DegradationModel(Model):
 
         else:
 
-            norm_constant = get_norm_constant(
-                features = params['features'], training = training)
+            norm_constant = get_norm_constant(features = params['features'])
 
             norm_cycle = get_norm_cycle(
-                cycle = params['cycle'],
-                norm_constant = norm_constant,
-                training = training
+                cycle = params['cycle'], norm_constant = norm_constant,
             )
 
-            cell_features = get_cell_features(
-                features = params['features'], training = training)
+            cell_features = get_cell_features(features = params['features'])
 
             encoded_stress = self.stress_to_encoded_direct(
                 svit_grid = params['svit_grid'],

@@ -248,6 +248,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
     ]
 
     molecule_id_list = numpy.array(
+        # flatten, remove duplicates, then sort
         sorted(list(set(list(three_level_flatten(mess)))))
     )
 

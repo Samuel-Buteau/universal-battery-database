@@ -293,7 +293,7 @@ def calculate_eq_voltage(voltage, current, resistance):
     return voltage - current * resistance
 
 
-def get_norm_cycle(params, training = True):
+def get_norm_cycle(params):
     return get_norm_cycle_direct(
         norm_constant = get_norm_constant(params['features']),
         cycle = params['cycle']
@@ -1398,8 +1398,7 @@ class DegradationModel(Model):
             params = {
                 'cycle': params['cycle'],
                 'features': params['features']
-            },
-            training = training
+            }
         )
         cell_features = get_cell_features(features = params['features'])
 
@@ -1430,8 +1429,7 @@ class DegradationModel(Model):
             params = {
                 'cycle': params['cycle'],
                 'features': params['features']
-            },
-            training = training
+            }
         )
         cell_features = get_cell_features(features = params['features'])
 
@@ -1465,8 +1463,7 @@ class DegradationModel(Model):
             params = {
                 'cycle': params['cycle'],
                 'features': params['features']
-            },
-            training = training
+            }
         )
         cell_features = get_cell_features(features = params['features'])
 

@@ -175,6 +175,69 @@ def get_norm_cycle(params):
     )
 
 
+def create_derivatives(nn, params, der_params):
+    """
+    derivatives will only be taken inside forall statements.
+    if auxiliary variables must be given, create a lambda.
+
+    :param der_params:
+    :param nn:
+    :param params:
+    :return:
+    """
+    derivatives = {}
+
+    with tf.GradientTape(persistent = True) as tape_d3:
+        for k in der_params.keys():
+            if der_params[k] >= 3:
+                tape_d3.watch(params[k])
+
+        with tf.GradientTape(persistent = True) as tape_d2:
+            for k in der_params.keys():
+                if der_params[k] >= 2:
+                    tape_d2.watch(params[k])
+
+            with tf.GradientTape(persistent = True) as tape_d1:
+                for k in der_params.keys():
+                    if der_params[k] >= 1:
+                        tape_d1.watch(params[k])
+
+                res = tf.reshape(nn(params), [-1, 1])
+
+            for k in der_params.keys():
+                if der_params[k] >= 1:
+                    derivatives['d_' + k] = tape_d1.batch_jacobian(
+                        source = params[k],
+                        target = res
+                    )[:, 0, :]
+
+            del tape_d1
+
+        for k in der_params.keys():
+            if der_params[k] >= 2:
+                derivatives['d2_' + k] = tape_d2.batch_jacobian(
+                    source = params[k],
+                    target = derivatives['d_' + k]
+                )
+                if k != 'features':
+                    derivatives['d2_' + k] = derivatives['d2_' + k][:, 0, :]
+
+        del tape_d2
+
+    for k in der_params.keys():
+        if der_params[k] >= 3:
+            derivatives['d3_' + k] = tape_d3.batch_jacobian(
+                source = params[k],
+                target = derivatives['d2_' + k]
+            )
+            if k != 'features':
+                derivatives['d3_' + k] = derivatives['d3_' + k][:, 0, :]
+
+    del tape_d3
+
+    return res, derivatives
+
+
 class DegradationModel(Model):
 
     def __init__(
@@ -1442,68 +1505,6 @@ class DegradationModel(Model):
             training = training
         )
 
-    def create_derivatives(self, nn, params, der_params):
-        """
-        derivatives will only be taken inside forall statements.
-        if auxiliary variables must be given, create a lambda.
-
-        :param der_params:
-        :param nn:
-        :param params:
-        :return:
-        """
-        derivatives = {}
-
-        with tf.GradientTape(persistent = True) as tape_d3:
-            for k in der_params.keys():
-                if der_params[k] >= 3:
-                    tape_d3.watch(params[k])
-
-            with tf.GradientTape(persistent = True) as tape_d2:
-                for k in der_params.keys():
-                    if der_params[k] >= 2:
-                        tape_d2.watch(params[k])
-
-                with tf.GradientTape(persistent = True) as tape_d1:
-                    for k in der_params.keys():
-                        if der_params[k] >= 1:
-                            tape_d1.watch(params[k])
-
-                    res = tf.reshape(nn(params), [-1, 1])
-
-                for k in der_params.keys():
-                    if der_params[k] >= 1:
-                        derivatives['d_' + k] = tape_d1.batch_jacobian(
-                            source = params[k],
-                            target = res
-                        )[:, 0, :]
-
-                del tape_d1
-
-            for k in der_params.keys():
-                if der_params[k] >= 2:
-                    derivatives['d2_' + k] = tape_d2.batch_jacobian(
-                        source = params[k],
-                        target = derivatives['d_' + k]
-                    )
-                    if k != 'features':
-                        derivatives['d2_' + k] = derivatives['d2_' + k][:, 0, :]
-
-            del tape_d2
-
-        for k in der_params.keys():
-            if der_params[k] >= 3:
-                derivatives['d3_' + k] = tape_d3.batch_jacobian(
-                    source = params[k],
-                    target = derivatives['d2_' + k]
-                )
-                if k != 'features':
-                    derivatives['d3_' + k] = derivatives['d3_' + k][:, 0, :]
-
-        del tape_d3
-
-        return res, derivatives
-
     # add voltage dependence ([cyc] -> [cyc, vol])
 
     def get_v_curves(self, barcode, shift, voltage, q):
@@ -1699,7 +1700,7 @@ class DegradationModel(Model):
                 training = training
             )
 
-            v_plus, v_plus_der = self.create_derivatives(
+            v_plus, v_plus_der = create_derivatives(
                 self.v_plus_for_derivative,
                 params = {
                     'q': sampled_qs,
@@ -1707,7 +1708,7 @@ class DegradationModel(Model):
                 },
                 der_params = {'q': 1}
             )
-            v_minus, v_minus_der = self.create_derivatives(
+            v_minus, v_minus_der = create_derivatives(
                 self.v_minus_for_derivative,
                 params = {
                     'q': sampled_qs,
@@ -1724,7 +1725,7 @@ class DegradationModel(Model):
                 reciprocal_v, reciprocal_q,
             )
 
-            q, q_der = self.create_derivatives(
+            q, q_der = create_derivatives(
                 self.q_for_derivative,
                 params = {
                     'voltage': sampled_voltages,
@@ -1736,7 +1737,7 @@ class DegradationModel(Model):
 
             q_loss = .0001 * calculate_q_loss(q, q_der)
 
-            q_scale, q_scale_der = self.create_derivatives(
+            q_scale, q_scale_der = create_derivatives(
                 self.q_scale_for_derivative,
                 params = {
                     'cycle': sampled_cycles,
@@ -1750,7 +1751,7 @@ class DegradationModel(Model):
 
             q_scale_loss = .0001 * calculate_q_scale_loss(q_scale, q_scale_der)
 
-            shift, shift_der = self.create_derivatives(
+            shift, shift_der = create_derivatives(
                 self.shift_for_derivative,
                 params = {
                     'cycle': sampled_cycles,
@@ -1763,7 +1764,7 @@ class DegradationModel(Model):
             )
             shift_loss = .0001 * calculate_shift_loss(shift, shift_der)
 
-            r, r_der = self.create_derivatives(
+            r, r_der = create_derivatives(
                 self.r_for_derivative,
                 params = {
                     'cycle': sampled_cycles,

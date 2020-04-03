@@ -277,6 +277,22 @@ def add_current_dep(thing, params, dim = 1):
     )
 
 
+def get_norm_constant(features, training = True):
+    return features[:, 0:1]
+
+
+def get_cell_features(features, training = True):
+    return features[:, 1:]
+
+
+def get_norm_cycle(cycle, norm_constant, training = True):
+    return cycle * (1e-10 + tf.exp(-norm_constant))
+
+
+def calculate_eq_voltage(voltage, current, resistance, training = True):
+    return voltage - current * resistance
+
+
 class DegradationModel(Model):
 
     def __init__(
@@ -848,15 +864,15 @@ class DegradationModel(Model):
     """ General variable methods """
 
     def norm_cycle(self, params, training = True):
-        return self.norm_cycle_direct(
-            norm_constant = self.norm_constant_direct(
+        return get_norm_cycle(
+            norm_constant = get_norm_constant(
                 params['features'], training = training
             ),
             cycle = params['cycle']
         )
 
     def reciprocal_q(self, params, training = True):
-        cell_features = self.cell_features_direct(
+        cell_features = get_cell_features(
             features = params['features'], training = training
         )
         v, out_of_bounds_loss = self.v_direct(
@@ -869,7 +885,7 @@ class DegradationModel(Model):
         ), out_of_bounds_loss
 
     def reciprocal_v(self, params, training = True):
-        cell_features = self.cell_features_direct(
+        cell_features = get_cell_features(
             features = params['features'], training = training
         )
         q = self.q_direct(
@@ -883,15 +899,15 @@ class DegradationModel(Model):
 
     def cc_capacity(self, params, training = True):
 
-        norm_cycle = self.norm_cycle_direct(
+        norm_cycle = get_norm_cycle(
             cycle = params['cycle'],
-            norm_constant = self.norm_constant_direct(
+            norm_constant = get_norm_constant(
                 features = params['features'], training = training
             ),
             training = training
         )
 
-        cell_features = self.cell_features_direct(
+        cell_features = get_cell_features(
             features = params['features'], training = training
         )
 
@@ -935,7 +951,7 @@ class DegradationModel(Model):
             training = training
         )
 
-        eq_voltage_0 = self.eq_voltage_direct(
+        eq_voltage_0 = calculate_eq_voltage(
             voltage = params['end_voltage_prev'],
             current = params['end_current_prev'],
             resistance = resistance,
@@ -949,7 +965,7 @@ class DegradationModel(Model):
             training = training
         )
 
-        eq_voltage_1 = self.eq_voltage_direct(
+        eq_voltage_1 = calculate_eq_voltage(
             voltage = params['voltage'],
             current = add_volt_dep(params['constant_current'], params),
             resistance = add_volt_dep(resistance, params),
@@ -980,16 +996,16 @@ class DegradationModel(Model):
         return add_volt_dep(q_scale, params) * (q_1 - add_volt_dep(q_0, params))
 
     def cc_voltage(self, params, training = True):
-        norm_constant = self.norm_constant_direct(
+        norm_constant = get_norm_constant(
             features = params['features'], training = training
         )
-        norm_cycle = self.norm_cycle_direct(
+        norm_cycle = get_norm_cycle(
             cycle = params['cycle'],
             norm_constant = norm_constant,
             training = training
         )
 
-        cell_features = self.cell_features_direct(
+        cell_features = get_cell_features(
             features = params['features'], training = training
         )
         encoded_stress = self.stress_to_encoded_direct(
@@ -1031,7 +1047,7 @@ class DegradationModel(Model):
             ),
             training = training
         )
-        eq_voltage_0 = self.eq_voltage_direct(
+        eq_voltage_0 = calculate_eq_voltage(
             voltage = params['end_voltage_prev'],
             current = params['end_current_prev'],
             resistance = resistance,
@@ -1075,16 +1091,16 @@ class DegradationModel(Model):
         return cc_voltage, out_of_bounds_loss
 
     def cv_capacity(self, params, training = True):
-        norm_constant = self.norm_constant_direct(
+        norm_constant = get_norm_constant(
             features = params['features'], training = training
         )
-        norm_cycle = self.norm_cycle_direct(
+        norm_cycle = get_norm_cycle(
             cycle = params['cycle'],
             norm_constant = norm_constant,
             training = training
         )
 
-        cell_features = self.cell_features_direct(
+        cell_features = get_cell_features(
             features = params['features'], training = training
         )
 
@@ -1123,7 +1139,7 @@ class DegradationModel(Model):
             training = training
         )
 
-        eq_voltage_0 = self.eq_voltage_direct(
+        eq_voltage_0 = calculate_eq_voltage(
             voltage = params['end_voltage_prev'],
             current = params['end_current_prev'],
             resistance = resistance,
@@ -1158,7 +1174,7 @@ class DegradationModel(Model):
             training = training
         )
 
-        eq_voltage_1 = self.eq_voltage_direct(
+        eq_voltage_1 = calculate_eq_voltage(
             voltage = add_current_dep(params['end_voltage'], params),
             current = params['cv_current'],
             resistance = add_current_dep(resistance, params),
@@ -1200,18 +1216,6 @@ class DegradationModel(Model):
         return q_scale * (q_1 - add_current_dep(q_0, params))
 
     """ Direct variable methods """
-
-    def norm_constant_direct(self, features, training = True):
-        return features[:, 0:1]
-
-    def cell_features_direct(self, features, training = True):
-        return features[:, 1:]
-
-    def norm_cycle_direct(self, cycle, norm_constant, training = True):
-        return cycle * (1e-10 + tf.exp(-norm_constant))
-
-    def eq_voltage_direct(self, voltage, current, resistance, training = True):
-        return voltage - current * resistance
 
     def pos_projection_direct(self, cell_features, training = True):
         dependencies = (
@@ -1394,7 +1398,7 @@ class DegradationModel(Model):
 
     def v_plus_for_derivative(self, params, training = True):
         v_plus, loss = self.v_plus_direct(
-            cell_features = self.cell_features_direct(
+            cell_features = get_cell_features(
                 features = params['features'],
                 training = training
             ),
@@ -1405,7 +1409,7 @@ class DegradationModel(Model):
 
     def v_minus_for_derivative(self, params, training = True):
         v_m, loss = self.v_minus_direct(
-            cell_features = self.cell_features_direct(
+            cell_features = get_cell_features(
                 features = params['features'],
                 training = training
             ),
@@ -1416,7 +1420,7 @@ class DegradationModel(Model):
 
     def q_for_derivative(self, params, training = True):
         return self.q_direct(
-            cell_features = self.cell_features_direct(
+            cell_features = get_cell_features(
                 features = params['features'],
                 training = training
             ),
@@ -1432,7 +1436,7 @@ class DegradationModel(Model):
             },
             training = training
         )
-        cell_features = self.cell_features_direct(
+        cell_features = get_cell_features(
             features = params['features'],
             training = training
         )
@@ -1467,7 +1471,7 @@ class DegradationModel(Model):
             },
             training = training
         )
-        cell_features = self.cell_features_direct(
+        cell_features = get_cell_features(
             features = params['features'],
             training = training
         )
@@ -1505,7 +1509,7 @@ class DegradationModel(Model):
             },
             training = training
         )
-        cell_features = self.cell_features_direct(
+        cell_features = get_cell_features(
             features = params['features'],
             training = training
         )
@@ -1640,7 +1644,7 @@ class DegradationModel(Model):
             training = training,
             sample = False
         )
-        cell_features = self.cell_features_direct(
+        cell_features = get_cell_features(
             features = features,
             training = training
         )
@@ -1823,7 +1827,7 @@ class DegradationModel(Model):
                 axis = 0
             )
 
-            sampled_cell_features = self.cell_features_direct(
+            sampled_cell_features = get_cell_features(
                 features = sampled_features,
                 training = training
             )
@@ -2354,16 +2358,16 @@ class DegradationModel(Model):
 
         else:
 
-            norm_constant = self.norm_constant_direct(
+            norm_constant = get_norm_constant(
                 features = params['features'], training = training)
 
-            norm_cycle = self.norm_cycle_direct(
+            norm_cycle = get_norm_cycle(
                 cycle = params['cycle'],
                 norm_constant = norm_constant,
                 training = training
             )
 
-            cell_features = self.cell_features_direct(
+            cell_features = get_cell_features(
                 features = params['features'], training = training)
 
             encoded_stress = self.stress_to_encoded_direct(

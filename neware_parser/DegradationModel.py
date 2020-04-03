@@ -865,6 +865,86 @@ class DegradationModel(Model):
         return features_cell, loss, features_pos, features_neg,\
                fetched_latent_cell
 
+        # and all cell features)
+        n_sample = 4 * 32
+        sampled_voltages = tf.random.uniform(
+            minval = 2.5,
+            maxval = 5.,
+            shape = [n_sample, 1]
+        )
+        sampled_qs = tf.random.uniform(
+            minval = -.25,
+            maxval = 1.25,
+            shape = [n_sample, 1]
+        )
+        sampled_cycles = tf.random.uniform(
+            minval = -10.,
+            maxval = 10.,
+            shape = [n_sample, 1]
+        )
+        sampled_constant_current = tf.random.uniform(
+            minval = 0.001,
+            maxval = 10.,
+            shape = [n_sample, 1]
+        )
+        sampled_features, _, sampled_pos, sampled_neg, sampled_latent =\
+            self.z_cell_from_indices(
+                indices = tf.random.uniform(
+                    maxval = self.cell_direct.num_keys,
+                    shape = [n_sample],
+                    dtype = tf.int32,
+                ),
+                training = False,
+                sample = True
+            )
+        sampled_features = tf.stop_gradient(sampled_features)
+
+        sampled_shift = tf.random.uniform(
+            minval = -.5,
+            maxval = .5,
+            shape = [n_sample, 1]
+        )
+        sampled_svit_grid = tf.gather(
+            svit_grid,
+            indices = tf.random.uniform(
+                minval = 0,
+                maxval = batch_count,
+                shape = [n_sample],
+                dtype = tf.int32,
+            ),
+            axis = 0
+        )
+        sampled_count_matrix = tf.gather(
+            count_matrix,
+            indices = tf.random.uniform(
+                minval = 0,
+                maxval = batch_count,
+                shape = [n_sample],
+                dtype = tf.int32,
+            ),
+            axis = 0
+        )
+
+        sampled_cell_features = get_cell_features(
+            features = sampled_features
+        )
+
+        return (
+            sampled_voltages,
+            sampled_qs,
+            sampled_cycles,
+            sampled_constant_current,
+            sampled_features,
+            sampled_pos,
+            sampled_neg,
+            sampled_latent,
+            sampled_features,
+            sampled_shift,
+            sampled_svit_grid,
+            sampled_count_matrix,
+            sampled_cell_features,
+        )
+
     # TODO (Harvey): Group general/direct/derivative functions sensibly
     # (new Classes?)
 
@@ -1710,70 +1790,22 @@ class DegradationModel(Model):
             )
             pred_cc_voltage = tf.reshape(cc_voltage, [-1, voltage_count])
 
-            # NOTE(sam): this is an example of a forall. (for all voltages,
-            # and all cell features)
-            n_sample = 4 * 32
-            sampled_voltages = tf.random.uniform(
-                minval = 2.5,
-                maxval = 5.,
-                shape = [n_sample, 1]
-            )
-            sampled_qs = tf.random.uniform(
-                minval = -.25,
-                maxval = 1.25,
-                shape = [n_sample, 1]
-            )
-            sampled_cycles = tf.random.uniform(
-                minval = -10.,
-                maxval = 10.,
-                shape = [n_sample, 1]
-            )
-            sampled_constant_current = tf.random.uniform(
-                minval = 0.001,
-                maxval = 10.,
-                shape = [n_sample, 1]
-            )
-            sampled_features, _, sampled_pos, sampled_neg, sampled_latent =\
-                self.z_cell_from_indices(
-                    indices = tf.random.uniform(
-                        maxval = self.cell_direct.num_keys,
-                        shape = [n_sample],
-                        dtype = tf.int32,
-                    ),
-                    training = False,
-                    sample = True
-                )
-            sampled_features = tf.stop_gradient(sampled_features)
+            (
+                sampled_voltages,
+                sampled_qs,
+                sampled_cycles,
+                sampled_constant_current,
+                sampled_features,
+                sampled_pos,
+                sampled_neg,
+                sampled_latent,
+                sampled_features,
+                sampled_shift,
+                sampled_svit_grid,
+                sampled_count_matrix,
+                sampled_cell_features,
+            ) = self.sample(svit_grid, batch_count, count_matrix)
 
-            sampled_shift = tf.random.uniform(
-                minval = -.5,
-                maxval = .5,
-                shape = [n_sample, 1]
-            )
-            sampled_svit_grid = tf.gather(
-                svit_grid,
-                indices = tf.random.uniform(
-                    minval = 0,
-                    maxval = batch_count,
-                    shape = [n_sample],
-                    dtype = tf.int32,
-                ),
-                axis = 0
-            )
-            sampled_count_matrix = tf.gather(
-                count_matrix,
-                indices = tf.random.uniform(
-                    minval = 0,
-                    maxval = batch_count,
-                    shape = [n_sample],
-                    dtype = tf.int32,
-                ),
-                axis = 0
-            )
-
-            sampled_cell_features = get_cell_features(
-                features = sampled_features
-            )
             predicted_pos = self.pos_projection_direct(
                 cell_features = sampled_cell_features,
                 training = training

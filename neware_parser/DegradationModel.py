@@ -322,7 +322,7 @@ class DegradationModel(Model):
 
         for cell_id in self.cell_direct.id_dict.keys():
             if cell_id in cell_latent_flags.keys():
-                latent_flags[self.cell_direct.id_dict[cell_id], 0] = \
+                latent_flags[self.cell_direct.id_dict[cell_id], 0] =\
                     cell_latent_flags[cell_id]
 
         self.cell_latent_flags = tf.constant(latent_flags)
@@ -333,13 +333,13 @@ class DegradationModel(Model):
 
         for cell_id in self.cell_direct.id_dict.keys():
             if cell_id in cell_to_pos.keys():
-                cell_pointers[self.cell_direct.id_dict[cell_id], 0] = \
+                cell_pointers[self.cell_direct.id_dict[cell_id], 0] =\
                     pos_dict[cell_to_pos[cell_id]]
             if cell_id in cell_to_neg.keys():
-                cell_pointers[self.cell_direct.id_dict[cell_id], 1] = \
+                cell_pointers[self.cell_direct.id_dict[cell_id], 1] =\
                     neg_dict[cell_to_neg[cell_id]]
             if cell_id in cell_to_electrolyte.keys():
-                cell_pointers[self.cell_direct.id_dict[cell_id], 2] = \
+                cell_pointers[self.cell_direct.id_dict[cell_id], 2] =\
                     electrolyte_dict[cell_to_electrolyte[cell_id]]
 
         self.cell_pointers = tf.constant(cell_pointers)
@@ -422,8 +422,8 @@ class DegradationModel(Model):
         self.n_channels = n_channels
 
     def z_cell_from_indices(
-        self, indices,
-        training = True, sample = False, compute_derivatives = False
+        self,
+        indices, training = True, sample = False, compute_derivatives = False
     ):
 
         features_cell_direct, loss_cell = self.cell_direct(
@@ -459,12 +459,12 @@ class DegradationModel(Model):
             sample = sample
         )
 
-        features_electrolyte_direct, loss_electrolyte_direct = \
-            self.electrolyte_direct(
-                electrolyte_indices,
-                training = training,
-                sample = sample
-            )
+        features_electrolyte_direct, loss_electrolyte_direct\
+            = self.electrolyte_direct(
+            electrolyte_indices,
+            training = training,
+            sample = sample
+        )
 
         fetched_latent_electrolyte = tf.gather(
             self.electrolyte_latent_flags,
@@ -813,7 +813,7 @@ class DegradationModel(Model):
         else:
             loss = 0.
 
-        return features_cell, loss, features_pos, features_neg, \
+        return features_cell, loss, features_pos, features_neg,\
                fetched_latent_cell
 
     # Begin: nn application functions ==========================================
@@ -835,33 +835,31 @@ class DegradationModel(Model):
         return nn_call(self.nn_neg_projection, dependencies,
                        training = training)
 
-    def v_plus_direct(self, Q, cell_features, training = True):
+    def v_plus_direct(self, q, cell_features, training = True):
         pos_cell_features = self.pos_projection_direct(
             cell_features = cell_features,
             training = training
         )
         dependencies = (
-            Q,
+            q,
             pos_cell_features
         )
 
-        out_of_bound_loss = incentive_combine(
-            [
-                (1.,
-                 incentive_inequality(
-                     Q, Inequality.LessThan, 1.,
-                     Level.Strong
-                 )),
-                (1.,
-                 incentive_inequality(
-                     Q, Inequality.GreaterThan, 0.,
-                     Level.Strong
-                 )
-                 ),
-            ]
-        )
-        return nn_call(self.nn_v_plus, dependencies,
-                       training = training), out_of_bound_loss
+        out_of_bound_loss = incentive_combine([
+            (
+                1.,
+                incentive_inequality(q, Inequality.LessThan, 1., Level.Strong)
+            ),
+            (
+                1.,
+                incentive_inequality(
+                    q, Inequality.GreaterThan, 0., Level.Strong
+                )
+            ),
+        ])
+        return nn_call(
+            self.nn_v_plus, dependencies, training = training
+        ), out_of_bound_loss
 
     def v_plus_for_derivative(self, params, training = True):
         v_p, loss = self.v_plus_direct(
@@ -869,7 +867,7 @@ class DegradationModel(Model):
                 features = params['features'],
                 training = training
             ),
-            Q = params['Q'],
+            q = params['Q'],
             training = training
         )
         return v_p
@@ -880,12 +878,12 @@ class DegradationModel(Model):
                 features = params['features'],
                 training = training
             ),
-            Q = params['Q'],
+            q = params['Q'],
             training = training
         )
         return v_m
 
-    def v_minus_direct(self, Q, cell_features, training = True):
+    def v_minus_direct(self, q, cell_features, training = True):
         neg_cell_features = self.neg_projection_direct(
             cell_features = cell_features,
             training = training
@@ -895,12 +893,12 @@ class DegradationModel(Model):
             [
                 (1.,
                  incentive_inequality(
-                     Q, Inequality.LessThan, 1.,
+                     q, Inequality.LessThan, 1.,
                      Level.Strong
                  )),
                 (1.,
                  incentive_inequality(
-                     Q, Inequality.GreaterThan, 0.,
+                     q, Inequality.GreaterThan, 0.,
                      Level.Strong
                  )
                  ),
@@ -908,26 +906,26 @@ class DegradationModel(Model):
         )
 
         dependencies = (
-            Q,
+            q,
             neg_cell_features
         )
 
         return nn_call(self.nn_v_minus, dependencies,
                        training = training), out_of_bound_loss
 
-    def v_direct(self, Q, shift, cell_features, training = True):
-        V_plus, loss_plus = self.v_plus_direct(
-            Q = Q,
+    def v_direct(self, q, shift, cell_features, training = True):
+        v_plus, loss_plus = self.v_plus_direct(
+            q = q,
             cell_features = cell_features,
             training = training
         )
-        V_minus, loss_minus = self.v_minus_direct(
-            Q = (Q - shift),
+        v_minus, loss_minus = self.v_minus_direct(
+            q = (q - shift),
             cell_features = cell_features,
             training = training
         )
 
-        return V_plus - V_minus, loss_minus + loss_plus
+        return v_plus - v_minus, loss_minus + loss_plus
 
     def q_direct(self, voltage, shift, cell_features, training = True):
         pos_cell_features = self.pos_projection_direct(
@@ -958,8 +956,9 @@ class DegradationModel(Model):
             tf.abs(current),
             cell_features
         )
-        return nn_call(self.nn_shift_strainless, dependencies,
-                       training = training)
+        return nn_call(
+            self.nn_shift_strainless, dependencies, training = training
+        )
 
     def r_strainless_direct(self, cell_features, training = True):
         dependencies = (
@@ -969,8 +968,9 @@ class DegradationModel(Model):
         return tf.nn.elu(
             nn_call(self.nn_r_strainless, dependencies, training = training))
 
-    def q_scale_direct(self, strain, current, q_scale_strainless,
-                       training = True):
+    def q_scale_direct(
+        self, strain, current, q_scale_strainless, training = True
+    ):
         dependencies = (
             strain,
             # tf.abs(current),
@@ -1152,7 +1152,7 @@ class DegradationModel(Model):
     def reciprocal_q(self, params, training = True):
         cell_features = self.cell_features_direct(features = params['features'],
                                                   training = training)
-        V, out_of_bounds_loss = self.v_direct(Q = params['Q'],
+        V, out_of_bounds_loss = self.v_direct(q = params['Q'],
                                               shift = params['shift'],
                                               cell_features = cell_features,
                                               training = training)
@@ -1165,7 +1165,7 @@ class DegradationModel(Model):
                                                   training = training)
         q = self.q_direct(voltage = params['voltage'], shift = params['shift'],
                           cell_features = cell_features, training = training)
-        return self.v_direct(Q = q, shift = params['shift'],
+        return self.v_direct(q = q, shift = params['shift'],
                              cell_features = cell_features, training = training)
 
     def cc_capacity(self, params, training = True):
@@ -1365,7 +1365,7 @@ class DegradationModel(Model):
         )
 
         voltage, out_of_bounds_loss = self.v_direct(
-            Q = q_over_q + self.add_volt_dep(q_0, params),
+            q = q_over_q + self.add_volt_dep(q_0, params),
             shift = self.add_volt_dep(shift_1, params),
             cell_features = self.add_volt_dep(
                 cell_features,
@@ -1613,9 +1613,9 @@ class DegradationModel(Model):
         :param training:
         :return:
         returns a dictionary containing keys:
-            - 'V_plus': a 1-D matrix such that V_plus[j]
+            - 'v_plus': a 1-D matrix such that v_plus[j]
                       corresponds to Q[j]
-            - 'V_minus': a 2-D matrix such that V_minus[i][j]
+            - 'v_minus': a 2-D matrix such that v_minus[i][j]
                       corresponds to shift[i] and Q[j]
             - 'V': a 2-D matrix such that V[i][j]
                       corresponds to shift[i] and Q[j]
@@ -1638,12 +1638,12 @@ class DegradationModel(Model):
             training = training
         )
 
-        V_plus, _ = self.v_plus_direct(
-            Q = tf.reshape(Q, [-1, 1]),
+        v_plus, _ = self.v_plus_direct(
+            q = tf.reshape(Q, [-1, 1]),
             cell_features = tf.tile(cell_features, [Q.shape[0], 1]),
             training = training
         )
-        V_plus = tf.reshape(V_plus, [-1])
+        v_plus = tf.reshape(v_plus, [-1])
 
         Q_big = tf.reshape(
             tf.tile(tf.reshape(Q, [1, -1, 1]), [shift.shape[0], 1, 1]), [-1, 1])
@@ -1654,16 +1654,16 @@ class DegradationModel(Model):
             tf.tile(tf.reshape(cell_features, [1, 1, -1]),
                     [shift.shape[0], Q.shape[0], 1]),
             [-1, cell_features.shape[1]])
-        V_minus, _ = self.v_minus_direct(
-            Q = Q_big - shift_big,
+        v_minus, _ = self.v_minus_direct(
+            q = Q_big - shift_big,
             cell_features = cell_features_big,
             training = training
         )
 
-        V_minus = tf.reshape(V_minus, [shift.shape[0], Q.shape[0]])
+        v_minus = tf.reshape(v_minus, [shift.shape[0], Q.shape[0]])
 
         V, _ = self.v_direct(
-            Q = Q_big,
+            q = Q_big,
             shift = shift_big,
             cell_features = cell_features_big,
             training = training,
@@ -1692,8 +1692,8 @@ class DegradationModel(Model):
         Q = tf.reshape(Q, [shift.shape[0], voltage.shape[0]])
 
         return {
-            'V_plus': V_plus,
-            'V_minus': V_minus,
+            'v_plus': v_plus,
+            'v_minus': v_minus,
             'V': V,
             'Q': Q,
         }
@@ -1780,7 +1780,7 @@ class DegradationModel(Model):
                 shape = [n_sample, 1]
             )
 
-            sampled_features, _, sampled_pos, sampled_neg, sampled_latent = \
+            sampled_features, _, sampled_pos, sampled_neg, sampled_latent =\
                 self.z_cell_from_indices(
                     indices = tf.random.uniform(
                         maxval = self.cell_direct.num_keys,
@@ -2458,7 +2458,7 @@ class PrimitiveDictionaryLayer(Layer):
             eps = tf.random.normal(
                 shape = [input.shape[0], self.num_features]
             )
-            fetched_features=fetched_features + self.sample_epsilon * eps
+            fetched_features = fetched_features + self.sample_epsilon * eps
 
         return fetched_features, features_loss
 

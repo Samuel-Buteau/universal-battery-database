@@ -170,17 +170,11 @@ def plot_vq(plot_params, init_returns):
 
                     if mode == 'cc':
                         vq_mask = barcode_k['cc_mask_vector'][vq_count]
-                    elif mode == 'cv':
-                        vq_mask = barcode_k['cv_mask_vector'][vq_count]
-
-                    if mode == 'cc':
                         y_axis = barcode_k['cc_voltage_vector'][vq_count]
-                    elif mode == 'cv':
-                        y_axis = barcode_k['cv_current_vector'][vq_count]
-
-                    if mode == 'cc':
                         y_lim = [2.95, 4.35]
                     elif mode == 'cv':
+                        vq_mask = barcode_k['cv_mask_vector'][vq_count]
+                        y_axis = barcode_k['cv_current_vector'][vq_count]
                         y_lim = [
                             min([key[2] for key in list_of_keys]) - 0.05,
                             0.05 + max([key[0] for key in list_of_keys])

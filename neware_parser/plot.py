@@ -271,7 +271,9 @@ def plot_vq(plot_params, init_returns):
                 handles = list_of_patches, fontsize = 'small',
                 bbox_to_anchor = (x_leg, y_leg), loc = 'upper left'
             )
+            ax.set_ylabel(typ + "-" + mode)
 
+        axs[2].set_xlabel("pred_cap")
         fig.tight_layout()
         fig.subplots_adjust(hspace = 0)
         savefig('VQ_{}_Count_{}.png', fit_args, barcode, count)
@@ -369,7 +371,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
             list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
 
             ax1 = fig.add_subplot(6, 1, 1 + off)
-            ax1.set_ylabel("capacity")
+            ax1.set_ylabel(mode + "-" + typ + "-capacity")
 
             plot_measured()
             plot_predicted()

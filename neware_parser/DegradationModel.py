@@ -128,13 +128,11 @@ def print_cell_info(
         print()
 
 
+# add voltage dependence ([cyc] -> [cyc, vol])
 def add_volt_dep(thing, params, dim = 1):
     return tf.reshape(
         tf.tile(
-            tf.expand_dims(
-                thing,
-                axis = 1
-            ),
+            tf.expand_dims(thing, axis = 1),
             [1, params["voltage_count"], 1]
         ),
         [params["batch_count"] * params["voltage_count"], dim]
@@ -144,10 +142,7 @@ def add_volt_dep(thing, params, dim = 1):
 def add_current_dep(thing, params, dim = 1):
     return tf.reshape(
         tf.tile(
-            tf.expand_dims(
-                thing,
-                axis = 1
-            ),
+            tf.expand_dims(thing, axis = 1),
             [1, params["current_count"], 1]
         ),
         [params["batch_count"] * params["current_count"], dim]
@@ -1504,8 +1499,6 @@ class DegradationModel(Model):
             r_strainless = strainless,
             training = training
         )
-
-    # add voltage dependence ([cyc] -> [cyc, vol])
 
     def get_v_curves(self, barcode, shift, voltage, q):
         """

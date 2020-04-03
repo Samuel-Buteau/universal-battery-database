@@ -1342,7 +1342,8 @@ class DegradationModel(Model):
             q_scale_strainless,
         )
         return tf.nn.elu(
-            nn_call(self.nn_q_scale, dependencies, training = training))
+            nn_call(self.nn_q_scale, dependencies, training = training)
+        )
 
     def shift_direct(self, strain, current, shift_strainless, training = True):
         dependencies = (

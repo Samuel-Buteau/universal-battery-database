@@ -446,12 +446,12 @@ class DegradationModel(Model):
             sample = sample
         )
 
-        features_electrolyte_direct, loss_electrolyte_direct\
-            = self.electrolyte_direct(
-            electrolyte_indices,
-            training = training,
-            sample = sample
-        )
+        features_electrolyte_direct, loss_electrolyte_direct =\
+            self.electrolyte_direct(
+                electrolyte_indices,
+                training = training,
+                sample = sample
+            )
 
         fetched_latent_electrolyte = tf.gather(
             self.electrolyte_latent_flags,
@@ -753,12 +753,12 @@ class DegradationModel(Model):
                 loss_derivative_electrolyte_indirect
             )
 
-            loss_input_cell_indirect = ((1. - fetched_latent_cell) * loss_pos +
-                                        (1. - fetched_latent_cell) * loss_neg +
-                                        (
-                                            1. - fetched_latent_cell) *
-                                        loss_electrolyte
-                                        )
+            loss_input_cell_indirect = (
+                (1. - fetched_latent_cell) * loss_pos +
+                (1. - fetched_latent_cell) * loss_neg +
+                (1. - fetched_latent_cell) *
+                loss_electrolyte
+            )
 
             if compute_derivatives:
                 l_pos = incentive_magnitude(
@@ -778,9 +778,7 @@ class DegradationModel(Model):
                 )
                 mult = (1. - tf.reshape(fetched_latent_cell, [-1, 1, 1]))
                 loss_derivative_cell_indirect = (
-                    mult * l_pos +
-                    mult * l_neg +
-                    mult * l_electrolyte
+                    mult * l_pos + mult * l_neg + mult * l_electrolyte
                 )
             else:
                 loss_derivative_cell_indirect = 0.

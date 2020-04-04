@@ -886,28 +886,6 @@ class DegradationModel(Model):
 
     """ General variable methods """
 
-    def reciprocal_q(self, params, training = True):
-        cell_features = get_cell_features(features = params['features'])
-        v, out_of_bounds_loss = self.v_direct(
-            q = params['q'], shift = params['shift'],
-            cell_features = cell_features, training = training
-        )
-        return self.q_direct(
-            voltage = v, shift = params['shift'],
-            cell_features = cell_features, training = training
-        ), out_of_bounds_loss
-
-    def reciprocal_v(self, params, training = True):
-        cell_features = get_cell_features(features = params['features'])
-        q = self.q_direct(
-            voltage = params['voltage'], shift = params['shift'],
-            cell_features = cell_features, training = training
-        )
-        return self.v_direct(
-            q = q, shift = params['shift'],
-            cell_features = cell_features, training = training
-        )
-
     def cc_capacity(self, params, training = True):
 
         norm_cycle = get_norm_cycle_direct(
@@ -1202,6 +1180,79 @@ class DegradationModel(Model):
 
         return q_scale * (q_1 - add_current_dep(q_0, params))
 
+    def reciprocal_q(self, params, training = True):
+        cell_features = get_cell_features(features = params['features'])
+        v, out_of_bounds_loss = self.v_direct(
+            q = params['q'], shift = params['shift'],
+            cell_features = cell_features, training = training
+        )
+        return self.q_direct(
+            voltage = v, shift = params['shift'],
+            cell_features = cell_features, training = training
+        ), out_of_bounds_loss
+
+    def reciprocal_v(self, params, training = True):
+        cell_features = get_cell_features(features = params['features'])
+        q = self.q_direct(
+            voltage = params['voltage'], shift = params['shift'],
+            cell_features = cell_features, training = training
+        )
+        return self.v_direct(
+            q = q, shift = params['shift'],
+            cell_features = cell_features, training = training
+        )
+
+    """ Strainless direct variable methods """
+
+    def q_scale_strainless_direct(self, cell_features, training = True):
+        dependencies = (
+            cell_features
+        )
+        return tf.nn.elu(nn_call(
+            self.nn_q_scale_strainless, dependencies, training = training)
+        )
+
+    def r_strainless_direct(self, cell_features, training = True):
+        dependencies = (
+            cell_features,
+        )
+
+        return tf.nn.elu(
+            nn_call(self.nn_r_strainless, dependencies, training = training))
+
+    def shift_strainless_direct(self, current, cell_features, training = True):
+        dependencies = (
+            tf.abs(current),
+            cell_features
+        )
+        return nn_call(
+            self.nn_shift_strainless, dependencies, training = training
+        )
+
+    """ Stress variable methods """
+
+    def stress_to_strain_direct(
+        self, norm_cycle, cell_features, encoded_stress
+    ):
+        dependencies = (
+            norm_cycle,
+            cell_features,
+            encoded_stress,
+        )
+
+        return nn_call(self.nn_strain, dependencies)
+
+    def stress_to_encoded_direct(
+        self, svit_grid, count_matrix, training = True
+    ):
+        return self.stress_to_encoded_layer(
+            (
+                svit_grid,
+                count_matrix,
+            ),
+            training = training
+        )
+
     """ Direct variable methods """
 
     def pos_projection_direct(self, cell_features, training = True):
@@ -1219,6 +1270,50 @@ class DegradationModel(Model):
         return nn_call(
             self.nn_neg_projection, dependencies, training = training
         )
+
+    def r_direct(self, strain, r_strainless, training = True):
+        dependencies = (
+            strain,
+            r_strainless,
+        )
+        return tf.nn.elu(nn_call(self.nn_r, dependencies, training = training))
+
+    def q_scale_direct(
+        self, strain, current, q_scale_strainless, training = True
+    ):
+        dependencies = (
+            strain,
+            # tf.abs(current),
+            q_scale_strainless,
+        )
+        return tf.nn.elu(
+            nn_call(self.nn_q_scale, dependencies, training = training)
+        )
+
+    def q_direct(self, voltage, shift, cell_features, training = True):
+        pos_cell_features = self.pos_projection_direct(
+            cell_features = cell_features,
+            training = training
+        )
+        neg_cell_features = self.neg_projection_direct(
+            cell_features = cell_features,
+            training = training
+        )
+        dependencies = (
+            voltage,
+            shift,
+            pos_cell_features,
+            neg_cell_features
+        )
+        return tf.nn.elu(nn_call(self.nn_q, dependencies, training = training))
+
+    def shift_direct(self, strain, current, shift_strainless, training = True):
+        dependencies = (
+            strain,
+            tf.abs(current),
+            shift_strainless
+        )
+        return nn_call(self.nn_shift, dependencies, training = training)
 
     def v_plus_direct(self, q, cell_features, training = True):
         pos_cell_features = self.pos_projection_direct(
@@ -1291,97 +1386,6 @@ class DegradationModel(Model):
 
         return v_plus - v_minus, loss_minus + loss_plus
 
-    def q_direct(self, voltage, shift, cell_features, training = True):
-        pos_cell_features = self.pos_projection_direct(
-            cell_features = cell_features,
-            training = training
-        )
-        neg_cell_features = self.neg_projection_direct(
-            cell_features = cell_features,
-            training = training
-        )
-        dependencies = (
-            voltage,
-            shift,
-            pos_cell_features,
-            neg_cell_features
-        )
-        return tf.nn.elu(nn_call(self.nn_q, dependencies, training = training))
-
-    def q_scale_strainless_direct(self, cell_features, training = True):
-        dependencies = (
-            cell_features
-        )
-        return tf.nn.elu(nn_call(
-            self.nn_q_scale_strainless, dependencies, training = training)
-        )
-
-    def shift_strainless_direct(self, current, cell_features, training = True):
-        dependencies = (
-            tf.abs(current),
-            cell_features
-        )
-        return nn_call(
-            self.nn_shift_strainless, dependencies, training = training
-        )
-
-    def r_strainless_direct(self, cell_features, training = True):
-        dependencies = (
-            cell_features,
-        )
-
-        return tf.nn.elu(
-            nn_call(self.nn_r_strainless, dependencies, training = training))
-
-    def q_scale_direct(
-        self, strain, current, q_scale_strainless, training = True
-    ):
-        dependencies = (
-            strain,
-            # tf.abs(current),
-            q_scale_strainless,
-        )
-        return tf.nn.elu(
-            nn_call(self.nn_q_scale, dependencies, training = training)
-        )
-
-    def shift_direct(self, strain, current, shift_strainless, training = True):
-        dependencies = (
-            strain,
-            tf.abs(current),
-            shift_strainless
-        )
-        return nn_call(self.nn_shift, dependencies, training = training)
-
-    def r_direct(self, strain, r_strainless, training = True):
-        dependencies = (
-            strain,
-            r_strainless,
-        )
-        return tf.nn.elu(nn_call(self.nn_r, dependencies, training = training))
-
-    def stress_to_strain_direct(
-        self, norm_cycle, cell_features, encoded_stress
-    ):
-        dependencies = (
-            norm_cycle,
-            cell_features,
-            encoded_stress,
-        )
-
-        return nn_call(self.nn_strain, dependencies)
-
-    def stress_to_encoded_direct(
-        self, svit_grid, count_matrix, training = True
-    ):
-        return self.stress_to_encoded_layer(
-            (
-                svit_grid,
-                count_matrix,
-            ),
-            training = training
-        )
-
     """ For derivative variable methods """
 
     def v_plus_for_derivative(self, params, training = True):
@@ -1405,6 +1409,37 @@ class DegradationModel(Model):
             cell_features = get_cell_features(features = params['features']),
             voltage = params['voltage'],
             shift = params['shift']
+        )
+
+    def r_for_derivative(self, params, training = True):
+        norm_cycle = get_norm_cycle(
+            params = {
+                'cycle': params['cycle'],
+                'features': params['features']
+            }
+        )
+        cell_features = get_cell_features(features = params['features'])
+
+        strainless = self.r_strainless_direct(
+            cell_features = cell_features,
+            training = training
+        )
+
+        encoded_stress = self.stress_to_encoded_direct(
+            svit_grid = params['svit_grid'],
+            count_matrix = params['count_matrix'],
+        )
+
+        strain = self.stress_to_strain_direct(
+            norm_cycle = norm_cycle,
+            cell_features = cell_features,
+            encoded_stress = encoded_stress
+        )
+
+        return self.r_direct(
+            strain = strain,
+            r_strainless = strainless,
+            training = training
         )
 
     def q_scale_for_derivative(self, params, training = True):
@@ -1467,37 +1502,6 @@ class DegradationModel(Model):
             strain = strain,
             current = params['current'],
             shift_strainless = strainless,
-            training = training
-        )
-
-    def r_for_derivative(self, params, training = True):
-        norm_cycle = get_norm_cycle(
-            params = {
-                'cycle': params['cycle'],
-                'features': params['features']
-            }
-        )
-        cell_features = get_cell_features(features = params['features'])
-
-        strainless = self.r_strainless_direct(
-            cell_features = cell_features,
-            training = training
-        )
-
-        encoded_stress = self.stress_to_encoded_direct(
-            svit_grid = params['svit_grid'],
-            count_matrix = params['count_matrix'],
-        )
-
-        strain = self.stress_to_strain_direct(
-            norm_cycle = norm_cycle,
-            cell_features = cell_features,
-            encoded_stress = encoded_stress
-        )
-
-        return self.r_direct(
-            strain = strain,
-            r_strainless = strainless,
             training = training
         )
 

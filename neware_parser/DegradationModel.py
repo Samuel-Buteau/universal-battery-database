@@ -976,6 +976,7 @@ class DegradationModel(Model):
 
         return add_volt_dep(q_scale, params) * (q_1 - add_volt_dep(q_0, params))
 
+    # NOTE: ONLY USED DURING TRAINING RIGHT NOW
     def cc_voltage(self, params, training = True):
         norm_constant = get_norm_constant(features = params['features'])
         norm_cycle = get_norm_cycle_direct(
@@ -993,25 +994,24 @@ class DegradationModel(Model):
             cell_features = cell_features,
             encoded_stress = encoded_stress
         )
-        q_scale_strainless = self.q_scale_strainless_direct(
-            cell_features = cell_features,
-            training = training
-        )
-        shift_0_strainless = self.shift_strainless_direct(
-            current = params['end_current_prev'],
-            cell_features = cell_features,
-            training = training
-        )
+
         q_scale = self.q_scale_direct(
             strain = strain,
             current = params['constant_current'],
-            q_scale_strainless = q_scale_strainless,
+            q_scale_strainless = self.q_scale_strainless_direct(
+                cell_features = cell_features,
+                training = training
+            ),
             training = training
         )
         shift_0 = self.shift_direct(
             strain = strain,
             current = params['end_current_prev'],
-            shift_strainless = shift_0_strainless,
+            shift_strainless = self.shift_strainless_direct(
+                current = params['end_current_prev'],
+                cell_features = cell_features,
+                training = training
+            ),
             training = training
         )
         resistance = self.r_direct(
@@ -1036,24 +1036,22 @@ class DegradationModel(Model):
         q_over_q = tf.reshape(params['cc_capacity'], [-1, 1]) / (
             1e-5 + tf.abs(add_volt_dep(q_scale, params))
         )
-        shift_1_strainless = self.shift_strainless_direct(
-            current = params['constant_current'],
-            cell_features = cell_features,
-            training = training
-        )
+
         shift_1 = self.shift_direct(
             strain = strain,
             current = params['constant_current'],
-            shift_strainless = shift_1_strainless,
+            shift_strainless = self.shift_strainless_direct(
+                current = params['constant_current'],
+                cell_features = cell_features,
+                training = training
+            ),
             training = training
         )
         voltage, out_of_bounds_loss = self.v_direct(
             q = q_over_q + add_volt_dep(q_0, params),
             shift = add_volt_dep(shift_1, params),
             cell_features = add_volt_dep(
-                cell_features,
-                params,
-                cell_features.shape[1]
+                cell_features, params, cell_features.shape[1]
             ),
             training = training
         )
@@ -1072,37 +1070,32 @@ class DegradationModel(Model):
 
         cell_features = get_cell_features(features = params['features'])
 
-        encoded_stress = self.stress_to_encoded_direct(
-            svit_grid = params['svit_grid'],
-            count_matrix = params['count_matrix'],
-        )
-
         strain = self.stress_to_strain_direct(
             norm_cycle = norm_cycle,
             cell_features = cell_features,
-            encoded_stress = encoded_stress
+            encoded_stress = self.stress_to_encoded_direct(
+                svit_grid = params['svit_grid'],
+                count_matrix = params['count_matrix'],
+            )
         )
 
-        cc_shift_strainless = self.shift_strainless_direct(
-            current = params['end_current_prev'],
-            cell_features = cell_features,
-            training = training
-        )
         cc_shift = self.shift_direct(
             strain = strain,
             current = params['end_current_prev'],
-            shift_strainless = cc_shift_strainless,
-            training = training
-        )
-
-        resistance_strainless = self.r_strainless_direct(
-            cell_features = cell_features,
+            shift_strainless = self.shift_strainless_direct(
+                current = params['end_current_prev'],
+                cell_features = cell_features,
+                training = training
+            ),
             training = training
         )
 
         resistance = self.r_direct(
             strain = strain,
-            r_strainless = resistance_strainless,
+            r_strainless = self.r_strainless_direct(
+                cell_features = cell_features,
+                training = training
+            ),
             training = training
         )
 
@@ -1121,20 +1114,15 @@ class DegradationModel(Model):
 
         # NOTE (sam): if there truly is no dependency on current for q_scale,
         # then we can restructure the code below.
-        q_scale_strainless = self.q_scale_strainless_direct(
-            cell_features = cell_features,
-            training = training
-        )
 
         q_scale = self.q_scale_direct(
-            strain = add_current_dep(
-                strain,
-                params,
-                strain.shape[1]
-            ),
+            strain = add_current_dep(strain, params, strain.shape[1]),
             current = params['cv_current'],
             q_scale_strainless = add_current_dep(
-                q_scale_strainless,
+                self.q_scale_strainless_direct(
+                    cell_features = cell_features,
+                    training = training
+                ),
                 params
             ),
             training = training
@@ -1146,24 +1134,16 @@ class DegradationModel(Model):
             resistance = add_current_dep(resistance, params),
         )
 
-        cv_shift_strainless = self.shift_strainless_direct(
-            current = params['cv_current'],
-            cell_features = add_current_dep(
-                cell_features,
-                params,
-                cell_features.shape[1]
-            ),
-            training = training
-        )
-
         cv_shift = self.shift_direct(
-            add_current_dep(
-                strain,
-                params,
-                strain.shape[1]
-            ),
+            add_current_dep(strain, params, strain.shape[1]),
             current = params['cv_current'],
-            shift_strainless = cv_shift_strainless,
+            shift_strainless = self.shift_strainless_direct(
+                current = params['cv_current'],
+                cell_features = add_current_dep(
+                    cell_features, params, cell_features.shape[1]
+                ),
+                training = training
+            ),
             training = training
         )
 
@@ -1171,9 +1151,7 @@ class DegradationModel(Model):
             voltage = eq_voltage_1,
             shift = cv_shift,
             cell_features = add_current_dep(
-                cell_features,
-                params,
-                cell_features.shape[1]
+                cell_features, params, cell_features.shape[1]
             ),
             training = training
         )
@@ -1347,21 +1325,18 @@ class DegradationModel(Model):
             training = training
         )
 
-        out_of_bound_loss = incentive_combine(
-            [
-                (1.,
-                 incentive_inequality(
-                     q, Inequality.LessThan, 1.,
-                     Level.Strong
-                 )),
-                (1.,
-                 incentive_inequality(
-                     q, Inequality.GreaterThan, 0.,
-                     Level.Strong
-                 )
-                 ),
-            ]
-        )
+        out_of_bound_loss = incentive_combine([
+            (
+                1.,
+                incentive_inequality(q, Inequality.LessThan, 1., Level.Strong)
+            ),
+            (
+                1.,
+                incentive_inequality(
+                    q, Inequality.GreaterThan, 0., Level.Strong
+                )
+            ),
+        ])
 
         dependencies = (
             q,
@@ -1413,10 +1388,7 @@ class DegradationModel(Model):
 
     def r_for_derivative(self, params, training = True):
         norm_cycle = get_norm_cycle(
-            params = {
-                'cycle': params['cycle'],
-                'features': params['features']
-            }
+            params = {'cycle': params['cycle'], 'features': params['features']}
         )
         cell_features = get_cell_features(features = params['features'])
 
@@ -1444,10 +1416,7 @@ class DegradationModel(Model):
 
     def q_scale_for_derivative(self, params, training = True):
         norm_cycle = get_norm_cycle(
-            params = {
-                'cycle': params['cycle'],
-                'features': params['features']
-            }
+            params = {'cycle': params['cycle'], 'features': params['features']}
         )
         cell_features = get_cell_features(features = params['features'])
 

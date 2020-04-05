@@ -357,6 +357,10 @@ class DryCellForm(ModelForm):
         choices=lambda : composite_choices(composite_type=SEPARATOR),
         required=False
     )
+    override_target = forms.ModelChoiceField(
+        queryset=DryCell.objects.all(),
+        required=False
+    )
 
     class Meta:
         model = DryCell

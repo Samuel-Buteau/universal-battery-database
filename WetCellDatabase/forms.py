@@ -253,6 +253,7 @@ class SeparatorMaterialForm(ModelForm):
             'preparation_temperature',
             'preparation_temperature_name',
             'notes',
+            'coating_lot_name'
         ]
 
 class SeparatorMaterialLotForm(ModelForm):

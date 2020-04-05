@@ -154,7 +154,7 @@ table, th, td {
         {% if define_separator_material_form %}
         <td valign="top">
         <h3>Separator Material</h3>
-                <table>{{ define_separator_material_form.as_table }}</table>
+                {% include "WetCellDatabase/separator_material.html" %}
             <input type="submit" name = 'define_separator_material' value="Define Separator Material">
             {% if define_separator_material_lot_form %}
             {% include "WetCellDatabase/lot_info.html" with lot_info_form=define_separator_material_lot_form predefined=define_separator_material_lot_form.predefined_separator_material predefined_label="Predefined Separator Material" %}
@@ -165,15 +165,10 @@ table, th, td {
             {% endif %}
 
 
-        {% if define_separator_form %}
+        {% if define_separator_form and define_separator_geometry_form %}
         <td valign="top">
         <h3>Separator</h3>
-            <table>{{ define_separator_form.as_table }}</table>
-            {% if define_separator_geometry_form %}
-                <table>{{ define_separator_geometry_form.as_table }}</table>
-            {% endif %}
-
-
+            {% include "WetCellDatabase/separator.html" %}
             {% if separator_composition_formset %}
                 {% csrf_token %}
                 {{ separator_composition_formset.management_form }}

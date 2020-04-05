@@ -124,11 +124,16 @@ class DeleteForm(forms.Form):
         required = False
     )
 
-
+# Electrolyte Molecule
 class ElectrolyteMoleculeForm(ModelForm):
     component_type = forms.ChoiceField(choices=filter(
         lambda x: x[0] in [SALT, SOLVENT, ADDITIVE],
         COMPONENT_TYPES))
+    override_target = forms.ModelChoiceField(
+        queryset=Component.objects.filter(composite_type=ELECTROLYTE),
+        required=False
+    )
+
     class Meta:
         model = Component
         fields = ['notes','smiles', 'proprietary','smiles_name', 'proprietary_name', 'component_type_name']
@@ -141,12 +146,18 @@ class ElectrolyteMoleculeLotForm(ModelForm):
         exclude = []
 
 
-
+# ActiveMaterial
 class ElectrodeActiveMaterialForm(ModelForm):
     coating = forms.ChoiceField(choices=coating_choices, required=False)
     composite_type = forms.ChoiceField(choices=filter(
         lambda x: x[0] in [ANODE, CATHODE],
         COMPOSITE_TYPES))
+
+    override_target = forms.ModelChoiceField(
+        queryset=Component.objects.filter(component_type=ACTIVE_MATERIAL),
+        required=False
+    )
+
     class Meta:
         model = Component
         fields = ['proprietary',
@@ -174,6 +185,8 @@ class ElectrodeActiveMaterialLotForm(ModelForm):
         exclude = []
 
 
+# Inactive Material
+
 class ElectrodeInactiveForm(ModelForm):
     coating = forms.ChoiceField(choices=coating_choices, required=False)
     composite_type = forms.ChoiceField(choices=filter(
@@ -182,6 +195,14 @@ class ElectrodeInactiveForm(ModelForm):
     component_type = forms.ChoiceField(choices=filter(
         lambda x: x[0] in [CONDUCTIVE_ADDITIVE, BINDER],
         COMPONENT_TYPES))
+
+    override_target = forms.ModelChoiceField(
+        queryset=Component.objects.filter(
+            Q(component_type=CONDUCTIVE_ADDITIVE) | Q(component_type=BINDER)
+        ),
+        required=False
+    )
+
     class Meta:
         model = Component
         fields = ['smiles',
@@ -208,12 +229,18 @@ class ElectrodeInactiveLotForm(ModelForm):
         exclude = []
 
 
-
+#Separator Material
 class SeparatorMaterialForm(ModelForm):
     coating = forms.ChoiceField(
         choices=coating_choices,
         required=False
     )
+
+    override_target = forms.ModelChoiceField(
+        queryset=Component.objects.filter(composite_type=SEPARATOR),
+        required=False
+    )
+
     class Meta:
         model = Component
         fields = [
@@ -237,8 +264,13 @@ class SeparatorMaterialLotForm(ModelForm):
         model = LotInfo
         exclude = []
 
-
+# Coating
 class CoatingForm(ModelForm):
+    override_target = forms.ModelChoiceField(
+        queryset=Coating.objects.all(),
+        required=False
+    )
+
     class Meta:
         model = Coating
         exclude = []
@@ -252,30 +284,49 @@ class CoatingLotForm(ModelForm):
         model = LotInfo
         exclude = []
 
+
+# Electrolyte
 class ElectrolyteForm(ModelForm):
+    override_target = forms.ModelChoiceField(
+        queryset=Composite.objects.filter(composite_type=ELECTROLYTE),
+        required=False
+    )
+
     class Meta:
         model = Composite
         fields = ['proprietary', 'proprietary_name',
                   'notes']
+
 
 class ElectrolyteLotForm(ModelForm):
     predefined_electrolyte = forms.ModelChoiceField(
         queryset=Composite.objects.filter(composite_type=ELECTROLYTE),
         required=False
     )
+
     class Meta:
         model = LotInfo
         exclude = []
 
 
 class ElectrolyteCompositionForm(Form):
-    molecule = forms.ChoiceField(choices= molecule_choices, required=False)
+    molecule = forms.ChoiceField(choices=molecule_choices, required=False)
     ratio = forms.CharField(required=False)
+
+
+#Electrode
 
 class ElectrodeForm(ModelForm):
     composite_type = forms.ChoiceField(choices=filter(
         lambda x: x[0] in [ANODE, CATHODE],
         COMPOSITE_TYPES))
+
+    override_target = forms.ModelChoiceField(
+        queryset=Composite.objects.filter(
+            Q(composite_type=CATHODE) | Q(composite_type=ANODE)
+        ),
+        required=False
+    )
 
     class Meta:
         model = Composite
@@ -313,7 +364,14 @@ class ElectrodeMaterialStochiometryForm(Form):
 
 
 
+#Separator
+
 class SeparatorForm(ModelForm):
+    override_target = forms.ModelChoiceField(
+        queryset=Composite.objects.filter(composite_type=SEPARATOR),
+        required=False
+    )
+
     class Meta:
         model = Composite
         fields = ['proprietary','proprietary_name', 'notes', ]

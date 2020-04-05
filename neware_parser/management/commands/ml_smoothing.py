@@ -68,30 +68,27 @@ def three_level_flatten(iterables):
                 yield element
 
 
-# ==== Begin: initial processing ===============================================
-
 def initial_processing(my_data, my_names, barcodes, fit_args):
-    print('entered initial_processing')
     """
     my_data has the following structure:
         my_data: a dictionary indexed by various data:
-            - 'max_cap': a single number. the maximum capacity across the 
+            - 'max_cap': a single number. the maximum capacity across the
             dataset.
             - 'voltage_grid': 1D array of voltages
             - 'current_grid': 1D array of log currents
             - 'temperature_grid': 1D array of temperatures
             - 'sign_grid': 1D array of signs
-            - 'cell_id_to_pos_id': a dictionary indexed by barcode yielding a 
+            - 'cell_id_to_pos_id': a dictionary indexed by barcode yielding a
             positive electrode id.
-            - 'cell_id_to_neg_id': a dictionary indexed by barcode yielding a 
+            - 'cell_id_to_neg_id': a dictionary indexed by barcode yielding a
             positive electrode id.
-            - 'cell_id_to_electrolyte_id': a dictionary indexed by barcode 
+            - 'cell_id_to_electrolyte_id': a dictionary indexed by barcode
             yielding a positive electrode id.
-            - 'cell_id_to_latent': a dictionary indexed by barcode yielding 
-                         1 if the cell is latent, 
+            - 'cell_id_to_latent': a dictionary indexed by barcode yielding
+                         1 if the cell is latent,
                          0 if made of known pos,neg,electrolyte
-                
-            - 'all_data': a dictionary indexed by barcode. 
+
+            - 'all_data': a dictionary indexed by barcode.
                Each barcode yields:
                 - 'all_reference_mats': structured array with dtype =
                     [
@@ -184,7 +181,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
     my_data['current_grid'] = my_data['current_grid'] - numpy.log(max_cap)
 
     # the current grid is adjusted by the max capacity of the barcode. It is
-    # in log space, so I/Q becomes log(I) - log(Q)
+    # in log space, so I/q becomes log(I) - log(q)
     numpy_acc(
         compiled_data,
         'current_grid',
@@ -208,118 +205,93 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
         if cell_id in my_data['cell_id_to_neg_id'].keys():
             cell_id_to_neg_id[cell_id] = my_data['cell_id_to_neg_id'][cell_id]
         if cell_id in my_data['cell_id_to_electrolyte_id'].keys():
-            cell_id_to_electrolyte_id[cell_id] = \
-                my_data['cell_id_to_electrolyte_id'][cell_id]
+            cell_id_to_electrolyte_id[cell_id]\
+                = my_data['cell_id_to_electrolyte_id'][cell_id]
         if cell_id in my_data['cell_id_to_latent'].keys():
             cell_id_to_latent[cell_id] = my_data['cell_id_to_latent'][cell_id]
 
         if cell_id_to_latent[cell_id] < 0.5:
             electrolyte_id = cell_id_to_electrolyte_id[cell_id]
-            if electrolyte_id in my_data[
-                'electrolyte_id_to_solvent_id_weight'].keys():
-                electrolyte_id_to_solvent_id_weight[electrolyte_id] = \
-                    my_data['electrolyte_id_to_solvent_id_weight'][
-                        electrolyte_id]
-            if electrolyte_id in my_data[
-                'electrolyte_id_to_salt_id_weight'].keys():
-                electrolyte_id_to_salt_id_weight[electrolyte_id] = \
-                    my_data['electrolyte_id_to_salt_id_weight'][
-                        electrolyte_id]
-            if electrolyte_id in my_data[
-                'electrolyte_id_to_additive_id_weight'].keys():
-                electrolyte_id_to_additive_id_weight[electrolyte_id] = \
-                    my_data['electrolyte_id_to_additive_id_weight'][
-                        electrolyte_id]
+            if electrolyte_id\
+                in my_data['electrolyte_id_to_solvent_id_weight'].keys():
+                electrolyte_id_to_solvent_id_weight[electrolyte_id]\
+                    = my_data['electrolyte_id_to_solvent_id_weight']\
+                    [electrolyte_id]
+            if electrolyte_id\
+                in my_data['electrolyte_id_to_salt_id_weight'].keys():
+                electrolyte_id_to_salt_id_weight[electrolyte_id]\
+                    = my_data['electrolyte_id_to_salt_id_weight']\
+                    [electrolyte_id]
+            if electrolyte_id\
+                in my_data['electrolyte_id_to_additive_id_weight'].keys():
+                electrolyte_id_to_additive_id_weight[electrolyte_id]\
+                    = my_data['electrolyte_id_to_additive_id_weight']\
+                    [electrolyte_id]
 
             if electrolyte_id in my_data['electrolyte_id_to_latent'].keys():
-                electrolyte_id_to_latent[electrolyte_id] = \
-                    my_data['electrolyte_id_to_latent'][electrolyte_id]
+                electrolyte_id_to_latent[electrolyte_id]\
+                    = my_data['electrolyte_id_to_latent'][electrolyte_id]
 
     mess = [
-        [[s[0] for s in siw] for siw in
-         electrolyte_id_to_solvent_id_weight.values()],
-        [[s[0] for s in siw] for siw in
-         electrolyte_id_to_salt_id_weight.values()],
-        [[s[0] for s in siw] for siw in
-         electrolyte_id_to_additive_id_weight.values()],
+        [
+            [s[0] for s in siw] for siw in
+            electrolyte_id_to_solvent_id_weight.values()
+        ],
+        [
+            [s[0] for s in siw] for siw in
+            electrolyte_id_to_salt_id_weight.values()
+        ],
+        [
+            [s[0] for s in siw] for siw in
+            electrolyte_id_to_additive_id_weight.values()
+        ],
     ]
 
     molecule_id_list = numpy.array(
-        sorted(
-            list(
-                set(
-                    list(three_level_flatten(mess))
-                )
-            )
-        )
+        # flatten, remove duplicates, then sort
+        sorted(list(set(list(three_level_flatten(mess)))))
     )
 
     pos_id_list = numpy.array(sorted(list(set(cell_id_to_pos_id.values()))))
     neg_id_list = numpy.array(sorted(list(set(cell_id_to_neg_id.values()))))
     electrolyte_id_list = numpy.array(
-        sorted(list(set(cell_id_to_electrolyte_id.values()))))
+        sorted(list(set(cell_id_to_electrolyte_id.values())))
+    )
 
     for barcode_count, barcode in enumerate(barcodes):
 
-        cyc_grp_dict = my_data['all_data'][barcode]['cyc_grp_dict']
+        all_data = my_data['all_data'][barcode]
+        cyc_grp_dict = all_data['cyc_grp_dict']
 
         for k_count, k in enumerate(cyc_grp_dict.keys()):
+            main_data = cyc_grp_dict[k]['main_data']
 
             # normalize capacity_vector with max_cap
-            my_data['all_data'][barcode]['cyc_grp_dict'][k]['main_data'][
-                'cc_capacity_vector'] = (
-                1. / max_cap * cyc_grp_dict[k]['main_data'][
-                'cc_capacity_vector']
-            )
+            main_data['cc_capacity_vector']\
+                = 1. / max_cap * main_data['cc_capacity_vector']
+            main_data['cv_capacity_vector']\
+                = 1. / max_cap * main_data['cv_capacity_vector']
+            main_data['cv_current_vector']\
+                = 1. / max_cap * main_data['cv_current_vector']
+            main_data['last_cc_capacity']\
+                = 1. / max_cap * main_data['last_cc_capacity']
+            main_data['last_cv_capacity']\
+                = 1. / max_cap * main_data['last_cv_capacity']
+            main_data['constant_current']\
+                = 1. / max_cap * main_data['constant_current']
+            main_data['end_current_prev']\
+                = 1. / max_cap * main_data['end_current_prev']
 
-            my_data['all_data'][barcode]['cyc_grp_dict'][k]['main_data'][
-                'cv_capacity_vector'] = (
-                1. / max_cap * cyc_grp_dict[k]['main_data'][
-                'cv_capacity_vector']
-            )
-
-            my_data['all_data'][barcode]['cyc_grp_dict'][k]['main_data'][
-                'cv_current_vector'] = (
-                1. / max_cap * cyc_grp_dict[k]['main_data']['cv_current_vector']
-            )
-
-            my_data['all_data'][barcode]['cyc_grp_dict'][k]['main_data'][
-                'last_cc_capacity'] = (
-                1. / max_cap * cyc_grp_dict[k]['main_data']['last_cc_capacity']
-            )
-
-            my_data['all_data'][barcode]['cyc_grp_dict'][k]['main_data'][
-                'last_cv_capacity'] = (
-                1. / max_cap * cyc_grp_dict[k]['main_data']['last_cv_capacity']
-            )
-
-            my_data['all_data'][barcode]['cyc_grp_dict'][k]['main_data'][
-                'constant_current'] = (
-                1. / max_cap * cyc_grp_dict[k]['main_data']['constant_current']
-            )
-            my_data['all_data'][barcode]['cyc_grp_dict'][k]['main_data'][
-                'end_current_prev'] = (
-                1. / max_cap * cyc_grp_dict[k]['main_data']['end_current_prev']
-            )
-
-            my_data['all_data'][barcode]['cyc_grp_dict'][k][
-                'avg_constant_current'] = (
-                1. / max_cap * cyc_grp_dict[k]['avg_constant_current']
-            )
-
-            my_data['all_data'][barcode]['cyc_grp_dict'][k][
-                'avg_end_current'] = (
-                1. / max_cap * cyc_grp_dict[k]['avg_end_current']
-            )
-
-            my_data['all_data'][barcode]['cyc_grp_dict'][k][
-                'avg_end_current_prev'] = (
-                1. / max_cap * cyc_grp_dict[k]['avg_end_current_prev']
-            )
+            cyc_grp_dict[k]['avg_constant_current']\
+                = 1. / max_cap * cyc_grp_dict[k]['avg_constant_current']
+            cyc_grp_dict[k]['avg_end_current']\
+                = 1. / max_cap * cyc_grp_dict[k]['avg_end_current']
+            cyc_grp_dict[k]['avg_end_current_prev']\
+                = 1. / max_cap * cyc_grp_dict[k]['avg_end_current_prev']
 
             # range of cycles which exist for this cycle group
-            min_cyc = min(cyc_grp_dict[k]['main_data']['cycle_number'])
-            max_cyc = max(cyc_grp_dict[k]['main_data']['cycle_number'])
+            min_cyc = min(main_data['cycle_number'])
+            max_cyc = max(main_data['cycle_number'])
 
             '''
             - now create neighborhoods, which contains the cycles,
@@ -374,8 +346,8 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
                 # False when cycle_number falls outside out of
                 # [below_cyc, above_cyc] interval
                 mask = numpy.logical_and(
-                    below_cyc <= cyc_grp_dict[k]['main_data']['cycle_number'],
-                    cyc_grp_dict[k]['main_data']['cycle_number'] <= above_cyc
+                    below_cyc <= main_data['cycle_number'],
+                    main_data['cycle_number'] <= above_cyc
                 )
 
                 # the indecies for the cyc_grp_dict[k] array which correspond
@@ -408,8 +380,8 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
                 - record the absolute index into the table of cycles
                   (len(cycles_full)).
                 - keep a slot empty for later
-                
- 
+
+
                 '''
                 # TODO(sam): here, figure out where the reference cycle is,
                 #  and note the index
@@ -421,35 +393,29 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
                 neighborhood_data_i[NEIGHBORHOOD_MAX_CYC_INDEX] = max_cyc_index
                 neighborhood_data_i[NEIGHBORHOOD_RATE_INDEX] = k_count
                 neighborhood_data_i[NEIGHBORHOOD_BARCODE_INDEX] = barcode_count
-                neighborhood_data_i[
-                    NEIGHBORHOOD_ABSOLUTE_CYCLE_INDEX] = \
-                    number_of_compiled_cycles
-                neighborhood_data_i[
-                    NEIGHBORHOOD_VALID_CYC_INDEX] = 0  # a weight based on
-                # prevalance. Set later
+                neighborhood_data_i[NEIGHBORHOOD_ABSOLUTE_CYCLE_INDEX]\
+                    = number_of_compiled_cycles
+                # a weight based on prevalence. Set later
+                neighborhood_data_i[NEIGHBORHOOD_VALID_CYC_INDEX] = 0
                 neighborhood_data_i[NEIGHBORHOOD_SIGN_GRID_INDEX] = 0
                 neighborhood_data_i[NEIGHBORHOOD_VOLTAGE_GRID_INDEX] = 0
                 neighborhood_data_i[NEIGHBORHOOD_CURRENT_GRID_INDEX] = 0
                 neighborhood_data_i[NEIGHBORHOOD_TEMPERATURE_GRID_INDEX] = 0
 
                 center_cycle = float(cyc)
-                reference_cycles = \
-                    my_data['all_data'][barcode]['all_reference_mats'][
-                        'cycle_number']
+                reference_cycles\
+                    = all_data['all_reference_mats']['cycle_number']
 
                 index_of_closest_reference = numpy.argmin(
                     abs(center_cycle - reference_cycles)
                 )
 
-                neighborhood_data_i[
-                    NEIGHBORHOOD_ABSOLUTE_REFERENCE_INDEX] = \
-                    number_of_reference_cycles
-                neighborhood_data_i[
-                    NEIGHBORHOOD_REFERENCE_INDEX] = index_of_closest_reference
+                neighborhood_data_i[NEIGHBORHOOD_ABSOLUTE_REFERENCE_INDEX]\
+                    = number_of_reference_cycles
+                neighborhood_data_i[NEIGHBORHOOD_REFERENCE_INDEX]\
+                    = index_of_closest_reference
 
-                neighborhood_data.append(
-                    neighborhood_data_i
-                )
+                neighborhood_data.append(neighborhood_data_i)
 
             if valid_cycles != 0:
                 neighborhood_data = numpy.array(
@@ -458,46 +424,65 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
 
                 # the empty slot becomes the count of added neighborhoods, which
                 # are used to counterbalance the bias toward longer cycle life
-                neighborhood_data[:,
-                NEIGHBORHOOD_VALID_CYC_INDEX] = valid_cycles
+                neighborhood_data[:, NEIGHBORHOOD_VALID_CYC_INDEX]\
+                    = valid_cycles
 
                 numpy_acc(compiled_data, 'neighborhood_data', neighborhood_data)
 
-            number_of_compiled_cycles += len(
-                cyc_grp_dict[k]['main_data']['cycle_number'])
-
+            number_of_compiled_cycles += len(main_data['cycle_number'])
             number_of_reference_cycles += len(
-                my_data['all_data'][barcode]['all_reference_mats'][
-                    'cycle_number'])
-            numpy_acc(compiled_data, 'reference_cycle',
-                      my_data['all_data'][barcode]['all_reference_mats'][
-                          'cycle_number'])
-            numpy_acc(compiled_data, 'count_matrix',
-                      my_data['all_data'][barcode]['all_reference_mats'][
-                          'count_matrix'])
+                all_data['all_reference_mats']['cycle_number']
+            )
 
-            numpy_acc(compiled_data, 'cycle',
-                      cyc_grp_dict[k]['main_data']['cycle_number'])
-            numpy_acc(compiled_data, 'cc_voltage_vector',
-                      cyc_grp_dict[k]['main_data']['cc_voltage_vector'])
-            numpy_acc(compiled_data, 'cc_capacity_vector',
-                      cyc_grp_dict[k]['main_data']['cc_capacity_vector'])
-            numpy_acc(compiled_data, 'cc_mask_vector',
-                      cyc_grp_dict[k]['main_data']['cc_mask_vector'])
-            numpy_acc(compiled_data, 'cv_current_vector',
-                      cyc_grp_dict[k]['main_data']['cv_current_vector'])
-            numpy_acc(compiled_data, 'cv_capacity_vector',
-                      cyc_grp_dict[k]['main_data']['cv_capacity_vector'])
-            numpy_acc(compiled_data, 'cv_mask_vector',
-                      cyc_grp_dict[k]['main_data']['cv_mask_vector'])
-            numpy_acc(compiled_data, 'constant_current',
-                      cyc_grp_dict[k]['main_data']['constant_current'])
-            numpy_acc(compiled_data, 'end_current_prev',
-                      cyc_grp_dict[k]['main_data']['end_current_prev'])
-            numpy_acc(compiled_data, 'end_voltage_prev',
-                      cyc_grp_dict[k]['main_data']['end_voltage_prev'])
-            numpy_acc(compiled_data, 'end_voltage',
-                      cyc_grp_dict[k]['main_data']['end_voltage'])
+            numpy_acc(
+                compiled_data, 'reference_cycle',
+                all_data['all_reference_mats']['cycle_number']
+            )
+            numpy_acc(
+                compiled_data, 'count_matrix',
+                all_data['all_reference_mats']['count_matrix']
+            )
+            numpy_acc(compiled_data, 'cycle', main_data['cycle_number'])
+            numpy_acc(
+                compiled_data, 'cc_voltage_vector',
+                main_data['cc_voltage_vector']
+            )
+            numpy_acc(
+                compiled_data, 'cc_capacity_vector',
+                main_data['cc_capacity_vector']
+            )
+            numpy_acc(
+                compiled_data, 'cc_mask_vector',
+                main_data['cc_mask_vector']
+            )
+            numpy_acc(
+                compiled_data, 'cv_current_vector',
+                main_data['cv_current_vector']
+            )
+            numpy_acc(
+                compiled_data, 'cv_capacity_vector',
+                main_data['cv_capacity_vector']
+            )
+            numpy_acc(
+                compiled_data, 'cv_mask_vector',
+                main_data['cv_mask_vector']
+            )
+            numpy_acc(
+                compiled_data, 'constant_current',
+                main_data['constant_current']
+            )
+            numpy_acc(
+                compiled_data, 'end_current_prev',
+                main_data['end_current_prev']
+            )
+            numpy_acc(
+                compiled_data, 'end_voltage_prev',
+                main_data['end_voltage_prev']
+            )
+            numpy_acc(
+                compiled_data, 'end_voltage',
+                main_data['end_voltage']
+            )
 
     neighborhood_data = tf.constant(compiled_data['neighborhood_data'])
 
@@ -541,8 +526,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
             neighborhood_data
         ).repeat(2).shuffle(100000).batch(batch_size)
 
-        train_ds = mirrored_strategy.experimental_distribute_dataset(
-            train_ds_)
+        train_ds = mirrored_strategy.experimental_distribute_dataset(train_ds_)
 
         pos_to_pos_name = {}
         neg_to_neg_name = {}
@@ -550,8 +534,8 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
         if my_names is not None:
             pos_to_pos_name = my_names['pos_to_pos_name']
             neg_to_neg_name = my_names['neg_to_neg_name']
-            electrolyte_to_electrolyte_name = my_names[
-                'electrolyte_to_electrolyte_name']
+            electrolyte_to_electrolyte_name\
+                = my_names['electrolyte_to_electrolyte_name']
             molecule_to_molecule_name = my_names['molecule_to_molecule_name']
 
         degradation_model = DegradationModel(
@@ -598,23 +582,17 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
     }
 
 
-# === End: initial processing ==================================================
-
-# === Begin: train =============================================================
-
 def train_and_evaluate(init_returns, barcodes, fit_args):
     mirrored_strategy = init_returns["mirrored_strategy"]
 
-    EPOCHS = 100000
+    epochs = 100000
     count = 0
 
     template = 'Epoch {}, Count {}'
-    start = time.time()
     end = time.time()
-    prev_ker = None
     now_ker = None
     with mirrored_strategy.scope():
-        for epoch in range(EPOCHS):
+        for epoch in range(epochs):
             for neighborhood in init_returns["train_ds"]:
                 count += 1
 
@@ -646,7 +624,8 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                         end = time.time()
                         print("time to plot: ", end - start)
                         ker = init_returns[
-                            "degradation_model"].cell_direct.kernel.numpy()
+                            "degradation_model"
+                        ].cell_direct.kernel.numpy()
                         prev_ker = now_ker
                         now_ker = ker
 
@@ -657,20 +636,21 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                         # little use for that.
                         if now_ker is not None:
                             delta_cell_ker = numpy.abs(now_ker[0] - now_ker[1])
-                            print('average difference between cells: ',
-                                  numpy.average(delta_cell_ker))
+                            print(
+                                'average difference between cells: ',
+                                numpy.average(delta_cell_ker)
+                            )
                         if prev_ker is not None:
                             delta_time_ker = numpy.abs(now_ker - prev_ker)
-                            print('average difference between prev and now: ',
-                                  numpy.average(delta_time_ker))
+                            print(
+                                'average difference between prev and now: ',
+                                numpy.average(delta_time_ker)
+                            )
+                        print()
 
                 if count >= fit_args['stop_count']:
                     return
 
-
-# === End: train ===============================================================
-
-# === Begin: train step ========================================================
 
 def train_step(params, fit_args):
     neighborhood = params["neighborhood"]
@@ -709,14 +689,14 @@ def train_step(params, fit_args):
     then cycle numbers and vq curves are gathered
     '''
 
-    cycle_indecies_lerp = tf.random.uniform(
+    cycle_indices_lerp = tf.random.uniform(
         [batch_size2], minval = 0., maxval = 1., dtype = tf.float32)
-    cycle_indecies = tf.cast(
-        (1. - cycle_indecies_lerp) * tf.cast(
+    cycle_indices = tf.cast(
+        (1. - cycle_indices_lerp) * tf.cast(
             neighborhood[:, NEIGHBORHOOD_MIN_CYC_INDEX]
             + neighborhood[:, NEIGHBORHOOD_ABSOLUTE_CYCLE_INDEX],
             tf.float32
-        ) + (cycle_indecies_lerp) * tf.cast(
+        ) + cycle_indices_lerp * tf.cast(
             neighborhood[:, NEIGHBORHOOD_MAX_CYC_INDEX]
             + neighborhood[:, NEIGHBORHOOD_ABSOLUTE_CYCLE_INDEX],
             tf.float32
@@ -788,53 +768,47 @@ def train_step(params, fit_args):
          temperature_grid_dim, 1],
     )
 
-    cycle = tf.gather(
-        cycle_tensor,
-        indices = cycle_indecies, axis = 0
-    )
+    cycle = tf.gather(cycle_tensor, indices = cycle_indices, axis = 0)
     constant_current = tf.gather(
-        constant_current_tensor,
-        indices = cycle_indecies, axis = 0
+        constant_current_tensor, indices = cycle_indices, axis = 0
     )
     end_current_prev = tf.gather(
-        end_current_prev_tensor,
-        indices = cycle_indecies, axis = 0
+        end_current_prev_tensor, indices = cycle_indices, axis = 0
     )
     end_voltage_prev = tf.gather(
-        end_voltage_prev_tensor,
-        indices = cycle_indecies, axis = 0
+        end_voltage_prev_tensor, indices = cycle_indices, axis = 0
     )
-
     end_voltage = tf.gather(
-        end_voltage_tensor,
-        indices = cycle_indecies, axis = 0
+        end_voltage_tensor, indices = cycle_indices, axis = 0
     )
 
-    cc_capacity = tf.gather(cc_capacity_tensor, indices = cycle_indecies)
-    cc_voltage = tf.gather(cc_voltage_tensor, indices = cycle_indecies)
-    cc_mask = tf.gather(cc_mask_tensor, indices = cycle_indecies)
+    cc_capacity = tf.gather(cc_capacity_tensor, indices = cycle_indices)
+    cc_voltage = tf.gather(cc_voltage_tensor, indices = cycle_indices)
+    cc_mask = tf.gather(cc_mask_tensor, indices = cycle_indices)
     cc_mask_2 = tf.tile(
         tf.reshape(
-            1. / (tf.cast(neighborhood[:, NEIGHBORHOOD_VALID_CYC_INDEX],
-                          tf.float32)),
+            1. / tf.cast(
+                neighborhood[:, NEIGHBORHOOD_VALID_CYC_INDEX], tf.float32
+            ),
             [batch_size2, 1]
         ),
         [1, cc_voltage.shape[1]]
     )
 
-    cv_capacity = tf.gather(cv_capacity_tensor, indices = cycle_indecies)
-    cv_current = tf.gather(cv_current_tensor, indices = cycle_indecies)
-    cv_mask = tf.gather(cv_mask_tensor, indices = cycle_indecies)
+    cv_capacity = tf.gather(cv_capacity_tensor, indices = cycle_indices)
+    cv_current = tf.gather(cv_current_tensor, indices = cycle_indices)
+    cv_mask = tf.gather(cv_mask_tensor, indices = cycle_indices)
     cv_mask_2 = tf.tile(
         tf.reshape(
-            1. / (tf.cast(neighborhood[:, NEIGHBORHOOD_VALID_CYC_INDEX],
-                          tf.float32)),
+            1. / tf.cast(
+                neighborhood[:, NEIGHBORHOOD_VALID_CYC_INDEX], tf.float32
+            ),
             [batch_size2, 1]
         ),
         [1, cv_current.shape[1]]
     )
 
-    cell_indecies = neighborhood[:, NEIGHBORHOOD_BARCODE_INDEX]
+    cell_indices = neighborhood[:, NEIGHBORHOOD_BARCODE_INDEX]
 
     with tf.GradientTape() as tape:
         train_results = degradation_model(
@@ -844,7 +818,7 @@ def train_step(params, fit_args):
                 tf.expand_dims(end_current_prev, axis = 1),
                 tf.expand_dims(end_voltage_prev, axis = 1),
                 tf.expand_dims(end_voltage, axis = 1),
-                cell_indecies,
+                cell_indices,
                 cc_voltage,
                 cv_current,
                 svit_grid,
@@ -860,24 +834,24 @@ def train_step(params, fit_args):
 
         cc_capacity_loss = (
             tf.reduce_mean(
-                cc_mask_2 * cc_mask * tf.square(cc_capacity - pred_cc_capacity))
-            / (1e-10 + tf.reduce_mean(cc_mask_2 * cc_mask))
+                cc_mask_2 * cc_mask * tf.square(cc_capacity - pred_cc_capacity)
+            ) / (1e-10 + tf.reduce_mean(cc_mask_2 * cc_mask))
         )
         cv_capacity_loss = (
             tf.reduce_mean(
-                cv_mask_2 * cv_mask * tf.square(cv_capacity - pred_cv_capacity))
-            / (1e-10 + tf.reduce_mean(cv_mask_2 * cv_mask))
+                cv_mask_2 * cv_mask * tf.square(cv_capacity - pred_cv_capacity)
+            ) / (1e-10 + tf.reduce_mean(cv_mask_2 * cv_mask))
         )
         cc_voltage_loss = (
             tf.reduce_mean(
-                cc_mask_2 * cc_mask * tf.square(cc_voltage - pred_cc_voltage))
-            / (1e-10 + tf.reduce_mean(cc_mask_2 * cc_mask))
+                cc_mask_2 * cc_mask * tf.square(cc_voltage - pred_cc_voltage)
+            ) / (1e-10 + tf.reduce_mean(cc_mask_2 * cc_mask))
         )
 
         loss = (
             0.05 * cv_capacity_loss + 1. * cc_voltage_loss + cc_capacity_loss
-            + train_results["Q_loss"]
-            + train_results["Q_scale_loss"]
+            + train_results["q_loss"]
+            + train_results["q_scale_loss"]
             + train_results["r_loss"]
             + train_results["shift_loss"]
             + fit_args['z_cell_coeff'] * train_results["z_cell_loss"]
@@ -892,8 +866,6 @@ def train_step(params, fit_args):
     )
 
 
-# === End : train step =========================================================
-
 @tf.function
 def dist_train_step(mirrored_strategy, train_step_params, fit_args):
     mirrored_strategy.experimental_run_v2(
@@ -902,6 +874,11 @@ def dist_train_step(mirrored_strategy, train_step_params, fit_args):
 
 
 def ml_smoothing(fit_args):
+    print(
+        "Num GPUs Available: ",
+        len(tf.config.experimental.list_physical_devices('GPU'))
+    )
+
     if not os.path.exists(fit_args['path_to_plots']):
         os.mkdir(fit_args['path_to_plots'])
 

@@ -1408,7 +1408,7 @@ class DryCell(models.Model):
         else:
             return printed_name
 
-    def define_if_possible(self, geometry=None,cathode=None, anode=None,separator=None):
+    def define_if_possible(self, geometry=None,cathode=None, anode=None,separator=None, target=None):
         """
         The objects are made of subobjects and visibility flags.
         we want to make sure that among the objects created, no two (object,visibility) have the same (object projection)
@@ -1490,12 +1490,20 @@ class DryCell(models.Model):
         else:
             string_equality_query = string_equality_query & Q(geometry__thickness_name=False)
 
+        target_object = None
+        if target is None:
 
+            dry_cell_set = DryCell.objects
+            target_object = None
+        else:
+            dry_cell_set = DryCell.objects.exclude(id = target)
+            if DryCell.objects.filter(id=target).exists():
+                target_object = DryCell.objects.get(id=target)
 
-        set_of_object_equal = DryCell.objects.filter(object_equality_query)
+        set_of_object_equal = dry_cell_set.filter(object_equality_query)
         print('set objects equal: ', set_of_object_equal)
-        string_equals = DryCell.objects.filter(string_equality_query).exists()
-        print('set of string equal: ', DryCell.objects.filter(string_equality_query))
+        string_equals = dry_cell_set.filter(string_equality_query).exists()
+        print('set of string equal: ', dry_cell_set.filter(string_equality_query))
 
         if (not set_of_object_equal.exists()) and string_equals:
             self.proprietary_name = True
@@ -1507,9 +1515,22 @@ class DryCell(models.Model):
             geometry.thickness_name = True
             geometry.length_name = True
 
+
+        if target_object is None:
+            my_self = self
+        else:
+            my_self = target_object
+            my_self.notes = self.notes
+            my_self.proprietary = self.proprietary
+            my_self.proprietary_name = self.proprietary_name
+            my_self.geometry_name = self.geometry_name
+            my_self.cathode_name = self.cathode_name
+            my_self.anode_name = self.anode_name
+            my_self.separator_name = self.separator_name
+
         return helper_return(
                 set_of_object_equal=set_of_object_equal,
-                my_self=self,
+                my_self=my_self,
                 dry_cell_geometry=geometry,
                 anode=anode,
                 cathode=cathode,

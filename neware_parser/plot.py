@@ -155,8 +155,7 @@ def plot_vq(plot_params, init_returns):
                 else:
                     sign_change = +1.
 
-                barcode_k = cyc_grp_dict[k][
-                    'main_data']
+                barcode_k = cyc_grp_dict[k]['main_data']
 
                 if mode == 'cc':
                     capacity_tensor = barcode_k['cc_capacity_vector']
@@ -170,17 +169,11 @@ def plot_vq(plot_params, init_returns):
 
                     if mode == 'cc':
                         vq_mask = barcode_k['cc_mask_vector'][vq_count]
-                    elif mode == 'cv':
-                        vq_mask = barcode_k['cv_mask_vector'][vq_count]
-
-                    if mode == 'cc':
                         y_axis = barcode_k['cc_voltage_vector'][vq_count]
-                    elif mode == 'cv':
-                        y_axis = barcode_k['cv_current_vector'][vq_count]
-
-                    if mode == 'cc':
                         y_lim = [2.95, 4.35]
                     elif mode == 'cv':
+                        vq_mask = barcode_k['cv_mask_vector'][vq_count]
+                        y_axis = barcode_k['cv_current_vector'][vq_count]
                         y_lim = [
                             min([key[2] for key in list_of_keys]) - 0.05,
                             0.05 + max([key[0] for key in list_of_keys])
@@ -272,14 +265,15 @@ def plot_vq(plot_params, init_returns):
                             mult * COLORS[k_count][1],
                             mult * COLORS[k_count][2],
                         ),
-
                     )
 
             ax.legend(
                 handles = list_of_patches, fontsize = 'small',
                 bbox_to_anchor = (x_leg, y_leg), loc = 'upper left'
             )
+            ax.set_ylabel(typ + "-" + mode)
 
+        axs[2].set_xlabel("pred_cap")
         fig.tight_layout()
         fig.subplots_adjust(hspace = 0)
         savefig('VQ_{}_Count_{}.png', fit_args, barcode, count)
@@ -377,7 +371,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
             list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
 
             ax1 = fig.add_subplot(6, 1, 1 + off)
-            ax1.set_ylabel("capacity")
+            ax1.set_ylabel(mode + "-" + typ + "-capacity")
 
             plot_measured()
             plot_predicted()
@@ -425,7 +419,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
                 )
 
                 pred_cap = tf.reshape(
-                    test_results["pred_Q_scale"],
+                    test_results["pred_q_scale"],
                     shape = [-1]
                 )
 
@@ -510,6 +504,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
     cycle_m = init_returns["cycle_m"]
     cycle_v = init_returns["cycle_v"]
 
+    # for each cell, plot the quantities of interest
     for barcode_count, barcode in enumerate(barcodes):
         svit_and_count = get_svit_and_count(my_data, barcode)
         fig = plt.figure(figsize = [11, 10])
@@ -645,7 +640,7 @@ def plot_v_curves(plot_params, init_returns):
     degradation_model = init_returns["degradation_model"]
     shift = np.linspace(start = -.2, stop = .2, num = 9, dtype = np.float32)
     voltage = np.linspace(start = 2., stop = 5.5, num = 64, dtype = np.float32)
-    Q = np.linspace(start = -0.25, stop = 1.25, num = 64, dtype = np.float32)
+    q = np.linspace(start = -0.25, stop = 1.25, num = 64, dtype = np.float32)
 
     for barcode in barcodes:
 
@@ -661,15 +656,15 @@ def plot_v_curves(plot_params, init_returns):
             barcode = barcode,
             shift = tf.constant(shift),
             voltage = tf.constant(voltage),
-            Q = tf.constant(Q),
+            q = tf.constant(q),
         )
         for j in range(len(shift)):
             ax = gathered_axs[j]
 
-            ax.plot(Q, res['V_plus'], label = 'V_+')
-            ax.plot(Q, res['V_minus'][j], label = 'V_-')
-            ax.plot(Q, res['V'][j], label = 'V_full')
-            ax.plot(res['Q'][j], voltage, label = 'Q_full (inverted)')
+            ax.plot(q, res['v_plus'], label = 'v_+')
+            ax.plot(q, res['v_minus'][j], label = 'v_-')
+            ax.plot(q, res['v'][j], label = 'v_full')
+            ax.plot(res['q'][j], voltage, label = 'q_full (inverted)')
             ax.axvline(shift[j], 0, 1)
 
         ax.legend()

@@ -578,7 +578,7 @@ class Component(models.Model):
 
         return True
 
-    def define_if_possible(self, atoms=None):
+    def define_if_possible(self, atoms=None, target=None):
         """
         The objects are made of subobjects and visibility flags.
         we want to make sure that among the objects created, no two (object,visibility) have the same (object projection)
@@ -705,12 +705,25 @@ class Component(models.Model):
                 my_stochiometry_components.append(selected_stochiometry_component)
 
             print('gathered the following stochiometry:', my_stochiometry_components)
-            set_with_valid_stoc = Component.objects.annotate(
+
+            target_object = None
+            if target is None:
+
+                component_set = Component.objects
+                target_object = None
+            else:
+                component_set = Component.objects.exclude(id=target)
+                if Component.objects.filter(id=target).exists():
+                    target_object = Component.objects.get(id=target)
+
+            set_with_valid_stoc = component_set.annotate(
                 count_stochiometry=Count('stochiometry')
             ).filter(count_stochiometry=len(my_stochiometry_components)
                      ).annotate(
                 count_valid_stochiometry=Count('stochiometry', filter=Q(stochiometry__in=my_stochiometry_components))
             ).filter(count_valid_stochiometry=len(my_stochiometry_components))
+
+
 
             set_of_object_equal = set_with_valid_stoc.filter(object_equality_query)
             string_equals = set_with_valid_stoc.filter(string_equality_query).exists()
@@ -727,9 +740,37 @@ class Component(models.Model):
                 self.preparation_temperature_name = True
                 self.natural_name = True
 
+            if target_object is None:
+                my_self = self
+            else:
+                my_self = target_object
+                my_self.notes = self.notes
+                my_self.proprietary = self.proprietary
+                my_self.proprietary_name = self.proprietary_name
+                my_self.smiles = self.smiles
+                my_self.smiles_name = self.smiles_name
+                my_self.composite_type = self.composite_type
+                my_self.composite_type_name = self.composite_type_name
+                my_self.component_type = self.component_type
+                my_self.component_type_name = self.component_type_name
+
+                my_self.coating_lot_name = self.coating_lot_name
+
+                my_self.particle_size = self.particle_size
+                my_self.particle_size_name = self.particle_size_name
+                my_self.single_crystal = self.single_crystal
+                my_self.single_crystal_name = self.single_crystal_name
+                my_self.turbostratic_misalignment = self.turbostratic_misalignment
+                my_self.turbostratic_misalignment_name = self.turbostratic_misalignment_name
+                my_self.preparation_temperature = self.preparation_temperature
+                my_self.preparation_temperature_name = self.preparation_temperature_name
+                my_self.natural = self.natural
+                my_self.natural_name = self.natural_name
+
+
             return helper_return(
                 set_of_object_equal=set_of_object_equal,
-                my_self=self,
+                my_self=my_self,
                 my_stochiometry_components=my_stochiometry_components
             )
 
@@ -957,7 +998,7 @@ class Composite(models.Model):
         #so far, this is valid.
         return True
 
-    def define_if_possible(self, components=None,components_lot=None, electrode_geometry=None,separator_geometry=None):
+    def define_if_possible(self, components=None,components_lot=None, electrode_geometry=None,separator_geometry=None, target=None):
         """
         The objects are made of subobjects and visibility flags.
         we want to make sure that among the objects created, no two (object,visibility) have the same (object projection)
@@ -1152,7 +1193,18 @@ class Composite(models.Model):
                         my_ratio_components.append(selected_ratio_component)
 
                 print(my_ratio_components)
-                set_with_valid_comp = Composite.objects.annotate(
+
+                target_object = None
+                if target is None:
+
+                    composite_set = Composite.objects
+                    target_object = None
+                else:
+                    composite_set = Composite.objects.exclude(id=target)
+                    if Composite.objects.filter(id=target).exists():
+                        target_object = Composite.objects.get(id=target)
+
+                set_with_valid_comp = composite_set.annotate(
                     count_components=Count('components')
                 ).filter(count_components=len(my_ratio_components)).annotate(
                     count_valid_components=Count('components', filter=Q(components__in=my_ratio_components))
@@ -1172,9 +1224,19 @@ class Composite(models.Model):
                         separator_geometry.width_name = True
                         separator_geometry.thickness_name = True
 
+            if target_object is None:
+                my_self = self
+            else:
+                my_self = target_object
+                my_self.notes = self.notes
+                my_self.proprietary = self.proprietary
+                my_self.proprietary_name = self.proprietary_name
+                my_self.composite_type = self.composite_type
+                my_self.composite_type_name = self.composite_type_name
+
             return helper_return(
                     set_of_object_equal=set_of_object_equal,
-                    my_self=self,
+                    my_self=my_self,
                     electrode_geometry=electrode_geometry,
                     separator_geometry=separator_geometry,
                     my_ratio_components=my_ratio_components

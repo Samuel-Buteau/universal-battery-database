@@ -146,11 +146,17 @@ def define_page(request, mode=None):
                                 h['component']= Component.objects.get(id=my_id)
                                 components.append(h)
 
+            my_target = simple_form.cleaned_data['override_target']
+
+            if my_target is not None:
+                my_target = my_target.id
+
             return my_composite.define_if_possible(
                 components=components,
                 components_lot=components_lot,
                 electrode_geometry=electrode_geometry,
                 separator_geometry=separator_geometry,
+                target=my_target
             )
 
         if content in ['active_material','molecule','inactive','separator_material']:
@@ -268,8 +274,14 @@ def define_page(request, mode=None):
                                         }
                                     )
                     print(atoms)
+
+                my_target = simple_form.cleaned_data['override_target']
+
+                if my_target is not None:
+                    my_target = my_target.id
                 return my_component.define_if_possible(
                     atoms=atoms,
+                    target=my_target
                 )
 
         if content == 'coating':

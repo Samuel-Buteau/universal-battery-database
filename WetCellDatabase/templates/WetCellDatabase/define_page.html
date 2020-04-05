@@ -20,11 +20,6 @@ table, th, td {
     {% csrf_token %}
 
 
-    {% if define_wet_cell_form %}
-        <h2>Link a cell to its Metadata</h2>
-        <table>{{ define_wet_cell_form.as_table }}</table>
-        <input type="submit" name = 'define_wet_cell' value="Link cell">
-    {% endif %}
 
     <table>
 

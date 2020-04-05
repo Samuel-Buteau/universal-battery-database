@@ -315,16 +315,101 @@ class SeparatorGeometry(models.Model):
 
 
 class Coating(models.Model):
-    name = models.CharField(max_length=100, null=True, blank=True)
+    notes = models.CharField(max_length=100, null=True, blank=True)
     proprietary = models.BooleanField(default=False, blank=True)
+    proprietary_name = models.BooleanField(default=False, blank=True)
+
     description = models.CharField(max_length=1000, null=True, blank=True)
+    description_name = models.BooleanField(default=False, blank=True)
 
     def __str__(self):
-        if self.proprietary:
-            return "PROPRIETARY:{}".format(self.name)
-        else:
-            return "{}".format(self.name)
+        printed_name = ''
+        extras = []
+        if self.notes is not None:
+            if printed_name == '':
+                printed_name = self.notes
+            else:
+                printed_name = '{} ({})'.format(printed_name,self.notes)
 
+        if self.proprietary_name:
+            if self.proprietary:
+                secret = "SECRET"
+            else:
+                secret = "NOT SECRET"
+            extras.append(secret)
+
+        if self.description_name:
+            if self.description is None:
+                desc = ""
+            else:
+                desc = self.description
+            extras.append('DESCRIPTION:{}'.format(desc))
+
+
+        if len(extras) != 0:
+            return "{} [{}]".format(printed_name, ','.join(extras))
+        else:
+            return printed_name
+
+    def define_if_possible(self, target=None):
+
+        object_equality_query = Q(
+            proprietary=self.proprietary,
+            notes=self.notes,
+            description=self.description,
+        )
+
+
+        string_equality_query = Q(notes=self.notes)
+
+        if self.proprietary_name:
+            string_equality_query = string_equality_query & Q(proprietary=self.proprietary,
+                                                              proprietary_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(proprietary_name=False)
+
+
+        if self.description_name:
+            string_equality_query = string_equality_query & Q(description=self.description,
+                                                              description_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(description_name=False)
+
+
+        target_object = None
+        if target is None:
+
+            coating_set = Coating.objects
+            target_object = None
+        else:
+            coating_set = Coating.objects.exclude(id = target)
+            if Coating.objects.filter(id=target).exists():
+                target_object = Coating.objects.get(id=target)
+
+        set_of_object_equal = coating_set.filter(object_equality_query)
+        print('set objects equal: ', set_of_object_equal)
+        string_equals = coating_set.filter(string_equality_query).exists()
+        print('set of string equal: ', coating_set.filter(string_equality_query))
+
+        if (not set_of_object_equal.exists()) and string_equals:
+            self.proprietary_name = True
+            self.description_name = True
+
+
+        if target_object is None:
+            my_self = self
+        else:
+            my_self = target_object
+            my_self.notes = self.notes
+            my_self.proprietary = self.proprietary
+            my_self.proprietary_name = self.proprietary_name
+            my_self.description_name = self.description_name
+            my_self.description = self.description
+
+        return helper_return(
+                set_of_object_equal=set_of_object_equal,
+                my_self=my_self,
+            )
 
 class CoatingLot(models.Model):
     coating = models.ForeignKey(Coating, on_delete=models.CASCADE, blank=True)

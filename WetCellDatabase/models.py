@@ -1374,7 +1374,7 @@ class Composite(models.Model):
 
         extras = []
         if self.notes is not None:
-            if printed_name == '':
+            if printed_name == '' or printed_name is None:
                 printed_name = self.notes
             else:
                 printed_name = '{} ({})'.format(printed_name,self.notes)

@@ -293,15 +293,26 @@ def define_page(request, mode=None):
                 return None
             else:
                 ar[simple_form_string] = simple_form
-                if simple_form.cleaned_data['name'] is not None:
-                    my_content, _ = Coating.objects.get_or_create(
-                        name=simple_form.cleaned_data['name'],
-                        defaults={
-                            'description': simple_form.cleaned_data['description'],
-                            'proprietary': simple_form.cleaned_data['proprietary'],
-                        }
-                    )
-                    return my_content
+
+                my_coating = Coating(
+                    proprietary=simple_form.cleaned_data['proprietary'],
+                    proprietary_name=simple_form.cleaned_data['proprietary_name'],
+                    notes=simple_form.cleaned_data['notes'],
+                    description=simple_form.cleaned_data['description'],
+                    description_name=simple_form.cleaned_data['description_name'],
+
+                )
+
+
+                my_target = simple_form.cleaned_data['override_target']
+
+                if my_target is not None:
+                    my_target = my_target.id
+
+                return my_coating.define_if_possible(
+                    target=my_target
+
+                )
 
         if content == 'dry_cell':
             simple_form = DryCellForm(

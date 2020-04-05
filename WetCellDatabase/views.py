@@ -371,13 +371,18 @@ def define_page(request, mode=None):
                 elif lot_type == LotTypes.lot:
                     separator = CompositeLot.objects.get(id=my_id)
 
+                my_target = simple_form.cleaned_data['override_target']
 
+                if my_target is not None:
+                    my_target = my_target.id
 
                 return my_dry_cell.define_if_possible(
                     geometry=dry_cell_geometry,
                     cathode=cathode,
                     anode=anode,
                     separator=separator,
+                    target = my_target
+
                 )
 
 
@@ -492,12 +497,6 @@ def define_page(request, mode=None):
                         define_lot(request.POST, content=m)
 
 
-        if mode == 'wet_cell':
-            if ('define_wet_cell' in request.POST) :
-                define_wet_cell_form = WetCellForm(request.POST)
-                if define_wet_cell_form.is_valid():
-                    print(define_wet_cell_form.cleaned_data)
-                    ar['define_wet_cell_form'] = define_wet_cell_form
 
     def conditional_register(name, content):
         if name not in ar.keys():
@@ -641,22 +640,17 @@ def define_page(request, mode=None):
     if mode == 'dry_cell':
         conditional_register(
             'define_dry_cell_form',
-            DryCellForm()
+            DryCellForm(prefix='dry-cell-form')
         )
         conditional_register(
             'define_dry_cell_lot_form',
-            DryCellLotForm()
+            DryCellLotForm(prefix='dry-cell-lot-form')
         )
         conditional_register(
             'define_dry_cell_geometry_form',
-            DryCellGeometryForm()
+            DryCellGeometryForm(prefix='dry-cell-geometry-form')
         )
 
-    if mode == 'wet_cell':
-        conditional_register(
-            'define_wet_cell_form',
-            WetCellForm()
-        )
 
 
     return render(request, 'WetCellDatabase/define_page.html', ar)
@@ -850,10 +844,8 @@ def define_wet_cell_bulk(request, predefined=None):
 
                     ar['messages'] = messages
 
-    if not predefined:
-        return render(request, 'WetCellDatabase/define_wet_cell_bulk.html', ar)
-    else:
-        return render(request, 'WetCellDatabase/define_wet_cell_bulk.html', ar)
+
+    return render(request, 'WetCellDatabase/define_wet_cell_bulk.html', ar)
 
 
 

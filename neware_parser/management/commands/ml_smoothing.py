@@ -583,6 +583,34 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
         "my_data": my_data
     }
 
+class LossRecord():
+    def __init__(self):
+        self.data = []
+        self.labels =[
+            'cc_capacity_loss',
+            'cv_capacity_loss',
+            'cc_voltage_loss',
+            "q_loss",
+            "q_scale_loss",
+            "r_loss",
+            "shift_loss",
+            "z_cell_loss",
+            "reciprocal_loss",
+            "projection_loss",
+            "out_of_bounds_loss"
+        ]
+
+    def record(self, count, losses):
+        self.data.append((count, losses))
+
+    def print_recent(self):
+        if len(self.data) > 0:
+            count, losses = self.data[-1]
+            print('Count {}:'.format(count))
+            for i in range(len(losses)):
+                print('\t{}:{}'.format(self.labels[i], losses[i]))
+
+
 
 def train_and_evaluate(init_returns, barcodes, fit_args):
     strategy = init_returns["strategy"]
@@ -590,7 +618,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
     epochs = 100000
     count = 0
 
-    template = 'Epoch {}, Count {}'
+    template = 'Epoch {}, Count {}, Loss {}'
     end = time.time()
     now_ker = None
 
@@ -607,17 +635,28 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                 args=(neighborhood,)
             )
 
+    l = None
+    loss_record = LossRecord()
     with strategy.scope():
         for epoch in range(epochs):
-            l = 0.
-            count = 0
+            sub_count = 0
             for neighborhood in init_returns["train_ds"]:
                 count += 1
-                l += dist_train_step(strategy, neighborhood)
+                sub_count +=1
+
+                l_ = dist_train_step(strategy, neighborhood)
+                if l is None:
+                    l = l_
+                else:
+                    l += l_
 
                 if count != 0:
                     if (count % fit_args['print_loss_every']) == 0:
-                        print(template.format(epoch + 1, count, ))
+                        tot = l/tf.cast(sub_count, dtype=tf.float32)
+                        l = None
+                        sub_count = 0
+                        loss_record.record(count, tot.numpy())
+                        loss_record.print_recent()
 
                     plot_params = {
                         "barcodes": barcodes,
@@ -661,7 +700,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                 if count >= fit_args['stop_count']:
                     return
 
-            print( l/tf.cast(count, dtype=tf.float32) )
+
 
 def train_step(neighborhood, params, fit_args):
 
@@ -882,7 +921,25 @@ def train_step(neighborhood, params, fit_args):
     optimizer.apply_gradients(
         zip(gradients, degradation_model.trainable_variables)
     )
-    return cc_capacity_loss
+    return tf.stack(
+        [
+            cc_capacity_loss,
+            cv_capacity_loss,
+            cc_voltage_loss,
+            train_results["q_loss"],
+            train_results["q_scale_loss"],
+            train_results["r_loss"],
+
+            train_results["shift_loss"],
+            train_results["z_cell_loss"],
+            train_results["reciprocal_loss"],
+
+            train_results["projection_loss"],
+            train_results["out_of_bounds_loss"]
+        ],
+    )
+
+
 
 
 
@@ -1004,7 +1061,7 @@ class Command(BaseCommand):
         parser.add_argument('--batch_size', type = int, default = 4 * 16)
 
         vis = 1000
-        parser.add_argument('--print_loss_every', type = int, default = vis)
+        parser.add_argument('--print_loss_every', type = int, default = 10)
         parser.add_argument('--visualize_fit_every', type = int, default = vis)
         parser.add_argument('--visualize_vq_every', type = int, default = vis)
 

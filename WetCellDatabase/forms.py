@@ -457,15 +457,16 @@ class WetCellForm(Form):
 class WetCellParametersForm(WetCellForm):
     start_barcode = forms.IntegerField(required=False)
     end_barcode = forms.IntegerField(required=False)
+    number_of_barcodes = forms.IntegerField(required=False)
+
     override_existing = forms.BooleanField(required=False)
 
     def __init__(self, *args, **kwargs):
         super(WetCellParametersForm, self).__init__(*args, **kwargs)
 
 
-def initialize_mini_electrolyte(self, value=False, molecule=False, number=10):
-    if value:
-
+def initialize_mini_electrolyte(self, value=False, molecule=False, number=10, dry_cell=True):
+    if dry_cell:
         self.fields['dry_cell'] = forms.ChoiceField(
             choices = dry_cell_choices, required=False)
 
@@ -488,6 +489,7 @@ def initialize_mini_electrolyte(self, value=False, molecule=False, number=10):
 class ElectrolyteBulkParametersForm(ElectrolyteForm):
     start_barcode = forms.IntegerField(required=False)
     end_barcode = forms.IntegerField(required=False)
+    number_of_barcodes = forms.IntegerField(required=False)
     override_existing = forms.BooleanField(required=False)
 
     def __init__(self, *args, **kwargs):
@@ -507,7 +509,7 @@ class ElectrolyteBulkSingleEntryForm(ElectrolyteForm):
 
     def __init__(self, *args, **kwargs):
         super(ElectrolyteBulkSingleEntryForm, self).__init__(*args, **kwargs)
-        initialize_mini_electrolyte(self, value=True)
+        initialize_mini_electrolyte(self, value=True, dry_cell=False)
 
     def get_value_fields(self):
         for i in range(10):

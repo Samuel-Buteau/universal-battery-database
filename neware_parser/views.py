@@ -366,6 +366,8 @@ def main_page(request):
                     pn = 1
                     search_form.set_page_number(pn)
 
+                print(list(total_query))
+
 
                 for barcode in total_query[(pn - 1) * number_per_page:min(n, (pn) * number_per_page)]:
                     '''

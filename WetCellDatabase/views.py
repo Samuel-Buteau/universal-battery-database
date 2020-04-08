@@ -492,7 +492,7 @@ def define_page(request, mode=None):
                     lot = CompositeLot(composite = my_content)
                 elif content == 'dry_cell':
                     type = 'dry_cell'
-                    lot = DryCellLot(composite=my_content)
+                    lot = DryCellLot(dry_cell=my_content)
 
                 else:
                     raise('not yet implemented {}'.format(content))
@@ -717,15 +717,21 @@ def define_wet_cell_bulk(request, predefined=None):
                         for s in ['proprietary', 'proprietary_name','notes','dry_cell']:
                             initial[s] = bulk_parameters_form.cleaned_data[s]
                     else:
-                        initial['dry_cell']=bulk_parameters_form.cleaned_data['dry_cell']
+                        # initial['dry_cell']=bulk_parameters_form.cleaned_data['dry_cell']
                         initial['electrolyte'] = bulk_parameters_form.cleaned_data['electrolyte']
 
                     start_barcode = bulk_parameters_form.cleaned_data['start_barcode']
                     end_barcode = bulk_parameters_form.cleaned_data['end_barcode']
+                    number_of_barcodes = bulk_parameters_form.cleaned_data['number_of_barcodes']
 
-
-                    if start_barcode is not None and end_barcode is None:
+                    if start_barcode is not None and end_barcode is None and number_of_barcodes is None:
                         end_barcode = start_barcode
+                    if start_barcode is not None and end_barcode is None and number_of_barcodes is not None:
+                        end_barcode = start_barcode + number_of_barcodes - 1
+
+                    if start_barcode is None and number_of_barcodes is not None:
+                        start_barcode = 0
+                        end_barcode = start_barcode + number_of_barcodes - 1
 
                     if start_barcode is not None and end_barcode is not None:
 
@@ -823,7 +829,11 @@ def define_wet_cell_bulk(request, predefined=None):
                                         type='composite'
                                     )
 
-                            dry_cell_s = entry.cleaned_data['dry_cell']
+                            if not predefined:
+                                dry_cell_s = bulk_parameters_form.cleaned_data['dry_cell']
+                            else:
+                                dry_cell_s = entry.cleaned_data['dry_cell']
+
                             my_id, lot_type = decode_lot_string(dry_cell_s)
                             my_dry_cell = None
                             if lot_type == LotTypes.none:

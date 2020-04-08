@@ -160,6 +160,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
     number_of_compiled_cycles = 0
     number_of_reference_cycles = 0
 
+    my_data['max_cap'] = 250
     max_cap = my_data['max_cap']
 
     numpy_acc(
@@ -562,11 +563,13 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
                 neg_to_neg_name,
                 electrolyte_to_electrolyte_name,
                 molecule_to_molecule_name,
-            )
+            ),
+            n_sample= fit_args['n_sample'],
+            incentive_coeffs= fit_args,
 
         )
 
-        optimizer = tf.keras.optimizers.Adam(learning_rate = 0.002)
+        optimizer = tf.keras.optimizers.Adam(learning_rate = 0.001)
 
     return {
         "mirrored_strategy": mirrored_strategy,
@@ -849,15 +852,23 @@ def train_step(params, fit_args):
         )
 
         loss = (
-            0.05 * cv_capacity_loss + 1. * cc_voltage_loss + cc_capacity_loss
-            + train_results["q_loss"]
-            + train_results["q_scale_loss"]
-            + train_results["r_loss"]
-            + train_results["shift_loss"]
-            + fit_args['z_cell_coeff'] * train_results["z_cell_loss"]
-            + .1 * train_results["reciprocal_loss"]
-            + .1 * train_results["projection_loss"]
-            + .1 * train_results["out_of_bounds_loss"]
+            fit_args['coeff_cv_capacity'] * cv_capacity_loss
+            + fit_args['coeff_cc_voltage'] * cc_voltage_loss
+            + fit_args['coeff_cc_capacity'] * cc_capacity_loss
+            + 1. * tf.stop_gradient(
+                fit_args['coeff_cv_capacity'] * cv_capacity_loss
+                + fit_args['coeff_cc_voltage'] * cc_voltage_loss
+                + fit_args['coeff_cc_capacity'] * cc_capacity_loss
+            ) * (
+            fit_args['coeff_q'] *train_results["q_loss"]
+            + fit_args['coeff_q_scale'] *train_results["q_scale_loss"]
+            + fit_args['coeff_r'] * train_results["r_loss"]
+            + fit_args['coeff_shift'] *train_results["shift_loss"]
+            + fit_args['coeff_z_cell'] * train_results["z_cell_loss"]
+            + fit_args['coeff_reciprocal'] * train_results["reciprocal_loss"]
+            + fit_args['coeff_projection']  * train_results["projection_loss"]
+            + fit_args['coeff_out_of_bounds'] * train_results["out_of_bounds_loss"]
+        )
         )
 
     gradients = tape.gradient(loss, degradation_model.trainable_variables)
@@ -925,13 +936,61 @@ class Command(BaseCommand):
         parser.add_argument('--path_to_dataset', required = True)
         parser.add_argument('--dataset_version', required = True)
         parser.add_argument('--path_to_plots', required = True)
-        parser.add_argument('--z_cell_coeff', type = float, default = 0.00001)
-        parser.add_argument('--mono_coeff', type = float, default = .005)
-        parser.add_argument('--smooth_coeff', type = float, default = .05)
-        parser.add_argument('--const_f_coeff', type = float, default = .0)
-        parser.add_argument('--smooth_f_coeff', type = float, default = .01)
+        parser.add_argument('--n_sample', type=int, default=8 * 16)
+
+        parser.add_argument('--coeff_d_features', type=float, default=.0001)
+        parser.add_argument('--coeff_d2_features', type=float, default=.0001)
+
+        parser.add_argument('--coeff_z_cell', type=float, default=.001)
+
+        parser.add_argument('--coeff_cv_capacity', type = float, default = 1.)
+        parser.add_argument('--coeff_cc_voltage', type=float, default=1.)
+        parser.add_argument('--coeff_cc_capacity', type=float, default=1.)
+
+        parser.add_argument('--coeff_q', type=float, default=.01)
+        parser.add_argument('--coeff_q_small', type=float, default=.1)
+        parser.add_argument('--coeff_q_geq', type=float, default=100.)
+        parser.add_argument('--coeff_q_leq', type=float, default=100.)
+        parser.add_argument('--coeff_q_v_mono', type=float, default=10.)
+        parser.add_argument('--coeff_q_d3_v', type=float, default=1.)
+        parser.add_argument('--coeff_q_d3_shift', type=float, default=.1)
+        parser.add_argument('--coeff_q_d3_current', type=float, default=.1)
+
+        parser.add_argument('--coeff_q_scale', type=float, default=.01)
+        parser.add_argument('--coeff_q_scale_geq', type=float, default=500.)
+        parser.add_argument('--coeff_q_scale_leq', type=float, default=500.)
+        parser.add_argument('--coeff_q_scale_mono', type=float, default=1.)
+        parser.add_argument('--coeff_q_scale_d3_cycle', type=float, default=.1)
+
+        parser.add_argument('--coeff_r', type=float, default=.01)
+        parser.add_argument('--coeff_r_geq', type=float, default=500.)
+        parser.add_argument('--coeff_r_d3_cycle', type=float, default=.1)
+
+        parser.add_argument('--coeff_shift', type=float, default=.01)
+        parser.add_argument('--coeff_shift_geq', type=float, default=100.)
+        parser.add_argument('--coeff_shift_leq', type=float, default=100.)
+        parser.add_argument('--coeff_shift_small', type=float, default=500.)
+
+
+        parser.add_argument('--coeff_reciprocal', type=float, default=.4)
+        parser.add_argument('--coeff_reciprocal_v', type=float, default=5.)
+        parser.add_argument('--coeff_reciprocal_q', type=float, default=5.)
+        parser.add_argument('--coeff_reciprocal_v_small', type=float, default=.01)
+        parser.add_argument('--coeff_reciprocal_v_geq', type=float, default=50.)
+        parser.add_argument('--coeff_reciprocal_v_leq', type=float, default=5.)
+        parser.add_argument('--coeff_reciprocal_v_mono', type=float, default=.1)
+        parser.add_argument('--coeff_reciprocal_d3_current', type=float, default=.1)
+
+        parser.add_argument('--coeff_projection', type=float, default=.01)
+        parser.add_argument('--coeff_projection_pos', type=float, default=1.)
+        parser.add_argument('--coeff_projection_neg', type=float, default=1.)
+
+        parser.add_argument('--coeff_out_of_bounds', type=float, default=10.)
+        parser.add_argument('--coeff_oob_geq', type=float, default=1.)
+        parser.add_argument('--coeff_oob_leq', type=float, default=1.)
+
         parser.add_argument('--depth', type = int, default = 5)
-        parser.add_argument('--width', type = int, default = 48)
+        parser.add_argument('--width', type = int, default = 50)
         parser.add_argument('--batch_size', type = int, default = 4 * 16)
 
         vis = 1000
@@ -942,7 +1001,7 @@ class Command(BaseCommand):
         parser.add_argument('--stop_count', type = int, default = 60000)
         parser.add_argument(
             '--wanted_barcodes', type = int, nargs = '+',
-            default = [83220, 83083]
+            default = [83220, 83083] #[57706, 57707, 57710, 57711, 57714, 57715, 64260, 64268, 81602, 81603, 81604, 81605, 81606, 81607, 81608, 81609, 81610, 81611, 81612, 81613, 81614, 81615, 81616, 81617, 81618, 81619, 81620, 81621, 81622, 81623, 81624, 81625, 81626, 81627, 81712, 81713, 82300, 82301, 82302, 82303, 82304, 82305, 82306, 82307, 82308, 82309, 82310, 82311, 82406, 82407, 82410, 82411, 82769, 82770, 82771, 82775, 82776, 82777, 82779, 82992, 82993, 83010, 83011, 83012, 83013, 83014, 83015, 83016, 83083, 83092, 83101, 83106, 83107, 83220, 83221, 83222, 83223, 83224, 83225, 83226, 83227, 83228, 83229, 83230, 83231, 83232, 83233, 83234, 83235, 83236, 83237, 83239, 83240, 83241, 83242, 83243, 83310, 83311, 83312, 83317, 83318, 83593, 83594, 83595, 83596, 83741, 83742, 83743, 83744, 83745, 83746, 83747, 83748]
         )
 
     def handle(self, *args, **options):

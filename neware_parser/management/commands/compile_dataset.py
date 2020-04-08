@@ -372,31 +372,32 @@ def initial_processing(my_barcodes, fit_args):
                     ]
                 )
 
-                cyc_grp_dict[
-                    (cyc_group.constant_rate, cyc_group.end_rate_prev,
-                     cyc_group.end_rate, cyc_group.end_voltage,
-                     cyc_group.end_voltage_prev, typ)
-                ] = {
-                    'main_data':res,
-                    'avg_constant_current': numpy.average(
-                        res['constant_current']
-                    ),
-                    'avg_end_current_prev': numpy.average(
-                        res['end_current_prev']
-                    ),
-                    'avg_end_current':      numpy.average(
-                        res['end_current']
-                    ),
-                    'avg_end_voltage_prev': numpy.average(
-                        res['end_voltage_prev']
-                    ),
-                    'avg_end_voltage':      numpy.average(
-                        res['end_voltage']
-                    ),
-                    'avg_last_cc_voltage':  numpy.average(
-                        res['last_cc_voltage']
-                    ),
-                    }
+                if len(res) > 0:
+                    cyc_grp_dict[
+                        (cyc_group.constant_rate, cyc_group.end_rate_prev,
+                         cyc_group.end_rate, cyc_group.end_voltage,
+                         cyc_group.end_voltage_prev, typ)
+                    ] = {
+                        'main_data':res,
+                        'avg_constant_current': numpy.average(
+                            res['constant_current']
+                        ),
+                        'avg_end_current_prev': numpy.average(
+                            res['end_current_prev']
+                        ),
+                        'avg_end_current':      numpy.average(
+                            res['end_current']
+                        ),
+                        'avg_end_voltage_prev': numpy.average(
+                            res['end_voltage_prev']
+                        ),
+                        'avg_end_voltage':      numpy.average(
+                            res['end_voltage']
+                        ),
+                        'avg_last_cc_voltage':  numpy.average(
+                            res['last_cc_voltage']
+                        ),
+                        }
 
 
         all_data[barcode] = {'cyc_grp_dict':cyc_grp_dict, 'all_reference_mats':all_reference_mats}
@@ -471,8 +472,9 @@ def initial_processing(my_barcodes, fit_args):
         cyc_grp_dict = all_data[barcode]['cyc_grp_dict']
         # find largest cap measured for this cell (max over all cycle groups)
         for k in cyc_grp_dict.keys():
-            max_cap = max(
-                max_cap, max(abs(cyc_grp_dict[k]['main_data']['last_cc_capacity'])))
+            if len(cyc_grp_dict[k]['main_data']['last_cc_capacity']) > 0:
+                max_cap = max(
+                    max_cap, max(abs(cyc_grp_dict[k]['main_data']['last_cc_capacity'])))
 
 
     return {
@@ -547,7 +549,7 @@ class Command(BaseCommand):
             '--wanted_barcodes',
             type = int,
             nargs = '+',
-            default = [83220, 83083]
+            default = [57706, 57707, 57710, 57711, 57714, 57715, 64260, 64268, 81602, 81603, 81604, 81605, 81606, 81607, 81608, 81609, 81610, 81611, 81612, 81613, 81614, 81615, 81616, 81617, 81618, 81619, 81620, 81621, 81622, 81623, 81624, 81625, 81626, 81627, 81712, 81713, 82300, 82301, 82302, 82303, 82304, 82305, 82306, 82307, 82308, 82309, 82310, 82311, 82406, 82407, 82410, 82411, 82769, 82770, 82771, 82775, 82776, 82777, 82779, 82992, 82993, 83010, 83011, 83012, 83013, 83014, 83015, 83016, 83083, 83092, 83101, 83106, 83107, 83220, 83221, 83222, 83223, 83224, 83225, 83226, 83227, 83228, 83229, 83230, 83231, 83232, 83233, 83234, 83235, 83236, 83237, 83239, 83240, 83241, 83242, 83243, 83310, 83311, 83312, 83317, 83318, 83593, 83594, 83595, 83596, 83741, 83742, 83743, 83744, 83745, 83746, 83747, 83748]
         )
 
     def handle(self, *args, **options):

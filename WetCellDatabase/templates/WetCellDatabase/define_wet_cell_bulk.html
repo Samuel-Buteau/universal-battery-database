@@ -27,30 +27,31 @@ table, th, td {
             <input type="submit" name = 'bulk_process_entries' value="Register These Cells">
         {% endif %}
         <br>
-        Start Barcode: {{bulk_parameters_form.start_barcode}} End Barcode: {{bulk_parameters_form.end_barcode}}
+        Start Barcode: {{bulk_parameters_form.start_barcode}} End Barcode: {{bulk_parameters_form.end_barcode}} Number of Barcodes: {{bulk_parameters_form.number_of_barcodes}}
         Override Existing Registration: {{bulk_parameters_form.override_existing}}
         <br>
         <table>
             <tr>
                 <th></th>
                 <th>Dry Cell Model</th>
+                <th></th>
                 {% if predefined == 'True' %}
                     <th>Electrolyte</th>
                 {% endif %}
-                <th>Result</th>
                 {% if predefined == 'False' %}
 
-                    <th>Proprietary?</th>
-                    <th>Use Proprietary in Name?</th>
-                    <th>Notes</th>
                     <th>Molecules:</th>
                     {% for molecule in bulk_parameters_form.get_molecule_fields %}
                         <th>{{ molecule }}
                         </th>
                     {% endfor %}
+                    <th>Proprietary?</th>
+                    <th>Use Proprietary in Name?</th>
+                    <th>Notes</th>
                 {% endif %}
             </tr>
             <tr>
+
                 <th>Defaults:</th>
                 <td>{{bulk_parameters_form.dry_cell}}</td>
                 {% if predefined == 'True' %}
@@ -59,45 +60,52 @@ table, th, td {
                 <th></th>
                 {% if predefined == 'False' %}
 
-                    <td>{{bulk_parameters_form.proprietary}}</td>
-                    <td>{{bulk_parameters_form.proprietary_name}}</td>
-                    <td>{{bulk_parameters_form.notes}}</td>
                     <th>Default Amounts:</th>
 
                     {% for value in bulk_parameters_form.get_value_fields %}
                         <td>{{ value }}
                         </td>
                     {% endfor %}
+                    <td>{{bulk_parameters_form.proprietary}}</td>
+                    <td>{{bulk_parameters_form.proprietary_name}}</td>
+                    <td>{{bulk_parameters_form.notes}}</td>
                 {% endif %}
             </tr>
+
             {% if bulk_entries_formset %}
                 {% csrf_token %}
                 {{ bulk_entries_formset.management_form }}
-
+                <th>Result</th>
                 {% if predefined == 'False' %}
-                    <tr>Barcode:<th><th></th></th><th></th><th></th><th>Electrolytes:</th></tr>
+                    <th></th><th>Barcode:<th></th><th></th><th></th><th>Electrolytes:</th></th>
                 {% endif %}
 
                 {%for entry in bulk_entries_formset %}
                     <tr>
-                        <td>{{entry.barcode}}</td>
-                        <td>{{entry.dry_cell}}</td>
-                        {% if predefined == 'True' %}
-                            <td>{{entry.electrolyte}}</td>
-                        {% endif %}
                         <td>
                             {% if messages %}
                                 {{ messages|index:forloop.counter0 }}
                             {% endif %}
                         </td>
+                        <td>
+                            {% if predefined == 'False' %}
+                                {{entry.dry_cell}}
+                            {% endif %}
+                        </td>
+                        <td>{{entry.barcode}}</td>
+                        {% if predefined == 'True' %}
+                            <td>{{entry.electrolyte}}</td>
+                        {% endif %}
+
                         {% if predefined == 'False' %}
-                            <td>{{entry.proprietary}}</td>
-                            <td>{{entry.proprietary_name}}</td>
-                            <td>{{entry.notes}}</td>
+                            <td></td>
                             {% for value in entry.get_value_fields %}
                                 <td>{{ value }}
                                 </td>
                             {% endfor %}
+                            <td>{{entry.proprietary}}</td>
+                            <td>{{entry.proprietary_name}}</td>
+                            <td>{{entry.notes}}</td>
                         {% endif %}
                     </tr>
                 {% endfor %}

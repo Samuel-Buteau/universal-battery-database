@@ -245,7 +245,10 @@ class DegradationModel(Model):
         electrolyte_to_solvent, electrolyte_to_salt, electrolyte_to_additive,
         electrolyte_latent_flags, names,
 
-        n_channels = 16
+        n_sample,
+        incentive_coeffs,
+        n_channels = 16,
+
     ):
         super(DegradationModel, self).__init__()
 
@@ -255,6 +258,8 @@ class DegradationModel(Model):
             electrolyte_to_additive, electrolyte_latent_flags, names
         )
 
+        self.n_sample = n_sample
+        self.incentive_coeffs = incentive_coeffs
         self.num_features = width
 
         """ feedforward neural networks """
@@ -798,11 +803,10 @@ class DegradationModel(Model):
         return features_cell, loss, features_pos, features_neg,\
                fetched_latent_cell
 
-    def sample(self, svit_grid, batch_count, count_matrix):
+    def sample(self, svit_grid, batch_count, count_matrix, n_sample = 4 * 32):
 
         # NOTE(sam): this is an example of a forall. (for all voltages,
         # and all cell features)
-        n_sample = 4 * 32
         sampled_voltages = tf.random.uniform(
             minval = 2.5,
             maxval = 5.,
@@ -906,7 +910,6 @@ class DegradationModel(Model):
 
         q_scale = self.q_scale_direct(
             strain = strain,
-            current = params['constant_current'],
             q_scale_strainless = self.q_scale_strainless_direct(
                 cell_features = cell_features,
                 training = training
@@ -916,9 +919,7 @@ class DegradationModel(Model):
 
         shift_0 = self.shift_direct(
             strain = strain,
-            current = params['end_current_prev'],
             shift_strainless = self.shift_strainless_direct(
-                current = params['end_current_prev'],
                 cell_features = cell_features,
                 training = training
             ),
@@ -944,7 +945,8 @@ class DegradationModel(Model):
             voltage = eq_voltage_0,
             shift = shift_0,
             cell_features = cell_features,
-            training = training
+            current = params['end_current_prev'],
+            training=training
         )
 
         eq_voltage_1 = calculate_eq_voltage(
@@ -955,9 +957,7 @@ class DegradationModel(Model):
 
         shift_1 = self.shift_direct(
             strain = strain,
-            current = params['constant_current'],
             shift_strainless = self.shift_strainless_direct(
-                current = params['constant_current'],
                 cell_features = cell_features,
                 training = training
             ),
@@ -970,6 +970,10 @@ class DegradationModel(Model):
             cell_features = add_volt_dep(
                 cell_features, params,
                 cell_features.shape[1]
+            ),
+            current=add_volt_dep(
+                params['constant_current'],
+                params
             ),
             training = training
         )
@@ -997,7 +1001,6 @@ class DegradationModel(Model):
 
         q_scale = self.q_scale_direct(
             strain = strain,
-            current = params['constant_current'],
             q_scale_strainless = self.q_scale_strainless_direct(
                 cell_features = cell_features,
                 training = training
@@ -1006,9 +1009,7 @@ class DegradationModel(Model):
         )
         shift_0 = self.shift_direct(
             strain = strain,
-            current = params['end_current_prev'],
             shift_strainless = self.shift_strainless_direct(
-                current = params['end_current_prev'],
                 cell_features = cell_features,
                 training = training
             ),
@@ -1031,6 +1032,7 @@ class DegradationModel(Model):
             voltage = eq_voltage_0,
             shift = shift_0,
             cell_features = cell_features,
+            current=params['end_current_prev'],
             training = training
         )
         q_over_q = tf.reshape(params['cc_capacity'], [-1, 1]) / (
@@ -1039,9 +1041,7 @@ class DegradationModel(Model):
 
         shift_1 = self.shift_direct(
             strain = strain,
-            current = params['constant_current'],
             shift_strainless = self.shift_strainless_direct(
-                current = params['constant_current'],
                 cell_features = cell_features,
                 training = training
             ),
@@ -1052,6 +1052,10 @@ class DegradationModel(Model):
             shift = add_volt_dep(shift_1, params),
             cell_features = add_volt_dep(
                 cell_features, params, cell_features.shape[1]
+            ),
+            current=add_volt_dep(
+                params['constant_current'],
+                params,
             ),
             training = training
         )
@@ -1081,9 +1085,7 @@ class DegradationModel(Model):
 
         cc_shift = self.shift_direct(
             strain = strain,
-            current = params['end_current_prev'],
             shift_strainless = self.shift_strainless_direct(
-                current = params['end_current_prev'],
                 cell_features = cell_features,
                 training = training
             ),
@@ -1109,6 +1111,7 @@ class DegradationModel(Model):
             voltage = eq_voltage_0,
             shift = cc_shift,
             cell_features = cell_features,
+            current=params['end_current_prev'],
             training = training
         )
 
@@ -1117,7 +1120,6 @@ class DegradationModel(Model):
 
         q_scale = self.q_scale_direct(
             strain = add_current_dep(strain, params, strain.shape[1]),
-            current = params['cv_current'],
             q_scale_strainless = add_current_dep(
                 self.q_scale_strainless_direct(
                     cell_features = cell_features,
@@ -1136,9 +1138,7 @@ class DegradationModel(Model):
 
         cv_shift = self.shift_direct(
             add_current_dep(strain, params, strain.shape[1]),
-            current = params['cv_current'],
             shift_strainless = self.shift_strainless_direct(
-                current = params['cv_current'],
                 cell_features = add_current_dep(
                     cell_features, params, cell_features.shape[1]
                 ),
@@ -1153,6 +1153,7 @@ class DegradationModel(Model):
             cell_features = add_current_dep(
                 cell_features, params, cell_features.shape[1]
             ),
+            current=params['cv_current'],
             training = training
         )
 
@@ -1162,22 +1163,30 @@ class DegradationModel(Model):
         cell_features = get_cell_features(features = params['features'])
         v, out_of_bounds_loss = self.v_direct(
             q = params['q'], shift = params['shift'],
-            cell_features = cell_features, training = training
+            cell_features = cell_features,
+            training = training,
+            current = params['current']
         )
         return self.q_direct(
             voltage = v, shift = params['shift'],
-            cell_features = cell_features, training = training
+            cell_features = cell_features,
+            training = training,
+            current = params['current']
         ), out_of_bounds_loss
 
     def reciprocal_v(self, params, training = True):
         cell_features = get_cell_features(features = params['features'])
         q = self.q_direct(
             voltage = params['voltage'], shift = params['shift'],
-            cell_features = cell_features, training = training
+            cell_features = cell_features,
+            current = params['current'],
+            training = training
         )
         return self.v_direct(
             q = q, shift = params['shift'],
-            cell_features = cell_features, training = training
+            cell_features = cell_features,
+            current = params['current'],
+            training = training
         )
 
     """ Strainless direct variable methods """
@@ -1198,9 +1207,8 @@ class DegradationModel(Model):
         return tf.nn.elu(
             nn_call(self.nn_r_strainless, dependencies, training = training))
 
-    def shift_strainless_direct(self, current, cell_features, training = True):
+    def shift_strainless_direct(self, cell_features, training = True):
         dependencies = (
-            tf.abs(current),
             cell_features
         )
         return nn_call(
@@ -1257,18 +1265,17 @@ class DegradationModel(Model):
         return tf.nn.elu(nn_call(self.nn_r, dependencies, training = training))
 
     def q_scale_direct(
-        self, strain, current, q_scale_strainless, training = True
+        self, strain, q_scale_strainless, training = True
     ):
         dependencies = (
             strain,
-            # tf.abs(current),
             q_scale_strainless,
         )
         return tf.nn.elu(
             nn_call(self.nn_q_scale, dependencies, training = training)
         )
 
-    def q_direct(self, voltage, shift, cell_features, training = True):
+    def q_direct(self, voltage, shift, cell_features, current, training = True):
         pos_cell_features = self.pos_projection_direct(
             cell_features = cell_features,
             training = training
@@ -1281,26 +1288,27 @@ class DegradationModel(Model):
             voltage,
             shift,
             pos_cell_features,
-            neg_cell_features
+            neg_cell_features,
+            tf.abs(current)
         )
         return tf.nn.elu(nn_call(self.nn_q, dependencies, training = training))
 
-    def shift_direct(self, strain, current, shift_strainless, training = True):
+    def shift_direct(self, strain, shift_strainless, training = True):
         dependencies = (
             strain,
-            tf.abs(current),
             shift_strainless
         )
         return nn_call(self.nn_shift, dependencies, training = training)
 
-    def v_plus_direct(self, q, cell_features, training = True):
+    def v_plus_direct(self, q, cell_features, current, training = True):
         pos_cell_features = self.pos_projection_direct(
             cell_features = cell_features,
             training = training
         )
         dependencies = (
             q,
-            pos_cell_features
+            pos_cell_features,
+            tf.abs(current)
         )
 
         out_of_bound_loss = incentive_combine([
@@ -1319,7 +1327,7 @@ class DegradationModel(Model):
             self.nn_v_plus, dependencies, training = training
         ), out_of_bound_loss
 
-    def v_minus_direct(self, q, cell_features, training = True):
+    def v_minus_direct(self, q, cell_features, current, training = True):
         neg_cell_features = self.neg_projection_direct(
             cell_features = cell_features,
             training = training
@@ -1340,22 +1348,25 @@ class DegradationModel(Model):
 
         dependencies = (
             q,
-            neg_cell_features
+            neg_cell_features,
+            tf.abs(current)
         )
 
         return nn_call(
             self.nn_v_minus, dependencies, training = training
         ), out_of_bound_loss
 
-    def v_direct(self, q, shift, cell_features, training = True):
+    def v_direct(self, q, shift, cell_features, current, training = True):
         v_plus, loss_plus = self.v_plus_direct(
             q = q,
             cell_features = cell_features,
+            current= current,
             training = training
         )
         v_minus, loss_minus = self.v_minus_direct(
             q = (q - shift),
             cell_features = cell_features,
+            current = current,
             training = training
         )
 
@@ -1367,6 +1378,7 @@ class DegradationModel(Model):
         v_plus, loss = self.v_plus_direct(
             cell_features = get_cell_features(features = params['features']),
             q = params['q'],
+            current = params['current'],
             training = training
         )
         return v_plus
@@ -1375,6 +1387,7 @@ class DegradationModel(Model):
         v_m, loss = self.v_minus_direct(
             cell_features = get_cell_features(features = params['features']),
             q = params['q'],
+            current=params['current'],
             training = training
         )
         return v_m
@@ -1383,7 +1396,8 @@ class DegradationModel(Model):
         return self.q_direct(
             cell_features = get_cell_features(features = params['features']),
             voltage = params['voltage'],
-            shift = params['shift']
+            shift = params['shift'],
+            current = params['current'],
         )
 
     def r_for_derivative(self, params, training = True):
@@ -1436,7 +1450,6 @@ class DegradationModel(Model):
 
         return self.q_scale_direct(
             strain = strain,
-            current = params['current'],
             q_scale_strainless = strainless,
             training = training
         )
@@ -1462,19 +1475,17 @@ class DegradationModel(Model):
         )
 
         strainless = self.shift_strainless_direct(
-            current = params['current'],
             cell_features = cell_features,
             training = training
         )
 
         return self.shift_direct(
             strain = strain,
-            current = params['current'],
             shift_strainless = strainless,
             training = training
         )
 
-    def get_v_curves(self, barcode, shift, voltage, q):
+    def get_v_curves(self, barcode, shift, voltage, q, current):
         """
         :param barcode: a barcode
         :param shift: a 1-D array of shifts
@@ -1507,6 +1518,7 @@ class DegradationModel(Model):
         v_plus, _ = self.v_plus_direct(
             q = tf.reshape(q, [-1, 1]),
             cell_features = tf.tile(cell_features, [q.shape[0], 1]),
+            current = tf.tile(current, [q.shape[0],1]),
             training = training
         )
         v_plus = tf.reshape(v_plus, [-1])
@@ -1523,6 +1535,7 @@ class DegradationModel(Model):
         v_minus, _ = self.v_minus_direct(
             q = q_big - shift_big,
             cell_features = cell_features_big,
+            current=tf.tile(current, [shift.shape[0]*q.shape[0],1]) ,
             training = training
         )
 
@@ -1532,6 +1545,7 @@ class DegradationModel(Model):
             q = q_big,
             shift = shift_big,
             cell_features = cell_features_big,
+            current=tf.tile(current, [shift.shape[0]*q.shape[0],1]),
             training = training,
         )
 
@@ -1553,6 +1567,7 @@ class DegradationModel(Model):
             voltage = voltage_big,
             shift = shift_big,
             cell_features = cell_features_big,
+            current=tf.tile(current, [shift.shape[0]*voltage.shape[0],1]),
             training = training
         )
         q = tf.reshape(q, [shift.shape[0], voltage.shape[0]])
@@ -1635,7 +1650,7 @@ class DegradationModel(Model):
                 sampled_svit_grid,
                 sampled_count_matrix,
                 sampled_cell_features,
-            ) = self.sample(svit_grid, batch_count, count_matrix)
+            ) = self.sample(svit_grid, batch_count, count_matrix, n_sample=self.n_sample)
 
             predicted_pos = self.pos_projection_direct(
                 cell_features = sampled_cell_features, training = training
@@ -1645,16 +1660,18 @@ class DegradationModel(Model):
                 cell_features = sampled_cell_features, training = training
             )
 
-            projection_loss = .1 * calculate_projection_loss(
+            projection_loss = calculate_projection_loss(
                 sampled_latent, sampled_pos, sampled_neg,
-                predicted_pos, predicted_neg
+                predicted_pos, predicted_neg,
+                incentive_coeffs=self.incentive_coeffs
             )
 
             reciprocal_q, oob_loss_1 = self.reciprocal_q(
                 params = {
                     'q': sampled_qs,
                     'features': sampled_features,
-                    'shift': sampled_shift
+                    'shift': sampled_shift,
+                    'current':sampled_constant_current
                 },
                 training = training
             )
@@ -1662,7 +1679,8 @@ class DegradationModel(Model):
                 params = {
                     'voltage': sampled_voltages,
                     'features': sampled_features,
-                    'shift': sampled_shift
+                    'shift': sampled_shift,
+                    'current': sampled_constant_current
                 },
                 training = training
             )
@@ -1672,24 +1690,27 @@ class DegradationModel(Model):
                 params = {
                     'q': sampled_qs,
                     'features': sampled_features,
+                    'current': sampled_constant_current
                 },
-                der_params = {'q': 1}
+                der_params = {'q': 1, 'current':3}
             )
             v_minus, v_minus_der = create_derivatives(
                 self.v_minus_for_derivative,
                 params = {
                     'q': sampled_qs,
                     'features': sampled_features,
+                    'current': sampled_constant_current
                 },
-                der_params = {'q': 1}
+                der_params = {'q': 1, 'current':3}
             )
 
-            oob_loss_3 = calculate_oob_loss(reciprocal_q)
+            oob_loss_3 = calculate_oob_loss(reciprocal_q, incentive_coeffs=self.incentive_coeffs)
 
-            reciprocal_loss = .5 * calculate_reciprocal_loss(
+            reciprocal_loss = calculate_reciprocal_loss(
                 sampled_voltages, sampled_qs,
                 v_plus, v_minus, v_plus_der, v_minus_der,
                 reciprocal_v, reciprocal_q,
+                incentive_coeffs=self.incentive_coeffs
             )
 
             q, q_der = create_derivatives(
@@ -1697,39 +1718,38 @@ class DegradationModel(Model):
                 params = {
                     'voltage': sampled_voltages,
                     'features': sampled_features,
-                    'shift': sampled_shift
+                    'shift': sampled_shift,
+                    'current': sampled_constant_current
                 },
-                der_params = {'voltage': 3, 'features': 2, 'shift': 3}
+                der_params = {'voltage': 3, 'features': 2, 'shift': 3, 'current':3}
             )
 
-            q_loss = .0001 * calculate_q_loss(q, q_der)
+            q_loss =  calculate_q_loss(q, q_der, incentive_coeffs=self.incentive_coeffs)
 
             q_scale, q_scale_der = create_derivatives(
                 self.q_scale_for_derivative,
                 params = {
                     'cycle': sampled_cycles,
-                    'current': sampled_constant_current,
                     'features': sampled_features,
                     'svit_grid': sampled_svit_grid,
                     'count_matrix': sampled_count_matrix
                 },
-                der_params = {'cycle': 3, 'current': 0, 'features': 2}
+                der_params = {'cycle': 3, 'features': 2}
             )
 
-            q_scale_loss = .0001 * calculate_q_scale_loss(q_scale, q_scale_der)
+            q_scale_loss = calculate_q_scale_loss(q_scale, q_scale_der,incentive_coeffs=self.incentive_coeffs)
 
             shift, shift_der = create_derivatives(
                 self.shift_for_derivative,
                 params = {
                     'cycle': sampled_cycles,
-                    'current': sampled_constant_current,
                     'features': sampled_features,
                     'svit_grid': sampled_svit_grid,
                     'count_matrix': sampled_count_matrix
                 },
-                der_params = {'cycle': 3, 'current': 3, 'features': 3}
+                der_params = {'cycle': 3 , 'features': 2}
             )
-            shift_loss = .0001 * calculate_shift_loss(shift, shift_der)
+            shift_loss =  calculate_shift_loss(shift, shift_der, incentive_coeffs=self.incentive_coeffs)
 
             r, r_der = create_derivatives(
                 self.r_for_derivative,
@@ -1741,7 +1761,7 @@ class DegradationModel(Model):
                 },
                 der_params = {'cycle': 3, 'features': 2}
             )
-            r_loss = .0001 * calculate_r_loss(r, r_der)
+            r_loss = calculate_r_loss(r, r_der, incentive_coeffs=self.incentive_coeffs)
 
             _, z_cell_loss, _, _, _ = self.z_cell_from_indices(
                 indices = tf.range(
@@ -1796,7 +1816,6 @@ class DegradationModel(Model):
             )
 
             shift_0_strainless = self.shift_strainless_direct(
-                current = params['constant_current'],
                 cell_features = cell_features,
                 training = training
             )
@@ -1808,14 +1827,12 @@ class DegradationModel(Model):
 
             q_scale = self.q_scale_direct(
                 strain = strain,
-                current = params['constant_current'],
                 q_scale_strainless = q_scale_strainless,
                 training = training
             )
 
             shift = self.shift_direct(
                 strain = strain,
-                current = params['constant_current'],
                 shift_strainless = shift_0_strainless,
                 training = training
             )

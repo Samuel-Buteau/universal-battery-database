@@ -526,7 +526,8 @@ def average_data(data_source_, val_keys, sort_val, weight_func=None, weight_exp_
 
     weights = weights[works]
     data_source = data_source_[works]
-
+    if len(data_source) == 0:
+        return None
     if weight_exp_func is not None:
         weights_exp = weight_exp_func(data_source)
     else:
@@ -781,8 +782,9 @@ def process_barcode(barcode, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
                     sorted_keys.sort()
                     avg_sorted_keys = {}
                     for sk in sorted_keys:
-                        avg_sorted_keys[sk] = numpy.mean(
-                            data_table[split_data[sk]][splitting_var])
+                        if len(data_table[split_data[sk]][splitting_var]) >0:
+                            avg_sorted_keys[sk] = numpy.mean(
+                                data_table[split_data[sk]][splitting_var])
 
                     grouped_rates = {}
                     for sk in sorted_keys:
@@ -809,30 +811,30 @@ def process_barcode(barcode, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
                 split_data2 = separate_data(new_data, splitting_var='constant_rate')
                 for k in split_data2.keys():
                     new_data_2 = new_data[split_data2[k]]
+                    if len(new_data_2) > 0:
+                        split_data3 = separate_data(new_data_2, splitting_var='end_rate')
+                        for k2 in split_data3.keys():
+                            new_data_3 = new_data_2[split_data3[k2]]
+                            if len(new_data_3) > 0:
+                                split_data4 = separate_data(new_data_3, splitting_var='end_rate_prev')
+                                for k3 in split_data4.keys():
+                                    new_data_4 = new_data_3[split_data4[k3]]
+                                    if len(new_data_4):
+                                        split_data5 = separate_data(new_data_4, splitting_var='end_voltage')
+                                        for k4 in split_data5.keys():
+                                            new_data_5 = new_data_4[split_data5[k4]]
+                                            if len(new_data_5) > 0:
+                                                split_data6 = separate_data(new_data_5, splitting_var='end_voltage_prev')
+                                                for k5 in split_data6.keys():
+                                                    new_data_6 = new_data_5[split_data6[k5]]
+                                                    if len(new_data_6) > 0:
+                                                        avg_constant_rate = numpy.mean(new_data_6['constant_rate'])
+                                                        avg_end_rate = numpy.mean(new_data_6['end_rate'])
+                                                        avg_end_rate_prev = numpy.mean(new_data_6['end_rate_prev'])
+                                                        avg_end_voltage = numpy.mean(new_data_6['end_voltage'])
+                                                        avg_end_voltage_prev = numpy.mean(new_data_6['end_voltage_prev'])
 
-                    split_data3 = separate_data(new_data_2, splitting_var='end_rate')
-                    for k2 in split_data3.keys():
-                        new_data_3 = new_data_2[split_data3[k2]]
-
-                        split_data4 = separate_data(new_data_3, splitting_var='end_rate_prev')
-                        for k3 in split_data4.keys():
-                            new_data_4 = new_data_3[split_data4[k3]]
-
-                            split_data5 = separate_data(new_data_4, splitting_var='end_voltage')
-                            for k4 in split_data5.keys():
-                                new_data_5 = new_data_4[split_data5[k4]]
-
-                                split_data6 = separate_data(new_data_5, splitting_var='end_voltage_prev')
-                                for k5 in split_data6.keys():
-                                    new_data_6 = new_data_5[split_data6[k5]]
-
-                                    avg_constant_rate = numpy.mean(new_data_6['constant_rate'])
-                                    avg_end_rate = numpy.mean(new_data_6['end_rate'])
-                                    avg_end_rate_prev = numpy.mean(new_data_6['end_rate_prev'])
-                                    avg_end_voltage = numpy.mean(new_data_6['end_voltage'])
-                                    avg_end_voltage_prev = numpy.mean(new_data_6['end_voltage_prev'])
-
-                                    summary_data[(avg_constant_rate, avg_end_rate, avg_end_rate_prev, avg_end_voltage, avg_end_voltage_prev)] = new_data_6
+                                                        summary_data[(avg_constant_rate, avg_end_rate, avg_end_rate_prev, avg_end_voltage, avg_end_voltage_prev)] = new_data_6
 
                 for k in summary_data.keys():
 
@@ -1384,7 +1386,7 @@ def machine_learning_post_process_cycle(cyc, voltage_grid, step_type, current_ma
 
     valid_curve = curve[masks]
     invalid_curve = curve[~masks]
-    if len(invalid_curve) > 5:
+    if len(invalid_curve) > 20:
         print('too many invalids {}. (valids were {})'.format(invalid_curve, valid_curve))
         return None
 

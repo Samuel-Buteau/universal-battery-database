@@ -276,7 +276,7 @@ def plot_vq(plot_params, init_returns):
         axs[2].set_xlabel("pred_cap")
         fig.tight_layout()
         fig.subplots_adjust(hspace = 0)
-        savefig('VQ_{}_Count_{}.png', fit_args, barcode, count)
+        savefig('VQ_{}_Count_{}.png'.format(barcode, count), fit_args)
         plt.close(fig)
 
 
@@ -515,7 +515,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
         plot_resistance()
         plot_shift()
 
-        savefig('Cap_{}_Count_{}.png', fit_args, barcode, count)
+        savefig('Cap_{}_Count_{}.png'.format(barcode, count), fit_args)
         plt.close(fig)
 
 
@@ -600,9 +600,9 @@ def test_single_voltage(
     )
 
 
-def savefig(figname, fit_args, barcode, count):
+def savefig(figname, fit_args):
     plt.savefig(
-        os.path.join(fit_args['path_to_plots'], figname.format(barcode, count)),
+        os.path.join(fit_args['path_to_plots'], figname),
         dpi = 300
     )
 
@@ -641,37 +641,38 @@ def plot_v_curves(plot_params, init_returns):
     shift = np.linspace(start = -.2, stop = .2, num = 9, dtype = np.float32)
     voltage = np.linspace(start = 2., stop = 5.5, num = 64, dtype = np.float32)
     q = np.linspace(start = -0.25, stop = 1.25, num = 64, dtype = np.float32)
+    for current in [0.05, 1., 3.]:
+        for barcode in barcodes:
 
-    for barcode in barcodes:
+            fig, axs = plt.subplots(nrows = 3, ncols = 3, figsize = [10, 10],
+                                    sharex = True, sharey = True)
 
-        fig, axs = plt.subplots(nrows = 3, ncols = 3, figsize = [10, 10],
-                                sharex = True, sharey = True)
+            gathered_axs = []
+            for ax_i in axs:
+                for ax_j in ax_i:
+                    gathered_axs.append(ax_j)
 
-        gathered_axs = []
-        for ax_i in axs:
-            for ax_j in ax_i:
-                gathered_axs.append(ax_j)
+            res = degradation_model.get_v_curves(
+                barcode = barcode,
+                shift = tf.constant(shift),
+                voltage = tf.constant(voltage),
+                q = tf.constant(q),
+                current= tf.constant(current, shape=[1,1])
+            )
+            for j in range(len(shift)):
+                ax = gathered_axs[j]
 
-        res = degradation_model.get_v_curves(
-            barcode = barcode,
-            shift = tf.constant(shift),
-            voltage = tf.constant(voltage),
-            q = tf.constant(q),
-        )
-        for j in range(len(shift)):
-            ax = gathered_axs[j]
+                ax.plot(q, res['v_plus'], label = 'v_+')
+                ax.plot(q, res['v_minus'][j], label = 'v_-')
+                ax.plot(q, res['v'][j], label = 'v_full')
+                ax.plot(res['q'][j], voltage, label = 'q_full (inverted)')
+                ax.axvline(shift[j], 0, 1)
 
-            ax.plot(q, res['v_plus'], label = 'v_+')
-            ax.plot(q, res['v_minus'][j], label = 'v_-')
-            ax.plot(q, res['v'][j], label = 'v_full')
-            ax.plot(res['q'][j], voltage, label = 'q_full (inverted)')
-            ax.axvline(shift[j], 0, 1)
+            ax.legend()
 
-        ax.legend()
-
-        fig.tight_layout()
-        savefig('v_curves_{}_{}.png', fit_args, barcode, count)
-        plt.close(fig)
+            fig.tight_layout()
+            savefig('v_curves_{}_{}_I{}.png'.format(barcode, count, current), fit_args)
+            plt.close(fig)
 
 
 def get_list_of_keys(cyc_grp_dict, typ):

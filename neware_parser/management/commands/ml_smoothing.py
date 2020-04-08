@@ -68,7 +68,7 @@ def three_level_flatten(iterables):
                 yield element
 
 
-def initial_processing(my_data, my_names, barcodes, fit_args):
+def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
     """
     my_data has the following structure:
         my_data: a dictionary indexed by various data:
@@ -520,14 +520,13 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
         compiled_tensors[label] = tf.constant(compiled_data[label])
 
     batch_size = fit_args['batch_size']
-    mirrored_strategy = tf.distribute.MirroredStrategy()
 
-    with mirrored_strategy.scope():
+    with strategy.scope():
         train_ds_ = tf.data.Dataset.from_tensor_slices(
             neighborhood_data
         ).repeat(2).shuffle(100000).batch(batch_size)
 
-        train_ds = mirrored_strategy.experimental_distribute_dataset(train_ds_)
+        train_ds = strategy.experimental_distribute_dataset(train_ds_)
 
         pos_to_pos_name = {}
         neg_to_neg_name = {}
@@ -572,7 +571,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
         optimizer = tf.keras.optimizers.Adam(learning_rate = 0.001)
 
     return {
-        "mirrored_strategy": mirrored_strategy,
+        "strategy": strategy,
         "degradation_model": degradation_model,
         "compiled_tensors": compiled_tensors,
 
@@ -586,7 +585,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args):
 
 
 def train_and_evaluate(init_returns, barcodes, fit_args):
-    mirrored_strategy = init_returns["mirrored_strategy"]
+    strategy = init_returns["strategy"]
 
     epochs = 100000
     count = 0
@@ -594,19 +593,27 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
     template = 'Epoch {}, Count {}'
     end = time.time()
     now_ker = None
-    with mirrored_strategy.scope():
+
+    train_step_params = {
+        "compiled_tensors": init_returns['compiled_tensors'],
+        "optimizer": init_returns['optimizer'],
+        "degradation_model": init_returns['degradation_model'],
+    }
+
+    @tf.function
+    def dist_train_step(strategy, neighborhood):
+        return strategy.experimental_run_v2(
+                lambda neighborhood: train_step(neighborhood, train_step_params, fit_args),
+                args=(neighborhood,)
+            )
+
+    with strategy.scope():
         for epoch in range(epochs):
+            l = 0.
+            count = 0
             for neighborhood in init_returns["train_ds"]:
                 count += 1
-
-                train_step_params = {
-                    "neighborhood": neighborhood,
-                    "compiled_tensors": init_returns['compiled_tensors'],
-                    "optimizer": init_returns['optimizer'],
-                    "degradation_model": init_returns['degradation_model'],
-                }
-
-                dist_train_step(mirrored_strategy, train_step_params, fit_args)
+                l += dist_train_step(strategy, neighborhood)
 
                 if count != 0:
                     if (count % fit_args['print_loss_every']) == 0:
@@ -654,9 +661,9 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                 if count >= fit_args['stop_count']:
                     return
 
+            print( l/tf.cast(count, dtype=tf.float32) )
 
-def train_step(params, fit_args):
-    neighborhood = params["neighborhood"]
+def train_step(neighborhood, params, fit_args):
 
     sign_grid_tensor = params["compiled_tensors"]['sign_grid']
     voltage_grid_tensor = params["compiled_tensors"]['voltage_grid']
@@ -875,20 +882,23 @@ def train_step(params, fit_args):
     optimizer.apply_gradients(
         zip(gradients, degradation_model.trainable_variables)
     )
+    return cc_capacity_loss
 
-
-@tf.function
-def dist_train_step(mirrored_strategy, train_step_params, fit_args):
-    mirrored_strategy.experimental_run_v2(
-        train_step, args = (train_step_params, fit_args)
-    )
 
 
 def ml_smoothing(fit_args):
-    print(
-        "Num GPUs Available: ",
-        len(tf.config.experimental.list_physical_devices('GPU'))
-    )
+
+
+    if len(tf.config.experimental.list_physical_devices('GPU')) == 1:
+        strategy = tf.distribute.OneDeviceStrategy(
+            device='/gpu:0'
+        )
+    elif len(tf.config.experimental.list_physical_devices('GPU')) > 1 :
+        strategy = tf.distribute.MirroredStrategy()
+    else:
+        strategy = tf.distribute.OneDeviceStrategy(
+            '/cpu:0'
+        )
 
     if not os.path.exists(fit_args['path_to_plots']):
         os.mkdir(fit_args['path_to_plots'])
@@ -926,7 +936,7 @@ def ml_smoothing(fit_args):
         return
 
     train_and_evaluate(
-        initial_processing(my_data, my_names, barcodes, fit_args), barcodes,
+        initial_processing(my_data, my_names, barcodes, fit_args, strategy=strategy), barcodes,
         fit_args)
 
 

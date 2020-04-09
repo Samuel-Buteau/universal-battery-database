@@ -1,5 +1,7 @@
 import time
 
+import matplotlib.pyplot as plt
+
 import numpy
 import tensorflow as tf
 from django.core.management.base import BaseCommand
@@ -611,6 +613,18 @@ class LossRecord():
                 print('\t{}:{}'.format(self.labels[i], losses[i]))
 
 
+    def plot(self, count, fit_args):
+        fig = plt.figure(figsize = [11, 10])
+        ax = fig.add_subplot(111)
+        ax.set_yscale('log')
+        for i in range(len(self.labels)):
+            ax.plot([s[0] for s in self.data], [s[1][i] for s in self.data], label=self.labels[i] )
+
+        ax.legend()
+
+        savefig('losses_Count_{}.png'.format(count), fit_args)
+        plt.close(fig)
+
 
 def train_and_evaluate(init_returns, barcodes, fit_args):
     strategy = init_returns["strategy"]
@@ -665,8 +679,10 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                     }
 
                     if (count % fit_args['visualize_fit_every']) == 0:
+
                         start = time.time()
                         print("time to simulate: ", start - end)
+                        loss_record.plot(count, fit_args)
                         plot_things_vs_cycle_number(plot_params, init_returns)
                         plot_vq(plot_params, init_returns)
                         plot_v_curves(plot_params, init_returns)
@@ -1061,8 +1077,8 @@ class Command(BaseCommand):
         parser.add_argument('--batch_size', type = int, default = 4 * 16)
 
         vis = 1000
-        parser.add_argument('--print_loss_every', type = int, default = 10)
-        parser.add_argument('--visualize_fit_every', type = int, default = vis)
+        parser.add_argument('--print_loss_every', type = int, default = 100)
+        parser.add_argument('--visualize_fit_every', type = int, default = 1000)#vis)
         parser.add_argument('--visualize_vq_every', type = int, default = vis)
 
         parser.add_argument('--stop_count', type = int, default = 60000)

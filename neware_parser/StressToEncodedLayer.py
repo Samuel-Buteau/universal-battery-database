@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
-
+main_activation = 'elu'
 
 class StressToEncodedLayer(Layer):
     def __init__(self, n_channels):
@@ -44,9 +44,9 @@ class StressToEncodedLayer(Layer):
 
         filters = [
             (self.input_kernel, 'none'),
-            (self.v_i_kernel_1, 'relu'),
-            (self.t_kernel, 'relu'),
-            (self.v_i_kernel_2, 'relu'),
+            (self.v_i_kernel_1, main_activation),
+            (self.t_kernel, main_activation),
+            (self.v_i_kernel_2, main_activation),
             (self.output_kernel, 'none')
         ]
 
@@ -61,6 +61,9 @@ class StressToEncodedLayer(Layer):
             if activ is 'relu':
                 val_0 = tf.nn.relu(val_0)
                 val_1 = tf.nn.relu(val_1)
+            elif activ is 'elu':
+                val_0 = tf.nn.elu(val_0)
+                val_1 = tf.nn.elu(val_1)
 
         # each entry is scaled by its count.
         val_0 = val_0 * count_matrix_0

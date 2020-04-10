@@ -7,7 +7,7 @@ from neware_parser.PrimitiveDictionaryLayer import PrimitiveDictionaryLayer
 from neware_parser.StressToEncodedLayer import StressToEncodedLayer
 from neware_parser.loss_calculator import *
 
-
+main_activation = tf.keras.activations.relu
 # TODO(sam): for now, remove incentives/derivatives wrt cycle.
 # implement R, shift, q_scale in terms of Strain.
 # should treat strain like a vector of cycles maybe.
@@ -38,7 +38,7 @@ def feedforward_nn_parameters(depth, width, last = None):
 
     initial = Dense(
         width,
-        activation = 'relu',
+        activation = main_activation,
         use_bias = True,
         bias_initializer = 'zeros'
     )
@@ -46,7 +46,7 @@ def feedforward_nn_parameters(depth, width, last = None):
     bulk = [
         Dense(
             width,
-            activation = 'relu',
+            activation = main_activation,
             use_bias = True,
             bias_initializer = 'zeros'
         ) for _ in range(depth)
@@ -154,11 +154,11 @@ def get_norm_constant(features):
 
 
 def get_cell_features(features):
-    return features[:, 1:]
+    return features[:, :]
 
 
 def get_norm_cycle_direct(cycle, norm_constant):
-    return cycle * (1e-10 + tf.exp(-norm_constant))
+    return cycle #* (1e-10 + tf.exp(-norm_constant))
 
 
 def calculate_eq_voltage(voltage, current, resistance):
@@ -1271,7 +1271,7 @@ class DegradationModel(Model):
             strain,
             q_scale_strainless,
         )
-        return tf.nn.elu(
+        return 1. + tf.nn.tanh(
             nn_call(self.nn_q_scale, dependencies, training = training)
         )
 

@@ -107,6 +107,23 @@ def calculate_reciprocal_loss(
                 Level.Proportional
             )
         ),
+        (
+            incentive_coeffs['coeff_reciprocal_d_current_minus'],
+            incentive_magnitude(
+                v_minus_der['d_current'],
+                Target.Small,
+                Level.Proportional
+            )
+        ),
+
+        (
+            incentive_coeffs['coeff_reciprocal_d_current_plus'],
+            incentive_magnitude(
+                v_plus_der['d_current'],
+                Target.Small,
+                Level.Proportional
+            )
+        ),
 
         (
             incentive_coeffs['coeff_reciprocal_v_geq'],
@@ -222,6 +239,13 @@ def calculate_q_scale_loss(q_scale, q_scale_der, incentive_coeffs):
             )
         ),
 
+        (
+            incentive_coeffs['coeff_q_scale_eq'],
+            incentive_inequality(
+                q_scale, Inequality.Equals, 1.,
+                Level.Proportional
+            )
+        ),
 
         (
             incentive_coeffs['coeff_q_scale_mono'],
@@ -312,6 +336,15 @@ def calculate_r_loss(r, r_der, incentive_coeffs):
                 Level.Strong
             )
         ),
+
+        (
+            incentive_coeffs['coeff_r_big'],
+            incentive_magnitude(
+                r, Target.Big,
+                Level.Proportional
+            )
+        ),
+
         (
             incentive_coeffs['coeff_r_d3_cycle'],
             incentive_magnitude(

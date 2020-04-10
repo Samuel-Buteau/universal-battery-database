@@ -311,8 +311,7 @@ class DegradationModel(Model):
 
         for cell_id in self.cell_direct.id_dict.keys():
             if cell_id in cell_latent_flags.keys():
-                latent_flags[self.cell_direct.id_dict[cell_id], 0] =\
-                    cell_latent_flags[cell_id]
+                latent_flags[self.cell_direct.id_dict[cell_id], 0] = cell_latent_flags[cell_id]
 
         self.cell_latent_flags = tf.constant(latent_flags)
 
@@ -322,14 +321,11 @@ class DegradationModel(Model):
 
         for cell_id in self.cell_direct.id_dict.keys():
             if cell_id in cell_to_pos.keys():
-                cell_pointers[self.cell_direct.id_dict[cell_id], 0] =\
-                    pos_dict[cell_to_pos[cell_id]]
+                cell_pointers[self.cell_direct.id_dict[cell_id], 0] = pos_dict[cell_to_pos[cell_id]]
             if cell_id in cell_to_neg.keys():
-                cell_pointers[self.cell_direct.id_dict[cell_id], 1] =\
-                    neg_dict[cell_to_neg[cell_id]]
+                cell_pointers[self.cell_direct.id_dict[cell_id], 1] = neg_dict[cell_to_neg[cell_id]]
             if cell_id in cell_to_electrolyte.keys():
-                cell_pointers[self.cell_direct.id_dict[cell_id], 2] =\
-                    electrolyte_dict[cell_to_electrolyte[cell_id]]
+                cell_pointers[self.cell_direct.id_dict[cell_id], 2] = electrolyte_dict[cell_to_electrolyte[cell_id]]
 
         self.cell_pointers = tf.constant(cell_pointers)
         self.cell_indirect = feedforward_nn_parameters(
@@ -448,12 +444,11 @@ class DegradationModel(Model):
             sample = sample
         )
 
-        features_electrolyte_direct, loss_electrolyte_direct =\
-            self.electrolyte_direct(
-                electrolyte_indices,
-                training = training,
-                sample = sample
-            )
+        features_electrolyte_direct, loss_electrolyte_direct = self.electrolyte_direct(
+            electrolyte_indices,
+            training = training,
+            sample = sample
+        )
 
         fetched_latent_electrolyte = tf.gather(
             self.electrolyte_latent_flags,
@@ -800,8 +795,7 @@ class DegradationModel(Model):
         else:
             loss = 0.
 
-        return features_cell, loss, features_pos, features_neg,\
-               fetched_latent_cell
+        return features_cell, loss, features_pos, features_neg, fetched_latent_cell
 
     def sample(self, svit_grid, batch_count, count_matrix, n_sample = 4 * 32):
 
@@ -827,16 +821,15 @@ class DegradationModel(Model):
             maxval = 10.,
             shape = [n_sample, 1]
         )
-        sampled_features, _, sampled_pos, sampled_neg, sampled_latent =\
-            self.z_cell_from_indices(
-                indices = tf.random.uniform(
-                    maxval = self.cell_direct.num_keys,
-                    shape = [n_sample],
-                    dtype = tf.int32,
-                ),
-                training = False,
-                sample = True
-            )
+        sampled_features, _, sampled_pos, sampled_neg, sampled_latent = self.z_cell_from_indices(
+            indices = tf.random.uniform(
+                maxval = self.cell_direct.num_keys,
+                shape = [n_sample],
+                dtype = tf.int32,
+            ),
+            training = False,
+            sample = True
+        )
         sampled_features = tf.stop_gradient(sampled_features)
 
         sampled_shift = tf.random.uniform(
@@ -1799,8 +1792,7 @@ class DegradationModel(Model):
                 "z_cell_loss": z_cell_loss,
                 "reciprocal_loss": reciprocal_loss,
                 "projection_loss": projection_loss,
-                "out_of_bounds_loss"\
-                    : out_of_bounds_loss + oob_loss_1 + oob_loss_2 + oob_loss_3,
+                "out_of_bounds_loss": out_of_bounds_loss + oob_loss_1 + oob_loss_2 + oob_loss_3,
             }
 
         else:

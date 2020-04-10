@@ -1279,7 +1279,7 @@ class DegradationModel(Model):
     ):
         dependencies = (
             strain,
-            norm_cycle
+            norm_cycle,
             q_scale_strainless,
         )
         return 1. + tf.nn.tanh(
@@ -1819,7 +1819,6 @@ class DegradationModel(Model):
             )
 
             strain = self.stress_to_strain_direct(
-                norm_cycle = norm_cycle,
                 cell_features = cell_features,
                 encoded_stress = encoded_stress
             )
@@ -1841,18 +1840,21 @@ class DegradationModel(Model):
 
             q_scale = self.q_scale_direct(
                 strain = strain,
+                norm_cycle = norm_cycle,
                 q_scale_strainless = q_scale_strainless,
                 training = training
             )
 
             shift = self.shift_direct(
                 strain = strain,
+                norm_cycle=norm_cycle,
                 shift_strainless = shift_0_strainless,
                 training = training
             )
 
             resistance = self.r_direct(
                 strain = strain,
+                norm_cycle=norm_cycle,
                 r_strainless = resistance_strainless,
                 training = training
             )

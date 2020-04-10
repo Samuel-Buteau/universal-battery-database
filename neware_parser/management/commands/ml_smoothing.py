@@ -1071,8 +1071,8 @@ class Command(BaseCommand):
         parser.add_argument('--coeff_reciprocal_v_leq', type=float, default=.5)
         parser.add_argument('--coeff_reciprocal_v_mono', type=float, default=5.)
         parser.add_argument('--coeff_reciprocal_d3_current', type=float, default=.1)
-        parser.add_argument('--coeff_reciprocal_d_current_minus', type=float, default=40.)
-        parser.add_argument('--coeff_reciprocal_d_current_plus', type=float, default=20.)
+        parser.add_argument('--coeff_reciprocal_d_current_minus', type=float, default=10.)
+        parser.add_argument('--coeff_reciprocal_d_current_plus', type=float, default=5.)
 
         parser.add_argument('--coeff_projection', type=float, default=.01)
         parser.add_argument('--coeff_projection_pos', type=float, default=1.)

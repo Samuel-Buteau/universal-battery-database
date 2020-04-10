@@ -900,7 +900,7 @@ class DegradationModel(Model):
         cell_features = get_cell_features(features = params['features'])
 
         strain = self.stress_to_strain_direct(
-            norm_cycle = norm_cycle,
+
             cell_features = cell_features,
             encoded_stress = self.stress_to_encoded_direct(
                 svit_grid = params['svit_grid'],
@@ -910,6 +910,7 @@ class DegradationModel(Model):
 
         q_scale = self.q_scale_direct(
             strain = strain,
+            norm_cycle = norm_cycle,
             q_scale_strainless = self.q_scale_strainless_direct(
                 cell_features = cell_features,
                 training = training
@@ -919,6 +920,7 @@ class DegradationModel(Model):
 
         shift_0 = self.shift_direct(
             strain = strain,
+            norm_cycle=norm_cycle,
             shift_strainless = self.shift_strainless_direct(
                 cell_features = cell_features,
                 training = training
@@ -928,6 +930,7 @@ class DegradationModel(Model):
 
         resistance = self.r_direct(
             strain = strain,
+            norm_cycle=norm_cycle,
             r_strainless = self.r_strainless_direct(
                 cell_features = cell_features,
                 training = training
@@ -957,6 +960,7 @@ class DegradationModel(Model):
 
         shift_1 = self.shift_direct(
             strain = strain,
+            norm_cycle=norm_cycle,
             shift_strainless = self.shift_strainless_direct(
                 cell_features = cell_features,
                 training = training
@@ -994,13 +998,13 @@ class DegradationModel(Model):
             count_matrix = params['count_matrix'],
         )
         strain = self.stress_to_strain_direct(
-            norm_cycle = norm_cycle,
             cell_features = cell_features,
             encoded_stress = encoded_stress
         )
 
         q_scale = self.q_scale_direct(
             strain = strain,
+            norm_cycle = norm_cycle,
             q_scale_strainless = self.q_scale_strainless_direct(
                 cell_features = cell_features,
                 training = training
@@ -1009,6 +1013,7 @@ class DegradationModel(Model):
         )
         shift_0 = self.shift_direct(
             strain = strain,
+            norm_cycle = norm_cycle,
             shift_strainless = self.shift_strainless_direct(
                 cell_features = cell_features,
                 training = training
@@ -1017,6 +1022,7 @@ class DegradationModel(Model):
         )
         resistance = self.r_direct(
             strain = strain,
+            norm_cycle = norm_cycle,
             r_strainless = self.r_strainless_direct(
                 cell_features = cell_features,
                 training = training
@@ -1041,6 +1047,7 @@ class DegradationModel(Model):
 
         shift_1 = self.shift_direct(
             strain = strain,
+            norm_cycle = norm_cycle,
             shift_strainless = self.shift_strainless_direct(
                 cell_features = cell_features,
                 training = training
@@ -1075,7 +1082,6 @@ class DegradationModel(Model):
         cell_features = get_cell_features(features = params['features'])
 
         strain = self.stress_to_strain_direct(
-            norm_cycle = norm_cycle,
             cell_features = cell_features,
             encoded_stress = self.stress_to_encoded_direct(
                 svit_grid = params['svit_grid'],
@@ -1085,6 +1091,7 @@ class DegradationModel(Model):
 
         cc_shift = self.shift_direct(
             strain = strain,
+            norm_cycle = norm_cycle,
             shift_strainless = self.shift_strainless_direct(
                 cell_features = cell_features,
                 training = training
@@ -1094,6 +1101,7 @@ class DegradationModel(Model):
 
         resistance = self.r_direct(
             strain = strain,
+            norm_cycle = norm_cycle,
             r_strainless = self.r_strainless_direct(
                 cell_features = cell_features,
                 training = training
@@ -1120,6 +1128,7 @@ class DegradationModel(Model):
 
         q_scale = self.q_scale_direct(
             strain = add_current_dep(strain, params, strain.shape[1]),
+            norm_cycle=add_current_dep(norm_cycle, params),
             q_scale_strainless = add_current_dep(
                 self.q_scale_strainless_direct(
                     cell_features = cell_features,
@@ -1138,6 +1147,7 @@ class DegradationModel(Model):
 
         cv_shift = self.shift_direct(
             add_current_dep(strain, params, strain.shape[1]),
+            norm_cycle=add_current_dep(norm_cycle, params),
             shift_strainless = self.shift_strainless_direct(
                 cell_features = add_current_dep(
                     cell_features, params, cell_features.shape[1]
@@ -1218,10 +1228,9 @@ class DegradationModel(Model):
     """ Stress variable methods """
 
     def stress_to_strain_direct(
-        self, norm_cycle, cell_features, encoded_stress
+        self, cell_features, encoded_stress
     ):
         dependencies = (
-            norm_cycle,
             cell_features,
             encoded_stress,
         )
@@ -1257,18 +1266,20 @@ class DegradationModel(Model):
             self.nn_neg_projection, dependencies, training = training
         )
 
-    def r_direct(self, strain, r_strainless, training = True):
+    def r_direct(self, strain, norm_cycle, r_strainless, training = True):
         dependencies = (
             strain,
+            norm_cycle,
             r_strainless,
         )
         return tf.nn.elu(nn_call(self.nn_r, dependencies, training = training))
 
     def q_scale_direct(
-        self, strain, q_scale_strainless, training = True
+        self, strain, norm_cycle, q_scale_strainless, training = True
     ):
         dependencies = (
             strain,
+            norm_cycle
             q_scale_strainless,
         )
         return 1. + tf.nn.tanh(
@@ -1293,9 +1304,10 @@ class DegradationModel(Model):
         )
         return tf.nn.elu(nn_call(self.nn_q, dependencies, training = training))
 
-    def shift_direct(self, strain, shift_strainless, training = True):
+    def shift_direct(self, strain, norm_cycle, shift_strainless, training = True):
         dependencies = (
             strain,
+            norm_cycle,
             shift_strainless
         )
         return nn_call(self.nn_shift, dependencies, training = training)
@@ -1417,13 +1429,14 @@ class DegradationModel(Model):
         )
 
         strain = self.stress_to_strain_direct(
-            norm_cycle = norm_cycle,
+
             cell_features = cell_features,
             encoded_stress = encoded_stress
         )
 
         return self.r_direct(
             strain = strain,
+            norm_cycle=norm_cycle,
             r_strainless = strainless,
             training = training
         )
@@ -1443,13 +1456,13 @@ class DegradationModel(Model):
         )
 
         strain = self.stress_to_strain_direct(
-            norm_cycle = norm_cycle,
             cell_features = cell_features,
             encoded_stress = encoded_stress
         )
 
         return self.q_scale_direct(
             strain = strain,
+            norm_cycle=norm_cycle,
             q_scale_strainless = strainless,
             training = training
         )
@@ -1469,7 +1482,7 @@ class DegradationModel(Model):
         )
 
         strain = self.stress_to_strain_direct(
-            norm_cycle = norm_cycle,
+
             cell_features = cell_features,
             encoded_stress = encoded_stress
         )
@@ -1481,6 +1494,7 @@ class DegradationModel(Model):
 
         return self.shift_direct(
             strain = strain,
+            norm_cycle=norm_cycle,
             shift_strainless = strainless,
             training = training
         )

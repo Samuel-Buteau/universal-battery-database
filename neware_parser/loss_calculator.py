@@ -307,6 +307,14 @@ def calculate_shift_loss(shift, shift_der, incentive_coeffs):
                 Level.Proportional
             )
         ),
+        (
+            incentive_coeffs['coeff_shift_d3_cycle'],
+            incentive_magnitude(
+                shift_der['d3_cycle'],
+                Target.Small,
+                Level.Proportional
+            )
+        ),
 
         (
             incentive_coeffs['coeff_d_features'],

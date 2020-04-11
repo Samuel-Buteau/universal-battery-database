@@ -933,10 +933,29 @@ def train_step(neighborhood, params, fit_args):
         )
         )
 
-    gradients = tape.gradient(loss, degradation_model.trainable_variables)
-    optimizer.apply_gradients(
-        zip(gradients, degradation_model.trainable_variables)
+    gradients = tape.gradient(
+        loss,
+        degradation_model.trainable_variables
     )
+
+    gradients_no_nans = [
+        tf.where(tf.math.is_nan(x), tf.zeros_like(x), x)
+        for x in gradients
+    ]
+
+    gradients_norm_clipped, _ = tf.clip_by_global_norm(
+        gradients_no_nans,
+        fit_args['global_norm_clip']
+    )
+
+    optimizer.apply_gradients(
+        zip(
+            gradients_norm_clipped,
+            degradation_model.trainable_variables
+        )
+    )
+
+
     return tf.stack(
         [
             cc_capacity_loss,
@@ -1026,6 +1045,7 @@ class Command(BaseCommand):
         parser.add_argument('--dataset_version', required = True)
         parser.add_argument('--path_to_plots', required = True)
         parser.add_argument('--n_sample', type=int, default=8 * 16)
+        parser.add_argument('--global_norm_clip', type=float, default=10.)
 
         parser.add_argument('--coeff_d_features', type=float, default=.0001)
         parser.add_argument('--coeff_d2_features', type=float, default=.0001)
@@ -1048,20 +1068,20 @@ class Command(BaseCommand):
         parser.add_argument('--coeff_q_scale', type=float, default=5.)
         parser.add_argument('--coeff_q_scale_geq', type=float, default=1.)
         parser.add_argument('--coeff_q_scale_leq', type=float, default=1.)
-        parser.add_argument('--coeff_q_scale_eq', type=float, default=.0)
+        parser.add_argument('--coeff_q_scale_eq', type=float, default=1.)
         parser.add_argument('--coeff_q_scale_mono', type=float, default=.0)
-        parser.add_argument('--coeff_q_scale_d3_cycle', type=float, default=.0)
+        parser.add_argument('--coeff_q_scale_d3_cycle', type=float, default=1.)
 
         parser.add_argument('--coeff_r', type=float, default=5.)
         parser.add_argument('--coeff_r_geq', type=float, default=1.)
         parser.add_argument('--coeff_r_big', type=float, default=.01)
-        parser.add_argument('--coeff_r_d3_cycle', type=float, default=.0)
+        parser.add_argument('--coeff_r_d3_cycle', type=float, default=1.)
 
         parser.add_argument('--coeff_shift', type=float, default=1.)
         parser.add_argument('--coeff_shift_geq', type=float, default=1.)
         parser.add_argument('--coeff_shift_leq', type=float, default=1.)
         parser.add_argument('--coeff_shift_small', type=float, default=.1)
-
+        parser.add_argument('--coeff_shift_d3_cycle', type=float, default=1.)
 
         parser.add_argument('--coeff_reciprocal', type=float, default=10.)
         parser.add_argument('--coeff_reciprocal_v', type=float, default=5.)
@@ -1070,7 +1090,7 @@ class Command(BaseCommand):
         parser.add_argument('--coeff_reciprocal_v_geq', type=float, default=1.)
         parser.add_argument('--coeff_reciprocal_v_leq', type=float, default=.5)
         parser.add_argument('--coeff_reciprocal_v_mono', type=float, default=5.)
-        parser.add_argument('--coeff_reciprocal_d3_current', type=float, default=.1)
+        parser.add_argument('--coeff_reciprocal_d3_current', type=float, default=1.)
         parser.add_argument('--coeff_reciprocal_d_current_minus', type=float, default=10.)
         parser.add_argument('--coeff_reciprocal_d_current_plus', type=float, default=5.)
 

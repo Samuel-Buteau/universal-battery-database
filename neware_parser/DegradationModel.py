@@ -812,13 +812,13 @@ class DegradationModel(Model):
             shape = [n_sample, 1]
         )
         sampled_cycles = tf.random.uniform(
-            minval = -10.,
-            maxval = 10.,
+            minval = 0.,
+            maxval = 5.,
             shape = [n_sample, 1]
         )
         sampled_constant_current = tf.random.uniform(
             minval = 0.001,
-            maxval = 10.,
+            maxval = 5.,
             shape = [n_sample, 1]
         )
         sampled_features, _, sampled_pos, sampled_neg, sampled_latent = self.z_cell_from_indices(

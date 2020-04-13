@@ -26,6 +26,42 @@ Install requirements with
 $ pip3 install -r requirements_nosql.txt
 ```
 
+### Installing and Configuring PostgreSQL 
+
+
+1. Install PostgreSQL. **Make sure the installation includes the PostgreSQL Unicode ODBC driver.** (You can choose a driver once installation is finished; I selected ODBC 64-bitODBC 64-bit.)
+2. Create a new user and password.
+3. Add the bin path of the install to the Path variable.
+4. Run
+
+```bash
+$ psql -U postgres
+```
+and enter the password you created in step 2.
+
+```sql
+CREATE DATABASE my_project;
+
+CREATE USER my_user WITH PASSWORD ‘my_password’;
+
+GRANT ALL PRIVILEGES ON DATABASE my_project TO my_user;
+```
+
+
+5. Create `config.ini` in the root directory, with the following content:
+
+```
+[DEFAULT]
+Database = my_project
+User = my_user
+Password = my_password
+Host = localhost
+Port = 5432
+```
+
+This is for security purposes.
+
+
 ### Setup
 
 Create a file called `config.ini` in `neware_parser/`, and put the following content within:
@@ -41,71 +77,25 @@ Backend = sqlite3
 SecretKey = verysecretkeyhaha
 ```
 
-## Windows 10
+## Suggestions
 
-Install dependencies with
-```
-$ pip -r requirements.txt
-```
 
-In order to allow background tasks, 
-which are super useful in this case,
-run in a separate terminal:
-```
+Run in a separate terminal
+```bash
 $ python3 manage.py process_tasks
 ```
-
-This will process the tasks as they are defined.
-
-
-To quickly see the webpage and start developing, run
-```
-$ python3 manage.py runserver 0.0.0.0:8000
-```
-and then go to your browser and type http://localhost:8000/ for the webpage.
-
-Then, the more tricky part is to install postgresql and configure it. 
-
-- make sure installation includes the PostgreSQL Unicode ODBC driver 
-(after the PostgreSQL installation, there is a separate process where you can choose a driver. I selected ODBC 64-bit)
-
-- make sure you create a user with a password you remember.
-
-- add the bin path of the install to the Path variable.
-
-- run the following:
-```bash
-$ psql -U postgres
-```
-
-(Then, you enter the password that you hopefully still remember!!)
-```
-CREATE DATABASE myproject;
-
-CREATE USER myuser WITH PASSWORD ‘mypassword’;
-
-GRANT ALL PRIVILEGES ON DATABASE myproject TO myuser;
-```
+to allow background tasks. This will process the tasks as they are defined.
 
 
-- add a file called config.ini in the root directory, with the following content (feel free to modify):
-```
-[DEFAULT]
-Database = myproject
-User = myuser
-Password = mypassword
-Host = localhost
-Port = 5432
-```
-
-This is for security purposes.
-
-
-### Setup
+## Using the Software
 
 Download a dataset file and put it in the appropriate folder.
 
-## Using the Software
+To quickly see the webpage and start developing, run
+```bash
+$ python3 manage.py runserver 0.0.0.0:8000
+```
+then visit `http://localhost:8000/` for the webpage.
 
 ### ML Smoothing (Linux and macOS)
 

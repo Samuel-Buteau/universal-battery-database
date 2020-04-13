@@ -102,7 +102,7 @@ in a separate terminal to allow background tasks. This will process the tasks as
 ### ML Smoothing (Linux and macOS)
 
 Create a file called `run_smoothing.sh` (which is already in gitignore) that specifies the dataset version and takes in two arguments: output path and notes (optional). Then call `smoothing.sh` with these three arguments. Example `run_ml_smoothing.sh`:
-```
+```bash
 # $1 specifies the outputpath for figures and $2 is an optional text for notes
 sh smoothing.sh $1 TESTING0 $2
 ```

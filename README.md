@@ -1,15 +1,14 @@
 # Universal Battery Database
 
-- [Universal Battery Database](#universal-battery-database)
-  * [Installation](#installation)
-    + [Prerequisites](#prerequisites)
-    + [Installing Dependencies](#installing-dependencies)
-    + [Setup](#setup)
-  * [Windows 10](#windows-10)
-    + [Setup](#setup-1)
-  * [Using the Software](#using-the-software)
-    + [ML Smoothing (Linux and macOS)](#ml-smoothing--linux-and-macos-)
-  * [Stochiometry](#stochiometry)
+- [Installation](#installation)
+  * [Prerequisites](#prerequisites)
+  * [Installing Dependencies](#installing-dependencies)
+  * [Setup](#setup)
+- [Windows 10](#windows-10)
+  * [Setup](#setup-1)
+- [Using the Software](#using-the-software)
+  * [ML Smoothing (Linux and macOS)](#ml-smoothing--linux-and-macos-)
+-[Stochiometry](#stochiometry)
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 

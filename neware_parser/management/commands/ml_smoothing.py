@@ -267,6 +267,16 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
         cyc_grp_dict = all_data['cyc_grp_dict']
 
         for k_count, k in enumerate(cyc_grp_dict.keys()):
+
+            my_pass = any([
+                    abs(my_data['all_data'][barcode]['cyc_grp_dict'][k]['avg_end_current_prev']) < 1e-5,
+                    abs(my_data['all_data'][barcode]['cyc_grp_dict'][k]['avg_constant_current']) < 1e-5,
+                    abs(my_data['all_data'][barcode]['cyc_grp_dict'][k]['avg_end_current']) < 1e-5,
+                    abs(my_data['all_data'][barcode]['cyc_grp_dict'][k]['avg_end_voltage_prev']) < 1e-5,
+                    abs(my_data['all_data'][barcode]['cyc_grp_dict'][k]['avg_end_voltage']) < 1e-5,
+                ])
+            if my_pass:
+                continue
             main_data = cyc_grp_dict[k]['main_data']
 
             # normalize capacity_vector with max_cap
@@ -1060,36 +1070,37 @@ class Command(BaseCommand):
         parser.add_argument('--coeff_q_small', type=float, default=.001)
         parser.add_argument('--coeff_q_geq', type=float, default=1.)
         parser.add_argument('--coeff_q_leq', type=float, default=1.)
-        parser.add_argument('--coeff_q_v_mono', type=float, default=.1)
-        parser.add_argument('--coeff_q_d3_v', type=float, default=0.01)
-        parser.add_argument('--coeff_q_d3_shift', type=float, default=.001)
-        parser.add_argument('--coeff_q_d3_current', type=float, default=.01)
+        parser.add_argument('--coeff_q_v_mono', type=float, default=10.)
+        parser.add_argument('--coeff_q_d3_v', type=float, default=1.)
+        parser.add_argument('--coeff_q_d3_shift', type=float, default=.01)
+        parser.add_argument('--coeff_q_d3_current', type=float, default=.1)
 
         parser.add_argument('--coeff_q_scale', type=float, default=5.)
-        parser.add_argument('--coeff_q_scale_geq', type=float, default=1.)
-        parser.add_argument('--coeff_q_scale_leq', type=float, default=1.)
-        parser.add_argument('--coeff_q_scale_eq', type=float, default=1.)
-        parser.add_argument('--coeff_q_scale_mono', type=float, default=.0)
-        parser.add_argument('--coeff_q_scale_d3_cycle', type=float, default=1.)
+        parser.add_argument('--coeff_q_scale_geq', type=float, default=10.)
+        parser.add_argument('--coeff_q_scale_leq', type=float, default=10.)
+        parser.add_argument('--coeff_q_scale_eq', type=float, default=50.)
+        parser.add_argument('--coeff_q_scale_mono', type=float, default=5.)
+        parser.add_argument('--coeff_q_scale_d3_cycle', type=float, default=10.)
 
         parser.add_argument('--coeff_r', type=float, default=5.)
         parser.add_argument('--coeff_r_geq', type=float, default=1.)
-        parser.add_argument('--coeff_r_big', type=float, default=.01)
-        parser.add_argument('--coeff_r_d3_cycle', type=float, default=1.)
+        parser.add_argument('--coeff_r_big', type=float, default=.0)
+        parser.add_argument('--coeff_r_d3_cycle', type=float, default=10.)
 
         parser.add_argument('--coeff_shift', type=float, default=1.)
         parser.add_argument('--coeff_shift_geq', type=float, default=1.)
         parser.add_argument('--coeff_shift_leq', type=float, default=1.)
         parser.add_argument('--coeff_shift_small', type=float, default=.1)
-        parser.add_argument('--coeff_shift_d3_cycle', type=float, default=1.)
+        parser.add_argument('--coeff_shift_d3_cycle', type=float, default=50.)
+        parser.add_argument('--coeff_shift_mono', type=float, default=5.)
 
         parser.add_argument('--coeff_reciprocal', type=float, default=10.)
-        parser.add_argument('--coeff_reciprocal_v', type=float, default=5.)
-        parser.add_argument('--coeff_reciprocal_q', type=float, default=5.)
+        parser.add_argument('--coeff_reciprocal_v', type=float, default=10.)
+        parser.add_argument('--coeff_reciprocal_q', type=float, default=10.)
         parser.add_argument('--coeff_reciprocal_v_small', type=float, default=.001)
         parser.add_argument('--coeff_reciprocal_v_geq', type=float, default=1.)
         parser.add_argument('--coeff_reciprocal_v_leq', type=float, default=.5)
-        parser.add_argument('--coeff_reciprocal_v_mono', type=float, default=5.)
+        parser.add_argument('--coeff_reciprocal_v_mono', type=float, default=10.)
         parser.add_argument('--coeff_reciprocal_d3_current', type=float, default=1.)
         parser.add_argument('--coeff_reciprocal_d_current_minus', type=float, default=10.)
         parser.add_argument('--coeff_reciprocal_d_current_plus', type=float, default=5.)
@@ -1102,19 +1113,21 @@ class Command(BaseCommand):
         parser.add_argument('--coeff_oob_geq', type=float, default=1.)
         parser.add_argument('--coeff_oob_leq', type=float, default=1.)
 
-        parser.add_argument('--depth', type = int, default = 5)
+        parser.add_argument('--depth', type = int, default = 2)
         parser.add_argument('--width', type = int, default = 50)
         parser.add_argument('--batch_size', type = int, default = 4 * 16)
 
-        vis = 4000
-        parser.add_argument('--print_loss_every', type = int, default = 500)
+        vis = 40000
+        parser.add_argument('--print_loss_every', type = int, default = 2000)
         parser.add_argument('--visualize_fit_every', type = int, default = vis)
         parser.add_argument('--visualize_vq_every', type = int, default = vis)
 
-        parser.add_argument('--stop_count', type = int, default = 60000)
+        parser.add_argument('--stop_count', type = int, default = 1000004)
         parser.add_argument(
             '--wanted_barcodes', type = int, nargs = '+',
-            default = [83220, 83083] #[57706, 57707, 57710, 57711, 57714, 57715, 64260, 64268, 81602, 81603, 81604, 81605, 81606, 81607, 81608, 81609, 81610, 81611, 81612, 81613, 81614, 81615, 81616, 81617, 81618, 81619, 81620, 81621, 81622, 81623, 81624, 81625, 81626, 81627, 81712, 81713, 82300, 82301, 82302, 82303, 82304, 82305, 82306, 82307, 82308, 82309, 82310, 82311, 82406, 82407, 82410, 82411, 82769, 82770, 82771, 82775, 82776, 82777, 82779, 82992, 82993, 83010, 83011, 83012, 83013, 83014, 83015, 83016, 83083, 83092, 83101, 83106, 83107, 83220, 83221, 83222, 83223, 83224, 83225, 83226, 83227, 83228, 83229, 83230, 83231, 83232, 83233, 83234, 83235, 83236, 83237, 83239, 83240, 83241, 83242, 83243, 83310, 83311, 83312, 83317, 83318, 83593, 83594, 83595, 83596, 83741, 83742, 83743, 83744, 83745, 83746, 83747, 83748]
+            default = [
+                   81602, 81603, 81604, 81605, 81606, 81607, 81608, 81609, 81610, 81611, 81612, 81613, 81614, 81615, 81616, 81617, 81618, 81619, 81620, 81621, 81622, 81623, 81624, 81625, 81626, 81627, 81712, 81713, 82300, 82301, 82302, 82303, 82304, 82305, 82306, 82307, 82308, 82309, 82310, 82311, 82406, 82407, 82410, 82411, 82769, 82770, 82771, 82775, 82776, 82777, 82779, 82992, 82993,  83083, 83092, 83101, 83106, 83107, 83220, 83221, 83222, 83223, 83224, 83225, 83226, 83227, 83228, 83229, 83230, 83231, 83232, 83233, 83234, 83235, 83236, 83237, 83239, 83240, 83241, 83242, 83243, 83310, 83311, 83312, 83317, 83318, 83593, 83594, 83595, 83596, 83741, 83742, 83743, 83744, 83745, 83746, 83747, 83748
+            ] #+ [57706, 57707, 57710, 57711, 57714, 57715,64260,64268,83010, 83011, 83012, 83013, 83014, 83015, 83016,]
         )
 
     def handle(self, *args, **options):

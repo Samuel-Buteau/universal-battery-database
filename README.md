@@ -3,13 +3,12 @@
 - [Installation](#installation)
   * [Prerequisites](#prerequisites)
   * [Installing Dependencies](#installing-dependencies)
+  * [Installing and Configuring PostgreSQL](#installing-and-configuring-postgresql)
   * [Setup](#setup)
-- [Windows 10](#windows-10)
-  * [Setup](#setup-1)
 - [Using the Software](#using-the-software)
+  * [Recommendations](#recommendations)
   * [ML Smoothing (Linux and macOS)](#ml-smoothing--linux-and-macos-)
 - [Stochiometry](#stochiometry)
-
 
 ## Installation
 
@@ -64,7 +63,7 @@ This is for security purposes.
 
 ### Setup
 
-Create a file called `config.ini` in `neware_parser/`, and put the following content within:
+Create a new file, `neware_parser/config.ini`, and put the following within:
 
 ```
 [DEFAULT]
@@ -77,15 +76,6 @@ Backend = sqlite3
 SecretKey = verysecretkeyhaha
 ```
 
-## Suggestions
-
-
-Run in a separate terminal
-```bash
-$ python3 manage.py process_tasks
-```
-to allow background tasks. This will process the tasks as they are defined.
-
 
 ## Using the Software
 
@@ -96,6 +86,14 @@ To quickly see the webpage and start developing, run
 $ python3 manage.py runserver 0.0.0.0:8000
 ```
 then visit `http://localhost:8000/` for the webpage.
+
+### Recommendations
+
+Run in a separate terminal
+```bash
+$ python3 manage.py process_tasks
+```
+to allow background tasks. This will process the tasks as they are defined.
 
 ### ML Smoothing (Linux and macOS)
 

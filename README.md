@@ -89,7 +89,7 @@ To quickly see the webpage and start developing, run
 ```bash
 $ python3 manage.py runserver 0.0.0.0:8000
 ```
-then visit `http://localhost:8000/` for the webpage.
+then visit `http://localhost:8000/` with your web browser.
 
 ### Recommendations
 

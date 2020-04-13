@@ -1,5 +1,7 @@
 # Universal Battery Database
 
+We aim to simulate li-ion cells with different chemistries, archtecture, and operating conditions.
+
 - [Installation](#installation)
   * [Prerequisites](#prerequisites)
   * [Installing Dependencies](#installing-dependencies)
@@ -63,6 +65,8 @@ This is for security purposes.
 
 ### Setup
 
+Download a dataset file and put it in the appropriate folder.
+
 Create a new file, `neware_parser/config.ini`, and put the following within:
 
 ```
@@ -79,8 +83,6 @@ SecretKey = verysecretkeyhaha
 
 ## Using the Software
 
-Download a dataset file and put it in the appropriate folder.
-
 To quickly see the webpage and start developing, run
 ```bash
 $ python3 manage.py runserver 0.0.0.0:8000
@@ -89,11 +91,11 @@ then visit `http://localhost:8000/` for the webpage.
 
 ### Recommendations
 
-Run in a separate terminal
+Run
 ```bash
 $ python3 manage.py process_tasks
 ```
-to allow background tasks. This will process the tasks as they are defined.
+in a separate terminal to allow background tasks. This will process the tasks as they are defined.
 
 ### ML Smoothing (Linux and macOS)
 

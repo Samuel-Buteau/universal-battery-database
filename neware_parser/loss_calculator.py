@@ -300,6 +300,14 @@ def calculate_shift_loss(shift, shift_der, incentive_coeffs):
             )
         ),
         (
+            incentive_coeffs['coeff_shift_mono'],
+            incentive_inequality(
+                shift_der['d_cycle'], Inequality.GreaterThan, 0.,
+                Level.Strong
+            )
+        ),
+
+        (
             incentive_coeffs['coeff_shift_small'],
             incentive_magnitude(
                 shift,
@@ -361,6 +369,8 @@ def calculate_r_loss(r, r_der, incentive_coeffs):
                 Level.Proportional
             )
         ),
+
+
         (
             incentive_coeffs['coeff_d_features'],
             incentive_magnitude(

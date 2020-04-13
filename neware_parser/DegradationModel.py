@@ -44,12 +44,15 @@ def feedforward_nn_parameters(depth, width, last = None):
     )
 
     bulk = [
-        Dense(
-            width,
-            activation = main_activation,
-            use_bias = True,
-            bias_initializer = 'zeros'
-        ) for _ in range(depth)
+        [
+            Dense(
+                width,
+                activation = main_activation,
+                use_bias = True,
+                bias_initializer = 'zeros'
+            ) for _ in range(2)
+        ]
+        for _ in range(depth)
     ]
 
     final = Dense(
@@ -67,8 +70,11 @@ def nn_call(nn_func, dependencies, training = True):
         tf.concat(dependencies, axis = 1),
         training = training,
     )
-    for d in nn_func['bulk']:
-        centers = d(centers, training = training)
+    for dd in nn_func['bulk']:
+        centers_prime = centers
+        for d in dd:
+            centers_prime = d(centers_prime, training=training)
+        centers = tf.nn.relu(centers + centers_prime) #This is a skip connection
     return nn_func['final'](centers, training = training)
 
 
@@ -812,7 +818,7 @@ class DegradationModel(Model):
             shape = [n_sample, 1]
         )
         sampled_cycles = tf.random.uniform(
-            minval = 0.,
+            minval = -.1,
             maxval = 5.,
             shape = [n_sample, 1]
         )

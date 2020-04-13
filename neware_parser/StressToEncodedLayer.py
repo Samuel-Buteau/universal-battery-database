@@ -44,13 +44,23 @@ class StressToEncodedLayer(Layer):
 
         filters = [
             (self.input_kernel, 'none'),
+            (0, 'branch'),
             (self.v_i_kernel_1, main_activation),
             (self.t_kernel, main_activation),
+            (0, 'combine'),
             (self.v_i_kernel_2, main_activation),
             (self.output_kernel, 'none')
         ]
 
         for fil, activ in filters:
+            if activ == 'branch':
+                val_0_save = val_0
+                val_1_save = val_1
+                continue
+            if activ == 'combine':
+                val_0 = tf.nn.relu(val_0 + val_0_save)
+                val_1 = tf.nn.relu(val_1 + val_1_save)
+                continue
             val_0 = tf.nn.convolution(
                 input = val_0, filters = fil, padding = 'SAME'
             )

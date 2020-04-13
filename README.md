@@ -2,6 +2,8 @@
 
 We aim to simulate li-ion cells with different chemistries, archtecture, and operating conditions.
 
+## Table of Contents
+
 - [Installation](#installation)
   * [Prerequisites](#prerequisites)
   * [Installing Dependencies](#installing-dependencies)

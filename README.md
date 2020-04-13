@@ -8,9 +8,8 @@
   * [Setup](#setup-1)
 - [Using the Software](#using-the-software)
   * [ML Smoothing (Linux and macOS)](#ml-smoothing--linux-and-macos-)
--[Stochiometry](#stochiometry)
+- [Stochiometry](#stochiometry)
 
-<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
 ## Installation
 

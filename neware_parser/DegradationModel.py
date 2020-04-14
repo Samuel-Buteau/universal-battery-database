@@ -1344,6 +1344,7 @@ class DegradationModel(Model):
             voltage = params['voltage'],
             shift = params['shift'],
             current = params['current'],
+            training=training,
         )
 
     def r_for_derivative(self, params, training = True):

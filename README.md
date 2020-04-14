@@ -10,7 +10,6 @@ The Universal Battery Database was developed at the Jeff Dahn Research Group, in
   * [Prerequisites](#prerequisites)
   * [Installing Dependencies and Configuring Environment](#installing-dependencies-and-configuring-environment)
 - [Using the Software](#using-the-software)
-  * [Recommendations](#recommendations)
   * [Run Scripts](#run-scripts)
   * [ML Smoothing (Linux and macOS)](#ml-smoothing--linux-and-macos-)
 - [Stoichiometry](#stoichiometry)

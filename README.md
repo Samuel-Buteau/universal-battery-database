@@ -6,13 +6,17 @@ The Universal Battery Database was developed at the Jeff Dahn Research Group, in
 
 ## Table of Contents
 
+- [Software Features](#software-features)
 - [Installation](#installation)
   * [Prerequisites](#prerequisites)
   * [Installing Dependencies and Configuring Environment](#installing-dependencies-and-configuring-environment)
 - [Using the Software](#using-the-software)
   * [Run Scripts](#run-scripts)
-  * [ML Smoothing (Linux and macOS)](#ml-smoothing--linux-and-macos-)
 - [Stoichiometry](#stoichiometry)
+
+## Software Features
+
+See Issues for future features.
 
 ## Installation
 
@@ -134,7 +138,7 @@ in a separate terminal to allow background tasks. This will process the tasks as
 
 ### Run Scripts
 
-Various run scripts are included to help users get started with default settings.
+Various run scripts are included to help users get started using default settings.
 
 #### `run_ml_moothing.sh`
 

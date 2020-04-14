@@ -98,7 +98,7 @@ This is for security purposes.
 
 #### 7. Download a dataset file and put it in the appropriate folder.
 
-#### 8. Create a new file, `neware_parser/config.ini`.
+#### 8. Create `neware_parser/config.ini`.
 
 `neware_parser/config.ini` should contain the following (again, feel free to modify the values):
 

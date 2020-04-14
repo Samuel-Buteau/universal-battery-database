@@ -18,8 +18,7 @@ The Universal Battery Database was developed at the [Jeff Dahn Research Group](h
   * [Prerequisites](#prerequisites)
   * [Installing Dependencies and Configuring Environment](#installing-dependencies-and-configuring-environment)
 - [Using the Software](#using-the-software)
-  * [Run Scripts](#run-scripts)
-    + [`run_ml_moothing.sh`](#-run-ml-moothingsh-)
+  * [ML Smoothing](#ml-smoothing)
 
 ## Installation
 
@@ -127,19 +126,11 @@ When running the code in production, run
 ```bash
 python3 manage.py process_tasks
 ```
-in a separate terminal to allow background tasks (such as parsing of datafiles). 
+in a separate terminal to allow background tasks (such as parsing of data files). 
 This will process the tasks as they are defined.
 
-### Run Scripts
+### ML Smoothing
 
-#### `run_ml_moothing.sh`
+On Windows, run `ml_smoothing.bat`.
 
-Users are recommended to create a file called `run_smoothing.sh` (which is already in `gitignore`) that specifies the dataset version and takes in two arguments, output path and notes (optional), and calls `smoothing.sh` with these three arguments.
-
-Example `run_ml_smoothing.sh`:
-```bash
-# $1 specifies the outputpath for figures and $2 is an optional text for notes
-sh smoothing.sh $1 TESTING0 $2
-```
-
-Then run `sh run_smoothing.sh path-figures optional-note-to-self`.
+On Linux and macOS, run `ml_smoothing.sh path-figures dataset-version "optional-note-to-self"`.

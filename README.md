@@ -101,9 +101,9 @@ Port = 5432
 
 This is for security purposes.
 
-#### 10. Download a dataset file and put it in the appropriate folder.
+#### 8. Download a dataset file and put it in the appropriate folder.
 
-#### 11. Create a new file, `neware_parser/config.ini`.
+#### 9. Create a new file, `neware_parser/config.ini`.
 
 `neware_parser/config.ini` should contain the following (again, feel free to modify the values):
 
@@ -125,7 +125,7 @@ To quickly see the web page and start developing, run
 ```bash
 $ python3 manage.py runserver 0.0.0.0:8000
 ```
-then visit `http://localhost:8000/` with your web browser.
+then visit `http://localhost:8000/` with a web browser.
 
 Users are recommended to run
 ```bash

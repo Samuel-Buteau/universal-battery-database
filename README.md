@@ -1,6 +1,6 @@
 # Universal Battery Database
 
-The Universal Battery Database is an open source software that describes and predicts the cycling behaviour and degradation mechanisms of li-ion cells. It simulates cells with different chemistries, architecture, and operating conditions using neural networks.
+The Universal Battery Database is an open source software that describes and predicts the cycling behaviour and degradation mechanisms of li-ion cells. It models cell with different chemistries, architecture, and operating conditions using neural networks.
 
 The Universal Battery Database was developed at the Jeff Dahn Research Group, in collaboration with Tesla Motors/Energy, at Dalhousie University.
 
@@ -16,7 +16,7 @@ The Universal Battery Database was developed at the Jeff Dahn Research Group, in
 
 ## Software Features
 
-See Issues for future features.
+***See Issues for upcoming features.***
 
 ## Installation
 
@@ -28,52 +28,44 @@ See Issues for future features.
 
 ### Installing Dependencies and Configuring Environment
 
-#### 1. Create a new virtual environment.
+#### 1. Create and activate new virtual environment.
 
 cmd (Windows):
 ```cmd
 py -m venv env
-```
-
-Bash (macOS and Linux):
-```bash
-python3 -m venv env
-```
-
-#### 2. Activate the virtual environment
-
-cmd (Windows):
-```cmd
 .\env\Scripts\activate
 ```
 
 Bash (macOS and Linux):
 ```bash
+python3 -m venv env
 source env/bin/activate
 ```
 
-#### 3. Install requirements
+#### 2. Install requirements
 
 If you do not have a database, install requirements with:
 ```bash
 pip3 install -r requirements_nosql.txt
 ```
+and skip to Step 7.
 
 Otherwise, install requirements with:
 ```bash
 pip3 install -r requirements.txt
 ```
+and proceed to Step 3.
 
 
-#### 4. [Install PostgreSQL](https://www.2ndquadrant.com/en/blog/pginstaller-install-postgresql/).
+#### 3. [Install PostgreSQL](https://www.2ndquadrant.com/en/blog/pginstaller-install-postgresql/).
 
 **Make sure the installation includes the PostgreSQL Unicode ODBC driver** (e.g. ODBC 64-bitODBC 64-bit).
 
 Follow the installation instructions and create new user and password.
 
-#### 5. Add the bin path of the install to the Path variable.
+#### 4. Add the bin path of the install to the Path variable.
 
-#### 6. Run
+#### 5. Run
 
 ```bash
 $ psql -U postgres
@@ -89,7 +81,7 @@ GRANT ALL PRIVILEGES ON DATABASE my_project TO my_user;
 ```
 
 
-#### 7. Create `config.ini` in the root directory.
+#### 6. Create `config.ini` in the root directory.
 
 `config.ini` should contain the following (feel free to modify the values):
 
@@ -104,9 +96,9 @@ Port = 5432
 
 This is for security purposes.
 
-#### 8. Download a dataset file and put it in the appropriate folder.
+#### 7. Download a dataset file and put it in the appropriate folder.
 
-#### 9. Create a new file, `neware_parser/config.ini`.
+#### 8. Create a new file, `neware_parser/config.ini`.
 
 `neware_parser/config.ini` should contain the following (again, feel free to modify the values):
 

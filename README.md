@@ -66,16 +66,15 @@ pip3 install -r requirements.txt
 
 **Make sure the installation includes the PostgreSQL Unicode ODBC driver** (e.g. ODBC 64-bitODBC 64-bit).
 
-#### 5. Create a new user and password.
-#### 6. Add the bin path of the install to the Path variable.
-#### 7. Run
+Follow the installation instructions and new user and password.
+
+#### 5. Add the bin path of the install to the Path variable.
+#### 6. Run
 
 ```bash
 $ psql -U postgres
 ```
-and enter the password you created in step 5.
-
-#### 8.
+and enter the password created in step 4, and then
 
 ```sql
 CREATE DATABASE my_project;
@@ -86,13 +85,15 @@ GRANT ALL PRIVILEGES ON DATABASE my_project TO my_user;
 ```
 
 
-#### 9. Create `config.ini` in the root directory, with the following content:
+#### 7. Create `config.ini` in the root directory.
+
+With the following suggested (feel free to modify the values) content:
 
 ```
 [DEFAULT]
-Database = my_project
-User = my_user
-Password = my_password
+Database = database
+User = user
+Password = password
 Host = localhost
 Port = 5432
 ```
@@ -101,14 +102,14 @@ This is for security purposes.
 
 #### 10. Download a dataset file and put it in the appropriate folder.
 
-#### 11. Create a new file, `neware_parser/config.ini`, and put the following (feel free to modify the values) within:
+#### 11. Create a new file, `neware_parser/config.ini`, and put the following (again, feel free to modify the values) within:
 
 ```
 [DEFAULT]
 Database = database
 User = user
 Password = password
-Host = local_host
+Host = localhost
 Port = 0000
 Backend = sqlite3
 SecretKey = your_very_secret_key

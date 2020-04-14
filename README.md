@@ -27,24 +27,24 @@ The Universal Battery Database was developed at the Jeff Dahn Research Group, in
 
 #### 1. Create a new virtual environment.
 
-Windows cmd:
+cmd (Windows):
 ```cmd
 py -m venv env
 ```
 
-macOS and Linux:
+Bash (macOS and Linux):
 ```bash
 python3 -m venv env
 ```
 
 #### 2. Activate the virtual environment
 
-Windows cmd:
+cmd (Windows):
 ```cmd
 .\env\Scripts\activate
 ```
 
-macOS:
+Bash (macOS and Linux):
 ```bash
 source env/bin/activate
 ```
@@ -66,15 +66,16 @@ pip3 install -r requirements.txt
 
 **Make sure the installation includes the PostgreSQL Unicode ODBC driver** (e.g. ODBC 64-bitODBC 64-bit).
 
-Follow the installation instructions and new user and password.
+Follow the installation instructions and create new user and password.
 
 #### 5. Add the bin path of the install to the Path variable.
+
 #### 6. Run
 
 ```bash
 $ psql -U postgres
 ```
-and enter the password created in step 4, and then
+followed by
 
 ```sql
 CREATE DATABASE my_project;
@@ -87,7 +88,7 @@ GRANT ALL PRIVILEGES ON DATABASE my_project TO my_user;
 
 #### 7. Create `config.ini` in the root directory.
 
-With the following suggested (feel free to modify the values) content:
+With the following example (feel free to modify the values) content:
 
 ```
 [DEFAULT]
@@ -124,9 +125,7 @@ $ python3 manage.py runserver 0.0.0.0:8000
 ```
 then visit `http://localhost:8000/` with your web browser.
 
-### Recommendations
-
-Run
+Users are recommended to run
 ```bash
 $ python3 manage.py process_tasks
 ```
@@ -142,7 +141,7 @@ Create a file called `run_smoothing.sh` (which is already in gitignore) that spe
 sh smoothing.sh $1 TESTING0 $2
 ```
 
-Then simply run `sh run_smoothing.sh path-figures optional-note-to-self` in a Bash environment.
+Then simply runs `sh run_smoothing.sh path-figures optional-note-to-self` in a Bash environment.
 
 
 

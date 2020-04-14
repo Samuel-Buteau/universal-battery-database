@@ -19,8 +19,7 @@ The Universal Battery Database was developed at the [Jeff Dahn Research Group](h
   * [Installing Dependencies and Configuring Environment](#installing-dependencies-and-configuring-environment)
 - [Using the Software](#using-the-software)
   * [Run Scripts](#run-scripts)
-  * [ML Smoothing (Linux and macOS)](#ml-smoothing--linux-and-macos-)
-- [Stoichiometry](#stoichiometry)
+    + [`run_ml_moothing.sh`](#-run-ml-moothingsh-)
 
 ## Installation
 
@@ -73,7 +72,6 @@ Follow the installation instructions and create new user and password.
 ```bash
 psql -U postgres
 ```
-followed by
 
 ```sql
 CREATE DATABASE my_project;

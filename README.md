@@ -32,14 +32,14 @@ The Universal Battery Database was developed at the Jeff Dahn Research Group, in
 
 cmd (Windows):
 ```cmd
-py -m venv env
-.\env\Scripts\activate
+> py -m venv env
+> .\env\Scripts\activate
 ```
 
 Bash (macOS and Linux):
 ```bash
-python3 -m venv env
-source env/bin/activate
+$ python3 -m venv env
+$ source env/bin/activate
 ```
 
 #### 2. Install requirements
@@ -68,9 +68,8 @@ Follow the installation instructions and create new user and password.
 #### 5. Run
 
 ```bash
-$ psql -U postgres
+psql -U postgres
 ```
-followed by
 
 ```sql
 CREATE DATABASE my_project;

@@ -124,7 +124,7 @@ def get_svit_and_count(my_data, barcode):
 
 
 def plot_vq(plot_params, init_returns):
-    barcodes = plot_params["barcodes"]
+    barcodes = plot_params["barcodes"][:plot_params['fit_args']['barcode_show']]
     count = plot_params["count"]
     fit_args = plot_params["fit_args"]
 
@@ -495,7 +495,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
 
                 ax1.plot(cycle, pred_cap, c = COLORS[k_count])
 
-    barcodes = plot_params["barcodes"]
+    barcodes = plot_params["barcodes"][:plot_params['fit_args']['barcode_show']]
     count = plot_params["count"]
     fit_args = plot_params["fit_args"]
 
@@ -634,14 +634,14 @@ def get_nearest_point(xys, y):
 
 def plot_v_curves(plot_params, init_returns):
     # for now, this is a 2 by 2 plot.
-    barcodes = plot_params["barcodes"]
+    barcodes = plot_params["barcodes"][:plot_params['fit_args']['barcode_show']]
     count = plot_params["count"]
     fit_args = plot_params["fit_args"]
     degradation_model = init_returns["degradation_model"]
     shift = np.linspace(start = -.2, stop = .2, num = 9, dtype = np.float32)
     voltage = np.linspace(start = 2., stop = 5.5, num = 64, dtype = np.float32)
     q = np.linspace(start = -0.25, stop = 1.25, num = 64, dtype = np.float32)
-    for current in [0.05, 1., 3.]:
+    for current in [0.05, 3.]:
         for barcode in barcodes:
 
             fig, axs = plt.subplots(nrows = 3, ncols = 3, figsize = [10, 10],

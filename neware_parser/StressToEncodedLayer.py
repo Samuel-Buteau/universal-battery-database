@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
-main_activation = 'elu'
+main_activation = 'relu'
 
 class StressToEncodedLayer(Layer):
     def __init__(self, n_channels):
@@ -46,9 +46,9 @@ class StressToEncodedLayer(Layer):
             (self.input_kernel, 'none'),
             (0, 'branch'),
             (self.v_i_kernel_1, main_activation),
-            (self.t_kernel, main_activation),
+            (self.v_i_kernel_2, 'none'),
             (0, 'combine'),
-            (self.v_i_kernel_2, main_activation),
+            (self.t_kernel, main_activation),
             (self.output_kernel, 'none')
         ]
 

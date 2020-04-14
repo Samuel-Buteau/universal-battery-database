@@ -32,7 +32,7 @@ main_activation = tf.keras.activations.relu
 # and q_scale(q_scale0, 0) = q_scale0
 
 
-def feedforward_nn_parameters(depth, width, last = None):
+def feedforward_nn_parameters(depth, width, last = None, finalize=False):
     if last is None:
         last = 1
 
@@ -55,14 +55,21 @@ def feedforward_nn_parameters(depth, width, last = None):
         for _ in range(depth)
     ]
 
-
-    final = Dense(
-        last,
-        activation = None,
-        use_bias = True,
-        bias_initializer = 'zeros',
-        kernel_initializer = 'zeros'
-    )
+    if finalize:
+        final = Dense(
+            last,
+            activation = None,
+            use_bias = True,
+            bias_initializer = 'zeros',
+            kernel_initializer = 'zeros'
+        )
+    else:
+        final = Dense(
+            last,
+            activation=None,
+            use_bias=True,
+            bias_initializer='zeros',
+        )
     return {'initial': initial, 'bulk': bulk, 'final': final}
 
 
@@ -276,10 +283,12 @@ class DegradationModel(Model):
 
         self.nn_r = feedforward_nn_parameters(depth, width)
         self.nn_q_scale = feedforward_nn_parameters(depth, width)
-        self.nn_q = feedforward_nn_parameters(depth, width)
-        self.nn_shift = feedforward_nn_parameters(depth, width)
-        self.nn_v_plus = feedforward_nn_parameters(depth, width)
-        self.nn_v_minus = feedforward_nn_parameters(depth, width)
+        self.nn_q = feedforward_nn_parameters(depth, width, finalize=True)
+        self.nn_shift_0 = feedforward_nn_parameters(depth, width)
+        self.nn_shift_a = feedforward_nn_parameters(depth, width)
+
+        self.nn_v_plus = feedforward_nn_parameters(depth, width, finalize=True)
+        self.nn_v_minus = feedforward_nn_parameters(depth, width, finalize=True)
 
 
         self.nn_pos_projection = feedforward_nn_parameters(
@@ -1205,10 +1214,17 @@ class DegradationModel(Model):
     def shift_direct(self, cell_features, encoded_stress, norm_cycle, training = True):
         dependencies = (
             cell_features,
-            encoded_stress,
-            norm_cycle,
         )
-        return nn_call(self.nn_shift, dependencies, training = training)
+
+        shift_0 = nn_call(self.nn_shift_0, dependencies, training=training)
+
+
+        dependencies = (
+            cell_features,
+            encoded_stress,
+        )
+        shift_a = tf.exp(nn_call(self.nn_shift_a, dependencies, training=training))
+        return shift_0 + shift_a * tf.sqrt(tf.abs(norm_cycle) + 1e-6)
 
     def v_plus_direct(self, q, cell_features, current, training = True):
         pos_cell_features = self.pos_projection_direct(

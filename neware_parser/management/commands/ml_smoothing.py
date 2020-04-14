@@ -577,6 +577,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
             ),
             n_sample= fit_args['n_sample'],
             incentive_coeffs= fit_args,
+            min_latent= fit_args['min_latent']
 
         )
 
@@ -1056,6 +1057,8 @@ class Command(BaseCommand):
         parser.add_argument('--path_to_plots', required = True)
         parser.add_argument('--n_sample', type=int, default=8 * 16)
         parser.add_argument('--global_norm_clip', type=float, default=10.)
+
+        parser.add_argument('--min_latent', type=float, default=.1)
 
         parser.add_argument('--coeff_d_features', type=float, default=.0001)
         parser.add_argument('--coeff_d2_features', type=float, default=.0001)

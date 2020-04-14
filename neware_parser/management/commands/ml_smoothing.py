@@ -1076,23 +1076,23 @@ class Command(BaseCommand):
         parser.add_argument('--coeff_q_d3_current', type=float, default=.1)
 
         parser.add_argument('--coeff_q_scale', type=float, default=5.)
-        parser.add_argument('--coeff_q_scale_geq', type=float, default=10.)
-        parser.add_argument('--coeff_q_scale_leq', type=float, default=10.)
-        parser.add_argument('--coeff_q_scale_eq', type=float, default=50.)
-        parser.add_argument('--coeff_q_scale_mono', type=float, default=5.)
-        parser.add_argument('--coeff_q_scale_d3_cycle', type=float, default=10.)
+        parser.add_argument('--coeff_q_scale_geq', type=float, default=5.)
+        parser.add_argument('--coeff_q_scale_leq', type=float, default=5.)
+        parser.add_argument('--coeff_q_scale_eq', type=float, default=10.)
+        parser.add_argument('--coeff_q_scale_mono', type=float, default=1.)
+        parser.add_argument('--coeff_q_scale_d3_cycle', type=float, default=.2)
 
         parser.add_argument('--coeff_r', type=float, default=5.)
         parser.add_argument('--coeff_r_geq', type=float, default=1.)
         parser.add_argument('--coeff_r_big', type=float, default=.0)
-        parser.add_argument('--coeff_r_d3_cycle', type=float, default=10.)
+        parser.add_argument('--coeff_r_d3_cycle', type=float, default=.2)
 
         parser.add_argument('--coeff_shift', type=float, default=1.)
         parser.add_argument('--coeff_shift_geq', type=float, default=1.)
         parser.add_argument('--coeff_shift_leq', type=float, default=1.)
         parser.add_argument('--coeff_shift_small', type=float, default=.1)
-        parser.add_argument('--coeff_shift_d3_cycle', type=float, default=50.)
-        parser.add_argument('--coeff_shift_mono', type=float, default=5.)
+        parser.add_argument('--coeff_shift_d3_cycle', type=float, default=1.)
+        parser.add_argument('--coeff_shift_mono', type=float, default=1.)
 
         parser.add_argument('--coeff_reciprocal', type=float, default=10.)
         parser.add_argument('--coeff_reciprocal_v', type=float, default=10.)
@@ -1113,16 +1113,19 @@ class Command(BaseCommand):
         parser.add_argument('--coeff_oob_geq', type=float, default=1.)
         parser.add_argument('--coeff_oob_leq', type=float, default=1.)
 
-        parser.add_argument('--depth', type = int, default = 2)
+        parser.add_argument('--depth', type = int, default = 3)
         parser.add_argument('--width', type = int, default = 50)
         parser.add_argument('--batch_size', type = int, default = 4 * 16)
 
-        vis = 40000
-        parser.add_argument('--print_loss_every', type = int, default = 2000)
+
+        vis = 10000
+        parser.add_argument('--print_loss_every', type = int, default = 500)
         parser.add_argument('--visualize_fit_every', type = int, default = vis)
         parser.add_argument('--visualize_vq_every', type = int, default = vis)
 
         parser.add_argument('--stop_count', type = int, default = 1000004)
+        parser.add_argument('--barcode_show', type=int, default=10)
+
         parser.add_argument(
             '--wanted_barcodes', type = int, nargs = '+',
             default = [

@@ -47,13 +47,14 @@ def feedforward_nn_parameters(depth, width, last = None):
         [
             Dense(
                 width,
-                activation = main_activation,
+                activation = activation,
                 use_bias = True,
                 bias_initializer = 'zeros'
-            ) for _ in range(2)
+            ) for activation in ['relu', None]
         ]
         for _ in range(depth)
     ]
+
 
     final = Dense(
         last,
@@ -70,11 +71,14 @@ def nn_call(nn_func, dependencies, training = True):
         tf.concat(dependencies, axis = 1),
         training = training,
     )
+
     for dd in nn_func['bulk']:
         centers_prime = centers
+        centers_prime = tf.nn.relu(centers_prime)
         for d in dd:
             centers_prime = d(centers_prime, training=training)
-        centers = tf.nn.relu(centers + centers_prime) #This is a skip connection
+        centers = centers + centers_prime #This is a skip connection
+
     return nn_func['final'](centers, training = training)
 
 

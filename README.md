@@ -1,6 +1,6 @@
 # Universal Battery Database
 
-The Universal Battery Database is an open source software that describes and predicts the cycling behaviour and degradation mechanisms of li-ion cells. It simulates cells with different chemistries, archtecture, and operating conditions using neural networks.
+The Universal Battery Database is an open source software that describes and predicts the cycling behaviour and degradation mechanisms of li-ion cells. It simulates cells with different chemistries, architecture, and operating conditions using neural networks.
 
 The Universal Battery Database was developed at the Jeff Dahn Research Group, in collaboration with Tesla Motors/Energy, at Dalhousie University.
 
@@ -8,13 +8,13 @@ The Universal Battery Database was developed at the Jeff Dahn Research Group, in
 
 - [Installation](#installation)
   * [Prerequisites](#prerequisites)
-  * [Installing Dependencies](#installing-dependencies)
-  * [Installing and Configuring PostgreSQL](#installing-and-configuring-postgresql)
+  * [Installing Dependencies and Configuring Environment](#installing-dependencies-and-configuring-environment)
   * [Setup](#setup)
 - [Using the Software](#using-the-software)
   * [Recommendations](#recommendations)
+  * [Run Scripts](#run-scripts)
   * [ML Smoothing (Linux and macOS)](#ml-smoothing--linux-and-macos-)
-- [Stochiometry](#stochiometry)
+- [Stoichiometry](#stoichiometry)
 
 ## Installation
 
@@ -24,11 +24,11 @@ The Universal Battery Database was developed at the Jeff Dahn Research Group, in
 - [pip and virtualenv](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
 
 
-### Installing Dependencies
+### Installing Dependencies and Configuring Environment
 
-1. Create a virtual environment.
+1. Create a new virtual environment.
 
-Windows:
+Windows cmd:
 ```cmd
 py -m venv env
 ```
@@ -38,9 +38,9 @@ macOS and Linux:
 python3 -m venv env
 ```
 
-2. Activiate the virtual environment
+2. Activate the virtual environment
 
-Windows:
+Windows cmd:
 ```cmd
 .\env\Scripts\activate
 ```
@@ -52,14 +52,20 @@ source env/bin/activate
 
 3. Install requirements
 
+The following commands should be executed within top-level project directory.
+
+If you do not have a database and have a dataset file, install requirements with:
 ```bash
 pip3 install -r requirements_nosql.txt
 ```
 
-### Installing and Configuring PostgreSQL 
+Otherwise, install requirements with:
+```bash
+pip3 install -r requirements_nosql.txt
+```
 
 
-1. Install PostgreSQL. **Make sure the installation includes the PostgreSQL Unicode ODBC driver.** (You can choose a driver once installation is finished; I selected ODBC 64-bitODBC 64-bit.)
+4. [Install PostgreSQL](https://www.2ndquadrant.com/en/blog/pginstaller-install-postgresql/). **Make sure the installation includes the PostgreSQL Unicode ODBC driver.** (You can choose a driver once installation is finished; I selected ODBC 64-bitODBC 64-bit.)
 2. Create a new user and password.
 3. Add the bin path of the install to the Path variable.
 4. Run
@@ -112,7 +118,7 @@ SecretKey = verysecretkeyhaha
 
 ## Using the Software
 
-To quickly see the webpage and start developing, run
+To quickly see the web page and start developing, run
 ```bash
 $ python3 manage.py runserver 0.0.0.0:8000
 ```
@@ -140,5 +146,5 @@ Then simply run `sh run_smoothing.sh path-figures optional-note-to-self` in a Ba
 
 
 
-## Stochiometry
-It is reccomended to always use whole numbers. For instance, instead of 0.33, 0.33, 0.33, simply use 1, 1, 1. If there are some very specific ratios that are too inexact to rationalize, you can try to have sub whole numbers.
+## Stoichiometry
+It is recommended to always use whole numbers. For instance, instead of 0.33, 0.33, 0.33, simply use 1, 1, 1. If there are some very specific ratios that are too inexact to rationalize, you can try to have sub whole numbers.

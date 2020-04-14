@@ -9,7 +9,6 @@ The Universal Battery Database was developed at the Jeff Dahn Research Group, in
 - [Installation](#installation)
   * [Prerequisites](#prerequisites)
   * [Installing Dependencies and Configuring Environment](#installing-dependencies-and-configuring-environment)
-  * [Setup](#setup)
 - [Using the Software](#using-the-software)
   * [Recommendations](#recommendations)
   * [Run Scripts](#run-scripts)
@@ -26,7 +25,7 @@ The Universal Battery Database was developed at the Jeff Dahn Research Group, in
 
 ### Installing Dependencies and Configuring Environment
 
-1. Create a new virtual environment.
+#### 1. Create a new virtual environment.
 
 Windows cmd:
 ```cmd
@@ -38,7 +37,7 @@ macOS and Linux:
 python3 -m venv env
 ```
 
-2. Activate the virtual environment
+#### 2. Activate the virtual environment
 
 Windows cmd:
 ```cmd
@@ -50,30 +49,33 @@ macOS:
 source env/bin/activate
 ```
 
-3. Install requirements
+#### 3. Install requirements
 
-The following commands should be executed within top-level project directory.
-
-If you do not have a database and have a dataset file, install requirements with:
+If you do not have a database, install requirements with:
 ```bash
 pip3 install -r requirements_nosql.txt
 ```
 
 Otherwise, install requirements with:
 ```bash
-pip3 install -r requirements_nosql.txt
+pip3 install -r requirements.txt
 ```
 
 
-4. [Install PostgreSQL](https://www.2ndquadrant.com/en/blog/pginstaller-install-postgresql/). **Make sure the installation includes the PostgreSQL Unicode ODBC driver.** (You can choose a driver once installation is finished; I selected ODBC 64-bitODBC 64-bit.)
-2. Create a new user and password.
-3. Add the bin path of the install to the Path variable.
-4. Run
+#### 4. [Install PostgreSQL](https://www.2ndquadrant.com/en/blog/pginstaller-install-postgresql/).
+
+**Make sure the installation includes the PostgreSQL Unicode ODBC driver** (e.g. ODBC 64-bitODBC 64-bit).
+
+#### 5. Create a new user and password.
+#### 6. Add the bin path of the install to the Path variable.
+#### 7. Run
 
 ```bash
 $ psql -U postgres
 ```
-and enter the password you created in step 2.
+and enter the password you created in step 5.
+
+#### 8.
 
 ```sql
 CREATE DATABASE my_project;
@@ -84,7 +86,7 @@ GRANT ALL PRIVILEGES ON DATABASE my_project TO my_user;
 ```
 
 
-5. Create `config.ini` in the root directory, with the following content:
+#### 9. Create `config.ini` in the root directory, with the following content:
 
 ```
 [DEFAULT]
@@ -97,22 +99,19 @@ Port = 5432
 
 This is for security purposes.
 
+#### 10. Download a dataset file and put it in the appropriate folder.
 
-### Setup
-
-Download a dataset file and put it in the appropriate folder.
-
-Create a new file, `neware_parser/config.ini`, and put the following within:
+#### 11. Create a new file, `neware_parser/config.ini`, and put the following (feel free to modify the values) within:
 
 ```
 [DEFAULT]
-Database = d
-User = u
-Password = p
-Host = localhost
+Database = database
+User = user
+Password = password
+Host = local_host
 Port = 0000
 Backend = sqlite3
-SecretKey = verysecretkeyhaha
+SecretKey = your_very_secret_key
 ```
 
 

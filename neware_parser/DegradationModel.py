@@ -1257,13 +1257,13 @@ class DegradationModel(Model):
             tf.abs(current)
         )
 
-        out_of_bound_loss = incentive_combine([
+        out_of_bounds_loss = incentive_combine([
             (
-                1.,
+                self.incentive_coeffs['coeff_out_of_bounds_leq'],
                 incentive_inequality(q, Inequality.LessThan, 1., Level.Strong)
             ),
             (
-                1.,
+                self.incentive_coeffs['coeff_out_of_bounds_geq'],
                 incentive_inequality(
                     q, Inequality.GreaterThan, 0., Level.Strong
                 )
@@ -1271,7 +1271,7 @@ class DegradationModel(Model):
         ])
         return nn_call(
             self.nn_v_plus, dependencies, training = training
-        ), out_of_bound_loss
+        ), out_of_bounds_loss
 
     def v_minus_direct(self, q, cell_features, current, training = True):
         neg_cell_features = self.neg_projection_direct(
@@ -1279,13 +1279,13 @@ class DegradationModel(Model):
             training = training
         )
 
-        out_of_bound_loss = incentive_combine([
+        out_of_bounds_loss = incentive_combine([
             (
-                1.,
+                self.incentive_coeffs['coeff_out_of_bounds_leq'],
                 incentive_inequality(q, Inequality.LessThan, 1., Level.Strong)
             ),
             (
-                1.,
+                self.incentive_coeffs['coeff_out_of_bounds_geq'],
                 incentive_inequality(
                     q, Inequality.GreaterThan, 0., Level.Strong
                 )
@@ -1300,7 +1300,7 @@ class DegradationModel(Model):
 
         return nn_call(
             self.nn_v_minus, dependencies, training = training
-        ), out_of_bound_loss
+        ), out_of_bounds_loss
 
     def v_direct(self, q, shift, cell_features, current, training = True):
         v_plus, loss_plus = self.v_plus_direct(
@@ -1587,7 +1587,7 @@ class DegradationModel(Model):
                 incentive_coeffs=self.incentive_coeffs
             )
 
-            reciprocal_q, oob_loss_1 = self.reciprocal_q(
+            reciprocal_q, out_of_bounds_loss_1 = self.reciprocal_q(
                 params = {
                     'q': sampled_qs,
                     'features': sampled_features,
@@ -1596,7 +1596,7 @@ class DegradationModel(Model):
                 },
                 training = training
             )
-            reciprocal_v, oob_loss_2 = self.reciprocal_v(
+            reciprocal_v, out_of_bounds_loss_2 = self.reciprocal_v(
                 params = {
                     'voltage': sampled_voltages,
                     'features': sampled_features,
@@ -1625,7 +1625,7 @@ class DegradationModel(Model):
                 der_params = {'q': 1, 'current':3}
             )
 
-            oob_loss_3 = calculate_oob_loss(reciprocal_q, incentive_coeffs=self.incentive_coeffs)
+            out_of_bounds_loss_3 = calculate_out_of_bounds_loss(reciprocal_q, incentive_coeffs=self.incentive_coeffs)
 
             reciprocal_loss = calculate_reciprocal_loss(
                 sampled_voltages, sampled_qs,
@@ -1706,7 +1706,7 @@ class DegradationModel(Model):
                 "z_cell_loss": z_cell_loss,
                 "reciprocal_loss": reciprocal_loss,
                 "projection_loss": projection_loss,
-                "out_of_bounds_loss": out_of_bounds_loss + oob_loss_1 + oob_loss_2 + oob_loss_3,
+                "out_of_bounds_loss": out_of_bounds_loss + out_of_bounds_loss_1 + out_of_bounds_loss_2 + out_of_bounds_loss_3,
             }
 
         else:

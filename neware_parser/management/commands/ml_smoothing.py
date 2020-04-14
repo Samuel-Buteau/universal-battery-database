@@ -1113,8 +1113,8 @@ class Command(BaseCommand):
         parser.add_argument('--coeff_projection_neg', type=float, default=1.)
 
         parser.add_argument('--coeff_out_of_bounds', type=float, default=10.)
-        parser.add_argument('--coeff_oob_geq', type=float, default=1.)
-        parser.add_argument('--coeff_oob_leq', type=float, default=1.)
+        parser.add_argument('--coeff_out_of_bounds_geq', type=float, default=1.)
+        parser.add_argument('--coeff_out_of_bounds_leq', type=float, default=1.)
 
         parser.add_argument('--depth', type = int, default = 3)
         parser.add_argument('--width', type = int, default = 50)

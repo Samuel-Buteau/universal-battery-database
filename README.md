@@ -1,15 +1,16 @@
 # Universal Battery Database
 
-The Universal Battery Database is an open source software to deal with Lithium-ion cell data. The main goals are:
-1. Organizing and parsing experimental data files containing long term cycling data of Lithium-ion cells. (As well as impedance data, and many other measurement types).
-2. Automatically refresh a database as new data comes in.
-3. Describe and organize the design and chemistry information of cells (e.g. electrodes, electrolytes, geometry), as well as experimental conditions such as temperature.
-4. Visualize the experimental results.
-5. Quality control.
+The Universal Battery Database is an open source software to deal with Lithium-ion cell data. Its primary purposes are:
+1. Organize and parse experimental measurement (e.g. long term cycling and impedance spectroscopy) data files of Lithium-ion cells.
+2. Perform sophisticated modelling using machine learning and physics-based approaches.
+3. Automatically refresh a database as new data comes in.
+4. Describe and organize the design and chemistry information of cells (e.g. electrodes, electrolytes, geometry), as well as experimental conditions (e.g. temperature).
+5. Visualize experimental results.
 6. Quickly search and find data of interest.
-7. Perform sophisticated modelling using machine learning and physics-based approaches.
+7. Quality control.
 
-The Universal Battery Database was developed at the Jeff Dahn Research Group at Dalhousie University.
+
+The Universal Battery Database was developed at the [Jeff Dahn Research Group](https://www.dal.ca/diff/dahn/about.html) at Dalhousie University.
 
 ## Table of Contents
 
@@ -31,31 +32,22 @@ The Universal Battery Database was developed at the Jeff Dahn Research Group at 
 
 ### Installing Dependencies and Configuring Environment
 
-#### 1. Create a new virtual environment.
+#### 1. Create and Activate a new virtual environment.
 
 cmd (Windows):
 ```cmd
-py -m venv env
+>py -m venv env
+>.\env\Scripts\activate
 ```
 
 Bash (macOS and Linux):
 ```bash
-python3 -m venv env
+$ python3 -m venv env
+$ source env/bin/activate
 ```
 
-#### 2. Activate the virtual environment
 
-cmd (Windows):
-```cmd
-.\env\Scripts\activate
-```
-
-Bash (macOS and Linux):
-```bash
-source env/bin/activate
-```
-
-#### 3. Install requirements
+#### 2. Install requirements
 
 If you do not have a database, install requirements with:
 ```bash
@@ -68,18 +60,18 @@ pip3 install -r requirements.txt
 ```
 
 
-#### 4. [Install PostgreSQL](https://www.2ndquadrant.com/en/blog/pginstaller-install-postgresql/).
+#### 3. [Install PostgreSQL](https://www.2ndquadrant.com/en/blog/pginstaller-install-postgresql/).
 
 **Make sure the installation includes the PostgreSQL Unicode ODBC driver** (e.g. ODBC 64-bitODBC 64-bit).
 
 Follow the installation instructions and create new user and password.
 
-#### 5. Add the bin path of the install to the Path variable.
+#### 4. Add the bin path of the install to the Path variable.
 
-#### 6. Run
+#### 5. Run
 
 ```bash
-$ psql -U postgres
+psql -U postgres
 ```
 followed by
 
@@ -92,7 +84,7 @@ GRANT ALL PRIVILEGES ON DATABASE my_project TO my_user;
 ```
 
 
-#### 7. Create `config.ini` in the root directory.
+#### 6. Create `config.ini` in the root directory.
 
 `config.ini` should contain the following (feel free to modify the values):
 
@@ -107,9 +99,9 @@ Port = 5432
 
 This is for security purposes.
 
-#### 8. Download a dataset file and put it in the appropriate folder.
+#### 7. Download a dataset file and put it in the appropriate folder.
 
-#### 9. Create a new file, `neware_parser/config.ini`.
+#### 8. Create `neware_parser/config.ini`.
 
 `neware_parser/config.ini` should contain the following (again, feel free to modify the values):
 
@@ -129,25 +121,27 @@ SecretKey = your_very_secret_key
 
 To quickly see the web page and start developing, run
 ```bash
-$ python3 manage.py runserver 0.0.0.0:8000
+python3 manage.py runserver 0.0.0.0:8000
 ```
 then visit `http://localhost:8000/` with a web browser.
 
 When running the code in production, run
 ```bash
-$ python3 manage.py process_tasks
+python3 manage.py process_tasks
 ```
 in a separate terminal to allow background tasks (such as parsing of datafiles). 
 This will process the tasks as they are defined.
 
 ### Run Scripts
 
-### ML Smoothing (Linux and macOS)
+#### `run_ml_moothing.sh`
 
-Create a file called `run_smoothing.sh` (which is already in gitignore) that specifies the dataset version and takes in two arguments: output path and notes (optional). Then call `smoothing.sh` with these three arguments. Example `run_ml_smoothing.sh`:
+Users are recommended to create a file called `run_smoothing.sh` (which is already in `gitignore`) that specifies the dataset version and takes in two arguments, output path and notes (optional), and calls `smoothing.sh` with these three arguments.
+
+Example `run_ml_smoothing.sh`:
 ```bash
 # $1 specifies the outputpath for figures and $2 is an optional text for notes
 sh smoothing.sh $1 TESTING0 $2
 ```
 
-Then simply runs `sh run_smoothing.sh path-figures optional-note-to-self` in a Bash environment.
+Then run `sh run_smoothing.sh path-figures optional-note-to-self`.

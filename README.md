@@ -122,27 +122,31 @@ SecretKey = your_very_secret_key
 
 To quickly see the web page and start developing, run
 ```bash
-$ python3 manage.py runserver 0.0.0.0:8000
+python3 manage.py runserver 0.0.0.0:8000
 ```
 then visit `http://localhost:8000/` with a web browser.
 
 Users are recommended to run
 ```bash
-$ python3 manage.py process_tasks
+python3 manage.py process_tasks
 ```
 in a separate terminal to allow background tasks. This will process the tasks as they are defined.
 
 ### Run Scripts
 
-### ML Smoothing (Linux and macOS)
+Various run scripts are included to help users get started with default settings.
 
-Create a file called `run_smoothing.sh` (which is already in gitignore) that specifies the dataset version and takes in two arguments: output path and notes (optional). Then call `smoothing.sh` with these three arguments. Example `run_ml_smoothing.sh`:
+#### `run_ml_moothing.sh`
+
+Users are recommended to create a file called `run_smoothing.sh` (which is already in `gitignore`) that specifies the dataset version and takes in two arguments, output path and notes (optional), and calls `smoothing.sh` with these three arguments.
+
+Example `run_ml_smoothing.sh`:
 ```bash
 # $1 specifies the outputpath for figures and $2 is an optional text for notes
 sh smoothing.sh $1 TESTING0 $2
 ```
 
-Then simply runs `sh run_smoothing.sh path-figures optional-note-to-self` in a Bash environment.
+Then simply runs `sh run_smoothing.sh path-figures optional-note-to-self`.
 
 
 

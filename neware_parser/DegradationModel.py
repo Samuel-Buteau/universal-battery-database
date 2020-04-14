@@ -265,6 +265,7 @@ class DegradationModel(Model):
         n_sample,
         incentive_coeffs,
         n_channels = 16,
+        min_latent = 0.1,
 
     ):
         super(DegradationModel, self).__init__()
@@ -274,6 +275,8 @@ class DegradationModel(Model):
             electrolyte_to_solvent, electrolyte_to_salt,
             electrolyte_to_additive, electrolyte_latent_flags, names
         )
+
+        self.min_latent = min_latent
 
         self.n_sample = n_sample
         self.incentive_coeffs = incentive_coeffs
@@ -437,6 +440,8 @@ class DegradationModel(Model):
             indices,
             axis = 0
         )
+
+        fetched_latent_cell = self.min_latent + (1-self.min_latent)*fetched_latent_cell
         fetched_pointers_cell = tf.gather(
             self.cell_pointers,
             indices,
@@ -470,6 +475,8 @@ class DegradationModel(Model):
             electrolyte_indices,
             axis = 0
         )
+        fetched_latent_electrolyte = self.min_latent + (1-self.min_latent)*fetched_latent_electrolyte
+
         fetched_pointers_electrolyte = tf.gather(
             self.electrolyte_pointers,
             electrolyte_indices,
@@ -626,6 +633,12 @@ class DegradationModel(Model):
             ((1. - fetched_latent_electrolyte) * features_electrolyte_indirect)
         )
 
+        loss_electrolyte_eq = tf.reduce_mean((1. - fetched_latent_electrolyte) * incentive_inequality(
+                features_electrolyte_direct, Inequality.Equals, features_electrolyte_indirect,
+                Level.Proportional
+            )
+        )
+
         if compute_derivatives:
 
             with tf.GradientTape(persistent = True) as tape_d1:
@@ -682,6 +695,11 @@ class DegradationModel(Model):
             (fetched_latent_cell * features_cell_direct) +
             ((1. - fetched_latent_cell) * features_cell_indirect)
         )
+        loss_cell_eq = tf.reduce_mean((1. - fetched_latent_cell) * incentive_inequality(
+            features_cell_direct, Inequality.Equals, features_cell_indirect,
+            Level.Proportional
+        )
+                                             )
 
         if training:
             loss_output_cell = .1 * incentive_magnitude(
@@ -762,7 +780,8 @@ class DegradationModel(Model):
             loss_electrolyte = (
                 loss_output_electrolyte +
                 loss_input_electrolyte_indirect +
-                loss_derivative_electrolyte_indirect
+                loss_derivative_electrolyte_indirect +
+                10.*loss_electrolyte_eq
             )
 
             loss_input_cell_indirect = (
@@ -805,6 +824,7 @@ class DegradationModel(Model):
                     (1., loss_output_cell),
                     (1., loss_input_cell_indirect),
                     (1., loss_derivative_cell_indirect),
+                    (10., loss_cell_eq)
                 ]
             )
         else:

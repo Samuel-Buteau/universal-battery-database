@@ -1,7 +1,7 @@
 # Universal Battery Database
 
 The Universal Battery Database is an open source software to deal with Lithium-ion cell data. Its primary purposes are:
-1. Organize and parse experimental measurement (e.g. long term cycling and impedance spectroscopy) data files of Lithium-ion cells.
+1. Organize and parse experimental measurement (e.g. long term cycling and electrochemical impedance spectroscopy) data files of Lithium-ion cells.
 2. Perform sophisticated modelling using machine learning and physics-based approaches.
 3. Automatically refresh a database as new data comes in.
 4. Describe and organize the design and chemistry information of cells (e.g. electrodes, electrolytes, geometry), as well as experimental conditions (e.g. temperature).

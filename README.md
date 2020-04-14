@@ -1,6 +1,8 @@
 # Universal Battery Database
 
-We aim to simulate li-ion cells with different chemistries, archtecture, and operating conditions.
+The Universal Battery Database is an open source software that describes and predicts the cycling behaviour and degradation mechanisms of li-ion cells. It simulates cells with different chemistries, archtecture, and operating conditions using neural networks.
+
+The Universal Battery Database was developed at the Jeff Dahn Research Group, in collaboration with Tesla Motors/Energy, at Dalhousie University.
 
 ## Table of Contents
 
@@ -18,15 +20,40 @@ We aim to simulate li-ion cells with different chemistries, archtecture, and ope
 
 ### Prerequisites
 
-- Python 3
-- Pip 3
+- [Python 3](https://www.python.org/downloads/)
+- [pip and virtualenv](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
 
 
 ### Installing Dependencies
 
-Install requirements with
+1. Create a virtual environment.
+
+Windows:
+```cmd
+py -m venv env
+```
+
+macOS and Linux:
 ```bash
-$ pip3 install -r requirements_nosql.txt
+python3 -m venv env
+```
+
+2. Activiate the virtual environment
+
+Windows:
+```cmd
+.\env\Scripts\activate
+```
+
+macOS:
+```bash
+source env/bin/activate
+```
+
+3. Install requirements
+
+```bash
+pip3 install -r requirements_nosql.txt
 ```
 
 ### Installing and Configuring PostgreSQL 
@@ -98,6 +125,8 @@ Run
 $ python3 manage.py process_tasks
 ```
 in a separate terminal to allow background tasks. This will process the tasks as they are defined.
+
+### Run Scripts
 
 ### ML Smoothing (Linux and macOS)
 

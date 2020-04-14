@@ -88,7 +88,7 @@ GRANT ALL PRIVILEGES ON DATABASE my_project TO my_user;
 
 #### 7. Create `config.ini` in the root directory.
 
-With the following example (feel free to modify the values) content:
+`config.ini` should contain the following (feel free to modify the values):
 
 ```
 [DEFAULT]
@@ -103,7 +103,9 @@ This is for security purposes.
 
 #### 10. Download a dataset file and put it in the appropriate folder.
 
-#### 11. Create a new file, `neware_parser/config.ini`, and put the following (again, feel free to modify the values) within:
+#### 11. Create a new file, `neware_parser/config.ini`.
+
+`neware_parser/config.ini` should contain the following (again, feel free to modify the values):
 
 ```
 [DEFAULT]

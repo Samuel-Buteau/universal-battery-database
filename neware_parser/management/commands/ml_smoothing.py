@@ -269,11 +269,11 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
         for k_count, k in enumerate(cyc_grp_dict.keys()):
 
             my_pass = any([
-                    abs(my_data['all_data'][barcode]['cyc_grp_dict'][k]['avg_end_current_prev']) < 1e-5,
-                    abs(my_data['all_data'][barcode]['cyc_grp_dict'][k]['avg_constant_current']) < 1e-5,
-                    abs(my_data['all_data'][barcode]['cyc_grp_dict'][k]['avg_end_current']) < 1e-5,
-                    abs(my_data['all_data'][barcode]['cyc_grp_dict'][k]['avg_end_voltage_prev']) < 1e-5,
-                    abs(my_data['all_data'][barcode]['cyc_grp_dict'][k]['avg_end_voltage']) < 1e-5,
+                    abs(cyc_grp_dict[k]['avg_end_current_prev']) < 1e-5,
+                    abs(cyc_grp_dict[k]['avg_constant_current']) < 1e-5,
+                    abs(cyc_grp_dict[k]['avg_end_current']) < 1e-5,
+                    abs(cyc_grp_dict[k]['avg_end_voltage_prev']) < 1e-5,
+                    abs(cyc_grp_dict[k]['avg_end_voltage']) < 1e-5,
                 ])
             if my_pass:
                 continue
@@ -363,12 +363,12 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                     main_data['cycle_number'] <= above_cyc
                 )
 
-                # the indecies for the cyc_grp_dict[k] array which correspond
+                # the indices for the cyc_grp_dict[k] array which correspond
                 # to a True mask
-                all_valid_indecies = numpy.arange(len(mask))[mask]
+                all_valid_indices = numpy.arange(len(mask))[mask]
 
                 # if there are less than 2 valid cycles, skip that neighborhood
-                if len(all_valid_indecies) < 2:
+                if len(all_valid_indices) < 2:
                     continue
 
                 '''
@@ -376,8 +376,8 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 will be added to the dataset.
                 '''
 
-                min_cyc_index = all_valid_indecies[0]
-                max_cyc_index = all_valid_indecies[-1]
+                min_cyc_index = all_valid_indices[0]
+                max_cyc_index = all_valid_indices[-1]
 
                 valid_cycles += 1
 
@@ -399,8 +399,9 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 # TODO(sam): here, figure out where the reference cycle is,
                 #  and note the index
 
-                neighborhood_data_i = numpy.zeros(NEIGHBORHOOD_TOTAL,
-                                                  dtype = numpy.int32)
+                neighborhood_data_i = numpy.zeros(
+                    NEIGHBORHOOD_TOTAL, dtype = numpy.int32
+                )
 
                 neighborhood_data_i[NEIGHBORHOOD_MIN_CYC_INDEX] = min_cyc_index
                 neighborhood_data_i[NEIGHBORHOOD_MAX_CYC_INDEX] = max_cyc_index
@@ -621,7 +622,11 @@ class LossRecord():
             count, losses = self.data[-1]
             print('Count {}:'.format(count))
             for i in range(len(losses)):
-                print('\t{}:{}. coeff:{}'.format(self.labels[i], losses[i], fit_args['coeff_' +self.labels[i].split('_loss')[0]]))
+                print('\t{}:{}. coeff:{}'.format(
+                    self.labels[i],
+                    losses[i],
+                    fit_args['coeff_' + self.labels[i].split('_loss')[0]]
+                ))
 
 
     def plot(self, count, fit_args):
@@ -629,7 +634,11 @@ class LossRecord():
         ax = fig.add_subplot(111)
         ax.set_yscale('log')
         for i in range(len(self.labels)):
-            ax.plot([s[0] for s in self.data], [s[1][i] for s in self.data], label=self.labels[i] )
+            ax.plot(
+                [s[0] for s in self.data],
+                [s[1][i] for s in self.data],
+                label=self.labels[i]
+            )
 
         ax.legend()
 
@@ -656,7 +665,9 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
     @tf.function
     def dist_train_step(strategy, neighborhood):
         return strategy.experimental_run_v2(
-                lambda neighborhood: train_step(neighborhood, train_step_params, fit_args),
+                lambda neighborhood: train_step(
+                    neighborhood, train_step_params, fit_args
+                ),
                 args=(neighborhood,)
             )
 
@@ -933,14 +944,22 @@ def train_step(neighborhood, params, fit_args):
                 + fit_args['coeff_cc_voltage'] * cc_voltage_loss
                 + fit_args['coeff_cc_capacity'] * cc_capacity_loss
             ) * (
-            fit_args['coeff_q'] *train_results["q_loss"]
-            + fit_args['coeff_q_scale'] *train_results["q_scale_loss"]
-            + fit_args['coeff_r'] * train_results["r_loss"]
-            + fit_args['coeff_shift'] *train_results["shift_loss"]
-            + fit_args['coeff_z_cell'] * train_results["z_cell_loss"]
-            + fit_args['coeff_reciprocal'] * train_results["reciprocal_loss"]
-            + fit_args['coeff_projection']  * train_results["projection_loss"]
-            + fit_args['coeff_out_of_bounds'] * train_results["out_of_bounds_loss"]
+            fit_args['coeff_q']
+            *train_results["q_loss"]
+            + fit_args['coeff_q_scale']
+            *train_results["q_scale_loss"]
+            + fit_args['coeff_r']
+            * train_results["r_loss"]
+            + fit_args['coeff_shift']
+            *train_results["shift_loss"]
+            + fit_args['coeff_z_cell']
+            * train_results["z_cell_loss"]
+            + fit_args['coeff_reciprocal']
+            * train_results["reciprocal_loss"]
+            + fit_args['coeff_projection']
+            * train_results["projection_loss"]
+            + fit_args['coeff_out_of_bounds']
+            * train_results["out_of_bounds_loss"]
         )
         )
 
@@ -1006,7 +1025,9 @@ def ml_smoothing(fit_args):
     if not os.path.exists(fit_args['path_to_plots']):
         os.mkdir(fit_args['path_to_plots'])
 
-    with open(os.path.join(fit_args['path_to_plots'], 'fit_args_log.txt'), 'w') as f:
+    with open(
+        os.path.join(fit_args['path_to_plots'], 'fit_args_log.txt'), 'w'
+    ) as f:
         my_str = ''
         for k in fit_args:
             my_str = '{} \n {}: {}'.format(my_str, k, str(fit_args[k]))
@@ -1045,7 +1066,9 @@ def ml_smoothing(fit_args):
         return
 
     train_and_evaluate(
-        initial_processing(my_data, my_names, barcodes, fit_args, strategy=strategy), barcodes,
+        initial_processing(
+            my_data, my_names, barcodes, fit_args, strategy=strategy
+        ), barcodes,
         fit_args)
 
 

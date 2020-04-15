@@ -1171,7 +1171,7 @@ class Command(BaseCommand):
             parser.add_argument(arg, type = float, default = float_args[arg])
 
         for arg in int_args:
-            parser.add_argument(arg, type = int, default = float_args[arg])
+            parser.add_argument(arg, type = int, default = int_args[arg])
 
         barcodes = [
             81602, 81603, 81604, 81605, 81606, 81607, 81608, 81609, 81610,

@@ -1075,7 +1075,7 @@ class Command(BaseCommand):
         float_args = {
             '--global_norm_clip': 10.,
 
-            '--learning_rate': 1e-4,
+            '--learning_rate': 4e-3,
             '--min_latent': .1,
 
             '--coeff_d_features': .0001,

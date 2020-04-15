@@ -58,7 +58,6 @@ ELE_TO_SOL = 'electrolyte_id_to_solvent_id_weight'
 ELE_TO_SALT = 'electrolyte_id_to_salt_id_weight'
 ELE_TO_ADD = 'electrolyte_id_to_additive_id_weight'
 
-
 # TODO(sam): For each barcode, needs a multigrid of (S, V, I, T) (current
 #  needs to be adjusted)
 # TODO(sam): Each cycle must have an index mapping to the nearest reference
@@ -928,19 +927,22 @@ def train_step(neighborhood, params, fit_args):
             + fit_args['coeff_cc_capacity'] * cc_capacity_loss
             + 1. * tf.stop_gradient(
 
-                fit_args['coeff_cv_capacity'] * cv_capacity_loss
-                + fit_args['coeff_cc_voltage'] * cc_voltage_loss
-                + fit_args['coeff_cc_capacity'] * cc_capacity_loss
-            ) * (
-            fit_args['coeff_q'] *train_results["q_loss"]
-            + fit_args['coeff_scale'] *train_results["scale_loss"]
-            + fit_args['coeff_r'] * train_results["r_loss"]
-            + fit_args['coeff_shift'] *train_results["shift_loss"]
-            + fit_args['coeff_cell'] * train_results["cell_loss"]
-            + fit_args['coeff_reciprocal'] * train_results["reciprocal_loss"]
-            + fit_args['coeff_projection']  * train_results["projection_loss"]
-            + fit_args['coeff_out_of_bounds'] * train_results["out_of_bounds_loss"]
-        )
+            fit_args['coeff_cv_capacity'] * cv_capacity_loss
+            + fit_args['coeff_cc_voltage'] * cc_voltage_loss
+            + fit_args['coeff_cc_capacity'] * cc_capacity_loss
+        ) * (
+                fit_args['coeff_q'] * train_results["q_loss"]
+                + fit_args['coeff_scale'] * train_results["scale_loss"]
+                + fit_args['coeff_r'] * train_results["r_loss"]
+                + fit_args['coeff_shift'] * train_results["shift_loss"]
+                + fit_args['coeff_cell'] * train_results["cell_loss"]
+                + fit_args['coeff_reciprocal'] * train_results[
+                    "reciprocal_loss"]
+                + fit_args['coeff_projection'] * train_results[
+                    "projection_loss"]
+                + fit_args['coeff_out_of_bounds'] * train_results[
+                    "out_of_bounds_loss"]
+            )
 
         )
 

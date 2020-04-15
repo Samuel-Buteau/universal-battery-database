@@ -1079,10 +1079,11 @@ def ml_smoothing(fit_args):
 class Command(BaseCommand):
 
     def add_arguments(self, parser):
-        parser.add_argument('--path_to_dataset', required = True)
-        parser.add_argument('--dataset_version', required = True)
-        parser.add_argument('--path_to_plots', required = True)
-        parser.add_argument('--n_sample', type=int, default=8 * 16)
+        required_args = [
+            '--path_to_dataset',
+            '--dataset_version',
+            '--path_to_plots'
+        ]
 
         float_args = {
             '--global_norm_clip': 10.,
@@ -1147,15 +1148,20 @@ class Command(BaseCommand):
             '--coeff_out_of_bounds_leq': 1.,
         }
 
+        for arg in required_args:
+            parser.add_argument(arg, required = True)
+
         for arg in float_args:
             parser.add_argument(arg, type = float, default = float_args[arg])
+
+        vis = 10000
+
+        parser.add_argument('--n_sample', type = int, default = 8 * 16)
 
         parser.add_argument('--depth', type = int, default = 3)
         parser.add_argument('--width', type = int, default = 50)
         parser.add_argument('--batch_size', type = int, default = 4 * 16)
 
-
-        vis = 10000
         parser.add_argument('--print_loss_every', type = int, default = 500)
         parser.add_argument('--visualize_fit_every', type = int, default = vis)
         parser.add_argument('--visualize_vq_every', type = int, default = vis)

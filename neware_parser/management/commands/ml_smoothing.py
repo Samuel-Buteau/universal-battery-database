@@ -42,6 +42,16 @@ V_PREV_END_AVG = 'avg_end_voltage_prev'
 
 N = 'cycle_number'
 
+# my_data key names
+CELL_TO_POS = 'cell_id_to_pos_id'
+CELL_TO_NEG = 'cell_id_to_neg_id'
+CELL_TO_ELE = 'cell_id_to_electrolyte_id'
+CELL_TO_LAT = 'cell_id_to_latent'
+
+ELE_TO_SOL = 'electrolyte_id_to_solvent_id_weight'
+ELE_TO_SALT = 'electrolyte_id_to_salt_id_weight'
+ELE_TO_ADD = 'electrolyte_id_to_additive_id_weight'
+
 # TODO(sam): For each barcode, needs a multigrid of (S, V, I, T) (current
 #  needs to be adjusted)
 # TODO(sam): Each cycle must have an index mapping to the nearest reference
@@ -98,13 +108,13 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
             - 'current_grid': 1D array of log currents
             - 'temperature_grid': 1D array of temperatures
             - 'sign_grid': 1D array of signs
-            - 'cell_id_to_pos_id': a dictionary indexed by barcode yielding a
+            - CELL_TO_POS: a dictionary indexed by barcode yielding a
             positive electrode id.
-            - 'cell_id_to_neg_id': a dictionary indexed by barcode yielding a
+            - CELL_TO_NEG: a dictionary indexed by barcode yielding a
             positive electrode id.
-            - 'cell_id_to_electrolyte_id': a dictionary indexed by barcode
+            - CELL_TO_ELE: a dictionary indexed by barcode
             yielding a positive electrode id.
-            - 'cell_id_to_latent': a dictionary indexed by barcode yielding
+            - CELL_TO_LAT: a dictionary indexed by barcode yielding
                          1 if the cell is latent,
                          0 if made of known pos,neg,electrolyte
 
@@ -221,33 +231,26 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
     electrolyte_id_to_additive_id_weight = {}
 
     for cell_id in cell_id_list:
-        if cell_id in my_data['cell_id_to_pos_id'].keys():
-            cell_id_to_pos_id[cell_id] = my_data['cell_id_to_pos_id'][cell_id]
-        if cell_id in my_data['cell_id_to_neg_id'].keys():
-            cell_id_to_neg_id[cell_id] = my_data['cell_id_to_neg_id'][cell_id]
-        if cell_id in my_data['cell_id_to_electrolyte_id'].keys():
-            cell_id_to_electrolyte_id[cell_id]\
-                = my_data['cell_id_to_electrolyte_id'][cell_id]
-        if cell_id in my_data['cell_id_to_latent'].keys():
-            cell_id_to_latent[cell_id] = my_data['cell_id_to_latent'][cell_id]
+        if cell_id in my_data[CELL_TO_POS].keys():
+            cell_id_to_pos_id[cell_id] = my_data[CELL_TO_POS][cell_id]
+        if cell_id in my_data[CELL_TO_NEG].keys():
+            cell_id_to_neg_id[cell_id] = my_data[CELL_TO_NEG][cell_id]
+        if cell_id in my_data[CELL_TO_ELE].keys():
+            cell_id_to_electrolyte_id[cell_id] = my_data[CELL_TO_ELE][cell_id]
+        if cell_id in my_data[CELL_TO_LAT].keys():
+            cell_id_to_latent[cell_id] = my_data[CELL_TO_LAT][cell_id]
 
         if cell_id_to_latent[cell_id] < 0.5:
             electrolyte_id = cell_id_to_electrolyte_id[cell_id]
-            if electrolyte_id\
-                in my_data['electrolyte_id_to_solvent_id_weight'].keys():
+            if electrolyte_id in my_data[ELE_TO_SOL].keys():
                 electrolyte_id_to_solvent_id_weight[electrolyte_id]\
-                    = my_data['electrolyte_id_to_solvent_id_weight']\
-                    [electrolyte_id]
-            if electrolyte_id\
-                in my_data['electrolyte_id_to_salt_id_weight'].keys():
+                    = my_data[ELE_TO_SOL][electrolyte_id]
+            if electrolyte_id in my_data[ELE_TO_SALT].keys():
                 electrolyte_id_to_salt_id_weight[electrolyte_id]\
-                    = my_data['electrolyte_id_to_salt_id_weight']\
-                    [electrolyte_id]
-            if electrolyte_id\
-                in my_data['electrolyte_id_to_additive_id_weight'].keys():
+                    = my_data[ELE_TO_SALT][electrolyte_id]
+            if electrolyte_id in my_data[ELE_TO_ADD].keys():
                 electrolyte_id_to_additive_id_weight[electrolyte_id]\
-                    = my_data['electrolyte_id_to_additive_id_weight']\
-                    [electrolyte_id]
+                    = my_data[ELE_TO_ADD][electrolyte_id]
 
             if electrolyte_id in my_data['electrolyte_id_to_latent'].keys():
                 electrolyte_id_to_latent[electrolyte_id]\

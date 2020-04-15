@@ -29,8 +29,51 @@ The Universal Battery Database was developed at the [Jeff Dahn Research Group](h
 
 
 ### Installing Dependencies and Configuring Environment
+There are two distinct possibilities: 
+1. if you want to use the database features such as parsing and organising experimental data and metadata, __you need to install with a database__.
+2. if you only want to play around with modelling, using a dataset compiled somewhere else, __you do not need to install with a database__. Note that you can always install with a database if unsure, but it is more involved.
+#### Without Database Install
 
-#### 1. Create and Activate a new virtual environment.
+
+##### 1. Create and Activate a new virtual environment.
+
+cmd (Windows):
+```cmd
+>py -m venv env
+>.\env\Scripts\activate
+```
+
+Bash (macOS and Linux):
+```bash
+$ python3 -m venv env
+$ source env/bin/activate
+```
+
+##### 2. Install requirements
+
+install requirements with:
+```bash
+pip3 install -r requirements_nosql.txt
+```
+##### 3. Create `neware_parser/config.ini`.
+
+`neware_parser/config.ini` should contain the following (feel free to modify the values):
+
+```
+[DEFAULT]
+Database = database
+User = user
+Password = password
+Host = localhost
+Port = 0000
+Backend = sqlite3
+SecretKey = your_very_secret_key
+```
+
+##### 4. Download a dataset file and put it in the appropriate folder.
+
+#### With Database Install
+##### 1. Create and Activate a new virtual environment.
 
 cmd (Windows):
 ```cmd
@@ -45,32 +88,34 @@ $ source env/bin/activate
 ```
 
 
-#### 2. Install requirements
 
-If you do not have a database, install requirements with:
-```bash
-pip3 install -r requirements_nosql.txt
-```
 
-Otherwise, install requirements with:
+##### 2. Install requirements
+
+install requirements with:
 ```bash
 pip3 install -r requirements.txt
 ```
 
+##### 3. [Install PostgreSQL](https://www.2ndquadrant.com/en/blog/pginstaller-install-postgresql/).
 
-#### 3. [Install PostgreSQL](https://www.2ndquadrant.com/en/blog/pginstaller-install-postgresql/).
-
-**Make sure the installation includes the PostgreSQL Unicode ODBC driver** (e.g. ODBC 64-bitODBC 64-bit).
+**Make sure the installation includes the PostgreSQL Unicode ODBC driver** (e.g. ODBC 64-bit).
+(after the PostgreSQL installation, there is a separate process where you can choose a driver. I selected ODBC 64-bit)
 
 Follow the installation instructions and create new user and password.
+**Make sure you remember the password you create**
 
-#### 4. Add the bin path of the install to the Path variable.
+##### 4. Add the bin path of the install to the Path variable.
 
-#### 5. Run
+##### 5. Run
 
 ```bash
 psql -U postgres
 ```
+
+and enter the password you created earlier.
+
+##### 6. Enter the following 3 commands in the terminal.
 
 ```sql
 CREATE DATABASE my_project;
@@ -80,38 +125,29 @@ CREATE USER my_user WITH PASSWORD ‘my_password’;
 GRANT ALL PRIVILEGES ON DATABASE my_project TO my_user;
 ```
 
+**Press enter after each line**
+Note that __my_project__, __my_user__, and __my_password__ can be changed to your own secret values.
 
-#### 6. Create `config.ini` in the root directory.
+##### 7. Create `neware_parser/config.ini`.
 
 `config.ini` should contain the following (feel free to modify the values):
 
 ```
 [DEFAULT]
-Database = database
-User = user
-Password = password
+Database = my_project
+User = my_user
+Password = my_password
 Host = localhost
 Port = 5432
-```
-
-This is for security purposes.
-
-#### 7. Download a dataset file and put it in the appropriate folder.
-
-#### 8. Create `neware_parser/config.ini`.
-
-`neware_parser/config.ini` should contain the following (again, feel free to modify the values):
-
-```
-[DEFAULT]
-Database = database
-User = user
-Password = password
-Host = localhost
-Port = 0000
-Backend = sqlite3
+Backend = postgresql
 SecretKey = your_very_secret_key
 ```
+Note that __my_project__, __my_user__, and __my_password__ can be changed to your own secret values. (they have to be the same as those of step 6.
+
+Also note that __your_very_secret_key__ needs to be a very secret key if you care about your data's security.
+
+##### 8. Download a dataset file and put it in the appropriate folder.
+
 
 
 ## Using the Software
@@ -144,4 +180,4 @@ $ sh ml_smoothing.sh path-figures dataset-version "optional-note-to-self"
 
 We hypothesize that we can make [good generalizations](https://github.com/Samuel-Buteau/universal-battery-database/wiki/Generalization-Criteria) by [approximating](https://github.com/Samuel-Buteau/universal-battery-database/wiki/The-Universal-Approximation-Theorem) the functions that map one degradation mechanism to another using neural networks. 
 
-We aim to develop a theory of lithium-ion cells. We first break down the machine learning problem into smaller sub-problems. From there, we development frameworks to convert the theory to practical implementations. Finally, we apply the method to experimental data and evaluate the result.
+We aim to develop a theory of lithium-ion cells. We first break down the machine learning problem into smaller sub-problems. From there, we develop frameworks to convert the theory to practical implementations. Finally, we apply the method to experimental data and evaluate the result.

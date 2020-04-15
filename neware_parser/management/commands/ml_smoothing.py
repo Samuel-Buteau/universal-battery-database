@@ -24,6 +24,16 @@ Shortened Variable Names:
     res -   result
 '''
 
+# Dictionary key names
+Q_CC = 'cc_capacity_vector'
+Q_CV = 'cv_capacity_vector'
+I_CV = 'cv_current_vector'
+Q_CC_LAST = 'last_cc_capacity'
+Q_CV_LAST = 'last_cv_capacity'
+I_CC = 'constant_current'
+I_PREV = 'end_current_prev'
+I_CC_AVG = 'avg_constant_current'
+
 # TODO(sam): For each barcode, needs a multigrid of (S, V, I, T) (current
 #  needs to be adjusted)
 # TODO(sam): Each cycle must have an index mapping to the nearest reference
@@ -126,26 +136,26 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                             [
                                 ('cycle_number', 'f4'),
                                 ('cc_voltage_vector', 'f4', len(voltage_grid)),
-                                ('cc_capacity_vector', 'f4', len(voltage_grid)),
+                                (Q_CC, 'f4', len(voltage_grid)),
                                 ('cc_mask_vector', 'f4', len(voltage_grid)),
-                                ('cv_current_vector', 'f4', fit_args[
+                                (I_CV, 'f4', fit_args[
                                 'current_max_n']),
-                                ('cv_capacity_vector', 'f4', fit_args[
+                                (Q_CV, 'f4', fit_args[
                                 'current_max_n']),
                                 ('cv_mask_vector', 'f4', fit_args[
                                 'current_max_n']),
-                                ('constant_current', 'f4'),
-                                ('end_current_prev', 'f4'),
+                                (I_CC, 'f4'),
+                                (I_PREV, 'f4'),
                                 ('end_current', 'f4'),
                                 ('end_voltage_prev', 'f4'),
                                 ('end_voltage', 'f4'),
                                 ('last_cc_voltage', 'f4'),
-                                ('last_cc_capacity', 'f4'),
-                                ('last_cv_capacity', 'f4'),
+                                (Q_CC_LAST, 'f4'),
+                                (Q_CV_LAST, 'f4'),
                                 ('temperature', 'f4'),
                             ]
 
-                        -     'avg_constant_current'
+                        -     I_CC_AVG
                         -     'avg_end_current_prev'
                         -     'avg_end_current'
                         -     'avg_end_voltage_prev'
@@ -270,7 +280,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
 
             my_pass = any([
                     abs(cyc_grp_dict[k]['avg_end_current_prev']) < 1e-5,
-                    abs(cyc_grp_dict[k]['avg_constant_current']) < 1e-5,
+                    abs(cyc_grp_dict[k][I_CC_AVG]) < 1e-5,
                     abs(cyc_grp_dict[k]['avg_end_current']) < 1e-5,
                     abs(cyc_grp_dict[k]['avg_end_voltage_prev']) < 1e-5,
                     abs(cyc_grp_dict[k]['avg_end_voltage']) < 1e-5,
@@ -280,23 +290,15 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
             main_data = cyc_grp_dict[k]['main_data']
 
             # normalize capacity_vector with max_cap
-            main_data['cc_capacity_vector']\
-                = 1. / max_cap * main_data['cc_capacity_vector']
-            main_data['cv_capacity_vector']\
-                = 1. / max_cap * main_data['cv_capacity_vector']
-            main_data['cv_current_vector']\
-                = 1. / max_cap * main_data['cv_current_vector']
-            main_data['last_cc_capacity']\
-                = 1. / max_cap * main_data['last_cc_capacity']
-            main_data['last_cv_capacity']\
-                = 1. / max_cap * main_data['last_cv_capacity']
-            main_data['constant_current']\
-                = 1. / max_cap * main_data['constant_current']
-            main_data['end_current_prev']\
-                = 1. / max_cap * main_data['end_current_prev']
+            main_data[Q_CC] = 1. / max_cap * main_data[Q_CC]
+            main_data[Q_CV] = 1. / max_cap * main_data[Q_CV]
+            main_data[I_CV] = 1. / max_cap * main_data[I_CV]
+            main_data[Q_CC_LAST] = 1. / max_cap * main_data[Q_CC_LAST]
+            main_data[Q_CV_LAST] = 1. / max_cap * main_data[Q_CV_LAST]
+            main_data[I_CC] = 1. / max_cap * main_data[I_CC]
+            main_data[I_PREV] = 1. / max_cap * main_data[I_PREV]
 
-            cyc_grp_dict[k]['avg_constant_current']\
-                = 1. / max_cap * cyc_grp_dict[k]['avg_constant_current']
+            cyc_grp_dict[k][I_CC_AVG] = 1. / max_cap * cyc_grp_dict[k][I_CC_AVG]
             cyc_grp_dict[k]['avg_end_current']\
                 = 1. / max_cap * cyc_grp_dict[k]['avg_end_current']
             cyc_grp_dict[k]['avg_end_current_prev']\
@@ -462,32 +464,32 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 main_data['cc_voltage_vector']
             )
             numpy_acc(
-                compiled_data, 'cc_capacity_vector',
-                main_data['cc_capacity_vector']
+                compiled_data, Q_CC,
+                main_data[Q_CC]
             )
             numpy_acc(
                 compiled_data, 'cc_mask_vector',
                 main_data['cc_mask_vector']
             )
             numpy_acc(
-                compiled_data, 'cv_current_vector',
-                main_data['cv_current_vector']
+                compiled_data, I_CV,
+                main_data[I_CV]
             )
             numpy_acc(
-                compiled_data, 'cv_capacity_vector',
-                main_data['cv_capacity_vector']
+                compiled_data, Q_CV,
+                main_data[Q_CV]
             )
             numpy_acc(
                 compiled_data, 'cv_mask_vector',
                 main_data['cv_mask_vector']
             )
             numpy_acc(
-                compiled_data, 'constant_current',
-                main_data['constant_current']
+                compiled_data, I_CC,
+                main_data[I_CC]
             )
             numpy_acc(
-                compiled_data, 'end_current_prev',
-                main_data['end_current_prev']
+                compiled_data, I_PREV,
+                main_data[I_PREV]
             )
             numpy_acc(
                 compiled_data, 'end_voltage_prev',
@@ -512,13 +514,13 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
 
     labels = [
         'cc_voltage_vector',
-        'cc_capacity_vector',
+        Q_CC,
         'cc_mask_vector',
-        'cv_capacity_vector',
-        'cv_current_vector',
+        Q_CV,
+        I_CV,
         'cv_mask_vector',
-        'constant_current',
-        'end_current_prev',
+        I_CC,
+        I_PREV,
         'end_voltage_prev',
         'end_voltage',
 

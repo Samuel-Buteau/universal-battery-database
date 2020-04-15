@@ -37,8 +37,14 @@ I_PREV = 'end_current_prev'
 I_CC_AVG = 'avg_constant_current'
 I_PREV_END_AVG = 'avg_end_current_prev'
 
+V_CC = 'cc_voltage_vector'
+V_END = 'end_voltage'
 V_END_AVG = 'avg_end_voltage'
+V_PREV_END = 'end_voltage_prev'
 V_PREV_END_AVG = 'avg_end_voltage_prev'
+
+MASK_CC = 'cc_mask_vector'
+MASK_CV = 'cv_mask_vector'
 
 N = 'cycle_number'
 
@@ -51,6 +57,7 @@ CELL_TO_LAT = 'cell_id_to_latent'
 ELE_TO_SOL = 'electrolyte_id_to_solvent_id_weight'
 ELE_TO_SALT = 'electrolyte_id_to_salt_id_weight'
 ELE_TO_ADD = 'electrolyte_id_to_additive_id_weight'
+
 
 # TODO(sam): For each barcode, needs a multigrid of (S, V, I, T) (current
 #  needs to be adjusted)
@@ -153,20 +160,20 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                         - 'main_data':  a numpy structured array with dtype:
                             [
                                 (N, 'f4'),
-                                ('cc_voltage_vector', 'f4', len(voltage_grid)),
+                                (V_CC, 'f4', len(voltage_grid)),
                                 (Q_CC, 'f4', len(voltage_grid)),
-                                ('cc_mask_vector', 'f4', len(voltage_grid)),
+                                (MASK_CC, 'f4', len(voltage_grid)),
                                 (I_CV, 'f4', fit_args[
                                 'current_max_n']),
                                 (Q_CV, 'f4', fit_args[
                                 'current_max_n']),
-                                ('cv_mask_vector', 'f4', fit_args[
+                                (MASK_CV, 'f4', fit_args[
                                 'current_max_n']),
                                 (I_CC, 'f4'),
                                 (I_PREV, 'f4'),
                                 ('end_current', 'f4'),
-                                ('end_voltage_prev', 'f4'),
-                                ('end_voltage', 'f4'),
+                                (V_PREV_END, 'f4'),
+                                (V_END, 'f4'),
                                 ('last_cc_voltage', 'f4'),
                                 (Q_CC_LAST, 'f4'),
                                 (Q_CV_LAST, 'f4'),
@@ -465,16 +472,16 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 'reference_cycle': all_data['all_reference_mats'][N],
                 'count_matrix': all_data['all_reference_mats']['count_matrix'],
                 'cycle': main_data[N],
-                'cc_voltage_vector': main_data['cc_voltage_vector'],
+                V_CC: main_data[V_CC],
                 Q_CC: main_data[Q_CC],
-                'cc_mask_vector': main_data['cc_mask_vector'],
+                MASK_CC: main_data[MASK_CC],
                 I_CV: main_data[I_CV],
                 Q_CV: main_data[Q_CV],
-                'cv_mask_vector': main_data['cv_mask_vector'],
+                MASK_CV: main_data[MASK_CV],
                 I_CC: main_data[I_CC],
                 I_PREV: main_data[I_PREV],
-                'end_voltage_prev': main_data['end_voltage_prev'],
-                'end_voltage': main_data['end_voltage'],
+                V_PREV_END: main_data[V_PREV_END],
+                V_END: main_data[V_END],
             }
 
             for key in dict_to_acc:
@@ -493,16 +500,16 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
     compiled_tensors['cycle'] = cycle_tensor
 
     labels = [
-        'cc_voltage_vector',
+        V_CC,
         Q_CC,
-        'cc_mask_vector',
+        MASK_CC,
         Q_CV,
         I_CV,
-        'cv_mask_vector',
+        MASK_CV,
         I_CC,
         I_PREV,
-        'end_voltage_prev',
-        'end_voltage',
+        V_PREV_END,
+        V_END,
 
         'count_matrix',
 

@@ -581,7 +581,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
 
         )
 
-        optimizer = tf.keras.optimizers.Adam(learning_rate = 0.001)
+        optimizer = tf.keras.optimizers.Adam(learning_rate = fit_args['learning_rate'])
 
     return {
         "strategy": strategy,
@@ -1058,6 +1058,7 @@ class Command(BaseCommand):
         parser.add_argument('--n_sample', type=int, default=8 * 16)
         parser.add_argument('--global_norm_clip', type=float, default=10.)
 
+        parser.add_argument('--learning_rate', type=float, default=1e-4)
         parser.add_argument('--min_latent', type=float, default=.1)
 
         parser.add_argument('--coeff_d_features', type=float, default=.0001)

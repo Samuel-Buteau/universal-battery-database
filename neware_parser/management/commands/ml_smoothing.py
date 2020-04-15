@@ -737,7 +737,7 @@ def train_step(neighborhood, params, fit_args):
     count_matrix_tensor = params["compiled_tensors"]['count_matrix']
 
     cycle_tensor = params["compiled_tensors"]['cycle']
-    constant_current_tensor = params["compiled_tensors"]["constant_current"]
+    constant_current_tensor = params["compiled_tensors"][I_CC]
     end_current_prev_tensor = params["compiled_tensors"]["end_current_prev"]
     end_voltage_prev_tensor = params["compiled_tensors"]["end_voltage_prev"]
     end_voltage_tensor = params["compiled_tensors"]["end_voltage"]
@@ -745,12 +745,12 @@ def train_step(neighborhood, params, fit_args):
     degradation_model = params["degradation_model"]
     optimizer = params["optimizer"]
 
-    cc_voltage_tensor = params["compiled_tensors"]["cc_voltage_vector"]
-    cc_capacity_tensor = params["compiled_tensors"]["cc_capacity_vector"]
-    cc_mask_tensor = params["compiled_tensors"]["cc_mask_vector"]
-    cv_capacity_tensor = params["compiled_tensors"]["cv_capacity_vector"]
-    cv_current_tensor = params["compiled_tensors"]["cv_current_vector"]
-    cv_mask_tensor = params["compiled_tensors"]["cv_mask_vector"]
+    cc_voltage_tensor = params["compiled_tensors"][V_CC]
+    cc_capacity_tensor = params["compiled_tensors"][Q_CC]
+    cc_mask_tensor = params["compiled_tensors"][MASK_CC]
+    cv_capacity_tensor = params["compiled_tensors"][Q_CV]
+    cv_current_tensor = params["compiled_tensors"][I_CV]
+    cv_mask_tensor = params["compiled_tensors"][MASK_CV]
 
     # need to split the range
     batch_size2 = neighborhood.shape[0]

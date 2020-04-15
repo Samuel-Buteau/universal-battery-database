@@ -897,7 +897,8 @@ def train_step(neighborhood, params, fit_args):
                 cv_current,
                 svit_grid,
                 count_matrix,
-                cc_capacity
+                cc_capacity,
+                cv_capacity
             ),
             training = True
         )
@@ -905,6 +906,11 @@ def train_step(neighborhood, params, fit_args):
         pred_cc_capacity = train_results["pred_cc_capacity"]
         pred_cv_capacity = train_results["pred_cv_capacity"]
         pred_cc_voltage = train_results["pred_cc_voltage"]
+        pred_cv_voltage = train_results["pred_cv_voltage"]
+        cv_voltage = tf.tile(
+            tf.expand_dims(end_voltage, axis=1),
+            [1, cv_current.shape[1]],
+        )
 
         cc_capacity_loss = (
             tf.reduce_mean(
@@ -916,21 +922,30 @@ def train_step(neighborhood, params, fit_args):
                 cv_mask_2 * cv_mask * tf.square(cv_capacity - pred_cv_capacity)
             ) / (1e-10 + tf.reduce_mean(cv_mask_2 * cv_mask))
         )
+
+
         cc_voltage_loss = (
             tf.reduce_mean(
                 cc_mask_2 * cc_mask * tf.square(cc_voltage - pred_cc_voltage)
             ) / (1e-10 + tf.reduce_mean(cc_mask_2 * cc_mask))
         )
 
-        loss = (
-            fit_args["coeff_cv_capacity"] * cv_capacity_loss
-            + fit_args["coeff_cc_voltage"] * cc_voltage_loss
-            + fit_args["coeff_cc_capacity"] * cc_capacity_loss
-            + 1. * tf.stop_gradient(
+        cv_voltage_loss = (
+                tf.reduce_mean(
+                    cv_mask_2 * cv_mask * tf.square(cv_voltage - pred_cv_voltage)
+                ) / (1e-10 + tf.reduce_mean(cv_mask_2 * cv_mask))
+        )
 
-                fit_args["coeff_cv_capacity"] * cv_capacity_loss
-                + fit_args["coeff_cc_voltage"] * cc_voltage_loss
-                + fit_args["coeff_cc_capacity"] * cc_capacity_loss
+        loss = (
+            fit_args['coeff_cv_capacity'] * cv_capacity_loss
+            + fit_args['coeff_cv_voltage'] * cv_voltage_loss
+            + fit_args['coeff_cc_voltage'] * cc_voltage_loss
+            + fit_args['coeff_cc_capacity'] * cc_capacity_loss
+            + 1. * tf.stop_gradient(
+                fit_args['coeff_cv_capacity'] * cv_capacity_loss
+                + fit_args['coeff_cv_voltage'] * cv_voltage_loss
+                + fit_args['coeff_cc_voltage'] * cc_voltage_loss
+                + fit_args['coeff_cc_capacity'] * cc_capacity_loss
             ) * (
             fit_args["coeff_q"] *train_results["q_loss"]
             + fit_args["coeff_scale"] *train_results["scale_loss"]
@@ -1058,77 +1073,79 @@ class Command(BaseCommand):
         ]
 
         float_args = {
-            "--global_norm_clip": 10.,
+            '--global_norm_clip': 10.,
 
-            "--learning_rate": 1e-4,
-            "--min_latent": .1,
+            '--learning_rate': 1e-4,
+            '--min_latent': .1,
 
-            "--coeff_d_features": .0001,
-            "--coeff_d2_features": .0001,
+            '--coeff_d_features': .0001,
+            '--coeff_d2_features': .0001,
 
-            "--coeff_cell": .001,
-            "--coeff_cell_output": .1,
-            "--coeff_cell_input": .1,
-            "--coeff_cell_derivative": .1,
-            "--coeff_cell_eq": 10.,
+            '--coeff_cell': .001,
+            '--coeff_cell_output': .1,
+            '--coeff_cell_input': .1,
+            '--coeff_cell_derivative': .1,
+            '--coeff_cell_eq': 10.,
 
-            "--coeff_electrolyte": 1.,
-            "--coeff_electrolyte_output": .1,
-            "--coeff_electrolyte_input": .1,
-            "--coeff_electrolyte_derivative": .1,
-            "--coeff_electrolyte_eq": 10.,
+            '--coeff_electrolyte': 1.,
+            '--coeff_electrolyte_output': .1,
+            '--coeff_electrolyte_input': .1,
+            '--coeff_electrolyte_derivative': .1,
+            '--coeff_electrolyte_eq': 10.,
 
-            "--coeff_cv_capacity": 1.,
-            "--coeff_cc_voltage": 1.,
-            "--coeff_cc_capacity": 1.,
+            '--coeff_cv_capacity': 1.,
+            '--coeff_cv_voltage': 1.,
+            '--coeff_cc_voltage': 1.,
+            '--coeff_cc_capacity': 1.,
 
-            "--coeff_q": 1.,
-            "--coeff_q_small": .001,
-            "--coeff_q_geq": 1.,
-            "--coeff_q_leq": 1.,
-            "--coeff_q_v_mono": 10.,
-            "--coeff_q_d3_v": 1.,
-            "--coeff_q_d3_shift": .01,
-            "--coeff_q_d3_current": .1,
+            '--coeff_q': 1.,
+            '--coeff_q_small': .001,
+            '--coeff_q_geq': 1.,
+            '--coeff_q_leq': 1.,
+            '--coeff_q_v_mono': 10.,
+            '--coeff_q_d3_v': 1.,
+            '--coeff_q_d3_shift': .01,
+            '--coeff_q_d3_current': .1,
 
-            "--coeff_scale": 5.,
-            "--coeff_scale_geq": 5.,
-            "--coeff_scale_leq": 5.,
-            "--coeff_scale_eq": 5.,
-            "--coeff_scale_mono": 1.,
-            "--coeff_scale_d3_cycle": .002,
+            '--coeff_scale': 5.,
+            '--coeff_scale_geq': 5.,
+            '--coeff_scale_leq': 5.,
+            '--coeff_scale_eq': 5.,
+            '--coeff_scale_mono': 1.,
+            '--coeff_scale_d3_cycle': .002,
 
-            "--coeff_r": 5.,
-            "--coeff_r_geq": 1.,
-            "--coeff_r_big": .0,
-            "--coeff_r_d3_cycle": .002,
+            '--coeff_r': 5.,
+            '--coeff_r_geq': 1.,
+            '--coeff_r_big': .0,
+            '--coeff_r_d3_cycle': .002,
 
-            "--coeff_shift": 1.,
-            "--coeff_shift_geq": .5,
-            "--coeff_shift_leq": .5,
-            "--coeff_shift_small": .1,
-            "--coeff_shift_d3_cycle": .0,
-            "--coeff_shift_mono": .0,
-            "--coeff_shift_a_big": .001,
+            '--coeff_shift': 1.,
+            '--coeff_shift_geq': .5,
+            '--coeff_shift_leq': .5,
+            '--coeff_shift_small': .1,
+            '--coeff_shift_d3_cycle': .0,
+            '--coeff_shift_mono': .0,
+            '--coeff_shift_a_big': .001,
 
-            "--coeff_reciprocal": 10.,
-            "--coeff_reciprocal_v": 10.,
-            "--coeff_reciprocal_q": 10.,
-            "--coeff_reciprocal_v_small": .001,
-            "--coeff_reciprocal_v_geq": 1.,
-            "--coeff_reciprocal_v_leq": .5,
-            "--coeff_reciprocal_v_mono": 10.,
-            "--coeff_reciprocal_d3_current": 1.,
-            "--coeff_reciprocal_d_current_minus": 10.,
-            "--coeff_reciprocal_d_current_plus": 5.,
+            '--coeff_reciprocal': 10.,
+            '--coeff_reciprocal_v': 10.,
+            '--coeff_reciprocal_q': 10.,
+            '--coeff_reciprocal_v_small': .001,
+            '--coeff_reciprocal_v_geq': 1.,
+            '--coeff_reciprocal_v_leq': .5,
+            '--coeff_reciprocal_v_mono': 10.,
+            '--coeff_reciprocal_d3_current': 1.,
+            '--coeff_reciprocal_d_current_minus': 10.,
+            '--coeff_reciprocal_d_current_plus': 5.,
 
-            "--coeff_projection": .01,
-            "--coeff_projection_pos": 1.,
-            "--coeff_projection_neg": 1.,
+            '--coeff_projection': .01,
+            '--coeff_projection_pos': 1.,
+            '--coeff_projection_neg': 1.,
 
-            "--coeff_out_of_bounds": 10.,
-            "--coeff_out_of_bounds_geq": 1.,
-            "--coeff_out_of_bounds_leq": 1.,
+            '--coeff_out_of_bounds': 10.,
+            '--coeff_out_of_bounds_geq': 1.,
+            '--coeff_out_of_bounds_leq': 1.,
+
         }
 
         vis = 10000

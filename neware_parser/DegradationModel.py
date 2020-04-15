@@ -1050,7 +1050,7 @@ class DegradationModel(Model):
             count_matrix=params['count_matrix'],
         )
 
-        cc_shift,_ = self.shift_direct(
+        shift,_ = self.shift_direct(
             cell_features=cell_features,
             encoded_stress=encoded_stress,
             norm_cycle = norm_cycle,
@@ -1072,7 +1072,7 @@ class DegradationModel(Model):
 
         q_0 = self.q_direct(
             voltage = eq_voltage_0,
-            shift = cc_shift,
+            shift = shift,
             cell_features = cell_features,
             current=params['end_current_prev'],
             training = training
@@ -1094,16 +1094,10 @@ class DegradationModel(Model):
             resistance = add_current_dep(resistance, params),
         )
 
-        cv_shift,_ = self.shift_direct(
-            cell_features=cell_features,
-            encoded_stress=encoded_stress,
-            norm_cycle = norm_cycle,
-            training = training
-        )
 
         q_1 = self.q_direct(
             voltage = eq_voltage_1,
-            shift = add_current_dep(cv_shift, params),
+            shift = add_current_dep(shift, params),
             cell_features = add_current_dep(
                 cell_features, params, cell_features.shape[1]
             ),

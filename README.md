@@ -137,7 +137,7 @@ cmd (Windows)
 
 Bash (macOS and Linux)
 ```Bash
-$ ml_smoothing.sh path-figures dataset-version "optional-note-to-self"
+$ sh ml_smoothing.sh path-figures dataset-version "optional-note-to-self"
 ```
 
 ## Theoretical Physics and Computer Science Behind the Software

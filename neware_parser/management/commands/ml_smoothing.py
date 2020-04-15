@@ -1106,7 +1106,8 @@ class Command(BaseCommand):
         parser.add_argument('--coeff_shift_leq', type=float, default=.5)
         parser.add_argument('--coeff_shift_small', type=float, default=.1)
         parser.add_argument('--coeff_shift_d3_cycle', type=float, default=.0)
-        parser.add_argument('--coeff_shift_mono', type=float, default=.5)
+        parser.add_argument('--coeff_shift_mono', type=float, default=.0)
+        parser.add_argument('--coeff_shift_a_big', type=float, default=.001)
 
         parser.add_argument('--coeff_reciprocal', type=float, default=10.)
         parser.add_argument('--coeff_reciprocal_v', type=float, default=10.)

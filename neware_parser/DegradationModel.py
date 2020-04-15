@@ -8,29 +8,6 @@ from neware_parser.StressToEncodedLayer import StressToEncodedLayer
 from neware_parser.loss_calculator import *
 
 main_activation = tf.keras.activations.relu
-# TODO(sam): for now, remove incentives/derivatives wrt cycle.
-# implement R, shift, q_scale in terms of Strain.
-# should treat strain like a vector of cycles maybe.
-# One of the problems with incentives vs regular loss is if high dimentions,
-# measure of data is zero, so either the incentives are overwhelming everywhere,
-# or they are ignored on the data subspace.
-# it is important to sample around the data subspace relatively densely.
-
-
-# TODO(sam): making the StressToStrain into a layer has advantages,
-# but how to set the training flag easily?
-# right now, everything takes training flag and passes it to all the children
-
-# TODO(sam): how to constrain the cycle dependence of R, shift, q_scale
-# without having to always go through StressToStrain?
-# one way is to express R = R_0(cell_features) * R(strain),
-# q_shift = q_shift0(cell_features) + q_shift(strain),
-# q_scale = q_scale0(cell_features) + q_scale(strain)
-# More generally, we don't know how the final value depends on the initial
-# value.
-# What we can ask for, however is that q_scale = q_scale(q_scale0, strain),
-# and q_scale(q_scale0, 0) = q_scale0
-
 
 def feedforward_nn_parameters(depth, width, last = None, finalize=False):
     if last is None:
@@ -285,7 +262,7 @@ class DegradationModel(Model):
         """ feedforward neural networks """
 
         self.nn_r = feedforward_nn_parameters(depth, width)
-        self.nn_q_scale = feedforward_nn_parameters(depth, width)
+        self.nn_scale = feedforward_nn_parameters(depth, width)
         self.nn_q = feedforward_nn_parameters(depth, width, finalize=True)
         self.nn_shift_0 = feedforward_nn_parameters(depth, width)
         self.nn_shift_a = feedforward_nn_parameters(depth, width)
@@ -931,7 +908,7 @@ class DegradationModel(Model):
             count_matrix=params['count_matrix'],
         )
 
-        q_scale = self.q_scale_direct(
+        scale = self.scale_direct(
             cell_features=cell_features,
             encoded_stress=encoded_stress,
             norm_cycle = norm_cycle,
@@ -987,7 +964,7 @@ class DegradationModel(Model):
             training = training
         )
 
-        return add_volt_dep(q_scale, params) * (q_1 - add_volt_dep(q_0, params))
+        return add_volt_dep(scale, params) * (q_1 - add_volt_dep(q_0, params))
 
     # NOTE: ONLY USED DURING TRAINING RIGHT NOW
     def cc_voltage(self, params, training = True):
@@ -1002,7 +979,7 @@ class DegradationModel(Model):
             svit_grid = params['svit_grid'],
             count_matrix = params['count_matrix'],
         )
-        q_scale = self.q_scale_direct(
+        scale = self.scale_direct(
             cell_features=cell_features,
             encoded_stress=encoded_stress,
             norm_cycle = norm_cycle,
@@ -1033,7 +1010,7 @@ class DegradationModel(Model):
             training = training
         )
         q_over_q = tf.reshape(params['cc_capacity'], [-1, 1]) / (
-            1e-5 + tf.abs(add_volt_dep(q_scale, params))
+            1e-5 + tf.abs(add_volt_dep(scale, params))
         )
 
         voltage, out_of_bounds_loss = self.v_direct(
@@ -1096,10 +1073,10 @@ class DegradationModel(Model):
             training = training
         )
 
-        # NOTE (sam): if there truly is no dependency on current for q_scale,
+        # NOTE (sam): if there truly is no dependency on current for scale,
         # then we can restructure the code below.
 
-        q_scale = self.q_scale_direct(
+        scale = self.scale_direct(
             cell_features=cell_features,
             encoded_stress=encoded_stress,
             norm_cycle = norm_cycle,
@@ -1129,7 +1106,7 @@ class DegradationModel(Model):
             training = training
         )
 
-        return add_current_dep(q_scale, params) * (q_1 - add_current_dep(q_0, params))
+        return add_current_dep(scale, params) * (q_1 - add_current_dep(q_0, params))
 
     def reciprocal_q(self, params, training = True):
         cell_features = get_cell_features(features = params['features'])
@@ -1201,7 +1178,7 @@ class DegradationModel(Model):
         )
         return tf.nn.elu(nn_call(self.nn_r, dependencies, training = training))
 
-    def q_scale_direct(
+    def scale_direct(
         self, cell_features, encoded_stress, norm_cycle, training = True
     ):
         dependencies = (
@@ -1210,7 +1187,7 @@ class DegradationModel(Model):
             norm_cycle,
         )
         return 1. + tf.nn.tanh(
-            nn_call(self.nn_q_scale, dependencies, training = training)
+            nn_call(self.nn_scale, dependencies, training = training)
         )
 
     def q_direct(self, voltage, shift, cell_features, current, training = True):
@@ -1366,7 +1343,7 @@ class DegradationModel(Model):
             training = training
         )
 
-    def q_scale_for_derivative(self, params, training = True):
+    def scale_for_derivative(self, params, training = True):
         norm_cycle = get_norm_cycle(
             params = {'cycle': params['cycle'], 'features': params['features']}
         )
@@ -1377,7 +1354,7 @@ class DegradationModel(Model):
             count_matrix = params['count_matrix'],
         )
 
-        return self.q_scale_direct(
+        return self.scale_direct(
             cell_features=cell_features,
             encoded_stress=encoded_stress,
             norm_cycle=norm_cycle,
@@ -1647,8 +1624,8 @@ class DegradationModel(Model):
 
             q_loss =  calculate_q_loss(q, q_der, incentive_coeffs=self.incentive_coeffs)
 
-            q_scale, q_scale_der = create_derivatives(
-                self.q_scale_for_derivative,
+            scale, scale_der = create_derivatives(
+                self.scale_for_derivative,
                 params = {
                     'cycle': sampled_cycles,
                     'features': sampled_features,
@@ -1658,7 +1635,7 @@ class DegradationModel(Model):
                 der_params = {'cycle': 3, 'features': 2}
             )
 
-            q_scale_loss = calculate_q_scale_loss(q_scale, q_scale_der,incentive_coeffs=self.incentive_coeffs)
+            scale_loss = calculate_scale_loss(scale, scale_der,incentive_coeffs=self.incentive_coeffs)
 
             shift, shift_der = create_derivatives(
                 self.shift_for_derivative,
@@ -1700,7 +1677,7 @@ class DegradationModel(Model):
                 "pred_cc_voltage": pred_cc_voltage,
 
                 "q_loss": q_loss,
-                "q_scale_loss": q_scale_loss,
+                "scale_loss": scale_loss,
                 "r_loss": r_loss,
                 "shift_loss": shift_loss,
                 "z_cell_loss": z_cell_loss,
@@ -1725,7 +1702,7 @@ class DegradationModel(Model):
             )
 
 
-            q_scale = self.q_scale_direct(
+            scale = self.scale_direct(
                 cell_features=cell_features,
                 encoded_stress=encoded_stress,
                 norm_cycle = norm_cycle,
@@ -1751,6 +1728,6 @@ class DegradationModel(Model):
                 "pred_cc_capacity": pred_cc_capacity,
                 "pred_cv_capacity": pred_cv_capacity,
                 "pred_R": resistance,
-                "pred_q_scale": q_scale,
+                "pred_scale": scale,
                 "pred_shift": shift,
             }

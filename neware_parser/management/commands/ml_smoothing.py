@@ -897,7 +897,8 @@ def train_step(neighborhood, params, fit_args):
                 cv_current,
                 svit_grid,
                 count_matrix,
-                cc_capacity
+                cc_capacity,
+                cv_capacity
             ),
             training = True
         )
@@ -905,6 +906,11 @@ def train_step(neighborhood, params, fit_args):
         pred_cc_capacity = train_results["pred_cc_capacity"]
         pred_cv_capacity = train_results["pred_cv_capacity"]
         pred_cc_voltage = train_results["pred_cc_voltage"]
+        pred_cv_voltage = train_results["pred_cv_voltage"]
+        cv_voltage = tf.tile(
+            tf.expand_dims(end_voltage, axis=1),
+            [1, cv_current.shape[1]],
+        )
 
         cc_capacity_loss = (
             tf.reduce_mean(
@@ -916,19 +922,28 @@ def train_step(neighborhood, params, fit_args):
                 cv_mask_2 * cv_mask * tf.square(cv_capacity - pred_cv_capacity)
             ) / (1e-10 + tf.reduce_mean(cv_mask_2 * cv_mask))
         )
+
+
         cc_voltage_loss = (
             tf.reduce_mean(
                 cc_mask_2 * cc_mask * tf.square(cc_voltage - pred_cc_voltage)
             ) / (1e-10 + tf.reduce_mean(cc_mask_2 * cc_mask))
         )
 
+        cv_voltage_loss = (
+                tf.reduce_mean(
+                    cv_mask_2 * cv_mask * tf.square(cv_voltage - pred_cv_voltage)
+                ) / (1e-10 + tf.reduce_mean(cv_mask_2 * cv_mask))
+        )
+
         loss = (
             fit_args['coeff_cv_capacity'] * cv_capacity_loss
+            + fit_args['coeff_cv_voltage'] * cv_voltage_loss
             + fit_args['coeff_cc_voltage'] * cc_voltage_loss
             + fit_args['coeff_cc_capacity'] * cc_capacity_loss
             + 1. * tf.stop_gradient(
-
                 fit_args['coeff_cv_capacity'] * cv_capacity_loss
+                + fit_args['coeff_cv_voltage'] * cv_voltage_loss
                 + fit_args['coeff_cc_voltage'] * cc_voltage_loss
                 + fit_args['coeff_cc_capacity'] * cc_capacity_loss
             ) * (
@@ -1079,6 +1094,7 @@ class Command(BaseCommand):
             '--coeff_electrolyte_eq': 10.,
 
             '--coeff_cv_capacity': 1.,
+            '--coeff_cv_voltage': 1.,
             '--coeff_cc_voltage': 1.,
             '--coeff_cc_capacity': 1.,
 

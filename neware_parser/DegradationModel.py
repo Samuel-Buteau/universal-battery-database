@@ -1037,6 +1037,68 @@ class DegradationModel(Model):
 
         return cc_v, out_of_bounds_loss
 
+    def cv_voltage(self, params, training = True):
+        norm_constant = get_norm_constant(features = params['features'])
+        norm_cycle = get_norm_cycle_direct(
+            cycle = params['cycle'],
+            norm_constant = norm_constant,
+        )
+
+        cell_features = get_cell_features(features = params['features'])
+        encoded_stress = self.stress_to_encoded_direct(
+            svit_grid = params['svit_grid'],
+            count_matrix = params['count_matrix'],
+        )
+        scale = self.scale_direct(
+            cell_features=cell_features,
+            encoded_stress=encoded_stress,
+            norm_cycle = norm_cycle,
+            training = training
+        )
+        shift,_ = self.shift_direct(
+            cell_features=cell_features,
+            encoded_stress=encoded_stress,
+            norm_cycle = norm_cycle,
+            training = training
+        )
+        resistance = self.r_direct(
+            cell_features=cell_features,
+            encoded_stress=encoded_stress,
+            norm_cycle = norm_cycle,
+            training = training
+        )
+        v_eq_0 = calculate_equilibrium_voltage(
+            v = params['end_voltage_prev'],
+            current = params['end_current_prev'],
+            resistance = resistance,
+        )
+        q_0 = self.q_direct(
+            v = v_eq_0,
+            shift = shift,
+            cell_features = cell_features,
+            current=params['end_current_prev'],
+            training = training
+        )
+        q_over_q = tf.reshape(params['cv_capacity'], [-1, 1]) / (
+            1e-5 + tf.abs(add_current_dep(scale, params))
+        )
+
+        v, out_of_bounds_loss = self.v_direct(
+            q =q_over_q + add_current_dep(q_0, params),
+            shift = add_current_dep(shift, params),
+            cell_features = add_current_dep(
+                cell_features, params, cell_features.shape[1]
+            ),
+            current=params['cv_current'],
+            training = training
+        )
+
+        cv_v = (v +
+                (params['cv_current']*add_current_dep(resistance, params))
+                )
+
+        return cv_v, out_of_bounds_loss
+
     def cv_capacity(self, params, training = True):
         norm_constant = get_norm_constant(features = params['features'])
         norm_cycle = get_norm_cycle_direct(
@@ -1106,6 +1168,12 @@ class DegradationModel(Model):
         )
 
         return add_current_dep(scale, params) * (q_1 - add_current_dep(q_0, params))
+
+
+
+
+
+
 
     def reciprocal_q(self, features, q,shift, current, training = True):
         cell_features = get_cell_features(features = features)
@@ -1541,6 +1609,13 @@ class DegradationModel(Model):
             )
             pred_cc_voltage = tf.reshape(cc_voltage, [-1, voltage_count])
 
+            cv_capacity = x[11]
+            params['cv_capacity'] = cv_capacity
+            cv_voltage, out_of_bounds_loss = self.cv_voltage(
+                params, training=training
+            )
+            pred_cv_voltage = tf.reshape(cv_voltage, [-1, current_count])
+
             (
                 sampled_vs,
                 sampled_qs,
@@ -1680,6 +1755,7 @@ class DegradationModel(Model):
                 "pred_cc_capacity": pred_cc_capacity,
                 "pred_cv_capacity": pred_cv_capacity,
                 "pred_cc_voltage": pred_cc_voltage,
+                "pred_cv_voltage": pred_cv_voltage,
 
                 "q_loss": q_loss,
                 "scale_loss": scale_loss,

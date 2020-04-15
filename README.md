@@ -39,9 +39,11 @@ There are two distinct possibilities:
 
 cmd (Windows):
 ```cmd
->py -m venv env
->.\env\Scripts\activate
+>mkvirvualenv env
+>workon env
 ```
+Here, you can replace __env__ by any name you want to use.
+
 
 Bash (macOS and Linux):
 ```bash
@@ -77,9 +79,11 @@ SecretKey = your_very_secret_key
 
 cmd (Windows):
 ```cmd
->py -m venv env
->.\env\Scripts\activate
+>mkvirvualenv env
+>workon env
 ```
+Here, you can replace __env__ by any name you want to use.
+
 
 Bash (macOS and Linux):
 ```bash
@@ -151,6 +155,26 @@ Also note that __your_very_secret_key__ needs to be a very secret key if you car
 
 
 ## Using the Software
+First, load the virtual environment containing the software (in case this is a new terminal).
+
+cmd (Windows):
+```cmd
+>workon env
+```
+Here, you must replace __env__ by the name you used when creating a virtual environment.
+**if you don't remember the name of your virtual environment:**
+
+```cmd
+>workon
+```
+will list the existing environments on your computer.
+
+
+Bash (macOS and Linux):
+```bash
+$ source env/bin/activate
+```
+Here, you must replace __env__ by the name you used when creating a virtual environment.
 
 To quickly see the web page and start developing, run
 ```bash
@@ -168,7 +192,7 @@ This will process the tasks as they are defined.
 ### ML Smoothing
 cmd (Windows)
 ```cmd
->ml_smoothing.bat
+>ml_smoothing.bat path-figures
 ````
 
 Bash (macOS and Linux)

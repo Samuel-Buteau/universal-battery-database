@@ -67,20 +67,20 @@ ELE_TO_ADD = 'electrolyte_id_to_additive_id_weight'
 #  cycle scaled by cycle number, the cell features, pasted together and ran
 #  through a neural net.
 
-NEIGHBORHOOD_MIN_CYC_INDEX = 0
-NEIGHBORHOOD_MAX_CYC_INDEX = 1
-NEIGHBORHOOD_RATE_INDEX = 2
-NEIGHBORHOOD_BARCODE_INDEX = 3
-NEIGHBORHOOD_ABSOLUTE_CYCLE_INDEX = 4
-NEIGHBORHOOD_VALID_CYC_INDEX = 5
-NEIGHBORHOOD_SIGN_GRID_INDEX = 6
-NEIGHBORHOOD_VOLTAGE_GRID_INDEX = 7
-NEIGHBORHOOD_CURRENT_GRID_INDEX = 8
-NEIGHBORHOOD_TEMPERATURE_GRID_INDEX = 9
-NEIGHBORHOOD_ABSOLUTE_REFERENCE_INDEX = 10
-NEIGHBORHOOD_REFERENCE_INDEX = 11
+NEIGH_MIN_CYC = 0
+NEIGH_MAX_CYC = 1
+NEIGH_RATE = 2
+NEIGH_BARCODE = 3
+NEIGH_ABSOLUTE_CYCLE = 4
+NEIGH_VALID_CYC = 5
+NEIGH_SIGN_GRID = 6
+NEIGH_VOLTAGE_GRID = 7
+NEIGH_CURRENT_GRID = 8
+NEIGH_TEMPERATURE_GRID = 9
+NEIGH_ABSOLUTE_REFERENCE = 10
+NEIGH_REFERENCE = 11
 
-NEIGHBORHOOD_TOTAL = 12
+NEIGH_TOTAL = 12
 
 
 # TODO(sam): these huge tensors would be much easier to understand with
@@ -420,21 +420,21 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 #  and note the index
 
                 neighborhood_data_i = numpy.zeros(
-                    NEIGHBORHOOD_TOTAL, dtype = numpy.int32
+                    NEIGH_TOTAL, dtype = numpy.int32
                 )
 
-                neighborhood_data_i[NEIGHBORHOOD_MIN_CYC_INDEX] = min_cyc_index
-                neighborhood_data_i[NEIGHBORHOOD_MAX_CYC_INDEX] = max_cyc_index
-                neighborhood_data_i[NEIGHBORHOOD_RATE_INDEX] = k_count
-                neighborhood_data_i[NEIGHBORHOOD_BARCODE_INDEX] = barcode_count
-                neighborhood_data_i[NEIGHBORHOOD_ABSOLUTE_CYCLE_INDEX]\
+                neighborhood_data_i[NEIGH_MIN_CYC] = min_cyc_index
+                neighborhood_data_i[NEIGH_MAX_CYC] = max_cyc_index
+                neighborhood_data_i[NEIGH_RATE] = k_count
+                neighborhood_data_i[NEIGH_BARCODE] = barcode_count
+                neighborhood_data_i[NEIGH_ABSOLUTE_CYCLE]\
                     = number_of_compiled_cycles
                 # a weight based on prevalence. Set later
-                neighborhood_data_i[NEIGHBORHOOD_VALID_CYC_INDEX] = 0
-                neighborhood_data_i[NEIGHBORHOOD_SIGN_GRID_INDEX] = 0
-                neighborhood_data_i[NEIGHBORHOOD_VOLTAGE_GRID_INDEX] = 0
-                neighborhood_data_i[NEIGHBORHOOD_CURRENT_GRID_INDEX] = 0
-                neighborhood_data_i[NEIGHBORHOOD_TEMPERATURE_GRID_INDEX] = 0
+                neighborhood_data_i[NEIGH_VALID_CYC] = 0
+                neighborhood_data_i[NEIGH_SIGN_GRID] = 0
+                neighborhood_data_i[NEIGH_VOLTAGE_GRID] = 0
+                neighborhood_data_i[NEIGH_CURRENT_GRID] = 0
+                neighborhood_data_i[NEIGH_TEMPERATURE_GRID] = 0
 
                 center_cycle = float(cyc)
                 reference_cycles\
@@ -444,9 +444,9 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                     abs(center_cycle - reference_cycles)
                 )
 
-                neighborhood_data_i[NEIGHBORHOOD_ABSOLUTE_REFERENCE_INDEX]\
+                neighborhood_data_i[NEIGH_ABSOLUTE_REFERENCE]\
                     = number_of_reference_cycles
-                neighborhood_data_i[NEIGHBORHOOD_REFERENCE_INDEX]\
+                neighborhood_data_i[NEIGH_REFERENCE]\
                     = index_of_closest_reference
 
                 neighborhood_data.append(neighborhood_data_i)
@@ -458,8 +458,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
 
                 # the empty slot becomes the count of added neighborhoods, which
                 # are used to counterbalance the bias toward longer cycle life
-                neighborhood_data[:, NEIGHBORHOOD_VALID_CYC_INDEX]\
-                    = valid_cycles
+                neighborhood_data[:, NEIGH_VALID_CYC] = valid_cycles
 
                 numpy_acc(compiled_data, 'neighborhood_data', neighborhood_data)
 
@@ -768,12 +767,12 @@ def train_step(neighborhood, params, fit_args):
         [batch_size2], minval = 0., maxval = 1., dtype = tf.float32)
     cycle_indices = tf.cast(
         (1. - cycle_indices_lerp) * tf.cast(
-            neighborhood[:, NEIGHBORHOOD_MIN_CYC_INDEX]
-            + neighborhood[:, NEIGHBORHOOD_ABSOLUTE_CYCLE_INDEX],
+            neighborhood[:, NEIGH_MIN_CYC]
+            + neighborhood[:, NEIGH_ABSOLUTE_CYCLE],
             tf.float32
         ) + cycle_indices_lerp * tf.cast(
-            neighborhood[:, NEIGHBORHOOD_MAX_CYC_INDEX]
-            + neighborhood[:, NEIGHBORHOOD_ABSOLUTE_CYCLE_INDEX],
+            neighborhood[:, NEIGH_MAX_CYC]
+            + neighborhood[:, NEIGH_ABSOLUTE_CYCLE],
             tf.float32
         ),
         tf.int32
@@ -781,24 +780,24 @@ def train_step(neighborhood, params, fit_args):
 
     sign_grid = tf.gather(
         sign_grid_tensor,
-        indices = neighborhood[:, NEIGHBORHOOD_SIGN_GRID_INDEX], axis = 0
+        indices = neighborhood[:, NEIGH_SIGN_GRID], axis = 0
     )
     sign_grid_dim = sign_grid.shape[1]
 
     voltage_grid = tf.gather(
         voltage_grid_tensor,
-        indices = neighborhood[:, NEIGHBORHOOD_VOLTAGE_GRID_INDEX], axis = 0
+        indices = neighborhood[:, NEIGH_VOLTAGE_GRID], axis = 0
     )
     voltage_grid_dim = voltage_grid.shape[1]
     current_grid = tf.gather(
         current_grid_tensor,
-        indices = neighborhood[:, NEIGHBORHOOD_CURRENT_GRID_INDEX], axis = 0
+        indices = neighborhood[:, NEIGH_CURRENT_GRID], axis = 0
     )
     current_grid_dim = current_grid.shape[1]
 
     temperature_grid = tf.gather(
         temperature_grid_tensor,
-        indices = neighborhood[:, NEIGHBORHOOD_TEMPERATURE_GRID_INDEX], axis = 0
+        indices = neighborhood[:, NEIGH_TEMPERATURE_GRID], axis = 0
     )
     temperature_grid_dim = temperature_grid.shape[1]
 
@@ -834,8 +833,8 @@ def train_step(neighborhood, params, fit_args):
         tf.gather(
             count_matrix_tensor,
             (
-                neighborhood[:, NEIGHBORHOOD_ABSOLUTE_REFERENCE_INDEX]
-                + neighborhood[:, NEIGHBORHOOD_REFERENCE_INDEX]
+                neighborhood[:, NEIGH_ABSOLUTE_REFERENCE]
+                + neighborhood[:, NEIGH_REFERENCE]
             ),
             axis = 0,
         ),
@@ -863,7 +862,7 @@ def train_step(neighborhood, params, fit_args):
     cc_mask_2 = tf.tile(
         tf.reshape(
             1. / tf.cast(
-                neighborhood[:, NEIGHBORHOOD_VALID_CYC_INDEX], tf.float32
+                neighborhood[:, NEIGH_VALID_CYC], tf.float32
             ),
             [batch_size2, 1]
         ),
@@ -876,14 +875,14 @@ def train_step(neighborhood, params, fit_args):
     cv_mask_2 = tf.tile(
         tf.reshape(
             1. / tf.cast(
-                neighborhood[:, NEIGHBORHOOD_VALID_CYC_INDEX], tf.float32
+                neighborhood[:, NEIGH_VALID_CYC], tf.float32
             ),
             [batch_size2, 1]
         ),
         [1, cv_current.shape[1]]
     )
 
-    cell_indices = neighborhood[:, NEIGHBORHOOD_BARCODE_INDEX]
+    cell_indices = neighborhood[:, NEIGH_BARCODE]
 
     with tf.GradientTape() as tape:
         train_results = degradation_model(

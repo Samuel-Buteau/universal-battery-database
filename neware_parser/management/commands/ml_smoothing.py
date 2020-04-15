@@ -287,12 +287,12 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
         for k_count, k in enumerate(cyc_grp_dict.keys()):
 
             my_pass = any([
-                    abs(cyc_grp_dict[k][I_PREV_END_AVG]) < 1e-5,
-                    abs(cyc_grp_dict[k][I_CC_AVG]) < 1e-5,
-                    abs(cyc_grp_dict[k][Q_END_AVG]) < 1e-5,
-                    abs(cyc_grp_dict[k][V_PREV_END_AVG]) < 1e-5,
-                    abs(cyc_grp_dict[k][V_END_AVG]) < 1e-5,
-                ])
+                abs(cyc_grp_dict[k][I_PREV_END_AVG]) < 1e-5,
+                abs(cyc_grp_dict[k][I_CC_AVG]) < 1e-5,
+                abs(cyc_grp_dict[k][Q_END_AVG]) < 1e-5,
+                abs(cyc_grp_dict[k][V_PREV_END_AVG]) < 1e-5,
+                abs(cyc_grp_dict[k][V_END_AVG]) < 1e-5,
+            ])
             if my_pass:
                 continue
             main_data = cyc_grp_dict[k]['main_data']
@@ -586,13 +586,14 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 electrolyte_to_electrolyte_name,
                 molecule_to_molecule_name,
             ),
-            n_sample= fit_args['n_sample'],
-            incentive_coeffs= fit_args,
-            min_latent= fit_args['min_latent']
+            n_sample = fit_args['n_sample'],
+            incentive_coeffs = fit_args,
+            min_latent = fit_args['min_latent']
 
         )
 
-        optimizer = tf.keras.optimizers.Adam(learning_rate = fit_args['learning_rate'])
+        optimizer = tf.keras.optimizers.Adam(
+            learning_rate = fit_args['learning_rate'])
 
     return {
         "strategy": strategy,
@@ -607,10 +608,11 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
         "my_data": my_data
     }
 
+
 class LossRecord():
     def __init__(self):
         self.data = []
-        self.labels =[
+        self.labels = [
             'cc_capacity_loss',
             'cv_capacity_loss',
             'cc_voltage_loss',
@@ -638,7 +640,6 @@ class LossRecord():
                     fit_args['coeff_' + self.labels[i].split('_loss')[0]]
                 ))
 
-
     def plot(self, count, fit_args):
         fig = plt.figure(figsize = [11, 10])
         ax = fig.add_subplot(111)
@@ -647,7 +648,7 @@ class LossRecord():
             ax.plot(
                 [s[0] for s in self.data],
                 [s[1][i] for s in self.data],
-                label=self.labels[i]
+                label = self.labels[i]
             )
 
         ax.legend()
@@ -675,11 +676,11 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
     @tf.function
     def dist_train_step(strategy, neighborhood):
         return strategy.experimental_run_v2(
-                lambda neighborhood: train_step(
-                    neighborhood, train_step_params, fit_args
-                ),
-                args=(neighborhood,)
-            )
+            lambda neighborhood: train_step(
+                neighborhood, train_step_params, fit_args
+            ),
+            args = (neighborhood,)
+        )
 
     l = None
     loss_record = LossRecord()
@@ -688,7 +689,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
             sub_count = 0
             for neighborhood in init_returns["train_ds"]:
                 count += 1
-                sub_count +=1
+                sub_count += 1
 
                 l_ = dist_train_step(strategy, neighborhood)
                 if l is None:
@@ -698,7 +699,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
 
                 if count != 0:
                     if (count % fit_args['print_loss_every']) == 0:
-                        tot = l/tf.cast(sub_count, dtype=tf.float32)
+                        tot = l / tf.cast(sub_count, dtype = tf.float32)
                         l = None
                         sub_count = 0
                         loss_record.record(count, tot.numpy())
@@ -749,9 +750,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                     return
 
 
-
 def train_step(neighborhood, params, fit_args):
-
     sign_grid_tensor = params["compiled_tensors"]['sign_grid']
     voltage_grid_tensor = params["compiled_tensors"]['voltage_grid']
     current_grid_tensor = params["compiled_tensors"]['current_grid']
@@ -950,21 +949,24 @@ def train_step(neighborhood, params, fit_args):
             + fit_args['coeff_cc_voltage'] * cc_voltage_loss
             + fit_args['coeff_cc_capacity'] * cc_capacity_loss
             + 1. * tf.stop_gradient(
-                fit_args['coeff_cv_capacity'] * cv_capacity_loss
-                + fit_args['coeff_cc_voltage'] * cc_voltage_loss
-                + fit_args['coeff_cc_capacity'] * cc_capacity_loss
-            ) * (
+            fit_args['coeff_cv_capacity'] * cv_capacity_loss
+            + fit_args['coeff_cc_voltage'] * cc_voltage_loss
+            + fit_args['coeff_cc_capacity'] * cc_capacity_loss
+        ) * (
 
-            fit_args['coeff_q'] *train_results["q_loss"]
-            + fit_args['coeff_scale'] *train_results["scale_loss"]
-            + fit_args['coeff_r'] * train_results["r_loss"]
-            + fit_args['coeff_shift'] *train_results["shift_loss"]
-            + fit_args['coeff_z_cell'] * train_results["z_cell_loss"]
-            + fit_args['coeff_reciprocal'] * train_results["reciprocal_loss"]
-            + fit_args['coeff_projection']  * train_results["projection_loss"]
-            + fit_args['coeff_out_of_bounds'] * train_results["out_of_bounds_loss"]
+                fit_args['coeff_q'] * train_results["q_loss"]
+                + fit_args['coeff_scale'] * train_results["scale_loss"]
+                + fit_args['coeff_r'] * train_results["r_loss"]
+                + fit_args['coeff_shift'] * train_results["shift_loss"]
+                + fit_args['coeff_z_cell'] * train_results["z_cell_loss"]
+                + fit_args['coeff_reciprocal'] * train_results[
+                    "reciprocal_loss"]
+                + fit_args['coeff_projection'] * train_results[
+                    "projection_loss"]
+                + fit_args['coeff_out_of_bounds'] * train_results[
+                    "out_of_bounds_loss"]
 
-        )
+            )
         )
 
     gradients = tape.gradient(
@@ -989,7 +991,6 @@ def train_step(neighborhood, params, fit_args):
         )
     )
 
-
     return tf.stack(
         [
             cc_capacity_loss,
@@ -1009,17 +1010,12 @@ def train_step(neighborhood, params, fit_args):
     )
 
 
-
-
-
 def ml_smoothing(fit_args):
-
-
     if len(tf.config.experimental.list_physical_devices('GPU')) == 1:
         strategy = tf.distribute.OneDeviceStrategy(
-            device='/gpu:0'
+            device = '/gpu:0'
         )
-    elif len(tf.config.experimental.list_physical_devices('GPU')) > 1 :
+    elif len(tf.config.experimental.list_physical_devices('GPU')) > 1:
         strategy = tf.distribute.MirroredStrategy()
     else:
         strategy = tf.distribute.OneDeviceStrategy(
@@ -1071,7 +1067,7 @@ def ml_smoothing(fit_args):
 
     train_and_evaluate(
         initial_processing(
-            my_data, my_names, barcodes, fit_args, strategy=strategy
+            my_data, my_names, barcodes, fit_args, strategy = strategy
         ), barcodes,
         fit_args)
 

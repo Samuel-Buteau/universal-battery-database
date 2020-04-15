@@ -461,55 +461,24 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 all_data['all_reference_mats'][N]
             )
 
-            numpy_acc(
-                compiled_data, 'reference_cycle',
-                all_data['all_reference_mats'][N]
-            )
-            numpy_acc(
-                compiled_data, 'count_matrix',
-                all_data['all_reference_mats']['count_matrix']
-            )
-            numpy_acc(compiled_data, 'cycle', main_data[N])
-            numpy_acc(
-                compiled_data, 'cc_voltage_vector',
-                main_data['cc_voltage_vector']
-            )
-            numpy_acc(
-                compiled_data, Q_CC,
-                main_data[Q_CC]
-            )
-            numpy_acc(
-                compiled_data, 'cc_mask_vector',
-                main_data['cc_mask_vector']
-            )
-            numpy_acc(
-                compiled_data, I_CV,
-                main_data[I_CV]
-            )
-            numpy_acc(
-                compiled_data, Q_CV,
-                main_data[Q_CV]
-            )
-            numpy_acc(
-                compiled_data, 'cv_mask_vector',
-                main_data['cv_mask_vector']
-            )
-            numpy_acc(
-                compiled_data, I_CC,
-                main_data[I_CC]
-            )
-            numpy_acc(
-                compiled_data, I_PREV,
-                main_data[I_PREV]
-            )
-            numpy_acc(
-                compiled_data, 'end_voltage_prev',
-                main_data['end_voltage_prev']
-            )
-            numpy_acc(
-                compiled_data, 'end_voltage',
-                main_data['end_voltage']
-            )
+            dict_to_acc = {
+                'reference_cycle': all_data['all_reference_mats'][N],
+                'count_matrix': all_data['all_reference_mats']['count_matrix'],
+                'cycle': main_data[N],
+                'cc_voltage_vector': main_data['cc_voltage_vector'],
+                Q_CC: main_data[Q_CC],
+                'cc_mask_vector': main_data['cc_mask_vector'],
+                I_CV: main_data[I_CV],
+                Q_CV: main_data[Q_CV],
+                'cv_mask_vector': main_data['cv_mask_vector'],
+                I_CC: main_data[I_CC],
+                I_PREV: main_data[I_PREV],
+                'end_voltage_prev': main_data['end_voltage_prev'],
+                'end_voltage': main_data['end_voltage'],
+            }
+
+            for key in dict_to_acc:
+                numpy_acc(compiled_data, key, dict_to_acc[key])
 
     neighborhood_data = tf.constant(compiled_data['neighborhood_data'])
 

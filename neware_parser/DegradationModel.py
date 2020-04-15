@@ -1107,33 +1107,33 @@ class DegradationModel(Model):
 
         return add_current_dep(scale, params) * (q_1 - add_current_dep(q_0, params))
 
-    def reciprocal_q(self, params, training = True):
-        cell_features = get_cell_features(features = params['features'])
+    def reciprocal_q(self, features, q,shift, current, training = True):
+        cell_features = get_cell_features(features = features)
         v, out_of_bounds_loss = self.v_direct(
-            q = params['q'], shift = params['shift'],
+            q = q, shift = shift,
             cell_features = cell_features,
             training = training,
-            current = params['current']
+            current = current
         )
         return self.q_direct(
-            voltage = v, shift = params['shift'],
+            voltage = v, shift = shift,
             cell_features = cell_features,
             training = training,
-            current = params['current']
+            current = current
         ), out_of_bounds_loss
 
-    def reciprocal_v(self, params, training = True):
-        cell_features = get_cell_features(features = params['features'])
+    def reciprocal_v(self, features, voltage,shift, current, training = True):
+        cell_features = get_cell_features(features = features)
         q = self.q_direct(
-            voltage = params['voltage'], shift = params['shift'],
+            voltage = voltage, shift = shift,
             cell_features = cell_features,
-            current = params['current'],
+            current = current,
             training = training
         )
         return self.v_direct(
-            q = q, shift = params['shift'],
+            q = q, shift = shift,
             cell_features = cell_features,
-            current = params['current'],
+            current = current,
             training = training
         )
 
@@ -1570,21 +1570,18 @@ class DegradationModel(Model):
             )
 
             reciprocal_q, out_of_bounds_loss_1 = self.reciprocal_q(
-                params = {
-                    'q': sampled_qs,
-                    'features': sampled_features,
-                    'shift': sampled_shift,
-                    'current':sampled_constant_current
-                },
+                q = sampled_qs,
+                features = sampled_features,
+                shift = sampled_shift,
+                current = sampled_constant_current,
                 training = training
             )
+
             reciprocal_v, out_of_bounds_loss_2 = self.reciprocal_v(
-                params = {
-                    'voltage': sampled_voltages,
-                    'features': sampled_features,
-                    'shift': sampled_shift,
-                    'current': sampled_constant_current
-                },
+                voltage = sampled_voltages,
+                features = sampled_features,
+                shift = sampled_shift,
+                current = sampled_constant_current,
                 training = training
             )
 

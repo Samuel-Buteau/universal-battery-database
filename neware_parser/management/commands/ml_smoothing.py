@@ -598,7 +598,7 @@ class LossRecord():
             "scale_loss",
             "r_loss",
             "shift_loss",
-            "z_cell_loss",
+            "cell_loss",
             "reciprocal_loss",
             "projection_loss",
             "out_of_bounds_loss"
@@ -927,24 +927,21 @@ def train_step(neighborhood, params, fit_args):
             + fit_args['coeff_cc_voltage'] * cc_voltage_loss
             + fit_args['coeff_cc_capacity'] * cc_capacity_loss
             + 1. * tf.stop_gradient(
-            fit_args['coeff_cv_capacity'] * cv_capacity_loss
-            + fit_args['coeff_cc_voltage'] * cc_voltage_loss
-            + fit_args['coeff_cc_capacity'] * cc_capacity_loss
-        ) * (
 
-                fit_args['coeff_q'] * train_results["q_loss"]
-                + fit_args['coeff_scale'] * train_results["scale_loss"]
-                + fit_args['coeff_r'] * train_results["r_loss"]
-                + fit_args['coeff_shift'] * train_results["shift_loss"]
-                + fit_args['coeff_z_cell'] * train_results["z_cell_loss"]
-                + fit_args['coeff_reciprocal'] * train_results[
-                    "reciprocal_loss"]
-                + fit_args['coeff_projection'] * train_results[
-                    "projection_loss"]
-                + fit_args['coeff_out_of_bounds'] * train_results[
-                    "out_of_bounds_loss"]
+                fit_args['coeff_cv_capacity'] * cv_capacity_loss
+                + fit_args['coeff_cc_voltage'] * cc_voltage_loss
+                + fit_args['coeff_cc_capacity'] * cc_capacity_loss
+            ) * (
+            fit_args['coeff_q'] *train_results["q_loss"]
+            + fit_args['coeff_scale'] *train_results["scale_loss"]
+            + fit_args['coeff_r'] * train_results["r_loss"]
+            + fit_args['coeff_shift'] *train_results["shift_loss"]
+            + fit_args['coeff_cell'] * train_results["cell_loss"]
+            + fit_args['coeff_reciprocal'] * train_results["reciprocal_loss"]
+            + fit_args['coeff_projection']  * train_results["projection_loss"]
+            + fit_args['coeff_out_of_bounds'] * train_results["out_of_bounds_loss"]
+        )
 
-            )
         )
 
     gradients = tape.gradient(
@@ -979,7 +976,7 @@ def train_step(neighborhood, params, fit_args):
             train_results["r_loss"],
 
             train_results["shift_loss"],
-            train_results["z_cell_loss"],
+            train_results["cell_loss"],
             train_results["reciprocal_loss"],
 
             train_results["projection_loss"],
@@ -1053,6 +1050,7 @@ def ml_smoothing(fit_args):
 class Command(BaseCommand):
 
     def add_arguments(self, parser):
+
         required_args = [
             '--path_to_dataset',
             '--dataset_version',
@@ -1068,7 +1066,17 @@ class Command(BaseCommand):
             '--coeff_d_features': .0001,
             '--coeff_d2_features': .0001,
 
-            '--coeff_z_cell': .001,
+            '--coeff_cell': .001,
+            '--coeff_cell_output': .1,
+            '--coeff_cell_input': .1,
+            '--coeff_cell_derivative': .1,
+            '--coeff_cell_eq': 10.,
+
+            '--coeff_electrolyte': 1.,
+            '--coeff_electrolyte_output': .1,
+            '--coeff_electrolyte_input': .1,
+            '--coeff_electrolyte_derivative': .1,
+            '--coeff_electrolyte_eq': 10.,
 
             '--coeff_cv_capacity': 1.,
             '--coeff_cc_voltage': 1.,
@@ -1100,7 +1108,8 @@ class Command(BaseCommand):
             '--coeff_shift_leq': .5,
             '--coeff_shift_small': .1,
             '--coeff_shift_d3_cycle': .0,
-            '--coeff_shift_mono': .5,
+            '--coeff_shift_mono': .0,
+            '--coeff_shift_a_big': .001,
 
             '--coeff_reciprocal': 10.,
             '--coeff_reciprocal_v': 10.,

@@ -1,6 +1,6 @@
 # Universal Battery Database
 
-The Universal Battery Database is an open source software to deal with Lithium-ion cell data. Its primary purposes are:
+The Universal Battery Database is an open source software for managing Lithium-ion cell data. Its primary purposes are:
 1. Organize and parse experimental measurement (e.g. long term cycling and electrochemical impedance spectroscopy) data files of Lithium-ion cells.
 2. Perform sophisticated modelling using machine learning and physics-based approaches.
 3. Describe and organize the design and chemistry information of cells (e.g. electrodes, electrolytes, geometry), as well as experimental conditions (e.g. temperature).
@@ -8,7 +8,6 @@ The Universal Battery Database is an open source software to deal with Lithium-i
 5. Visualize experimental results.
 6. Quickly search and find data of interest.
 7. Quality control.
-
 
 The Universal Battery Database was developed at the [Jeff Dahn Research Group](https://www.dal.ca/diff/dahn/about.html) at Dalhousie University.
 
@@ -19,6 +18,7 @@ The Universal Battery Database was developed at the [Jeff Dahn Research Group](h
   * [Installing Dependencies and Configuring Environment](#installing-dependencies-and-configuring-environment)
 - [Using the Software](#using-the-software)
   * [ML Smoothing](#ml-smoothing)
+- [Theoretical Physics and Computer Science Behind the Software](#theoretical-physics-and-computer-science-behind-the-software)
 
 ## Installation
 
@@ -126,11 +126,22 @@ When running the code in production, run
 ```bash
 python3 manage.py process_tasks
 ```
-in a separate terminal to allow background tasks (such as parsing of data files). 
+in a separate terminal to allow background tasks (such as parsing data files). 
 This will process the tasks as they are defined.
 
 ### ML Smoothing
+cmd (Windows)
+```cmd
+>ml_smoothing.bat
+````
 
-On Windows, run `ml_smoothing.bat`.
+Bash (macOS and Linux)
+```Bash
+$ ml_smoothing.sh path-figures dataset-version "optional-note-to-self"
+```
 
-On Linux and macOS, run `ml_smoothing.sh path-figures dataset-version "optional-note-to-self"`.
+## Theoretical Physics and Computer Science Behind the Software
+
+We hypothesize that we can make [good generalizations](https://github.com/Samuel-Buteau/universal-battery-database/wiki/Generalization-Criteria) by [approximating](https://github.com/Samuel-Buteau/universal-battery-database/wiki/The-Universal-Approximation-Theorem) the functions that map one degradation mechanism to another using neural networks. 
+
+We aim to develop a theory of lithium-ion cells. We first break down the machine learning problem into smaller sub-problems. From there, we development frameworks to convert the theory to practical implementations. Finally, we apply the method to experimental data and evaluate the result.

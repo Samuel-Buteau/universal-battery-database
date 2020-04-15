@@ -582,7 +582,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
 
         )
 
-        optimizer = tf.keras.optimizers.Adam(learning_rate = 0.001)
+        optimizer = tf.keras.optimizers.Adam(learning_rate = fit_args['learning_rate'])
 
     return {
         "strategy": strategy,
@@ -605,7 +605,7 @@ class LossRecord():
             'cv_capacity_loss',
             'cc_voltage_loss',
             "q_loss",
-            "q_scale_loss",
+            "scale_loss",
             "r_loss",
             "shift_loss",
             "z_cell_loss",
@@ -944,22 +944,16 @@ def train_step(neighborhood, params, fit_args):
                 + fit_args['coeff_cc_voltage'] * cc_voltage_loss
                 + fit_args['coeff_cc_capacity'] * cc_capacity_loss
             ) * (
-            fit_args['coeff_q']
-            *train_results["q_loss"]
-            + fit_args['coeff_q_scale']
-            *train_results["q_scale_loss"]
-            + fit_args['coeff_r']
-            * train_results["r_loss"]
-            + fit_args['coeff_shift']
-            *train_results["shift_loss"]
-            + fit_args['coeff_z_cell']
-            * train_results["z_cell_loss"]
-            + fit_args['coeff_reciprocal']
-            * train_results["reciprocal_loss"]
-            + fit_args['coeff_projection']
-            * train_results["projection_loss"]
-            + fit_args['coeff_out_of_bounds']
-            * train_results["out_of_bounds_loss"]
+
+            fit_args['coeff_q'] *train_results["q_loss"]
+            + fit_args['coeff_scale'] *train_results["scale_loss"]
+            + fit_args['coeff_r'] * train_results["r_loss"]
+            + fit_args['coeff_shift'] *train_results["shift_loss"]
+            + fit_args['coeff_z_cell'] * train_results["z_cell_loss"]
+            + fit_args['coeff_reciprocal'] * train_results["reciprocal_loss"]
+            + fit_args['coeff_projection']  * train_results["projection_loss"]
+            + fit_args['coeff_out_of_bounds'] * train_results["out_of_bounds_loss"]
+
         )
         )
 
@@ -992,7 +986,7 @@ def train_step(neighborhood, params, fit_args):
             cv_capacity_loss,
             cc_voltage_loss,
             train_results["q_loss"],
-            train_results["q_scale_loss"],
+            train_results["scale_loss"],
             train_results["r_loss"],
 
             train_results["shift_loss"],
@@ -1081,6 +1075,7 @@ class Command(BaseCommand):
         parser.add_argument('--n_sample', type=int, default=8 * 16)
         parser.add_argument('--global_norm_clip', type=float, default=10.)
 
+        parser.add_argument('--learning_rate', type=float, default=1e-4)
         parser.add_argument('--min_latent', type=float, default=.1)
 
         parser.add_argument('--coeff_d_features', type=float, default=.0001)
@@ -1101,12 +1096,12 @@ class Command(BaseCommand):
         parser.add_argument('--coeff_q_d3_shift', type=float, default=.01)
         parser.add_argument('--coeff_q_d3_current', type=float, default=.1)
 
-        parser.add_argument('--coeff_q_scale', type=float, default=5.)
-        parser.add_argument('--coeff_q_scale_geq', type=float, default=5.)
-        parser.add_argument('--coeff_q_scale_leq', type=float, default=5.)
-        parser.add_argument('--coeff_q_scale_eq', type=float, default=5.)
-        parser.add_argument('--coeff_q_scale_mono', type=float, default=1.)
-        parser.add_argument('--coeff_q_scale_d3_cycle', type=float, default=.002)
+        parser.add_argument('--coeff_scale', type=float, default=5.)
+        parser.add_argument('--coeff_scale_geq', type=float, default=5.)
+        parser.add_argument('--coeff_scale_leq', type=float, default=5.)
+        parser.add_argument('--coeff_scale_eq', type=float, default=5.)
+        parser.add_argument('--coeff_scale_mono', type=float, default=1.)
+        parser.add_argument('--coeff_scale_d3_cycle', type=float, default=.002)
 
         parser.add_argument('--coeff_r', type=float, default=5.)
         parser.add_argument('--coeff_r_geq', type=float, default=1.)

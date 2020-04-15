@@ -383,14 +383,14 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
                 loc = 'upper left'
             )
 
-    def plot_q_scale():
+    def plot_scale():
         for typ, off, mode in [('dchg', 3, 'cc')]:
 
             list_of_patches = []
             list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
 
             ax1 = fig.add_subplot(6, 1, 1 + off)
-            ax1.set_ylabel("Q scale")
+            ax1.set_ylabel("scale")
 
             for k_count, k in enumerate(list_of_keys):
                 list_of_patches.append(mpatches.Patch(
@@ -419,7 +419,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
                 )
 
                 pred_cap = tf.reshape(
-                    test_results["pred_q_scale"],
+                    test_results["pred_scale"],
                     shape = [-1]
                 )
 
@@ -511,7 +511,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
         cyc_grp_dict = my_data['all_data'][barcode]['cyc_grp_dict']
 
         plot_capacities()
-        plot_q_scale()
+        plot_scale()
         plot_resistance()
         plot_shift()
 

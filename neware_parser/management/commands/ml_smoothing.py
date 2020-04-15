@@ -607,7 +607,7 @@ class LossRecord():
             "scale_loss",
             "r_loss",
             "shift_loss",
-            "z_cell_loss",
+            "cell_loss",
             "reciprocal_loss",
             "projection_loss",
             "out_of_bounds_loss"
@@ -937,7 +937,7 @@ def train_step(neighborhood, params, fit_args):
             + fit_args['coeff_scale'] *train_results["scale_loss"]
             + fit_args['coeff_r'] * train_results["r_loss"]
             + fit_args['coeff_shift'] *train_results["shift_loss"]
-            + fit_args['coeff_z_cell'] * train_results["z_cell_loss"]
+            + fit_args['coeff_cell'] * train_results["cell_loss"]
             + fit_args['coeff_reciprocal'] * train_results["reciprocal_loss"]
             + fit_args['coeff_projection']  * train_results["projection_loss"]
             + fit_args['coeff_out_of_bounds'] * train_results["out_of_bounds_loss"]
@@ -977,7 +977,7 @@ def train_step(neighborhood, params, fit_args):
             train_results["r_loss"],
 
             train_results["shift_loss"],
-            train_results["z_cell_loss"],
+            train_results["cell_loss"],
             train_results["reciprocal_loss"],
 
             train_results["projection_loss"],
@@ -1064,7 +1064,17 @@ class Command(BaseCommand):
         parser.add_argument('--coeff_d_features', type=float, default=.0001)
         parser.add_argument('--coeff_d2_features', type=float, default=.0001)
 
-        parser.add_argument('--coeff_z_cell', type=float, default=.001)
+        parser.add_argument('--coeff_cell', type=float, default=.001)
+        parser.add_argument('--coeff_cell_output', type=float, default=.1)
+        parser.add_argument('--coeff_cell_input', type=float, default=.1)
+        parser.add_argument('--coeff_cell_derivative', type=float, default=.1)
+        parser.add_argument('--coeff_cell_eq', type=float, default=10.)
+
+        parser.add_argument('--coeff_electrolyte', type=float, default=1.)
+        parser.add_argument('--coeff_electrolyte_output', type=float, default=.1)
+        parser.add_argument('--coeff_electrolyte_input', type=float, default=.1)
+        parser.add_argument('--coeff_electrolyte_derivative', type=float, default=.1)
+        parser.add_argument('--coeff_electrolyte_eq', type=float, default=10.)
 
         parser.add_argument('--coeff_cv_capacity', type = float, default = 1.)
         parser.add_argument('--coeff_cc_voltage', type=float, default=1.)

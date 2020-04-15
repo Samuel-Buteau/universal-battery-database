@@ -1083,66 +1083,72 @@ class Command(BaseCommand):
         parser.add_argument('--dataset_version', required = True)
         parser.add_argument('--path_to_plots', required = True)
         parser.add_argument('--n_sample', type=int, default=8 * 16)
-        parser.add_argument('--global_norm_clip', type=float, default=10.)
 
-        parser.add_argument('--learning_rate', type=float, default=1e-4)
-        parser.add_argument('--min_latent', type=float, default=.1)
+        float_args = {
+            '--global_norm_clip': 10.,
 
-        parser.add_argument('--coeff_d_features', type=float, default=.0001)
-        parser.add_argument('--coeff_d2_features', type=float, default=.0001)
+            '--learning_rate': 1e-4,
+            '--min_latent': .1,
 
-        parser.add_argument('--coeff_z_cell', type=float, default=.001)
+            '--coeff_d_features': .0001,
+            '--coeff_d2_features': .0001,
 
-        parser.add_argument('--coeff_cv_capacity', type = float, default = 1.)
-        parser.add_argument('--coeff_cc_voltage', type=float, default=1.)
-        parser.add_argument('--coeff_cc_capacity', type=float, default=1.)
+            '--coeff_z_cell': .001,
 
-        parser.add_argument('--coeff_q', type=float, default=1.)
-        parser.add_argument('--coeff_q_small', type=float, default=.001)
-        parser.add_argument('--coeff_q_geq', type=float, default=1.)
-        parser.add_argument('--coeff_q_leq', type=float, default=1.)
-        parser.add_argument('--coeff_q_v_mono', type=float, default=10.)
-        parser.add_argument('--coeff_q_d3_v', type=float, default=1.)
-        parser.add_argument('--coeff_q_d3_shift', type=float, default=.01)
-        parser.add_argument('--coeff_q_d3_current', type=float, default=.1)
+            '--coeff_cv_capacity': 1.,
+            '--coeff_cc_voltage': 1.,
+            '--coeff_cc_capacity': 1.,
 
-        parser.add_argument('--coeff_scale', type=float, default=5.)
-        parser.add_argument('--coeff_scale_geq', type=float, default=5.)
-        parser.add_argument('--coeff_scale_leq', type=float, default=5.)
-        parser.add_argument('--coeff_scale_eq', type=float, default=5.)
-        parser.add_argument('--coeff_scale_mono', type=float, default=1.)
-        parser.add_argument('--coeff_scale_d3_cycle', type=float, default=.002)
+            '--coeff_q': 1.,
+            '--coeff_q_small': .001,
+            '--coeff_q_geq': 1.,
+            '--coeff_q_leq': 1.,
+            '--coeff_q_v_mono': 10.,
+            '--coeff_q_d3_v': 1.,
+            '--coeff_q_d3_shift': .01,
+            '--coeff_q_d3_current': .1,
 
-        parser.add_argument('--coeff_r', type=float, default=5.)
-        parser.add_argument('--coeff_r_geq', type=float, default=1.)
-        parser.add_argument('--coeff_r_big', type=float, default=.0)
-        parser.add_argument('--coeff_r_d3_cycle', type=float, default=.002)
+            '--coeff_scale': 5.,
+            '--coeff_scale_geq': 5.,
+            '--coeff_scale_leq': 5.,
+            '--coeff_scale_eq': 5.,
+            '--coeff_scale_mono': 1.,
+            '--coeff_scale_d3_cycle': .002,
 
-        parser.add_argument('--coeff_shift', type=float, default=1.)
-        parser.add_argument('--coeff_shift_geq', type=float, default=.5)
-        parser.add_argument('--coeff_shift_leq', type=float, default=.5)
-        parser.add_argument('--coeff_shift_small', type=float, default=.1)
-        parser.add_argument('--coeff_shift_d3_cycle', type=float, default=.0)
-        parser.add_argument('--coeff_shift_mono', type=float, default=.5)
+            '--coeff_r': 5.,
+            '--coeff_r_geq': 1.,
+            '--coeff_r_big': .0,
+            '--coeff_r_d3_cycle': .002,
 
-        parser.add_argument('--coeff_reciprocal', type=float, default=10.)
-        parser.add_argument('--coeff_reciprocal_v', type=float, default=10.)
-        parser.add_argument('--coeff_reciprocal_q', type=float, default=10.)
-        parser.add_argument('--coeff_reciprocal_v_small', type=float, default=.001)
-        parser.add_argument('--coeff_reciprocal_v_geq', type=float, default=1.)
-        parser.add_argument('--coeff_reciprocal_v_leq', type=float, default=.5)
-        parser.add_argument('--coeff_reciprocal_v_mono', type=float, default=10.)
-        parser.add_argument('--coeff_reciprocal_d3_current', type=float, default=1.)
-        parser.add_argument('--coeff_reciprocal_d_current_minus', type=float, default=10.)
-        parser.add_argument('--coeff_reciprocal_d_current_plus', type=float, default=5.)
+            '--coeff_shift': 1.,
+            '--coeff_shift_geq': .5,
+            '--coeff_shift_leq': .5,
+            '--coeff_shift_small': .1,
+            '--coeff_shift_d3_cycle': .0,
+            '--coeff_shift_mono': .5,
 
-        parser.add_argument('--coeff_projection', type=float, default=.01)
-        parser.add_argument('--coeff_projection_pos', type=float, default=1.)
-        parser.add_argument('--coeff_projection_neg', type=float, default=1.)
+            '--coeff_reciprocal': 10.,
+            '--coeff_reciprocal_v': 10.,
+            '--coeff_reciprocal_q': 10.,
+            '--coeff_reciprocal_v_small': .001,
+            '--coeff_reciprocal_v_geq': 1.,
+            '--coeff_reciprocal_v_leq': .5,
+            '--coeff_reciprocal_v_mono': 10.,
+            '--coeff_reciprocal_d3_current': 1.,
+            '--coeff_reciprocal_d_current_minus': 10.,
+            '--coeff_reciprocal_d_current_plus': 5.,
 
-        parser.add_argument('--coeff_out_of_bounds', type=float, default=10.)
-        parser.add_argument('--coeff_out_of_bounds_geq', type=float, default=1.)
-        parser.add_argument('--coeff_out_of_bounds_leq', type=float, default=1.)
+            '--coeff_projection': .01,
+            '--coeff_projection_pos': 1.,
+            '--coeff_projection_neg': 1.,
+
+            '--coeff_out_of_bounds': 10.,
+            '--coeff_out_of_bounds_geq': 1.,
+            '--coeff_out_of_bounds_leq': 1.,
+        }
+
+        for arg in float_args:
+            parser.add_argument(arg, type = float, default = float_args[arg])
 
         parser.add_argument('--depth', type = int, default = 3)
         parser.add_argument('--width', type = int, default = 50)

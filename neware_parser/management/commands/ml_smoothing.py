@@ -604,7 +604,7 @@ class LossRecord():
             'cv_capacity_loss',
             'cc_voltage_loss',
             "q_loss",
-            "q_scale_loss",
+            "scale_loss",
             "r_loss",
             "shift_loss",
             "z_cell_loss",
@@ -934,7 +934,7 @@ def train_step(neighborhood, params, fit_args):
                 + fit_args['coeff_cc_capacity'] * cc_capacity_loss
             ) * (
             fit_args['coeff_q'] *train_results["q_loss"]
-            + fit_args['coeff_q_scale'] *train_results["q_scale_loss"]
+            + fit_args['coeff_scale'] *train_results["scale_loss"]
             + fit_args['coeff_r'] * train_results["r_loss"]
             + fit_args['coeff_shift'] *train_results["shift_loss"]
             + fit_args['coeff_z_cell'] * train_results["z_cell_loss"]
@@ -973,7 +973,7 @@ def train_step(neighborhood, params, fit_args):
             cv_capacity_loss,
             cc_voltage_loss,
             train_results["q_loss"],
-            train_results["q_scale_loss"],
+            train_results["scale_loss"],
             train_results["r_loss"],
 
             train_results["shift_loss"],
@@ -1079,12 +1079,12 @@ class Command(BaseCommand):
         parser.add_argument('--coeff_q_d3_shift', type=float, default=.01)
         parser.add_argument('--coeff_q_d3_current', type=float, default=.1)
 
-        parser.add_argument('--coeff_q_scale', type=float, default=5.)
-        parser.add_argument('--coeff_q_scale_geq', type=float, default=5.)
-        parser.add_argument('--coeff_q_scale_leq', type=float, default=5.)
-        parser.add_argument('--coeff_q_scale_eq', type=float, default=5.)
-        parser.add_argument('--coeff_q_scale_mono', type=float, default=1.)
-        parser.add_argument('--coeff_q_scale_d3_cycle', type=float, default=.002)
+        parser.add_argument('--coeff_scale', type=float, default=5.)
+        parser.add_argument('--coeff_scale_geq', type=float, default=5.)
+        parser.add_argument('--coeff_scale_leq', type=float, default=5.)
+        parser.add_argument('--coeff_scale_eq', type=float, default=5.)
+        parser.add_argument('--coeff_scale_mono', type=float, default=1.)
+        parser.add_argument('--coeff_scale_d3_cycle', type=float, default=.002)
 
         parser.add_argument('--coeff_r', type=float, default=5.)
         parser.add_argument('--coeff_r_geq', type=float, default=1.)

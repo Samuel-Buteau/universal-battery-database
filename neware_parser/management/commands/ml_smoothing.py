@@ -27,12 +27,20 @@ Shortened Variable Names:
 # Dictionary key names
 Q_CC = 'cc_capacity_vector'
 Q_CV = 'cv_capacity_vector'
-I_CV = 'cv_current_vector'
 Q_CC_LAST = 'last_cc_capacity'
 Q_CV_LAST = 'last_cv_capacity'
+Q_END_AVG = 'avg_end_current'
+
+I_CV = 'cv_current_vector'
 I_CC = 'constant_current'
 I_PREV = 'end_current_prev'
 I_CC_AVG = 'avg_constant_current'
+I_PREV_END_AVG = 'avg_end_current_prev'
+
+V_END_AVG = 'avg_end_voltage'
+V_PREV_END_AVG = 'avg_end_voltage_prev'
+
+N = 'cycle_number'
 
 # TODO(sam): For each barcode, needs a multigrid of (S, V, I, T) (current
 #  needs to be adjusted)
@@ -105,7 +113,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 - 'all_reference_mats': structured array with dtype =
                     [
                         (
-                            'cycle_number',
+                            N,
                             'f4'
                         ),
                         (
@@ -134,7 +142,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                     each group is a dictinary indexed by various quantities:
                         - 'main_data':  a numpy structured array with dtype:
                             [
-                                ('cycle_number', 'f4'),
+                                (N, 'f4'),
                                 ('cc_voltage_vector', 'f4', len(voltage_grid)),
                                 (Q_CC, 'f4', len(voltage_grid)),
                                 ('cc_mask_vector', 'f4', len(voltage_grid)),
@@ -156,10 +164,10 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                             ]
 
                         -     I_CC_AVG
-                        -     'avg_end_current_prev'
-                        -     'avg_end_current'
-                        -     'avg_end_voltage_prev'
-                        -     'avg_end_voltage'
+                        -     I_PREV_END_AVG
+                        -     Q_END_AVG
+                        -     V_PREV_END_AVG
+                        -     V_END_AVG
                         -     'avg_last_cc_voltage'
 
 
@@ -279,11 +287,11 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
         for k_count, k in enumerate(cyc_grp_dict.keys()):
 
             my_pass = any([
-                    abs(cyc_grp_dict[k]['avg_end_current_prev']) < 1e-5,
+                    abs(cyc_grp_dict[k][I_PREV_END_AVG]) < 1e-5,
                     abs(cyc_grp_dict[k][I_CC_AVG]) < 1e-5,
-                    abs(cyc_grp_dict[k]['avg_end_current']) < 1e-5,
-                    abs(cyc_grp_dict[k]['avg_end_voltage_prev']) < 1e-5,
-                    abs(cyc_grp_dict[k]['avg_end_voltage']) < 1e-5,
+                    abs(cyc_grp_dict[k][Q_END_AVG]) < 1e-5,
+                    abs(cyc_grp_dict[k][V_PREV_END_AVG]) < 1e-5,
+                    abs(cyc_grp_dict[k][V_END_AVG]) < 1e-5,
                 ])
             if my_pass:
                 continue
@@ -299,14 +307,14 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
             main_data[I_PREV] = 1. / max_cap * main_data[I_PREV]
 
             cyc_grp_dict[k][I_CC_AVG] = 1. / max_cap * cyc_grp_dict[k][I_CC_AVG]
-            cyc_grp_dict[k]['avg_end_current']\
-                = 1. / max_cap * cyc_grp_dict[k]['avg_end_current']
-            cyc_grp_dict[k]['avg_end_current_prev']\
-                = 1. / max_cap * cyc_grp_dict[k]['avg_end_current_prev']
+            cyc_grp_dict[k][Q_END_AVG]\
+                = 1. / max_cap * cyc_grp_dict[k][Q_END_AVG]
+            cyc_grp_dict[k][I_PREV_END_AVG]\
+                = 1. / max_cap * cyc_grp_dict[k][I_PREV_END_AVG]
 
             # range of cycles which exist for this cycle group
-            min_cyc = min(main_data['cycle_number'])
-            max_cyc = max(main_data['cycle_number'])
+            min_cyc = min(main_data[N])
+            max_cyc = max(main_data[N])
 
             '''
             - now create neighborhoods, which contains the cycles,
@@ -361,8 +369,8 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 # False when cycle_number falls outside out of
                 # [below_cyc, above_cyc] interval
                 mask = numpy.logical_and(
-                    below_cyc <= main_data['cycle_number'],
-                    main_data['cycle_number'] <= above_cyc
+                    below_cyc <= main_data[N],
+                    main_data[N] <= above_cyc
                 )
 
                 # the indices for the cyc_grp_dict[k] array which correspond
@@ -420,7 +428,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
 
                 center_cycle = float(cyc)
                 reference_cycles\
-                    = all_data['all_reference_mats']['cycle_number']
+                    = all_data['all_reference_mats'][N]
 
                 index_of_closest_reference = numpy.argmin(
                     abs(center_cycle - reference_cycles)
@@ -445,20 +453,20 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
 
                 numpy_acc(compiled_data, 'neighborhood_data', neighborhood_data)
 
-            number_of_compiled_cycles += len(main_data['cycle_number'])
+            number_of_compiled_cycles += len(main_data[N])
             number_of_reference_cycles += len(
-                all_data['all_reference_mats']['cycle_number']
+                all_data['all_reference_mats'][N]
             )
 
             numpy_acc(
                 compiled_data, 'reference_cycle',
-                all_data['all_reference_mats']['cycle_number']
+                all_data['all_reference_mats'][N]
             )
             numpy_acc(
                 compiled_data, 'count_matrix',
                 all_data['all_reference_mats']['count_matrix']
             )
-            numpy_acc(compiled_data, 'cycle', main_data['cycle_number'])
+            numpy_acc(compiled_data, 'cycle', main_data[N])
             numpy_acc(
                 compiled_data, 'cc_voltage_vector',
                 main_data['cc_voltage_vector']

@@ -166,7 +166,7 @@ def get_norm_cycle(params):
     )
 
 
-def create_derivatives(nn, params, der_params):
+def create_derivatives(nn, params, der_params, internal_loss=False):
     """
     derivatives will only be taken inside forall statements.
     if auxiliary variables must be given, create a lambda.
@@ -193,7 +193,10 @@ def create_derivatives(nn, params, der_params):
                     if der_params[k] >= 1:
                         tape_d1.watch(params[k])
 
-                res = tf.reshape(nn(params), [-1, 1])
+                if internal_loss:
+                    res, loss = tf.reshape(nn(params), [-1, 1])
+                else:
+                    res = tf.reshape(nn(params), [-1, 1])
 
             for k in der_params.keys():
                 if der_params[k] >= 1:
@@ -225,8 +228,10 @@ def create_derivatives(nn, params, der_params):
                 derivatives['d3_' + k] = derivatives['d3_' + k][:, 0, :]
 
     del tape_d3
-
-    return res, derivatives
+    if internal_loss:
+        return res, derivatives, loss
+    else:
+        return res, derivatives
 
 
 class DegradationModel(Model):
@@ -401,7 +406,7 @@ class DegradationModel(Model):
         self.width = width
         self.n_channels = n_channels
 
-    def z_cell_from_indices(
+    def cell_from_indices(
         self,
         indices, training = True, sample = False, compute_derivatives = False
     ):
@@ -679,7 +684,7 @@ class DegradationModel(Model):
                                              )
 
         if training:
-            loss_output_cell = .1 * incentive_magnitude(
+            loss_output_cell =  incentive_magnitude(
                 features_cell,
                 Target.Small,
                 Level.Proportional
@@ -690,7 +695,7 @@ class DegradationModel(Model):
                 keepdims = True
             )
 
-            loss_output_electrolyte = .1 * incentive_magnitude(
+            loss_output_electrolyte = incentive_magnitude(
                 features_electrolyte,
                 Target.Small,
                 Level.Proportional
@@ -755,17 +760,17 @@ class DegradationModel(Model):
                 loss_derivative_electrolyte_indirect = 0.
 
             loss_electrolyte = (
-                loss_output_electrolyte +
-                loss_input_electrolyte_indirect +
-                loss_derivative_electrolyte_indirect +
-                10.*loss_electrolyte_eq
+                self.incentive_coeffs['coeff_electrolyte_output']*loss_output_electrolyte +
+                self.incentive_coeffs['coeff_electrolyte_input']*loss_input_electrolyte_indirect +
+                self.incentive_coeffs['coeff_electrolyte_derivative']*loss_derivative_electrolyte_indirect +
+                self.incentive_coeffs['coeff_electrolyte_eq']*loss_electrolyte_eq
             )
 
             loss_input_cell_indirect = (
                 (1. - fetched_latent_cell) * loss_pos +
                 (1. - fetched_latent_cell) * loss_neg +
                 (1. - fetched_latent_cell) *
-                loss_electrolyte
+                self.incentive_coeffs['coeff_electrolyte']* loss_electrolyte
             )
 
             if compute_derivatives:
@@ -796,12 +801,12 @@ class DegradationModel(Model):
             loss_derivative_cell_indirect = None
 
         if training:
-            loss = .1 * incentive_combine(
+            loss =  incentive_combine(
                 [
-                    (1., loss_output_cell),
-                    (1., loss_input_cell_indirect),
-                    (1., loss_derivative_cell_indirect),
-                    (10., loss_cell_eq)
+                    (self.incentive_coeffs['coeff_cell_output'], loss_output_cell),
+                    (self.incentive_coeffs['coeff_cell_input'], loss_input_cell_indirect),
+                    (self.incentive_coeffs['coeff_cell_derivative'], loss_derivative_cell_indirect),
+                    (self.incentive_coeffs['coeff_cell_eq'], loss_cell_eq)
                 ]
             )
         else:
@@ -833,7 +838,7 @@ class DegradationModel(Model):
             maxval = 5.,
             shape = [n_sample, 1]
         )
-        sampled_features, _, sampled_pos, sampled_neg, sampled_latent = self.z_cell_from_indices(
+        sampled_features, _, sampled_pos, sampled_neg, sampled_latent = self.cell_from_indices(
             indices = tf.random.uniform(
                 maxval = self.cell_direct.num_keys,
                 shape = [n_sample],
@@ -915,7 +920,7 @@ class DegradationModel(Model):
             training = training
         )
 
-        shift = self.shift_direct(
+        shift,_ = self.shift_direct(
             cell_features=cell_features,
             encoded_stress=encoded_stress,
             norm_cycle=norm_cycle,
@@ -985,7 +990,7 @@ class DegradationModel(Model):
             norm_cycle = norm_cycle,
             training = training
         )
-        shift = self.shift_direct(
+        shift,_ = self.shift_direct(
             cell_features=cell_features,
             encoded_stress=encoded_stress,
             norm_cycle = norm_cycle,
@@ -1045,7 +1050,7 @@ class DegradationModel(Model):
             count_matrix=params['count_matrix'],
         )
 
-        cc_shift = self.shift_direct(
+        cc_shift,_ = self.shift_direct(
             cell_features=cell_features,
             encoded_stress=encoded_stress,
             norm_cycle = norm_cycle,
@@ -1089,7 +1094,7 @@ class DegradationModel(Model):
             resistance = add_current_dep(resistance, params),
         )
 
-        cv_shift = self.shift_direct(
+        cv_shift,_ = self.shift_direct(
             cell_features=cell_features,
             encoded_stress=encoded_stress,
             norm_cycle = norm_cycle,
@@ -1209,19 +1214,25 @@ class DegradationModel(Model):
         return tf.nn.elu(nn_call(self.nn_q, dependencies, training = training))
 
     def shift_direct(self, cell_features, encoded_stress, norm_cycle, training = True):
-        dependencies = (
+        dependencies_0 = (
             cell_features,
         )
 
-        shift_0 = nn_call(self.nn_shift_0, dependencies, training=training)
+        shift_0 = nn_call(self.nn_shift_0, dependencies_0, training=training)
 
 
-        dependencies = (
+        dependencies_a = (
             cell_features,
             encoded_stress,
         )
-        shift_a = tf.exp(nn_call(self.nn_shift_a, dependencies, training=training))
-        return shift_0 + shift_a * tf.sqrt(tf.abs(norm_cycle) + 1e-6)
+        shift_a = tf.exp(nn_call(self.nn_shift_a, dependencies_a, training=training))
+
+        #Compute Loss
+        loss = None
+        if training:
+            loss = self.incentive_coeffs['coeff_shift_a_big']*tf.reduce_mean(incentive_magnitude(shift_a, Target.Big, Level.Proportional))
+
+        return shift_0 + shift_a * tf.sqrt(tf.nn.relu(norm_cycle) + 1e-6), loss
 
     def v_plus_direct(self, q, cell_features, current, training = True):
         pos_cell_features = self.pos_projection_direct(
@@ -1406,7 +1417,7 @@ class DegradationModel(Model):
             shape = [1]
         )
 
-        features, _, _, _, _ = self.z_cell_from_indices(
+        features, _, _, _, _ = self.cell_from_indices(
             indices = indices,
             training = training,
             sample = False
@@ -1490,7 +1501,7 @@ class DegradationModel(Model):
         svit_grid = x[8]
         count_matrix = x[9]
 
-        features, _, _, _, _ = self.z_cell_from_indices(
+        features, _, _, _, _ = self.cell_from_indices(
             indices = indices,
             training = training,
             sample = False
@@ -1637,7 +1648,7 @@ class DegradationModel(Model):
 
             scale_loss = calculate_scale_loss(scale, scale_der,incentive_coeffs=self.incentive_coeffs)
 
-            shift, shift_der = create_derivatives(
+            shift, shift_der, shift_internal_loss = create_derivatives(
                 self.shift_for_derivative,
                 params = {
                     'cycle': sampled_cycles,
@@ -1645,9 +1656,10 @@ class DegradationModel(Model):
                     'svit_grid': sampled_svit_grid,
                     'count_matrix': sampled_count_matrix
                 },
-                der_params = {'cycle': 3 , 'features': 2}
+                der_params = {'features': 2},
+                internal_loss=True
             )
-            shift_loss =  calculate_shift_loss(shift, shift_der, incentive_coeffs=self.incentive_coeffs)
+            shift_loss =  calculate_shift_loss(shift, shift_der, incentive_coeffs=self.incentive_coeffs) + shift_internal_loss
 
             r, r_der = create_derivatives(
                 self.r_for_derivative,
@@ -1661,7 +1673,7 @@ class DegradationModel(Model):
             )
             r_loss = calculate_r_loss(r, r_der, incentive_coeffs=self.incentive_coeffs)
 
-            _, z_cell_loss, _, _, _ = self.z_cell_from_indices(
+            _, cell_loss, _, _, _ = self.cell_from_indices(
                 indices = tf.range(
                     self.cell_direct.num_keys,
                     dtype = tf.int32,
@@ -1680,7 +1692,7 @@ class DegradationModel(Model):
                 "scale_loss": scale_loss,
                 "r_loss": r_loss,
                 "shift_loss": shift_loss,
-                "z_cell_loss": z_cell_loss,
+                "cell_loss": cell_loss,
                 "reciprocal_loss": reciprocal_loss,
                 "projection_loss": projection_loss,
                 "out_of_bounds_loss": out_of_bounds_loss + out_of_bounds_loss_1 + out_of_bounds_loss_2 + out_of_bounds_loss_3,
@@ -1709,7 +1721,7 @@ class DegradationModel(Model):
                 training = training
             )
 
-            shift = self.shift_direct(
+            shift,_ = self.shift_direct(
                 cell_features=cell_features,
                 encoded_stress=encoded_stress,
                 norm_cycle=norm_cycle,

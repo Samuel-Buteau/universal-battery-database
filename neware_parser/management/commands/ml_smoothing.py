@@ -1148,32 +1148,49 @@ class Command(BaseCommand):
             '--coeff_out_of_bounds_leq': 1.,
         }
 
+        vis = 10000
+        int_args = {
+            '--n_sample': 8 * 16,
+
+            '--depth': 3,
+            '--width': 50,
+            '--batch_size': 4 * 16,
+
+            '--print_loss_every': 500,
+            '--visualize_fit_every': vis,
+            '--visualize_vq_every': vis,
+
+            '--stop_count': 1000004,
+            '--barcode_show': 10
+        }
+
         for arg in required_args:
             parser.add_argument(arg, required = True)
 
         for arg in float_args:
             parser.add_argument(arg, type = float, default = float_args[arg])
 
-        vis = 10000
+        for arg in int_args:
+            parser.add_argument(arg, type = int, default = float_args[arg])
 
-        parser.add_argument('--n_sample', type = int, default = 8 * 16)
-
-        parser.add_argument('--depth', type = int, default = 3)
-        parser.add_argument('--width', type = int, default = 50)
-        parser.add_argument('--batch_size', type = int, default = 4 * 16)
-
-        parser.add_argument('--print_loss_every', type = int, default = 500)
-        parser.add_argument('--visualize_fit_every', type = int, default = vis)
-        parser.add_argument('--visualize_vq_every', type = int, default = vis)
-
-        parser.add_argument('--stop_count', type = int, default = 1000004)
-        parser.add_argument('--barcode_show', type=int, default=10)
+        barcodes = [
+            81602, 81603, 81604, 81605, 81606, 81607, 81608, 81609, 81610,
+            81611, 81612, 81613, 81614, 81615, 81616, 81617, 81618, 81619,
+            81620, 81621, 81622, 81623, 81624, 81625, 81626, 81627, 81712,
+            81713, 82300, 82301, 82302, 82303, 82304, 82305, 82306, 82307,
+            82308, 82309, 82310, 82311, 82406, 82407, 82410, 82411, 82769,
+            82770, 82771, 82775, 82776, 82777, 82779, 82992, 82993, 83083,
+            83092, 83101, 83106, 83107, 83220, 83221, 83222, 83223, 83224,
+            83225, 83226, 83227, 83228, 83229, 83230, 83231, 83232, 83233,
+            83234, 83235, 83236, 83237, 83239, 83240, 83241, 83242, 83243,
+            83310, 83311, 83312, 83317, 83318, 83593, 83594, 83595, 83596,
+            83741, 83742, 83743, 83744, 83745, 83746, 83747, 83748
+        ]
+        # 57706, 57707, 57710, 57711, 57714, 57715,64260,64268,83010, 83011,
+        # 83012, 83013, 83014, 83015, 83016
 
         parser.add_argument(
-            '--wanted_barcodes', type = int, nargs = '+',
-            default = [
-                   81602, 81603, 81604, 81605, 81606, 81607, 81608, 81609, 81610, 81611, 81612, 81613, 81614, 81615, 81616, 81617, 81618, 81619, 81620, 81621, 81622, 81623, 81624, 81625, 81626, 81627, 81712, 81713, 82300, 82301, 82302, 82303, 82304, 82305, 82306, 82307, 82308, 82309, 82310, 82311, 82406, 82407, 82410, 82411, 82769, 82770, 82771, 82775, 82776, 82777, 82779, 82992, 82993,  83083, 83092, 83101, 83106, 83107, 83220, 83221, 83222, 83223, 83224, 83225, 83226, 83227, 83228, 83229, 83230, 83231, 83232, 83233, 83234, 83235, 83236, 83237, 83239, 83240, 83241, 83242, 83243, 83310, 83311, 83312, 83317, 83318, 83593, 83594, 83595, 83596, 83741, 83742, 83743, 83744, 83745, 83746, 83747, 83748
-            ] #+ [57706, 57707, 57710, 57711, 57714, 57715,64260,64268,83010, 83011, 83012, 83013, 83014, 83015, 83016,]
+            '--wanted_barcodes', type = int, nargs = '+', default = barcodes
         )
 
     def handle(self, *args, **options):

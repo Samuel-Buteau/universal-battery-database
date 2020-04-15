@@ -639,7 +639,7 @@ def plot_v_curves(plot_params, init_returns):
     fit_args = plot_params["fit_args"]
     degradation_model = init_returns["degradation_model"]
     shift = np.linspace(start = -.2, stop = .2, num = 9, dtype = np.float32)
-    voltage = np.linspace(start = 2., stop = 5.5, num = 64, dtype = np.float32)
+    v = np.linspace(start = 2., stop = 5.5, num = 64, dtype = np.float32)
     q = np.linspace(start = -0.25, stop = 1.25, num = 64, dtype = np.float32)
     for current in [0.05, 3.]:
         for barcode in barcodes:
@@ -655,7 +655,7 @@ def plot_v_curves(plot_params, init_returns):
             res = degradation_model.get_v_curves(
                 barcode = barcode,
                 shift = tf.constant(shift),
-                voltage = tf.constant(voltage),
+                v = tf.constant(v),
                 q = tf.constant(q),
                 current= tf.constant(current, shape=[1,1])
             )
@@ -665,7 +665,7 @@ def plot_v_curves(plot_params, init_returns):
                 ax.plot(q, res['v_plus'], label = 'v_+')
                 ax.plot(q, res['v_minus'][j], label = 'v_-')
                 ax.plot(q, res['v'][j], label = 'v_full')
-                ax.plot(res['q'][j], voltage, label = 'q_full (inverted)')
+                ax.plot(res['q'][j], v, label = 'q_full (inverted)')
                 ax.axvline(shift[j], 0, 1)
 
             ax.legend()

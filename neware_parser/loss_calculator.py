@@ -222,42 +222,42 @@ def calculate_q_loss(q, q_der, incentive_coeffs):
     ])
 
 
-def calculate_q_scale_loss(q_scale, q_scale_der, incentive_coeffs):
+def calculate_scale_loss(scale, scale_der, incentive_coeffs):
     return incentive_combine([
         (
-            incentive_coeffs['coeff_q_scale_geq'],
+            incentive_coeffs['coeff_scale_geq'],
             incentive_inequality(
-                q_scale, Inequality.GreaterThan, 0.1,
+                scale, Inequality.GreaterThan, 0.1,
                 Level.Strong
             )
         ),
         (
-            incentive_coeffs['coeff_q_scale_leq'],
+            incentive_coeffs['coeff_scale_leq'],
             incentive_inequality(
-                q_scale, Inequality.LessThan, 1.,
+                scale, Inequality.LessThan, 1.,
                 Level.Strong
             )
         ),
 
         (
-            incentive_coeffs['coeff_q_scale_eq'],
+            incentive_coeffs['coeff_scale_eq'],
             incentive_inequality(
-                q_scale, Inequality.Equals, 1.,
+                scale, Inequality.Equals, 1.,
                 Level.Proportional
             )
         ),
 
         (
-            incentive_coeffs['coeff_q_scale_mono'],
+            incentive_coeffs['coeff_scale_mono'],
             incentive_inequality(
-                q_scale_der['d_cycle'], Inequality.LessThan, 0,
+                scale_der['d_cycle'], Inequality.LessThan, 0,
                 Level.Proportional
             )
         ),
         (
-            incentive_coeffs['coeff_q_scale_d3_cycle'],
+            incentive_coeffs['coeff_scale_d3_cycle'],
             incentive_magnitude(
-                q_scale_der['d3_cycle'],
+                scale_der['d3_cycle'],
                 Target.Small,
                 Level.Proportional
             )
@@ -267,7 +267,7 @@ def calculate_q_scale_loss(q_scale, q_scale_der, incentive_coeffs):
         (
             incentive_coeffs['coeff_d_features'],
             incentive_magnitude(
-                q_scale_der['d_features'],
+                scale_der['d_features'],
                 Target.Small,
                 Level.Proportional
             )
@@ -275,7 +275,7 @@ def calculate_q_scale_loss(q_scale, q_scale_der, incentive_coeffs):
         (
             incentive_coeffs['coeff_d2_features'],
             incentive_magnitude(
-                q_scale_der['d2_features'],
+                scale_der['d2_features'],
                 Target.Small,
                 Level.Strong
             )

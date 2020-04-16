@@ -258,13 +258,11 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
             main_data = cyc_grp_dict[k]["main_data"]
 
             # normalize capacity_vector with max_cap
-            main_data[Q_CC] = 1. / max_cap * main_data[Q_CC]
-            main_data[Q_CV] = 1. / max_cap * main_data[Q_CV]
-            main_data[I_CV] = 1. / max_cap * main_data[I_CV]
-            main_data[Q_CC_LAST] = 1. / max_cap * main_data[Q_CC_LAST]
-            main_data[Q_CV_LAST] = 1. / max_cap * main_data[Q_CV_LAST]
-            main_data[I_CC] = 1. / max_cap * main_data[I_CC]
-            main_data[I_PREV] = 1. / max_cap * main_data[I_PREV]
+            normalize_keys = [
+                Q_CC, Q_CV, Q_CC_LAST, Q_CV_LAST, I_CV, I_CC, I_PREV
+            ]
+            for key in normalize_keys:
+                main_data[key] = 1. / max_cap * main_data[key]
 
             cyc_grp_dict[k][I_CC_AVG] = 1. / max_cap * cyc_grp_dict[k][I_CC_AVG]
             cyc_grp_dict[k][Q_END_AVG] \
@@ -449,10 +447,8 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
     compiled_tensors["cycle"] = cycle_tensor
 
     labels = [
-        V_CC, Q_CC, MASK_CC, Q_CV, I_CV, MASK_CV, I_CC, I_PREV,
-        V_PREV_END, V_END,
-        COUNT_MATRIX,
-        SIGN_GRID, V_GRID, Q_GRID, TEMP_GRID
+        V_CC, Q_CC, MASK_CC, Q_CV, I_CV, MASK_CV, I_CC, I_PREV, V_PREV_END,
+        V_END, COUNT_MATRIX, SIGN_GRID, V_GRID, Q_GRID, TEMP_GRID
     ]
     for label in labels:
         compiled_tensors[label] = tf.constant(compiled_data[label])

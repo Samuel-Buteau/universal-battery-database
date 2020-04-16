@@ -16,6 +16,8 @@ The Universal Battery Database was developed at the [Jeff Dahn Research Group](h
 - [Installation](#installation)
   * [Prerequisites](#prerequisites)
   * [Installing Dependencies and Configuring Environment](#installing-dependencies-and-configuring-environment)
+    + [Without Database Install](#without-database-install)
+    + [With Database Install](#with-database-install)
 - [Using the Software](#using-the-software)
   * [ML Smoothing](#ml-smoothing)
 - [Theoretical Physics and Computer Science Behind the Software](#theoretical-physics-and-computer-science-behind-the-software)
@@ -32,12 +34,8 @@ The Universal Battery Database was developed at the [Jeff Dahn Research Group](h
 There are two distinct possibilities: 
 1. if you want to use the database features such as parsing and organising experimental data and metadata, __you need to install with a database__.
 2. if you only want to play around with modelling, using a dataset compiled somewhere else, __you do not need to install with a database__. Note that you can always install with a database if unsure, but it is more involved.
-#### Without Database Install
 
-
-##### 1. Create and Activate a new virtual environment.
-
-Note: `env` can be any name you want for your environment.
+Either way, you need to create and activate a new virtual environment to start (note: `env` can be any name you want for your environment):
 
 cmd (Windows):
 ```cmd
@@ -51,13 +49,15 @@ $ python3 -m venv env
 $ source env/bin/activate
 ```
 
-##### 2. Install requirements
+#### Without Database Install
+
+##### 1. Install requirements
 
 install requirements with:
 ```bash
 pip3 install -r requirements_nosql.txt
 ```
-##### 3. Create `neware_parser/config.ini`.
+##### 2. Create `neware_parser/config.ini`.
 
 `neware_parser/config.ini` should contain the following (feel free to modify the values):
 
@@ -72,45 +72,28 @@ Backend = sqlite3
 SecretKey = your_very_secret_key
 ```
 
-##### 4. Download a dataset file and put it in the appropriate folder.
+##### 3. Download a dataset file and put it in the appropriate folder.
 
 
 #### With Database Install
 
-##### 1. Create and Activate a new virtual environment.
-
-
-Note: `env` can be any name you want for your environment.
-
-cmd (Windows):
-```cmd
->mkvirvualenv env
->workon env
-```
-
-Bash (macOS and Linux):
-```bash
-$ python3 -m venv env
-$ source env/bin/activate
-```
-
-##### 2. Install requirements
+##### 1. Install requirements
 
 install requirements with:
 ```bash
 pip3 install -r requirements.txt
 ```
 
-##### 3. [Install PostgreSQL](https://www.2ndquadrant.com/en/blog/pginstaller-install-postgresql/).
+##### 2. [Install PostgreSQL](https://www.2ndquadrant.com/en/blog/pginstaller-install-postgresql/).
 
 **Make sure the installation includes the PostgreSQL Unicode ODBC driver** (e.g. ODBC 64-bit).
 After the PostgreSQL installation, there is a separate process where you can choose a driver.
 
 Follow the installation instructions to create new user and password. **Remember these for later**.
 
-##### 4. Add the bin path of the install to the Path variable.
+##### 3. Add the bin path of the install to the Path variable.
 
-##### 5. Run
+##### 4. Run
 
 ```bash
 psql -U postgres
@@ -118,7 +101,7 @@ psql -U postgres
 
 and enter the password you created in Step 3.
 
-##### 6. Enter the following 3 commands in the terminal.
+##### 5. Enter the following 3 commands in the terminal.
 
 Note: `my_project`, `my_user`, and `my_password` can be changed to your own secret values.
 
@@ -131,7 +114,7 @@ GRANT ALL PRIVILEGES ON DATABASE my_project TO my_user;
 ```
 
 
-##### 7. Create `neware_parser/config.ini`.
+##### 6. Create `neware_parser/config.ini`.
 
 Note:  `my_project`, `my_user`, and `my_password` can be changed to your own values, but they must be the same as those in Step 6. `your_very_secret_key` should be a very secret key if you care about data security.
 
@@ -148,7 +131,7 @@ Backend = postgresql
 SecretKey = your_very_secret_key
 ```
 
-##### 8. Download a dataset file and put it in the appropriate folder.
+##### 7. Download a dataset file and put it in the appropriate folder.
 
 
 ## Using the Software

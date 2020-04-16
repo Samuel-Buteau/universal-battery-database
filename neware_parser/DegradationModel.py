@@ -194,7 +194,8 @@ def create_derivatives(nn, params, der_params, internal_loss=False):
                         tape_d1.watch(params[k])
 
                 if internal_loss:
-                    res, loss = tf.reshape(nn(params), [-1, 1])
+                    res, loss = nn(params)
+                    res = tf.reshape(res, [-1, 1])
                 else:
                     res = tf.reshape(nn(params), [-1, 1])
 

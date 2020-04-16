@@ -594,6 +594,7 @@ class LossRecord():
             "cc_capacity_loss",
             "cv_capacity_loss",
             "cc_voltage_loss",
+            "cv_voltage_loss",
             "q_loss",
             "scale_loss",
             "r_loss",
@@ -986,6 +987,7 @@ def train_step(neighborhood, params, fit_args):
             cc_capacity_loss,
             cv_capacity_loss,
             cc_voltage_loss,
+            cv_voltage_loss,
             train_results["q_loss"],
             train_results["scale_loss"],
             train_results["r_loss"],
@@ -1075,7 +1077,7 @@ class Command(BaseCommand):
         float_args = {
             '--global_norm_clip': 10.,
 
-            '--learning_rate': 4e-3,
+            '--learning_rate': 5e-4,
             '--min_latent': .1,
 
             '--coeff_d_features': .0001,
@@ -1171,7 +1173,7 @@ class Command(BaseCommand):
             parser.add_argument(arg, type = float, default = float_args[arg])
 
         for arg in int_args:
-            parser.add_argument(arg, type = int, default = float_args[arg])
+            parser.add_argument(arg, type = int, default = int_args[arg])
 
         barcodes = [
             81602, 81603, 81604, 81605, 81606, 81607, 81608, 81609, 81610,

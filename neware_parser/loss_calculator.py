@@ -42,7 +42,7 @@ def calculate_out_of_bounds_loss(reciprocal_q, incentive_coeffs=None):
 
 
 def calculate_reciprocal_loss(
-    sampled_voltages, sampled_qs,
+    sampled_vs, sampled_qs,
     v_plus, v_minus, v_plus_der, v_minus_der,
     reciprocal_v, reciprocal_q,
         incentive_coeffs
@@ -51,7 +51,7 @@ def calculate_reciprocal_loss(
         (
             incentive_coeffs['coeff_reciprocal_v'],
             incentive_inequality(
-                sampled_voltages, Inequality.Equals, reciprocal_v,
+                sampled_vs, Inequality.Equals, reciprocal_v,
                 Level.Proportional
             )
         ),
@@ -175,14 +175,14 @@ def calculate_q_loss(q, q_der, incentive_coeffs):
         (
             incentive_coeffs['coeff_q_v_mono'],
             incentive_inequality(
-                q_der['d_voltage'], Inequality.GreaterThan, 0.01,
+                q_der['d_v'], Inequality.GreaterThan, 0.01,
                 Level.Strong
             )
         ),
         (
             incentive_coeffs['coeff_q_d3_v'],
             incentive_magnitude(
-                q_der['d3_voltage'],
+                q_der['d3_v'],
                 Target.Small,
                 Level.Proportional
             )

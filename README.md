@@ -15,51 +15,39 @@ The Universal Battery Database was developed at the [Jeff Dahn Research Group](h
 
 - [Installation](#installation)
   * [Prerequisites](#prerequisites)
-  * [Installing Dependencies and Configuring Environment](#installing-dependencies-and-configuring-environment)
-    + [Without Database Install](#without-database-install)
-    + [With Database Install](#with-database-install)
+  * [Installing Without a Database](#installing-without-a-database)
+  * [Installing With a Database](#installing-with-a-database)
 - [Using the Software](#using-the-software)
   * [ML Smoothing](#ml-smoothing)
 - [Theoretical Physics and Computer Science Behind the Software](#theoretical-physics-and-computer-science-behind-the-software)
 
 ## Installation
 
+There are two install options:
+1. If you only want to play around with modelling and you have a compiled dataset from somewhere else, __you can [install without a database](#without-database-install)__ (you can always install a database later).
+2. If you want to use the database features such as parsing and organising experimental data and metadata, you should [install with a database](#with-database-install).
+
+You should run all the given commands in Command Prompt (Windows) or Terminal (Bash environment on macOS and Linux).
+
 ### Prerequisites
 
 - [Python 3](https://www.python.org/downloads/)
 - [pip and virtualenv](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
 
+### Installing Without a Database
 
-### Installing Dependencies and Configuring Environment
-There are two distinct possibilities: 
-1. if you want to use the database features such as parsing and organising experimental data and metadata, __you need to install with a database__.
-2. if you only want to play around with modelling, using a dataset compiled somewhere else, __you do not need to install with a database__. Note that you can always install with a database if unsure, but it is more involved.
+#### 1. [Create and activate a new Python environment](https://github.com/Samuel-Buteau/universal-battery-database/wiki/Creating-and-activating-a-new-Python-environment.).
 
-Either way, you need to create and activate a new virtual environment to start (note: `env` can be any name you want for your environment):
-
-cmd (Windows):
-```cmd
->mkvirvualenv env
->workon env
+#### 2. Install requirements.
 ```
-
-Bash (macOS and Linux):
-```bash
-$ python3 -m venv env
-$ source env/bin/activate
-```
-
-#### Without Database Install
-
-##### 1. Install requirements
-
-install requirements with:
-```bash
 pip3 install -r requirements_nosql.txt
 ```
-##### 2. Create `neware_parser/config.ini`.
 
-`neware_parser/config.ini` should contain the following (feel free to modify the values):
+#### 3. Create `neware_parser/config.ini`.
+
+Note: You can pick your own `database`, `user`, `password`, `secret_key`.
+
+`neware_parser/config.ini` should contain:
 
 ```
 [DEFAULT]
@@ -72,38 +60,35 @@ Backend = sqlite3
 SecretKey = your_very_secret_key
 ```
 
-##### 3. Download a dataset file and put it in the appropriate folder.
+#### 4. Download your dataset file and put it in the appropriate folder.
 
 
-#### With Database Install
+### Installing With a Database
 
-##### 1. Install requirements
+#### 1. [Create and activate a new Python environment](https://github.com/Samuel-Buteau/universal-battery-database/wiki/Creating-and-activating-a-new-Python-environment.).
 
-install requirements with:
-```bash
+#### 2. Install requirements.
+```
 pip3 install -r requirements.txt
 ```
 
-##### 2. [Install PostgreSQL](https://www.2ndquadrant.com/en/blog/pginstaller-install-postgresql/).
+#### 3. [Install PostgreSQL](https://www.2ndquadrant.com/en/blog/pginstaller-install-postgresql/).
 
-**Make sure the installation includes the PostgreSQL Unicode ODBC driver** (e.g. ODBC 64-bit).
-After the PostgreSQL installation, there is a separate process where you can choose a driver.
+There is a separate process to choose a driver after the PostgreSQL installation. **Make sure the installation includes the PostgreSQL Unicode ODBC driver** (e.g. ODBC 64-bit).
 
 Follow the installation instructions to create new user and password. **Remember these for later**.
 
-##### 3. Add the bin path of the install to the Path variable.
+#### 4. Add the bin path of the install to the Path variable.
 
-##### 4. Run
-
+#### 5. Connect your user.
 ```bash
-psql -U postgres
+psql -U username
 ```
+where `username` is the one created in Step 3, and enter the password after you hit enter.
 
-and enter the password you created in Step 3.
+#### 6. Create your database.
 
-##### 5. Enter the following 3 commands in the terminal.
-
-Note: `my_project`, `my_user`, and `my_password` can be changed to your own secret values.
+Note: `my_project`, `my_user`, and `my_password` can be changed to your own values.
 
 ```sql
 CREATE DATABASE my_project;
@@ -113,12 +98,11 @@ CREATE USER my_user WITH PASSWORD ‘my_password’;
 GRANT ALL PRIVILEGES ON DATABASE my_project TO my_user;
 ```
 
+#### 7. Create `neware_parser/config.ini`.
 
-##### 6. Create `neware_parser/config.ini`.
+Note:  `my_project`, `my_user`, and `my_password` should be changed to match those in Step 6. Choosing a good `secret_key` is crucial if you care about data security.
 
-Note:  `my_project`, `my_user`, and `my_password` can be changed to your own values, but they must be the same as those in Step 6. `your_very_secret_key` should be a very secret key if you care about data security.
-
-`config.ini` should contain the following:
+`neware_parser/config.ini` should contain the following:
 
 ```
 [DEFAULT]
@@ -128,35 +112,15 @@ Password = my_password
 Host = localhost
 Port = 5432
 Backend = postgresql
-SecretKey = your_very_secret_key
+SecretKey = secret_key
 ```
-
-##### 7. Download a dataset file and put it in the appropriate folder.
-
 
 ## Using the Software
 
-First, load the virtual environment containing the software in a new terminal. Replace `env` with the name you used when creating the virtual environment.
-
-cmd (Windows):
-```cmd
->workon env
-```
-
-Bash (macOS and Linux):
-```bash
-$ source env/bin/activate
-```
-
-**If you do not remember the name of your virtual environment**, you can list existing environments with:
-
-```cmd
->workon
-```
-
+[Load the virtual environment](https://github.com/Samuel-Buteau/universal-battery-database/wiki/Loading-a-Python-environment.) containing the software in a new terminal.
 
 To quickly see the web page and start developing, run
-```bash
+```
 python3 manage.py runserver 0.0.0.0:8000
 ```
 then visit `http://localhost:8000/` with a web browser.

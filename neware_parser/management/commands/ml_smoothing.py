@@ -814,33 +814,37 @@ def train_step(neighborhood, params, fit_args):
     )
     temperature_grid_dim = temperature_grid.shape[1]
 
-    svit_grid = tf.concat(
-        (
-            tf.tile(
-                tf.reshape(sign_grid, [batch_size2, sign_grid_dim, 1, 1, 1, 1]),
-                [1, 1, voltage_grid_dim, current_grid_dim, temperature_grid_dim,
-                 1],
+    svit_tuple = (
+        tf.tile(
+            tf.reshape(
+                sign_grid,
+                [batch_size2, sign_grid_dim, 1, 1, 1, 1]
             ),
-            tf.tile(
-                tf.reshape(voltage_grid,
-                           [batch_size2, 1, voltage_grid_dim, 1, 1, 1]),
-                [1, sign_grid_dim, 1, current_grid_dim, temperature_grid_dim,
-                 1],
-            ),
-            tf.tile(
-                tf.reshape(current_grid,
-                           [batch_size2, 1, 1, current_grid_dim, 1, 1]),
-                [1, sign_grid_dim, voltage_grid_dim, 1, temperature_grid_dim,
-                 1],
-            ),
-            tf.tile(
-                tf.reshape(temperature_grid,
-                           [batch_size2, 1, 1, 1, temperature_grid_dim, 1]),
-                [1, sign_grid_dim, voltage_grid_dim, current_grid_dim, 1, 1],
-            ),
+            [1, 1, voltage_grid_dim, current_grid_dim, temperature_grid_dim, 1],
         ),
-        axis = -1
+        tf.tile(
+            tf.reshape(
+                voltage_grid,
+                [batch_size2, 1, voltage_grid_dim, 1, 1, 1]
+            ),
+            [1, sign_grid_dim, 1, current_grid_dim, temperature_grid_dim, 1],
+        ),
+        tf.tile(
+            tf.reshape(
+                current_grid,
+                [batch_size2, 1, 1, current_grid_dim, 1, 1]
+            ),
+            [1, sign_grid_dim, voltage_grid_dim, 1, temperature_grid_dim, 1],
+        ),
+        tf.tile(
+            tf.reshape(
+                temperature_grid,
+                [batch_size2, 1, 1, 1, temperature_grid_dim, 1]
+            ),
+            [1, sign_grid_dim, voltage_grid_dim, current_grid_dim, 1, 1],
+        ),
     )
+    svit_grid = tf.concat(svit_tuple, axis = -1)
 
     count_matrix = tf.reshape(
         tf.gather(

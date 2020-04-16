@@ -383,8 +383,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 neighborhood_data_i[NEIGH_TEMPERATURE_GRID] = 0
 
                 center_cycle = float(cyc)
-                reference_cycles \
-                    = all_data["all_reference_mats"][N]
+                reference_cycles = all_data["all_reference_mats"][N]
 
                 index_of_closest_reference = numpy.argmin(
                     abs(center_cycle - reference_cycles)
@@ -409,9 +408,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 numpy_acc(compiled_data, "neighborhood_data", neighborhood_data)
 
             number_of_compiled_cycles += len(main_data[N])
-            number_of_reference_cycles += len(
-                all_data["all_reference_mats"][N]
-            )
+            number_of_reference_cycles += len(all_data["all_reference_mats"][N])
 
             dict_to_acc = {
                 "reference_cycle": all_data["all_reference_mats"][N],
@@ -498,11 +495,11 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
             n_sample = fit_args["n_sample"],
             incentive_coeffs = fit_args,
             min_latent = fit_args["min_latent"]
-
         )
 
         optimizer = tf.keras.optimizers.Adam(
-            learning_rate = fit_args["learning_rate"])
+            learning_rate = fit_args["learning_rate"]
+        )
 
     return {
         "strategy": strategy,
@@ -786,9 +783,7 @@ def train_step(neighborhood, params, fit_args):
     cc_mask = tf.gather(cc_mask_tensor, indices = cycle_indices)
     cc_mask_2 = tf.tile(
         tf.reshape(
-            1. / tf.cast(
-                neighborhood[:, NEIGH_VALID_CYC], tf.float32
-            ),
+            1. / tf.cast(neighborhood[:, NEIGH_VALID_CYC], tf.float32),
             [batch_size2, 1]
         ),
         [1, cc_voltage.shape[1]]
@@ -799,9 +794,7 @@ def train_step(neighborhood, params, fit_args):
     cv_mask = tf.gather(cv_mask_tensor, indices = cycle_indices)
     cv_mask_2 = tf.tile(
         tf.reshape(
-            1. / tf.cast(
-                neighborhood[:, NEIGH_VALID_CYC], tf.float32
-            ),
+            1. / tf.cast(neighborhood[:, NEIGH_VALID_CYC], tf.float32),
             [batch_size2, 1]
         ),
         [1, cv_current.shape[1]]

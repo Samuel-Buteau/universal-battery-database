@@ -24,6 +24,7 @@ Shortened Variable Names:
     res -   result
 """
 
+
 # params keys
 TENSORS = "compiled_tensors"
 MODEL = "degradation_model"
@@ -889,7 +890,8 @@ def train_step(neighborhood, params, fit_args):
                 cv_current,
                 svit_grid,
                 count_matrix,
-                cc_capacity
+                cc_capacity,
+                cv_capacity
             ),
             training = True
         )
@@ -897,6 +899,11 @@ def train_step(neighborhood, params, fit_args):
         pred_cc_capacity = train_results["pred_cc_capacity"]
         pred_cv_capacity = train_results["pred_cv_capacity"]
         pred_cc_voltage = train_results["pred_cc_voltage"]
+        pred_cv_voltage = train_results["pred_cv_voltage"]
+        cv_voltage = tf.tile(
+            tf.expand_dims(end_voltage, axis=1),
+            [1, cv_current.shape[1]],
+        )
 
         cc_capacity_loss = (
             tf.reduce_mean(
@@ -908,10 +915,18 @@ def train_step(neighborhood, params, fit_args):
                 cv_mask_2 * cv_mask * tf.square(cv_capacity - pred_cv_capacity)
             ) / (1e-10 + tf.reduce_mean(cv_mask_2 * cv_mask))
         )
+
+
         cc_voltage_loss = (
             tf.reduce_mean(
                 cc_mask_2 * cc_mask * tf.square(cc_voltage - pred_cc_voltage)
             ) / (1e-10 + tf.reduce_mean(cc_mask_2 * cc_mask))
+        )
+
+        cv_voltage_loss = (
+                tf.reduce_mean(
+                    cv_mask_2 * cv_mask * tf.square(cv_voltage - pred_cv_voltage)
+                ) / (1e-10 + tf.reduce_mean(cv_mask_2 * cv_mask))
         )
 
         loss = (
@@ -936,7 +951,6 @@ def train_step(neighborhood, params, fit_args):
                 + fit_args["coeff_out_of_bounds"]
                 * train_results["out_of_bounds_loss"]
             )
-
         )
 
     gradients = tape.gradient(
@@ -1147,7 +1161,7 @@ class Command(BaseCommand):
             parser.add_argument(arg, type = float, default = float_args[arg])
 
         for arg in int_args:
-            parser.add_argument(arg, type = int, default = float_args[arg])
+            parser.add_argument(arg, type = int, default = int_args[arg])
 
         barcodes = [
             81602, 81603, 81604, 81605, 81606, 81607, 81608, 81609, 81610,

@@ -10,7 +10,7 @@ from neware_parser.DegradationModel import DegradationModel
 from neware_parser.models import *
 from neware_parser.plot import *
 
-'''
+"""
 Shortened Variable Names:
     vol -   voltage
     cap -   capacity
@@ -22,41 +22,41 @@ Shortened Variable Names:
     eval -  evaluation
     eq -    equillibrium
     res -   result
-'''
+"""
 
 # Dictionary key names
-Q_CC = 'cc_capacity_vector'
-Q_CV = 'cv_capacity_vector'
-Q_CC_LAST = 'last_cc_capacity'
-Q_CV_LAST = 'last_cv_capacity'
-Q_END_AVG = 'avg_end_current'
+Q_CC = "cc_capacity_vector"
+Q_CV = "cv_capacity_vector"
+Q_CC_LAST = "last_cc_capacity"
+Q_CV_LAST = "last_cv_capacity"
+Q_END_AVG = "avg_end_current"
 
-I_CV = 'cv_current_vector'
-I_CC = 'constant_current'
-I_PREV = 'end_current_prev'
-I_CC_AVG = 'avg_constant_current'
-I_PREV_END_AVG = 'avg_end_current_prev'
+I_CV = "cv_current_vector"
+I_CC = "constant_current"
+I_PREV = "end_current_prev"
+I_CC_AVG = "avg_constant_current"
+I_PREV_END_AVG = "avg_end_current_prev"
 
-V_CC = 'cc_voltage_vector'
-V_END = 'end_voltage'
-V_END_AVG = 'avg_end_voltage'
-V_PREV_END = 'end_voltage_prev'
-V_PREV_END_AVG = 'avg_end_voltage_prev'
+V_CC = "cc_voltage_vector"
+V_END = "end_voltage"
+V_END_AVG = "avg_end_voltage"
+V_PREV_END = "end_voltage_prev"
+V_PREV_END_AVG = "avg_end_voltage_prev"
 
-MASK_CC = 'cc_mask_vector'
-MASK_CV = 'cv_mask_vector'
+MASK_CC = "cc_mask_vector"
+MASK_CV = "cv_mask_vector"
 
-N = 'cycle_number'
+N = "cycle_number"
 
 # my_data key names
-CELL_TO_POS = 'cell_id_to_pos_id'
-CELL_TO_NEG = 'cell_id_to_neg_id'
-CELL_TO_ELE = 'cell_id_to_electrolyte_id'
-CELL_TO_LAT = 'cell_id_to_latent'
+CELL_TO_POS = "cell_id_to_pos_id"
+CELL_TO_NEG = "cell_id_to_neg_id"
+CELL_TO_ELE = "cell_id_to_electrolyte_id"
+CELL_TO_LAT = "cell_id_to_latent"
 
-ELE_TO_SOL = 'electrolyte_id_to_solvent_id_weight'
-ELE_TO_SALT = 'electrolyte_id_to_salt_id_weight'
-ELE_TO_ADD = 'electrolyte_id_to_additive_id_weight'
+ELE_TO_SOL = "electrolyte_id_to_solvent_id_weight"
+ELE_TO_SALT = "electrolyte_id_to_salt_id_weight"
+ELE_TO_ADD = "electrolyte_id_to_additive_id_weight"
 
 # TODO(sam): For each barcode, needs a multigrid of (S, V, I, T) (current
 #  needs to be adjusted)
@@ -108,12 +108,12 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
     """
     my_data has the following structure:
         my_data: a dictionary indexed by various data:
-            - 'max_cap': a single number. the maximum capacity across the
+            - "max_cap": a single number. the maximum capacity across the
             dataset.
-            - 'voltage_grid': 1D array of voltages
-            - 'current_grid': 1D array of log currents
-            - 'temperature_grid': 1D array of temperatures
-            - 'sign_grid': 1D array of signs
+            - "voltage_grid": 1D array of voltages
+            - "current_grid": 1D array of log currents
+            - "temperature_grid": 1D array of temperatures
+            - "sign_grid": 1D array of signs
             - CELL_TO_POS: a dictionary indexed by barcode yielding a
             positive electrode id.
             - CELL_TO_NEG: a dictionary indexed by barcode yielding a
@@ -124,17 +124,17 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                          1 if the cell is latent,
                          0 if made of known pos,neg,electrolyte
 
-            - 'all_data': a dictionary indexed by barcode.
+            - "all_data": a dictionary indexed by barcode.
                Each barcode yields:
-                - 'all_reference_mats': structured array with dtype =
+                - "all_reference_mats": structured array with dtype =
                     [
                         (
                             N,
-                            'f4'
+                            "f4"
                         ),
                         (
-                            'count_matrix',
-                            'f4',
+                            "count_matrix",
+                            "f4",
                             (
                                 len(sign_grid),
                                 len(voltage_grid_degradation),
@@ -144,7 +144,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                         ),
                     ]
 
-                - 'cyc_grp_dict': we know how this works.
+                - "cyc_grp_dict": we know how this works.
                     basically groups of steps indexed by group averages of
                     (
                         end_current_prev,
@@ -156,27 +156,27 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                     )
 
                     each group is a dictinary indexed by various quantities:
-                        - 'main_data':  a numpy structured array with dtype:
+                        - "main_data":  a numpy structured array with dtype:
                             [
-                                (N, 'f4'),
-                                (V_CC, 'f4', len(voltage_grid)),
-                                (Q_CC, 'f4', len(voltage_grid)),
-                                (MASK_CC, 'f4', len(voltage_grid)),
-                                (I_CV, 'f4', fit_args[
-                                'current_max_n']),
-                                (Q_CV, 'f4', fit_args[
-                                'current_max_n']),
-                                (MASK_CV, 'f4', fit_args[
-                                'current_max_n']),
-                                (I_CC, 'f4'),
-                                (I_PREV, 'f4'),
-                                ('end_current', 'f4'),
-                                (V_PREV_END, 'f4'),
-                                (V_END, 'f4'),
-                                ('last_cc_voltage', 'f4'),
-                                (Q_CC_LAST, 'f4'),
-                                (Q_CV_LAST, 'f4'),
-                                ('temperature', 'f4'),
+                                (N, "f4"),
+                                (V_CC, "f4", len(voltage_grid)),
+                                (Q_CC, "f4", len(voltage_grid)),
+                                (MASK_CC, "f4", len(voltage_grid)),
+                                (I_CV, "f4", fit_args[
+                                "current_max_n"]),
+                                (Q_CV, "f4", fit_args[
+                                "current_max_n"]),
+                                (MASK_CV, "f4", fit_args[
+                                "current_max_n"]),
+                                (I_CC, "f4"),
+                                (I_PREV, "f4"),
+                                ("end_current", "f4"),
+                                (V_PREV_END, "f4"),
+                                (V_END, "f4"),
+                                ("last_cc_voltage", "f4"),
+                                (Q_CC_LAST, "f4"),
+                                (Q_CV_LAST, "f4"),
+                                ("temperature", "f4"),
                             ]
 
                         -     I_CC_AVG
@@ -184,7 +184,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                         -     Q_END_AVG
                         -     V_PREV_END_AVG
                         -     V_END_AVG
-                        -     'avg_last_cc_voltage'
+                        -     "avg_last_cc_voltage"
 
 
 
@@ -196,33 +196,33 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
     number_of_compiled_cycles = 0
     number_of_reference_cycles = 0
 
-    my_data['max_cap'] = 250
-    max_cap = my_data['max_cap']
+    my_data["max_cap"] = 250
+    max_cap = my_data["max_cap"]
 
     numpy_acc(
         compiled_data,
-        'voltage_grid',
-        numpy.array([my_data['voltage_grid']])
+        "voltage_grid",
+        numpy.array([my_data["voltage_grid"]])
     )
     numpy_acc(
         compiled_data,
-        'temperature_grid',
-        numpy.array([my_data['temperature_grid']])
+        "temperature_grid",
+        numpy.array([my_data["temperature_grid"]])
     )
     numpy_acc(
         compiled_data,
-        'sign_grid',
-        numpy.array([my_data['sign_grid']])
+        "sign_grid",
+        numpy.array([my_data["sign_grid"]])
     )
 
-    my_data['current_grid'] = my_data['current_grid'] - numpy.log(max_cap)
+    my_data["current_grid"] = my_data["current_grid"] - numpy.log(max_cap)
 
     # the current grid is adjusted by the max capacity of the barcode. It is
     # in log space, so I/q becomes log(I) - log(q)
     numpy_acc(
         compiled_data,
-        'current_grid',
-        numpy.array([my_data['current_grid']])
+        "current_grid",
+        numpy.array([my_data["current_grid"]])
     )
 
     cell_id_list = numpy.array(barcodes)
@@ -258,9 +258,9 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 electrolyte_id_to_additive_id_weight[electrolyte_id]\
                     = my_data[ELE_TO_ADD][electrolyte_id]
 
-            if electrolyte_id in my_data['electrolyte_id_to_latent'].keys():
+            if electrolyte_id in my_data["electrolyte_id_to_latent"].keys():
                 electrolyte_id_to_latent[electrolyte_id]\
-                    = my_data['electrolyte_id_to_latent'][electrolyte_id]
+                    = my_data["electrolyte_id_to_latent"][electrolyte_id]
 
     mess = [
         [
@@ -290,8 +290,8 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
 
     for barcode_count, barcode in enumerate(barcodes):
 
-        all_data = my_data['all_data'][barcode]
-        cyc_grp_dict = all_data['cyc_grp_dict']
+        all_data = my_data["all_data"][barcode]
+        cyc_grp_dict = all_data["cyc_grp_dict"]
 
         for k_count, k in enumerate(cyc_grp_dict.keys()):
 
@@ -304,7 +304,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
             ])
             if my_pass:
                 continue
-            main_data = cyc_grp_dict[k]['main_data']
+            main_data = cyc_grp_dict[k]["main_data"]
 
             # normalize capacity_vector with max_cap
             main_data[Q_CC] = 1. / max_cap * main_data[Q_CC]
@@ -325,14 +325,14 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
             min_cyc = min(main_data[N])
             max_cyc = max(main_data[N])
 
-            '''
+            """
             - now create neighborhoods, which contains the cycles,
               grouped by proximity
             - want to sample neighborhoods equally
             - neighborhoods have a central cycle and a delta on each side
             - to a first approximation, we want a delta_cyc = 300, but we have
               to vary this near the beginning of data and near the end.
-            '''
+            """
 
             # gives an absolute scale
             total_delta = max_cyc - min_cyc
@@ -390,17 +390,17 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 if len(all_valid_indices) < 2:
                     continue
 
-                '''
+                """
                 at this point, we know that this neighborhood
                 will be added to the dataset.
-                '''
+                """
 
                 min_cyc_index = all_valid_indices[0]
                 max_cyc_index = all_valid_indices[-1]
 
                 valid_cycles += 1
 
-                '''
+                """
                 this commits the neighborhood to the dataset
 
                 - record the info about the center of the neighborhood
@@ -414,7 +414,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 - keep a slot empty for later
 
 
-                '''
+                """
                 # TODO(sam): here, figure out where the reference cycle is,
                 #  and note the index
 
@@ -437,7 +437,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
 
                 center_cycle = float(cyc)
                 reference_cycles\
-                    = all_data['all_reference_mats'][N]
+                    = all_data["all_reference_mats"][N]
 
                 index_of_closest_reference = numpy.argmin(
                     abs(center_cycle - reference_cycles)
@@ -459,17 +459,17 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 # are used to counterbalance the bias toward longer cycle life
                 neighborhood_data[:, NEIGH_VALID_CYC] = valid_cycles
 
-                numpy_acc(compiled_data, 'neighborhood_data', neighborhood_data)
+                numpy_acc(compiled_data, "neighborhood_data", neighborhood_data)
 
             number_of_compiled_cycles += len(main_data[N])
             number_of_reference_cycles += len(
-                all_data['all_reference_mats'][N]
+                all_data["all_reference_mats"][N]
             )
 
             dict_to_acc = {
-                'reference_cycle': all_data['all_reference_mats'][N],
-                'count_matrix': all_data['all_reference_mats']['count_matrix'],
-                'cycle': main_data[N],
+                "reference_cycle": all_data["all_reference_mats"][N],
+                "count_matrix": all_data["all_reference_mats"]["count_matrix"],
+                "cycle": main_data[N],
                 V_CC: main_data[V_CC],
                 Q_CC: main_data[Q_CC],
                 MASK_CC: main_data[MASK_CC],
@@ -485,17 +485,17 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
             for key in dict_to_acc:
                 numpy_acc(compiled_data, key, dict_to_acc[key])
 
-    neighborhood_data = tf.constant(compiled_data['neighborhood_data'])
+    neighborhood_data = tf.constant(compiled_data["neighborhood_data"])
 
     compiled_tensors = {}
     # cycles go from 0 to 6000, but nn prefers normally distributed variables
     # so cycle numbers is normalized with mean and variance
-    cycle_tensor = tf.constant(compiled_data['cycle'])
+    cycle_tensor = tf.constant(compiled_data["cycle"])
     cycle_m, cycle_v = tf.nn.moments(cycle_tensor, axes = [0])
     cycle_m = 0.  # we shall leave the cycle 0 at 0
     cycle_v = cycle_v.numpy()
     cycle_tensor = (cycle_tensor - cycle_m) / tf.sqrt(cycle_v)
-    compiled_tensors['cycle'] = cycle_tensor
+    compiled_tensors["cycle"] = cycle_tensor
 
     labels = [
         V_CC,
@@ -509,17 +509,17 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
         V_PREV_END,
         V_END,
 
-        'count_matrix',
+        "count_matrix",
 
-        'sign_grid',
-        'voltage_grid',
-        'current_grid',
-        'temperature_grid',
+        "sign_grid",
+        "voltage_grid",
+        "current_grid",
+        "temperature_grid",
     ]
     for label in labels:
         compiled_tensors[label] = tf.constant(compiled_data[label])
 
-    batch_size = fit_args['batch_size']
+    batch_size = fit_args["batch_size"]
 
     with strategy.scope():
         train_ds_ = tf.data.Dataset.from_tensor_slices(
@@ -532,15 +532,15 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
         neg_to_neg_name = {}
         electrolyte_to_electrolyte_name = {}
         if my_names is not None:
-            pos_to_pos_name = my_names['pos_to_pos_name']
-            neg_to_neg_name = my_names['neg_to_neg_name']
+            pos_to_pos_name = my_names["pos_to_pos_name"]
+            neg_to_neg_name = my_names["neg_to_neg_name"]
             electrolyte_to_electrolyte_name\
-                = my_names['electrolyte_to_electrolyte_name']
-            molecule_to_molecule_name = my_names['molecule_to_molecule_name']
+                = my_names["electrolyte_to_electrolyte_name"]
+            molecule_to_molecule_name = my_names["molecule_to_molecule_name"]
 
         degradation_model = DegradationModel(
-            width = fit_args['width'],
-            depth = fit_args['depth'],
+            width = fit_args["width"],
+            depth = fit_args["depth"],
             cell_dict = id_dict_from_id_list(cell_id_list),
             pos_dict = id_dict_from_id_list(pos_id_list),
             neg_dict = id_dict_from_id_list(neg_id_list),
@@ -563,14 +563,14 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 electrolyte_to_electrolyte_name,
                 molecule_to_molecule_name,
             ),
-            n_sample = fit_args['n_sample'],
+            n_sample = fit_args["n_sample"],
             incentive_coeffs = fit_args,
-            min_latent = fit_args['min_latent']
+            min_latent = fit_args["min_latent"]
 
         )
 
         optimizer = tf.keras.optimizers.Adam(
-            learning_rate = fit_args['learning_rate'])
+            learning_rate = fit_args["learning_rate"])
 
     return {
         "strategy": strategy,
@@ -590,9 +590,9 @@ class LossRecord():
     def __init__(self):
         self.data = []
         self.labels = [
-            'cc_capacity_loss',
-            'cv_capacity_loss',
-            'cc_voltage_loss',
+            "cc_capacity_loss",
+            "cv_capacity_loss",
+            "cc_voltage_loss",
             "q_loss",
             "scale_loss",
             "r_loss",
@@ -609,18 +609,18 @@ class LossRecord():
     def print_recent(self, fit_args):
         if len(self.data) > 0:
             count, losses = self.data[-1]
-            print('Count {}:'.format(count))
+            print("Count {}:".format(count))
             for i in range(len(losses)):
-                print('\t{}:{}. coeff:{}'.format(
+                print("\t{}:{}. coeff:{}".format(
                     self.labels[i],
                     losses[i],
-                    fit_args['coeff_' + self.labels[i].split('_loss')[0]]
+                    fit_args["coeff_" + self.labels[i].split("_loss")[0]]
                 ))
 
     def plot(self, count, fit_args):
         fig = plt.figure(figsize = [11, 10])
         ax = fig.add_subplot(111)
-        ax.set_yscale('log')
+        ax.set_yscale("log")
         for i in range(len(self.labels)):
             ax.plot(
                 [s[0] for s in self.data],
@@ -630,7 +630,7 @@ class LossRecord():
 
         ax.legend()
 
-        savefig('losses_Count_{}.png'.format(count), fit_args)
+        savefig("losses_Count_{}.png".format(count), fit_args)
         plt.close(fig)
 
 
@@ -640,14 +640,14 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
     epochs = 100000
     count = 0
 
-    template = 'Epoch {}, Count {}, Loss {}'
+    template = "Epoch {}, Count {}, Loss {}"
     end = time.time()
     now_ker = None
 
     train_step_params = {
-        "compiled_tensors": init_returns['compiled_tensors'],
-        "optimizer": init_returns['optimizer'],
-        "degradation_model": init_returns['degradation_model'],
+        "compiled_tensors": init_returns["compiled_tensors"],
+        "optimizer": init_returns["optimizer"],
+        "degradation_model": init_returns["degradation_model"],
     }
 
     @tf.function
@@ -675,7 +675,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                     l += l_
 
                 if count != 0:
-                    if (count % fit_args['print_loss_every']) == 0:
+                    if (count % fit_args["print_loss_every"]) == 0:
                         tot = l / tf.cast(sub_count, dtype = tf.float32)
                         l = None
                         sub_count = 0
@@ -688,7 +688,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                         "fit_args": fit_args,
                     }
 
-                    if (count % fit_args['visualize_fit_every']) == 0:
+                    if (count % fit_args["visualize_fit_every"]) == 0:
 
                         start = time.time()
                         print("time to simulate: ", start - end)
@@ -712,30 +712,30 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                         if now_ker is not None:
                             delta_cell_ker = numpy.abs(now_ker[0] - now_ker[1])
                             print(
-                                'average difference between cells: ',
+                                "average difference between cells: ",
                                 numpy.average(delta_cell_ker)
                             )
                         if prev_ker is not None:
                             delta_time_ker = numpy.abs(now_ker - prev_ker)
                             print(
-                                'average difference between prev and now: ',
+                                "average difference between prev and now: ",
                                 numpy.average(delta_time_ker)
                             )
                         print()
 
-                if count >= fit_args['stop_count']:
+                if count >= fit_args["stop_count"]:
                     return
 
 
 def train_step(neighborhood, params, fit_args):
-    sign_grid_tensor = params["compiled_tensors"]['sign_grid']
-    voltage_grid_tensor = params["compiled_tensors"]['voltage_grid']
-    current_grid_tensor = params["compiled_tensors"]['current_grid']
-    temperature_grid_tensor = params["compiled_tensors"]['temperature_grid']
+    sign_grid_tensor = params["compiled_tensors"]["sign_grid"]
+    voltage_grid_tensor = params["compiled_tensors"]["voltage_grid"]
+    current_grid_tensor = params["compiled_tensors"]["current_grid"]
+    temperature_grid_tensor = params["compiled_tensors"]["temperature_grid"]
 
-    count_matrix_tensor = params["compiled_tensors"]['count_matrix']
+    count_matrix_tensor = params["compiled_tensors"]["count_matrix"]
 
-    cycle_tensor = params["compiled_tensors"]['cycle']
+    cycle_tensor = params["compiled_tensors"]["cycle"]
     constant_current_tensor = params["compiled_tensors"]["constant_current"]
     end_current_prev_tensor = params["compiled_tensors"]["end_current_prev"]
     end_voltage_prev_tensor = params["compiled_tensors"]["end_voltage_prev"]
@@ -754,13 +754,13 @@ def train_step(neighborhood, params, fit_args):
     # need to split the range
     batch_size2 = neighborhood.shape[0]
 
-    '''
+    """
     if you have the minimum cycle and maximum cycle for a neighborhood,
     you can sample cycle from this neighborhood by sampling real numbers
     x from [0,1] and computing min_cyc*(1.-x) + max_cyc*x,
     but here this computation is done in index space,
     then cycle numbers and vq curves are gathered
-    '''
+    """
 
     cycle_indices_lerp = tf.random.uniform(
         [batch_size2], minval = 0., maxval = 1., dtype = tf.float32)
@@ -923,24 +923,24 @@ def train_step(neighborhood, params, fit_args):
 
         loss = (
             tf.stop_gradient(
-                fit_args['coeff_cv_capacity'] * cv_capacity_loss
-                + fit_args['coeff_cc_voltage'] * cc_voltage_loss
-                + fit_args['coeff_cc_capacity'] * cc_capacity_loss
+                fit_args["coeff_cv_capacity"] * cv_capacity_loss
+                + fit_args["coeff_cc_voltage"] * cc_voltage_loss
+                + fit_args["coeff_cc_capacity"] * cc_capacity_loss
             )
-            + fit_args['coeff_cv_capacity'] * cv_capacity_loss
-            + fit_args['coeff_cc_voltage'] * cc_voltage_loss
-            + fit_args['coeff_cc_capacity'] * cc_capacity_loss
+            + fit_args["coeff_cv_capacity"] * cv_capacity_loss
+            + fit_args["coeff_cc_voltage"] * cc_voltage_loss
+            + fit_args["coeff_cc_capacity"] * cc_capacity_loss
             * (
-                fit_args['coeff_q'] * train_results["q_loss"]
-                + fit_args['coeff_scale'] * train_results["scale_loss"]
-                + fit_args['coeff_r'] * train_results["r_loss"]
-                + fit_args['coeff_shift'] * train_results["shift_loss"]
-                + fit_args['coeff_cell'] * train_results["cell_loss"]
-                + fit_args['coeff_reciprocal']
+                fit_args["coeff_q"] * train_results["q_loss"]
+                + fit_args["coeff_scale"] * train_results["scale_loss"]
+                + fit_args["coeff_r"] * train_results["r_loss"]
+                + fit_args["coeff_shift"] * train_results["shift_loss"]
+                + fit_args["coeff_cell"] * train_results["cell_loss"]
+                + fit_args["coeff_reciprocal"]
                 * train_results["reciprocal_loss"]
-                + fit_args['coeff_projection']
+                + fit_args["coeff_projection"]
                 * train_results["projection_loss"]
-                + fit_args['coeff_out_of_bounds']
+                + fit_args["coeff_out_of_bounds"]
                 * train_results["out_of_bounds_loss"]
             )
 
@@ -958,7 +958,7 @@ def train_step(neighborhood, params, fit_args):
 
     gradients_norm_clipped, _ = tf.clip_by_global_norm(
         gradients_no_nans,
-        fit_args['global_norm_clip']
+        fit_args["global_norm_clip"]
     )
 
     optimizer.apply_gradients(
@@ -988,54 +988,54 @@ def train_step(neighborhood, params, fit_args):
 
 
 def ml_smoothing(fit_args):
-    if len(tf.config.experimental.list_physical_devices('GPU')) == 1:
-        strategy = tf.distribute.OneDeviceStrategy(device = '/gpu:0')
-    elif len(tf.config.experimental.list_physical_devices('GPU')) > 1:
+    if len(tf.config.experimental.list_physical_devices("GPU")) == 1:
+        strategy = tf.distribute.OneDeviceStrategy(device = "/gpu:0")
+    elif len(tf.config.experimental.list_physical_devices("GPU")) > 1:
         strategy = tf.distribute.MirroredStrategy()
     else:
-        strategy = tf.distribute.OneDeviceStrategy('/cpu:0')
+        strategy = tf.distribute.OneDeviceStrategy("/cpu:0")
 
-    if not os.path.exists(fit_args['path_to_plots']):
-        os.mkdir(fit_args['path_to_plots'])
+    if not os.path.exists(fit_args["path_to_plots"]):
+        os.mkdir(fit_args["path_to_plots"])
 
     with open(
-        os.path.join(fit_args['path_to_plots'], 'fit_args_log.txt'), 'w'
+        os.path.join(fit_args["path_to_plots"], "fit_args_log.txt"), "w"
     ) as f:
-        my_str = ''
+        my_str = ""
         for k in fit_args:
-            my_str = '{} \n {}: {}'.format(my_str, k, str(fit_args[k]))
+            my_str = "{} \n {}: {}".format(my_str, k, str(fit_args[k]))
         f.write(my_str)
 
     dataset_path = os.path.join(
-        fit_args['path_to_dataset'],
-        'dataset_ver_{}.file'.format(fit_args['dataset_version'])
+        fit_args["path_to_dataset"],
+        "dataset_ver_{}.file".format(fit_args["dataset_version"])
     )
 
     dataset_names_path = os.path.join(
-        fit_args['path_to_dataset'],
-        'dataset_ver_{}_names.file'.format(fit_args['dataset_version'])
+        fit_args["path_to_dataset"],
+        "dataset_ver_{}_names.file".format(fit_args["dataset_version"])
     )
 
     if not os.path.exists(dataset_path):
         print("Path \"" + dataset_path + "\" does not exist.")
         return
 
-    with open(dataset_path, 'rb') as f:
+    with open(dataset_path, "rb") as f:
         my_data = pickle.load(f)
 
     my_names = None
     if os.path.exists(dataset_names_path):
-        with open(dataset_names_path, 'rb') as f:
+        with open(dataset_names_path, "rb") as f:
             my_names = pickle.load(f)
 
-    barcodes = list(my_data['all_data'].keys())
+    barcodes = list(my_data["all_data"].keys())
 
-    if len(fit_args['wanted_barcodes']) != 0:
+    if len(fit_args["wanted_barcodes"]) != 0:
         barcodes = list(
-            set(barcodes).intersection(set(fit_args['wanted_barcodes'])))
+            set(barcodes).intersection(set(fit_args["wanted_barcodes"])))
 
     if len(barcodes) == 0:
-        print('no barcodes')
+        print("no barcodes")
         return
 
     train_and_evaluate(
@@ -1052,99 +1052,99 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
 
         required_args = [
-            '--path_to_dataset',
-            '--dataset_version',
-            '--path_to_plots'
+            "--path_to_dataset",
+            "--dataset_version",
+            "--path_to_plots"
         ]
 
         float_args = {
-            '--global_norm_clip': 10.,
+            "--global_norm_clip": 10.,
 
-            '--learning_rate': 1e-4,
-            '--min_latent': .1,
+            "--learning_rate": 1e-4,
+            "--min_latent": .1,
 
-            '--coeff_d_features': .0001,
-            '--coeff_d2_features': .0001,
+            "--coeff_d_features": .0001,
+            "--coeff_d2_features": .0001,
 
-            '--coeff_cell': .001,
-            '--coeff_cell_output': .1,
-            '--coeff_cell_input': .1,
-            '--coeff_cell_derivative': .1,
-            '--coeff_cell_eq': 10.,
+            "--coeff_cell": .001,
+            "--coeff_cell_output": .1,
+            "--coeff_cell_input": .1,
+            "--coeff_cell_derivative": .1,
+            "--coeff_cell_eq": 10.,
 
-            '--coeff_electrolyte': 1.,
-            '--coeff_electrolyte_output': .1,
-            '--coeff_electrolyte_input': .1,
-            '--coeff_electrolyte_derivative': .1,
-            '--coeff_electrolyte_eq': 10.,
+            "--coeff_electrolyte": 1.,
+            "--coeff_electrolyte_output": .1,
+            "--coeff_electrolyte_input": .1,
+            "--coeff_electrolyte_derivative": .1,
+            "--coeff_electrolyte_eq": 10.,
 
-            '--coeff_cv_capacity': 1.,
-            '--coeff_cc_voltage': 1.,
-            '--coeff_cc_capacity': 1.,
+            "--coeff_cv_capacity": 1.,
+            "--coeff_cc_voltage": 1.,
+            "--coeff_cc_capacity": 1.,
 
-            '--coeff_q': 1.,
-            '--coeff_q_small': .001,
-            '--coeff_q_geq': 1.,
-            '--coeff_q_leq': 1.,
-            '--coeff_q_v_mono': 10.,
-            '--coeff_q_d3_v': 1.,
-            '--coeff_q_d3_shift': .01,
-            '--coeff_q_d3_current': .1,
+            "--coeff_q": 1.,
+            "--coeff_q_small": .001,
+            "--coeff_q_geq": 1.,
+            "--coeff_q_leq": 1.,
+            "--coeff_q_v_mono": 10.,
+            "--coeff_q_d3_v": 1.,
+            "--coeff_q_d3_shift": .01,
+            "--coeff_q_d3_current": .1,
 
-            '--coeff_scale': 5.,
-            '--coeff_scale_geq': 5.,
-            '--coeff_scale_leq': 5.,
-            '--coeff_scale_eq': 5.,
-            '--coeff_scale_mono': 1.,
-            '--coeff_scale_d3_cycle': .002,
+            "--coeff_scale": 5.,
+            "--coeff_scale_geq": 5.,
+            "--coeff_scale_leq": 5.,
+            "--coeff_scale_eq": 5.,
+            "--coeff_scale_mono": 1.,
+            "--coeff_scale_d3_cycle": .002,
 
-            '--coeff_r': 5.,
-            '--coeff_r_geq': 1.,
-            '--coeff_r_big': .0,
-            '--coeff_r_d3_cycle': .002,
+            "--coeff_r": 5.,
+            "--coeff_r_geq": 1.,
+            "--coeff_r_big": .0,
+            "--coeff_r_d3_cycle": .002,
 
-            '--coeff_shift': 1.,
-            '--coeff_shift_geq': .5,
-            '--coeff_shift_leq': .5,
-            '--coeff_shift_small': .1,
-            '--coeff_shift_d3_cycle': .0,
-            '--coeff_shift_mono': .0,
-            '--coeff_shift_a_big': .001,
+            "--coeff_shift": 1.,
+            "--coeff_shift_geq": .5,
+            "--coeff_shift_leq": .5,
+            "--coeff_shift_small": .1,
+            "--coeff_shift_d3_cycle": .0,
+            "--coeff_shift_mono": .0,
+            "--coeff_shift_a_big": .001,
 
-            '--coeff_reciprocal': 10.,
-            '--coeff_reciprocal_v': 10.,
-            '--coeff_reciprocal_q': 10.,
-            '--coeff_reciprocal_v_small': .001,
-            '--coeff_reciprocal_v_geq': 1.,
-            '--coeff_reciprocal_v_leq': .5,
-            '--coeff_reciprocal_v_mono': 10.,
-            '--coeff_reciprocal_d3_current': 1.,
-            '--coeff_reciprocal_d_current_minus': 10.,
-            '--coeff_reciprocal_d_current_plus': 5.,
+            "--coeff_reciprocal": 10.,
+            "--coeff_reciprocal_v": 10.,
+            "--coeff_reciprocal_q": 10.,
+            "--coeff_reciprocal_v_small": .001,
+            "--coeff_reciprocal_v_geq": 1.,
+            "--coeff_reciprocal_v_leq": .5,
+            "--coeff_reciprocal_v_mono": 10.,
+            "--coeff_reciprocal_d3_current": 1.,
+            "--coeff_reciprocal_d_current_minus": 10.,
+            "--coeff_reciprocal_d_current_plus": 5.,
 
-            '--coeff_projection': .01,
-            '--coeff_projection_pos': 1.,
-            '--coeff_projection_neg': 1.,
+            "--coeff_projection": .01,
+            "--coeff_projection_pos": 1.,
+            "--coeff_projection_neg": 1.,
 
-            '--coeff_out_of_bounds': 10.,
-            '--coeff_out_of_bounds_geq': 1.,
-            '--coeff_out_of_bounds_leq': 1.,
+            "--coeff_out_of_bounds": 10.,
+            "--coeff_out_of_bounds_geq": 1.,
+            "--coeff_out_of_bounds_leq": 1.,
         }
 
         vis = 10000
         int_args = {
-            '--n_sample': 8 * 16,
+            "--n_sample": 8 * 16,
 
-            '--depth': 3,
-            '--width': 50,
-            '--batch_size': 4 * 16,
+            "--depth": 3,
+            "--width": 50,
+            "--batch_size": 4 * 16,
 
-            '--print_loss_every': 500,
-            '--visualize_fit_every': vis,
-            '--visualize_vq_every': vis,
+            "--print_loss_every": 500,
+            "--visualize_fit_every": vis,
+            "--visualize_vq_every": vis,
 
-            '--stop_count': 1000004,
-            '--barcode_show': 10
+            "--stop_count": 1000004,
+            "--barcode_show": 10
         }
 
         for arg in required_args:
@@ -1173,7 +1173,7 @@ class Command(BaseCommand):
         # 83012, 83013, 83014, 83015, 83016
 
         parser.add_argument(
-            '--wanted_barcodes', type = int, nargs = '+', default = barcodes
+            "--wanted_barcodes", type = int, nargs = "+", default = barcodes
         )
 
     def handle(self, *args, **options):

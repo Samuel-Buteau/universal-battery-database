@@ -24,12 +24,18 @@ Shortened Variable Names:
     res -   result
 """
 
-# Dictionary key names
+
+# params keys
+TENSORS = "compiled_tensors"
+MODEL = "degradation_model"
+
+# Dictionary keys
 Q_CC = "cc_capacity_vector"
 Q_CV = "cv_capacity_vector"
 Q_CC_LAST = "last_cc_capacity"
 Q_CV_LAST = "last_cv_capacity"
 Q_END_AVG = "avg_end_current"
+Q_GRID = "current_grid"
 
 I_CV = "cv_current_vector"
 I_CC = "constant_current"
@@ -42,13 +48,22 @@ V_END = "end_voltage"
 V_END_AVG = "avg_end_voltage"
 V_PREV_END = "end_voltage_prev"
 V_PREV_END_AVG = "avg_end_voltage_prev"
+V_GRID = "voltage_grid"
 
 MASK_CC = "cc_mask_vector"
 MASK_CV = "cv_mask_vector"
 
 N = "cycle_number"
 
-# my_data key names
+COUNT_MATRIX = "count_matrix"
+
+SIGN_GRID = "sign_grid"
+TEMP_GRID = "temperature_grid"
+
+# data keys
+ALL_DATA = "all_data"
+
+# my_data keys
 CELL_TO_POS = "cell_id_to_pos_id"
 CELL_TO_NEG = "cell_id_to_neg_id"
 CELL_TO_ELE = "cell_id_to_electrolyte_id"
@@ -57,7 +72,16 @@ CELL_TO_LAT = "cell_id_to_latent"
 ELE_TO_SOL = "electrolyte_id_to_solvent_id_weight"
 ELE_TO_SALT = "electrolyte_id_to_salt_id_weight"
 ELE_TO_ADD = "electrolyte_id_to_additive_id_weight"
+ELE_TO_LAT = "electrolyte_id_to_latent"
 
+# loss keys
+Q_LOSS = "q_loss"
+SCALE_LOSS = "scale_loss"
+R_LOSS = "r_loss"
+
+# fig args keys
+PATH_DATASET = "path_to_dataset"
+PATH_PLOTS = "path_to_plots"
 
 # TODO(sam): For each barcode, needs a multigrid of (S, V, I, T) (current
 #  needs to be adjusted)
@@ -111,10 +135,10 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
         my_data: a dictionary indexed by various data:
             - "max_cap": a single number. the maximum capacity across the
             dataset.
-            - "voltage_grid": 1D array of voltages
-            - "current_grid": 1D array of log currents
-            - "temperature_grid": 1D array of temperatures
-            - "sign_grid": 1D array of signs
+            - GRID_V: 1D array of voltages
+            - Q_GRID: 1D array of log currents
+            - TEMP_GRID: 1D array of temperatures
+            - GRID_SIGN: 1D array of signs
             - CELL_TO_POS: a dictionary indexed by barcode yielding a
             positive electrode id.
             - CELL_TO_NEG: a dictionary indexed by barcode yielding a
@@ -125,7 +149,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                          1 if the cell is latent,
                          0 if made of known pos,neg,electrolyte
 
-            - "all_data": a dictionary indexed by barcode.
+            - ALL_DATA: a dictionary indexed by barcode.
                Each barcode yields:
                 - "all_reference_mats": structured array with dtype =
                     [
@@ -134,7 +158,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                             "f4"
                         ),
                         (
-                            "count_matrix",
+                            COUNT_MATRIX,
                             "f4",
                             (
                                 len(sign_grid),
@@ -200,32 +224,16 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
     my_data["max_cap"] = 250
     max_cap = my_data["max_cap"]
 
-    numpy_acc(
-        compiled_data,
-        "voltage_grid",
-        numpy.array([my_data["voltage_grid"]])
-    )
-    numpy_acc(
-        compiled_data,
-        "temperature_grid",
-        numpy.array([my_data["temperature_grid"]])
-    )
-    numpy_acc(
-        compiled_data,
-        "sign_grid",
-        numpy.array([my_data["sign_grid"]])
-    )
+    keys = [V_GRID, TEMP_GRID, SIGN_GRID]
+    for key in keys:
+        numpy_acc(compiled_data, key, numpy.array([my_data[key]]))
 
-    my_data["current_grid"] = my_data["current_grid"] - numpy.log(max_cap)
-
+    my_data[Q_GRID] = my_data[Q_GRID] - numpy.log(max_cap)
     # the current grid is adjusted by the max capacity of the barcode. It is
     # in log space, so I/q becomes log(I) - log(q)
-    numpy_acc(
-        compiled_data,
-        "current_grid",
-        numpy.array([my_data["current_grid"]])
-    )
+    numpy_acc(compiled_data, Q_GRID, numpy.array([my_data[Q_GRID]]))
 
+    # TODO (harvey): simplify the following using loops
     cell_id_list = numpy.array(barcodes)
     cell_id_to_pos_id = {}
     cell_id_to_neg_id = {}
@@ -250,18 +258,18 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
         if cell_id_to_latent[cell_id] < 0.5:
             electrolyte_id = cell_id_to_electrolyte_id[cell_id]
             if electrolyte_id in my_data[ELE_TO_SOL].keys():
-                electrolyte_id_to_solvent_id_weight[electrolyte_id]\
+                electrolyte_id_to_solvent_id_weight[electrolyte_id] \
                     = my_data[ELE_TO_SOL][electrolyte_id]
             if electrolyte_id in my_data[ELE_TO_SALT].keys():
-                electrolyte_id_to_salt_id_weight[electrolyte_id]\
+                electrolyte_id_to_salt_id_weight[electrolyte_id] \
                     = my_data[ELE_TO_SALT][electrolyte_id]
             if electrolyte_id in my_data[ELE_TO_ADD].keys():
-                electrolyte_id_to_additive_id_weight[electrolyte_id]\
+                electrolyte_id_to_additive_id_weight[electrolyte_id] \
                     = my_data[ELE_TO_ADD][electrolyte_id]
 
-            if electrolyte_id in my_data["electrolyte_id_to_latent"].keys():
-                electrolyte_id_to_latent[electrolyte_id]\
-                    = my_data["electrolyte_id_to_latent"][electrolyte_id]
+            if electrolyte_id in my_data[ELE_TO_LAT].keys():
+                electrolyte_id_to_latent[electrolyte_id] \
+                    = my_data[ELE_TO_LAT][electrolyte_id]
 
     mess = [
         [
@@ -291,7 +299,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
 
     for barcode_count, barcode in enumerate(barcodes):
 
-        all_data = my_data["all_data"][barcode]
+        all_data = my_data[ALL_DATA][barcode]
         cyc_grp_dict = all_data["cyc_grp_dict"]
 
         for k_count, k in enumerate(cyc_grp_dict.keys()):
@@ -317,9 +325,9 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
             main_data[I_PREV] = 1. / max_cap * main_data[I_PREV]
 
             cyc_grp_dict[k][I_CC_AVG] = 1. / max_cap * cyc_grp_dict[k][I_CC_AVG]
-            cyc_grp_dict[k][Q_END_AVG]\
+            cyc_grp_dict[k][Q_END_AVG] \
                 = 1. / max_cap * cyc_grp_dict[k][Q_END_AVG]
-            cyc_grp_dict[k][I_PREV_END_AVG]\
+            cyc_grp_dict[k][I_PREV_END_AVG] \
                 = 1. / max_cap * cyc_grp_dict[k][I_PREV_END_AVG]
 
             # range of cycles which exist for this cycle group
@@ -427,7 +435,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 neighborhood_data_i[NEIGH_MAX_CYC] = max_cyc_index
                 neighborhood_data_i[NEIGH_RATE] = k_count
                 neighborhood_data_i[NEIGH_BARCODE] = barcode_count
-                neighborhood_data_i[NEIGH_ABSOLUTE_CYCLE]\
+                neighborhood_data_i[NEIGH_ABSOLUTE_CYCLE] \
                     = number_of_compiled_cycles
                 # a weight based on prevalence. Set later
                 neighborhood_data_i[NEIGH_VALID_CYC] = 0
@@ -437,16 +445,16 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 neighborhood_data_i[NEIGH_TEMPERATURE_GRID] = 0
 
                 center_cycle = float(cyc)
-                reference_cycles\
+                reference_cycles \
                     = all_data["all_reference_mats"][N]
 
                 index_of_closest_reference = numpy.argmin(
                     abs(center_cycle - reference_cycles)
                 )
 
-                neighborhood_data_i[NEIGH_ABSOLUTE_REFERENCE]\
+                neighborhood_data_i[NEIGH_ABSOLUTE_REFERENCE] \
                     = number_of_reference_cycles
-                neighborhood_data_i[NEIGH_REFERENCE]\
+                neighborhood_data_i[NEIGH_REFERENCE] \
                     = index_of_closest_reference
 
                 neighborhood_data.append(neighborhood_data_i)
@@ -469,7 +477,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
 
             dict_to_acc = {
                 "reference_cycle": all_data["all_reference_mats"][N],
-                "count_matrix": all_data["all_reference_mats"]["count_matrix"],
+                COUNT_MATRIX: all_data["all_reference_mats"][COUNT_MATRIX],
                 "cycle": main_data[N],
                 V_CC: main_data[V_CC],
                 Q_CC: main_data[Q_CC],
@@ -499,23 +507,10 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
     compiled_tensors["cycle"] = cycle_tensor
 
     labels = [
-        V_CC,
-        Q_CC,
-        MASK_CC,
-        Q_CV,
-        I_CV,
-        MASK_CV,
-        I_CC,
-        I_PREV,
-        V_PREV_END,
-        V_END,
-
-        "count_matrix",
-
-        "sign_grid",
-        "voltage_grid",
-        "current_grid",
-        "temperature_grid",
+        V_CC, Q_CC, MASK_CC, Q_CV, I_CV, MASK_CV, I_CC, I_PREV,
+        V_PREV_END, V_END,
+        COUNT_MATRIX,
+        SIGN_GRID, V_GRID, Q_GRID, TEMP_GRID
     ]
     for label in labels:
         compiled_tensors[label] = tf.constant(compiled_data[label])
@@ -535,7 +530,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
         if my_names is not None:
             pos_to_pos_name = my_names["pos_to_pos_name"]
             neg_to_neg_name = my_names["neg_to_neg_name"]
-            electrolyte_to_electrolyte_name\
+            electrolyte_to_electrolyte_name \
                 = my_names["electrolyte_to_electrolyte_name"]
             molecule_to_molecule_name = my_names["molecule_to_molecule_name"]
 
@@ -575,8 +570,8 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
 
     return {
         "strategy": strategy,
-        "degradation_model": degradation_model,
-        "compiled_tensors": compiled_tensors,
+        MODEL: degradation_model,
+        TENSORS: compiled_tensors,
 
         "train_ds": train_ds,
         "cycle_m": cycle_m,
@@ -594,10 +589,12 @@ class LossRecord():
             "cc_capacity_loss",
             "cv_capacity_loss",
             "cc_voltage_loss",
+
             "cv_voltage_loss",
-            "q_loss",
-            "scale_loss",
-            "r_loss",
+
+            Q_LOSS,
+            SCALE_LOSS,
+            R_LOSS,
             "shift_loss",
             "cell_loss",
             "reciprocal_loss",
@@ -647,9 +644,9 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
     now_ker = None
 
     train_step_params = {
-        "compiled_tensors": init_returns["compiled_tensors"],
+        TENSORS: init_returns[TENSORS],
         "optimizer": init_returns["optimizer"],
-        "degradation_model": init_returns["degradation_model"],
+        MODEL: init_returns[MODEL],
     }
 
     @tf.function
@@ -700,9 +697,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                         plot_v_curves(plot_params, init_returns)
                         end = time.time()
                         print("time to plot: ", end - start)
-                        ker = init_returns[
-                            "degradation_model"
-                        ].cell_direct.kernel.numpy()
+                        ker = init_returns[MODEL].cell_direct.kernel.numpy()
                         prev_ker = now_ker
                         now_ker = ker
 
@@ -730,28 +725,28 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
 
 
 def train_step(neighborhood, params, fit_args):
-    sign_grid_tensor = params["compiled_tensors"]["sign_grid"]
-    voltage_grid_tensor = params["compiled_tensors"]["voltage_grid"]
-    current_grid_tensor = params["compiled_tensors"]["current_grid"]
-    temperature_grid_tensor = params["compiled_tensors"]["temperature_grid"]
+    sign_grid_tensor = params[TENSORS][SIGN_GRID]
+    voltage_grid_tensor = params[TENSORS][V_GRID]
+    current_grid_tensor = params[TENSORS][Q_GRID]
+    temperature_grid_tensor = params[TENSORS][TEMP_GRID]
 
-    count_matrix_tensor = params["compiled_tensors"]["count_matrix"]
+    count_matrix_tensor = params[TENSORS][COUNT_MATRIX]
 
-    cycle_tensor = params["compiled_tensors"]["cycle"]
-    constant_current_tensor = params["compiled_tensors"][I_CC]
-    end_current_prev_tensor = params["compiled_tensors"]["end_current_prev"]
-    end_voltage_prev_tensor = params["compiled_tensors"]["end_voltage_prev"]
-    end_voltage_tensor = params["compiled_tensors"]["end_voltage"]
+    cycle_tensor = params[TENSORS]["cycle"]
+    constant_current_tensor = params[TENSORS]["constant_current"]
+    end_current_prev_tensor = params[TENSORS]["end_current_prev"]
+    end_voltage_prev_tensor = params[TENSORS]["end_voltage_prev"]
+    end_voltage_tensor = params[TENSORS]["end_voltage"]
 
-    degradation_model = params["degradation_model"]
+    degradation_model = params[MODEL]
     optimizer = params["optimizer"]
 
-    cc_voltage_tensor = params["compiled_tensors"][V_CC]
-    cc_capacity_tensor = params["compiled_tensors"][Q_CC]
-    cc_mask_tensor = params["compiled_tensors"][MASK_CC]
-    cv_capacity_tensor = params["compiled_tensors"][Q_CV]
-    cv_current_tensor = params["compiled_tensors"][I_CV]
-    cv_mask_tensor = params["compiled_tensors"][MASK_CV]
+    cc_voltage_tensor = params[TENSORS][V_CC]
+    cc_capacity_tensor = params[TENSORS][Q_CC]
+    cc_mask_tensor = params[TENSORS][MASK_CC]
+    cv_capacity_tensor = params[TENSORS][Q_CV]
+    cv_current_tensor = params[TENSORS][I_CV]
+    cv_mask_tensor = params[TENSORS][MASK_CV]
 
     # need to split the range
     batch_size2 = neighborhood.shape[0]
@@ -938,26 +933,27 @@ def train_step(neighborhood, params, fit_args):
         )
 
         loss = (
-            fit_args['coeff_cv_capacity'] * cv_capacity_loss
-            + fit_args['coeff_cv_voltage'] * cv_voltage_loss
-            + fit_args['coeff_cc_voltage'] * cc_voltage_loss
-            + fit_args['coeff_cc_capacity'] * cc_capacity_loss
-            + 1. * tf.stop_gradient(
-                fit_args['coeff_cv_capacity'] * cv_capacity_loss
-                + fit_args['coeff_cv_voltage'] * cv_voltage_loss
-                + fit_args['coeff_cc_voltage'] * cc_voltage_loss
-                + fit_args['coeff_cc_capacity'] * cc_capacity_loss
-            ) * (
-            fit_args["coeff_q"] *train_results["q_loss"]
-            + fit_args["coeff_scale"] *train_results["scale_loss"]
-            + fit_args["coeff_r"] * train_results["r_loss"]
-            + fit_args["coeff_shift"] *train_results["shift_loss"]
-            + fit_args["coeff_cell"] * train_results["cell_loss"]
-            + fit_args["coeff_reciprocal"] * train_results["reciprocal_loss"]
-            + fit_args["coeff_projection"]  * train_results["projection_loss"]
-            + fit_args["coeff_out_of_bounds"] * train_results["out_of_bounds_loss"]
-        )
-
+            tf.stop_gradient(
+                fit_args["coeff_cv_capacity"] * cv_capacity_loss
+                + fit_args["coeff_cc_voltage"] * cc_voltage_loss
+                + fit_args["coeff_cc_capacity"] * cc_capacity_loss
+            )
+            + fit_args["coeff_cv_capacity"] * cv_capacity_loss
+            + fit_args["coeff_cc_voltage"] * cc_voltage_loss
+            + fit_args["coeff_cc_capacity"] * cc_capacity_loss
+            * (
+                fit_args["coeff_q"] * train_results[Q_LOSS]
+                + fit_args["coeff_scale"] * train_results[SCALE_LOSS]
+                + fit_args["coeff_r"] * train_results[R_LOSS]
+                + fit_args["coeff_shift"] * train_results["shift_loss"]
+                + fit_args["coeff_cell"] * train_results["cell_loss"]
+                + fit_args["coeff_reciprocal"]
+                * train_results["reciprocal_loss"]
+                + fit_args["coeff_projection"]
+                * train_results["projection_loss"]
+                + fit_args["coeff_out_of_bounds"]
+                * train_results["out_of_bounds_loss"]
+            )
         )
 
     gradients = tape.gradient(
@@ -988,10 +984,9 @@ def train_step(neighborhood, params, fit_args):
             cv_capacity_loss,
             cc_voltage_loss,
             cv_voltage_loss,
-            train_results["q_loss"],
-            train_results["scale_loss"],
-            train_results["r_loss"],
-
+            train_results[Q_LOSS],
+            train_results[SCALE_LOSS],
+            train_results[R_LOSS],
             train_results["shift_loss"],
             train_results["cell_loss"],
             train_results["reciprocal_loss"],
@@ -1004,21 +999,17 @@ def train_step(neighborhood, params, fit_args):
 
 def ml_smoothing(fit_args):
     if len(tf.config.experimental.list_physical_devices("GPU")) == 1:
-        strategy = tf.distribute.OneDeviceStrategy(
-            device = "/gpu:0"
-        )
+        strategy = tf.distribute.OneDeviceStrategy(device = "/gpu:0")
     elif len(tf.config.experimental.list_physical_devices("GPU")) > 1:
         strategy = tf.distribute.MirroredStrategy()
     else:
-        strategy = tf.distribute.OneDeviceStrategy(
-            "/cpu:0"
-        )
+        strategy = tf.distribute.OneDeviceStrategy("/cpu:0")
 
-    if not os.path.exists(fit_args["path_to_plots"]):
-        os.mkdir(fit_args["path_to_plots"])
+    if not os.path.exists(fit_args[PATH_PLOTS]):
+        os.mkdir(fit_args[PATH_PLOTS])
 
     with open(
-        os.path.join(fit_args["path_to_plots"], "fit_args_log.txt"), "w"
+        os.path.join(fit_args[PATH_PLOTS], "fit_args_log.txt"), "w"
     ) as f:
         my_str = ""
         for k in fit_args:
@@ -1026,12 +1017,12 @@ def ml_smoothing(fit_args):
         f.write(my_str)
 
     dataset_path = os.path.join(
-        fit_args["path_to_dataset"],
+        fit_args[PATH_DATASET],
         "dataset_ver_{}.file".format(fit_args["dataset_version"])
     )
 
     dataset_names_path = os.path.join(
-        fit_args["path_to_dataset"],
+        fit_args[PATH_DATASET],
         "dataset_ver_{}_names.file".format(fit_args["dataset_version"])
     )
 
@@ -1047,7 +1038,7 @@ def ml_smoothing(fit_args):
         with open(dataset_names_path, "rb") as f:
             my_names = pickle.load(f)
 
-    barcodes = list(my_data["all_data"].keys())
+    barcodes = list(my_data[ALL_DATA].keys())
 
     if len(fit_args["wanted_barcodes"]) != 0:
         barcodes = list(
@@ -1060,8 +1051,10 @@ def ml_smoothing(fit_args):
     train_and_evaluate(
         initial_processing(
             my_data, my_names, barcodes, fit_args, strategy = strategy
-        ), barcodes,
-        fit_args)
+        ),
+        barcodes,
+        fit_args
+    )
 
 
 class Command(BaseCommand):
@@ -1075,6 +1068,7 @@ class Command(BaseCommand):
         ]
 
         float_args = {
+
             '--global_norm_clip': 10.,
 
             '--learning_rate': 5e-4,
@@ -1147,6 +1141,7 @@ class Command(BaseCommand):
             '--coeff_out_of_bounds': 10.,
             '--coeff_out_of_bounds_geq': 1.,
             '--coeff_out_of_bounds_leq': 1.,
+
 
         }
 

@@ -24,7 +24,7 @@ The Universal Battery Database was developed at the [Jeff Dahn Research Group](h
 ## Installation
 
 There are two install options:
-1. If you only want to play around with modelling and you have a compiled dataset from somewhere else, __you can [install without a database](#installing-without-a-database)__ (you can always install a database later).
+1. If you only want to play around with modelling and you have a compiled dataset from somewhere else, you can [install without a database](#installing-without-a-database) (you can always install a database later).
 2. If you want to use the database features such as parsing and organising experimental data and metadata, you should [install with a database](#installing-with-a-database).
 
 You should run all the given commands in Command Prompt (Windows) or Terminal (Bash environment on macOS and Linux).

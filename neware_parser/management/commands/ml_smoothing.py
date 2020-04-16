@@ -9,6 +9,7 @@ from django.core.management.base import BaseCommand
 from neware_parser.DegradationModel import DegradationModel
 from neware_parser.models import *
 from neware_parser.plot import *
+from neware_parser.dictionary_keys import *
 
 """
 Shortened Variable Names:
@@ -23,65 +24,6 @@ Shortened Variable Names:
     eq -    equillibrium
     res -   result
 """
-
-
-# params keys
-TENSORS = "compiled_tensors"
-MODEL = "degradation_model"
-
-# Dictionary keys
-Q_CC = "cc_capacity_vector"
-Q_CV = "cv_capacity_vector"
-Q_CC_LAST = "last_cc_capacity"
-Q_CV_LAST = "last_cv_capacity"
-Q_END_AVG = "avg_end_current"
-Q_GRID = "current_grid"
-
-I_CV = "cv_current_vector"
-I_CC = "constant_current"
-I_PREV = "end_current_prev"
-I_CC_AVG = "avg_constant_current"
-I_PREV_END_AVG = "avg_end_current_prev"
-
-V_CC = "cc_voltage_vector"
-V_END = "end_voltage"
-V_END_AVG = "avg_end_voltage"
-V_PREV_END = "end_voltage_prev"
-V_PREV_END_AVG = "avg_end_voltage_prev"
-V_GRID = "voltage_grid"
-
-MASK_CC = "cc_mask_vector"
-MASK_CV = "cv_mask_vector"
-
-N = "cycle_number"
-
-COUNT_MATRIX = "count_matrix"
-
-SIGN_GRID = "sign_grid"
-TEMP_GRID = "temperature_grid"
-
-# data keys
-ALL_DATA = "all_data"
-
-# my_data keys
-CELL_TO_POS = "cell_id_to_pos_id"
-CELL_TO_NEG = "cell_id_to_neg_id"
-CELL_TO_ELE = "cell_id_to_electrolyte_id"
-CELL_TO_LAT = "cell_id_to_latent"
-
-ELE_TO_SOL = "electrolyte_id_to_solvent_id_weight"
-ELE_TO_SALT = "electrolyte_id_to_salt_id_weight"
-ELE_TO_ADD = "electrolyte_id_to_additive_id_weight"
-ELE_TO_LAT = "electrolyte_id_to_latent"
-
-# loss keys
-Q_LOSS = "q_loss"
-SCALE_LOSS = "scale_loss"
-R_LOSS = "r_loss"
-
-# fig args keys
-PATH_DATASET = "path_to_dataset"
-PATH_PLOTS = "path_to_plots"
 
 # TODO(sam): For each barcode, needs a multigrid of (S, V, I, T) (current
 #  needs to be adjusted)
@@ -304,31 +246,27 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
 
         for k_count, k in enumerate(cyc_grp_dict.keys()):
 
-            my_pass = any([
+            if any([
                 abs(cyc_grp_dict[k][I_PREV_END_AVG]) < 1e-5,
                 abs(cyc_grp_dict[k][I_CC_AVG]) < 1e-5,
                 abs(cyc_grp_dict[k][Q_END_AVG]) < 1e-5,
                 abs(cyc_grp_dict[k][V_PREV_END_AVG]) < 1e-5,
                 abs(cyc_grp_dict[k][V_END_AVG]) < 1e-5,
-            ])
-            if my_pass:
+            ]):
                 continue
+
             main_data = cyc_grp_dict[k]["main_data"]
 
             # normalize capacity_vector with max_cap
-            main_data[Q_CC] = 1. / max_cap * main_data[Q_CC]
-            main_data[Q_CV] = 1. / max_cap * main_data[Q_CV]
-            main_data[I_CV] = 1. / max_cap * main_data[I_CV]
-            main_data[Q_CC_LAST] = 1. / max_cap * main_data[Q_CC_LAST]
-            main_data[Q_CV_LAST] = 1. / max_cap * main_data[Q_CV_LAST]
-            main_data[I_CC] = 1. / max_cap * main_data[I_CC]
-            main_data[I_PREV] = 1. / max_cap * main_data[I_PREV]
+            normalize_keys = [
+                Q_CC, Q_CV, Q_CC_LAST, Q_CV_LAST, I_CV, I_CC, I_PREV
+            ]
+            for key in normalize_keys:
+                main_data[key] = 1. / max_cap * main_data[key]
 
-            cyc_grp_dict[k][I_CC_AVG] = 1. / max_cap * cyc_grp_dict[k][I_CC_AVG]
-            cyc_grp_dict[k][Q_END_AVG] \
-                = 1. / max_cap * cyc_grp_dict[k][Q_END_AVG]
-            cyc_grp_dict[k][I_PREV_END_AVG] \
-                = 1. / max_cap * cyc_grp_dict[k][I_PREV_END_AVG]
+            normalize_keys = [I_CC_AVG, Q_END_AVG, I_PREV_END_AVG]
+            for key in normalize_keys:
+                cyc_grp_dict[k][key] = 1. / max_cap * cyc_grp_dict[k][key]
 
             # range of cycles which exist for this cycle group
             min_cyc = min(main_data[N])
@@ -445,8 +383,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 neighborhood_data_i[NEIGH_TEMPERATURE_GRID] = 0
 
                 center_cycle = float(cyc)
-                reference_cycles \
-                    = all_data["all_reference_mats"][N]
+                reference_cycles = all_data["all_reference_mats"][N]
 
                 index_of_closest_reference = numpy.argmin(
                     abs(center_cycle - reference_cycles)
@@ -471,9 +408,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 numpy_acc(compiled_data, "neighborhood_data", neighborhood_data)
 
             number_of_compiled_cycles += len(main_data[N])
-            number_of_reference_cycles += len(
-                all_data["all_reference_mats"][N]
-            )
+            number_of_reference_cycles += len(all_data["all_reference_mats"][N])
 
             dict_to_acc = {
                 "reference_cycle": all_data["all_reference_mats"][N],
@@ -507,10 +442,8 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
     compiled_tensors["cycle"] = cycle_tensor
 
     labels = [
-        V_CC, Q_CC, MASK_CC, Q_CV, I_CV, MASK_CV, I_CC, I_PREV,
-        V_PREV_END, V_END,
-        COUNT_MATRIX,
-        SIGN_GRID, V_GRID, Q_GRID, TEMP_GRID
+        V_CC, Q_CC, MASK_CC, Q_CV, I_CV, MASK_CV, I_CC, I_PREV, V_PREV_END,
+        V_END, COUNT_MATRIX, SIGN_GRID, V_GRID, Q_GRID, TEMP_GRID
     ]
     for label in labels:
         compiled_tensors[label] = tf.constant(compiled_data[label])
@@ -562,11 +495,11 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
             n_sample = fit_args["n_sample"],
             incentive_coeffs = fit_args,
             min_latent = fit_args["min_latent"]
-
         )
 
         optimizer = tf.keras.optimizers.Adam(
-            learning_rate = fit_args["learning_rate"])
+            learning_rate = fit_args["learning_rate"]
+        )
 
     return {
         "strategy": strategy,
@@ -586,20 +519,8 @@ class LossRecord():
     def __init__(self):
         self.data = []
         self.labels = [
-            "cc_capacity_loss",
-            "cv_capacity_loss",
-            "cc_voltage_loss",
-
-            "cv_voltage_loss",
-
-            Q_LOSS,
-            SCALE_LOSS,
-            R_LOSS,
-            "shift_loss",
-            "cell_loss",
-            "reciprocal_loss",
-            "projection_loss",
-            "out_of_bounds_loss"
+            Q_CC_LOSS, Q_CV_LOSS, V_CC_LOSS, V_CV_LOSS, Q_LOSS, SCALE_LOSS,
+            R_LOSS, SHIFT_LOSS, CELL_LOSS, RECIP_LOSS, PROJ_LOSS, OOB_LOSS
         ]
 
     def record(self, count, losses):
@@ -733,10 +654,10 @@ def train_step(neighborhood, params, fit_args):
     count_matrix_tensor = params[TENSORS][COUNT_MATRIX]
 
     cycle_tensor = params[TENSORS]["cycle"]
-    constant_current_tensor = params[TENSORS]["constant_current"]
-    end_current_prev_tensor = params[TENSORS]["end_current_prev"]
-    end_voltage_prev_tensor = params[TENSORS]["end_voltage_prev"]
-    end_voltage_tensor = params[TENSORS]["end_voltage"]
+    constant_current_tensor = params[TENSORS][I_CC]
+    end_current_prev_tensor = params[TENSORS][I_PREV]
+    end_voltage_prev_tensor = params[TENSORS][V_PREV_END]
+    end_voltage_tensor = params[TENSORS][V_END]
 
     degradation_model = params[MODEL]
     optimizer = params["optimizer"]
@@ -785,6 +706,7 @@ def train_step(neighborhood, params, fit_args):
         indices = neighborhood[:, NEIGH_VOLTAGE_GRID], axis = 0
     )
     voltage_grid_dim = voltage_grid.shape[1]
+
     current_grid = tf.gather(
         current_grid_tensor,
         indices = neighborhood[:, NEIGH_CURRENT_GRID], axis = 0
@@ -797,33 +719,37 @@ def train_step(neighborhood, params, fit_args):
     )
     temperature_grid_dim = temperature_grid.shape[1]
 
-    svit_grid = tf.concat(
-        (
-            tf.tile(
-                tf.reshape(sign_grid, [batch_size2, sign_grid_dim, 1, 1, 1, 1]),
-                [1, 1, voltage_grid_dim, current_grid_dim, temperature_grid_dim,
-                 1],
+    svit_tuple = (
+        tf.tile(
+            tf.reshape(
+                sign_grid,
+                [batch_size2, sign_grid_dim, 1, 1, 1, 1]
             ),
-            tf.tile(
-                tf.reshape(voltage_grid,
-                           [batch_size2, 1, voltage_grid_dim, 1, 1, 1]),
-                [1, sign_grid_dim, 1, current_grid_dim, temperature_grid_dim,
-                 1],
-            ),
-            tf.tile(
-                tf.reshape(current_grid,
-                           [batch_size2, 1, 1, current_grid_dim, 1, 1]),
-                [1, sign_grid_dim, voltage_grid_dim, 1, temperature_grid_dim,
-                 1],
-            ),
-            tf.tile(
-                tf.reshape(temperature_grid,
-                           [batch_size2, 1, 1, 1, temperature_grid_dim, 1]),
-                [1, sign_grid_dim, voltage_grid_dim, current_grid_dim, 1, 1],
-            ),
+            [1, 1, voltage_grid_dim, current_grid_dim, temperature_grid_dim, 1],
         ),
-        axis = -1
+        tf.tile(
+            tf.reshape(
+                voltage_grid,
+                [batch_size2, 1, voltage_grid_dim, 1, 1, 1]
+            ),
+            [1, sign_grid_dim, 1, current_grid_dim, temperature_grid_dim, 1],
+        ),
+        tf.tile(
+            tf.reshape(
+                current_grid,
+                [batch_size2, 1, 1, current_grid_dim, 1, 1]
+            ),
+            [1, sign_grid_dim, voltage_grid_dim, 1, temperature_grid_dim, 1],
+        ),
+        tf.tile(
+            tf.reshape(
+                temperature_grid,
+                [batch_size2, 1, 1, 1, temperature_grid_dim, 1]
+            ),
+            [1, sign_grid_dim, voltage_grid_dim, current_grid_dim, 1, 1],
+        ),
     )
+    svit_grid = tf.concat(svit_tuple, axis = -1)
 
     count_matrix = tf.reshape(
         tf.gather(
@@ -857,9 +783,7 @@ def train_step(neighborhood, params, fit_args):
     cc_mask = tf.gather(cc_mask_tensor, indices = cycle_indices)
     cc_mask_2 = tf.tile(
         tf.reshape(
-            1. / tf.cast(
-                neighborhood[:, NEIGH_VALID_CYC], tf.float32
-            ),
+            1. / tf.cast(neighborhood[:, NEIGH_VALID_CYC], tf.float32),
             [batch_size2, 1]
         ),
         [1, cc_voltage.shape[1]]
@@ -870,9 +794,7 @@ def train_step(neighborhood, params, fit_args):
     cv_mask = tf.gather(cv_mask_tensor, indices = cycle_indices)
     cv_mask_2 = tf.tile(
         tf.reshape(
-            1. / tf.cast(
-                neighborhood[:, NEIGH_VALID_CYC], tf.float32
-            ),
+            1. / tf.cast(neighborhood[:, NEIGH_VALID_CYC], tf.float32),
             [batch_size2, 1]
         ),
         [1, cv_current.shape[1]]
@@ -904,55 +826,41 @@ def train_step(neighborhood, params, fit_args):
         pred_cc_voltage = train_results["pred_cc_voltage"]
         pred_cv_voltage = train_results["pred_cv_voltage"]
         cv_voltage = tf.tile(
-            tf.expand_dims(end_voltage, axis=1),
+            tf.expand_dims(end_voltage, axis = 1),
             [1, cv_current.shape[1]],
         )
 
-        cc_capacity_loss = (
-            tf.reduce_mean(
-                cc_mask_2 * cc_mask * tf.square(cc_capacity - pred_cc_capacity)
-            ) / (1e-10 + tf.reduce_mean(cc_mask_2 * cc_mask))
+        cc_capacity_loss = get_loss(
+            cc_capacity, pred_cc_capacity, cc_mask, cc_mask_2
         )
-        cv_capacity_loss = (
-            tf.reduce_mean(
-                cv_mask_2 * cv_mask * tf.square(cv_capacity - pred_cv_capacity)
-            ) / (1e-10 + tf.reduce_mean(cv_mask_2 * cv_mask))
+        cv_capacity_loss = get_loss(
+            cv_capacity, pred_cv_capacity, cv_mask, cv_mask_2
         )
-
-
-        cc_voltage_loss = (
-            tf.reduce_mean(
-                cc_mask_2 * cc_mask * tf.square(cc_voltage - pred_cc_voltage)
-            ) / (1e-10 + tf.reduce_mean(cc_mask_2 * cc_mask))
+        cc_voltage_loss = get_loss(
+            cc_voltage, pred_cc_voltage, cc_mask, cc_mask_2
         )
-
-        cv_voltage_loss = (
-                tf.reduce_mean(
-                    cv_mask_2 * cv_mask * tf.square(cv_voltage - pred_cv_voltage)
-                ) / (1e-10 + tf.reduce_mean(cv_mask_2 * cv_mask))
+        cv_voltage_loss = get_loss(
+            cv_voltage, pred_cv_voltage, cv_mask, cv_mask_2
         )
 
         loss = (
             tf.stop_gradient(
-                fit_args["coeff_cv_capacity"] * cv_capacity_loss
-                + fit_args["coeff_cc_voltage"] * cc_voltage_loss
-                + fit_args["coeff_cc_capacity"] * cc_capacity_loss
+                fit_args[COEFF_Q_CV] * cv_capacity_loss
+                + fit_args[COEFF_V_CC] * cc_voltage_loss
+                + fit_args[COEFF_Q_CC] * cc_capacity_loss
             )
-            + fit_args["coeff_cv_capacity"] * cv_capacity_loss
-            + fit_args["coeff_cc_voltage"] * cc_voltage_loss
-            + fit_args["coeff_cc_capacity"] * cc_capacity_loss
+            + fit_args[COEFF_Q_CV] * cv_capacity_loss
+            + fit_args[COEFF_V_CC] * cc_voltage_loss
+            + fit_args[COEFF_Q_CC] * cc_capacity_loss
             * (
-                fit_args["coeff_q"] * train_results[Q_LOSS]
-                + fit_args["coeff_scale"] * train_results[SCALE_LOSS]
-                + fit_args["coeff_r"] * train_results[R_LOSS]
-                + fit_args["coeff_shift"] * train_results["shift_loss"]
-                + fit_args["coeff_cell"] * train_results["cell_loss"]
-                + fit_args["coeff_reciprocal"]
-                * train_results["reciprocal_loss"]
-                + fit_args["coeff_projection"]
-                * train_results["projection_loss"]
-                + fit_args["coeff_out_of_bounds"]
-                * train_results["out_of_bounds_loss"]
+                fit_args[COEFF_Q] * train_results[Q_LOSS]
+                + fit_args[COEFF_SCALE] * train_results[SCALE_LOSS]
+                + fit_args[COEFF_R] * train_results[R_LOSS]
+                + fit_args[COEFF_SHIFT] * train_results[SHIFT_LOSS]
+                + fit_args[COEFF_CELL] * train_results[CELL_LOSS]
+                + fit_args[COEFF_RECIP] * train_results[RECIP_LOSS]
+                + fit_args[COEFF_PROJ] * train_results[PROJ_LOSS]
+                + fit_args[COEFF_OOB] * train_results[OOB_LOSS]
             )
         )
 
@@ -987,14 +895,20 @@ def train_step(neighborhood, params, fit_args):
             train_results[Q_LOSS],
             train_results[SCALE_LOSS],
             train_results[R_LOSS],
-            train_results["shift_loss"],
-            train_results["cell_loss"],
-            train_results["reciprocal_loss"],
+            train_results[SHIFT_LOSS],
+            train_results[CELL_LOSS],
+            train_results[RECIP_LOSS],
 
-            train_results["projection_loss"],
-            train_results["out_of_bounds_loss"]
+            train_results[PROJ_LOSS],
+            train_results[OOB_LOSS]
         ],
     )
+
+
+def get_loss(measured, predicted, mask, mask_2):
+    return tf.reduce_mean(
+        mask * mask_2 * tf.square(measured - predicted)
+    ) / (1e-10 + tf.reduce_mean(mask * mask_2))
 
 
 def ml_smoothing(fit_args):
@@ -1141,7 +1055,6 @@ class Command(BaseCommand):
             '--coeff_out_of_bounds': 10.,
             '--coeff_out_of_bounds_geq': 1.,
             '--coeff_out_of_bounds_leq': 1.,
-
 
         }
 

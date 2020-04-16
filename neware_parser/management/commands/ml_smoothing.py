@@ -246,15 +246,15 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
 
         for k_count, k in enumerate(cyc_grp_dict.keys()):
 
-            my_pass = any([
+            if any([
                 abs(cyc_grp_dict[k][I_PREV_END_AVG]) < 1e-5,
                 abs(cyc_grp_dict[k][I_CC_AVG]) < 1e-5,
                 abs(cyc_grp_dict[k][Q_END_AVG]) < 1e-5,
                 abs(cyc_grp_dict[k][V_PREV_END_AVG]) < 1e-5,
                 abs(cyc_grp_dict[k][V_END_AVG]) < 1e-5,
-            ])
-            if my_pass:
+            ]):
                 continue
+
             main_data = cyc_grp_dict[k]["main_data"]
 
             # normalize capacity_vector with max_cap
@@ -264,11 +264,9 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
             for key in normalize_keys:
                 main_data[key] = 1. / max_cap * main_data[key]
 
-            cyc_grp_dict[k][I_CC_AVG] = 1. / max_cap * cyc_grp_dict[k][I_CC_AVG]
-            cyc_grp_dict[k][Q_END_AVG] \
-                = 1. / max_cap * cyc_grp_dict[k][Q_END_AVG]
-            cyc_grp_dict[k][I_PREV_END_AVG] \
-                = 1. / max_cap * cyc_grp_dict[k][I_PREV_END_AVG]
+            normalize_keys = [I_CC_AVG, Q_END_AVG, I_PREV_END_AVG]
+            for key in normalize_keys:
+                cyc_grp_dict[k][key] = 1. / max_cap * cyc_grp_dict[k][key]
 
             # range of cycles which exist for this cycle group
             min_cyc = min(main_data[N])

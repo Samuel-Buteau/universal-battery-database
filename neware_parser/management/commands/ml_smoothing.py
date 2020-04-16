@@ -24,7 +24,6 @@ Shortened Variable Names:
     res -   result
 """
 
-
 # params keys
 TENSORS = "compiled_tensors"
 MODEL = "degradation_model"
@@ -78,10 +77,28 @@ ELE_TO_LAT = "electrolyte_id_to_latent"
 Q_LOSS = "q_loss"
 SCALE_LOSS = "scale_loss"
 R_LOSS = "r_loss"
+SHIFT_LOSS = "shift_loss"
+CELL_LOSS = "cell_loss"
+RECIP_LOSS = "reciprocal_loss"
+
+PROJ_LOSS = "projection_loss"
+OOB_LOSS = "out_of_bounds_loss"
 
 # fig args keys
 PATH_DATASET = "path_to_dataset"
 PATH_PLOTS = "path_to_plots"
+
+COEFF_Q = "coeff_q"
+COEFF_Q_CV = "coeff_cv_capacity"
+COEFF_Q_CC = "coeff_cc_capacity"
+COEFF_V_CC = "coeff_cc_voltage"
+COEFF_SCALE = "coeff_scale"
+COEFF_R = "coeff_r"
+COEFF_SHIFT = "coeff_shift"
+COEFF_CELL = "coeff_cell"
+COEFF_RECIP = "coeff_reciprocal"
+COEFF_PROJ = "coeff_projection"
+COEFF_OOB = "coeff_out_of_bounds"
 
 # TODO(sam): For each barcode, needs a multigrid of (S, V, I, T) (current
 #  needs to be adjusted)
@@ -595,11 +612,11 @@ class LossRecord():
             Q_LOSS,
             SCALE_LOSS,
             R_LOSS,
-            "shift_loss",
-            "cell_loss",
-            "reciprocal_loss",
-            "projection_loss",
-            "out_of_bounds_loss"
+            SHIFT_LOSS,
+            CELL_LOSS,
+            RECIP_LOSS,
+            PROJ_LOSS,
+            OOB_LOSS
         ]
 
     def record(self, count, losses):
@@ -904,55 +921,44 @@ def train_step(neighborhood, params, fit_args):
         pred_cc_voltage = train_results["pred_cc_voltage"]
         pred_cv_voltage = train_results["pred_cv_voltage"]
         cv_voltage = tf.tile(
-            tf.expand_dims(end_voltage, axis=1),
+            tf.expand_dims(end_voltage, axis = 1),
             [1, cv_current.shape[1]],
         )
 
-        cc_capacity_loss = (
-            tf.reduce_mean(
-                cc_mask_2 * cc_mask * tf.square(cc_capacity - pred_cc_capacity)
-            ) / (1e-10 + tf.reduce_mean(cc_mask_2 * cc_mask))
-        )
-        cv_capacity_loss = (
-            tf.reduce_mean(
-                cv_mask_2 * cv_mask * tf.square(cv_capacity - pred_cv_capacity)
-            ) / (1e-10 + tf.reduce_mean(cv_mask_2 * cv_mask))
-        )
+        cc_capacity_loss = tf.reduce_mean(
+            cc_mask_2 * cc_mask * tf.square(cc_capacity - pred_cc_capacity)
+        ) / (1e-10 + tf.reduce_mean(cc_mask_2 * cc_mask))
 
+        cv_capacity_loss = tf.reduce_mean(
+            cv_mask_2 * cv_mask * tf.square(cv_capacity - pred_cv_capacity)
+        ) / (1e-10 + tf.reduce_mean(cv_mask_2 * cv_mask))
 
-        cc_voltage_loss = (
-            tf.reduce_mean(
-                cc_mask_2 * cc_mask * tf.square(cc_voltage - pred_cc_voltage)
-            ) / (1e-10 + tf.reduce_mean(cc_mask_2 * cc_mask))
-        )
+        cc_voltage_loss = tf.reduce_mean(
+            cc_mask_2 * cc_mask * tf.square(cc_voltage - pred_cc_voltage)
+        ) / (1e-10 + tf.reduce_mean(cc_mask_2 * cc_mask))
 
-        cv_voltage_loss = (
-                tf.reduce_mean(
-                    cv_mask_2 * cv_mask * tf.square(cv_voltage - pred_cv_voltage)
-                ) / (1e-10 + tf.reduce_mean(cv_mask_2 * cv_mask))
-        )
+        cv_voltage_loss = tf.reduce_mean(
+            cv_mask_2 * cv_mask * tf.square(cv_voltage - pred_cv_voltage)
+        ) / (1e-10 + tf.reduce_mean(cv_mask_2 * cv_mask))
 
         loss = (
             tf.stop_gradient(
-                fit_args["coeff_cv_capacity"] * cv_capacity_loss
-                + fit_args["coeff_cc_voltage"] * cc_voltage_loss
-                + fit_args["coeff_cc_capacity"] * cc_capacity_loss
+                fit_args[COEFF_Q_CV] * cv_capacity_loss
+                + fit_args[COEFF_V_CC] * cc_voltage_loss
+                + fit_args[COEFF_Q_CC] * cc_capacity_loss
             )
-            + fit_args["coeff_cv_capacity"] * cv_capacity_loss
-            + fit_args["coeff_cc_voltage"] * cc_voltage_loss
-            + fit_args["coeff_cc_capacity"] * cc_capacity_loss
+            + fit_args[COEFF_Q_CV] * cv_capacity_loss
+            + fit_args[COEFF_V_CC] * cc_voltage_loss
+            + fit_args[COEFF_Q_CC] * cc_capacity_loss
             * (
-                fit_args["coeff_q"] * train_results[Q_LOSS]
-                + fit_args["coeff_scale"] * train_results[SCALE_LOSS]
-                + fit_args["coeff_r"] * train_results[R_LOSS]
-                + fit_args["coeff_shift"] * train_results["shift_loss"]
-                + fit_args["coeff_cell"] * train_results["cell_loss"]
-                + fit_args["coeff_reciprocal"]
-                * train_results["reciprocal_loss"]
-                + fit_args["coeff_projection"]
-                * train_results["projection_loss"]
-                + fit_args["coeff_out_of_bounds"]
-                * train_results["out_of_bounds_loss"]
+                fit_args[COEFF_Q] * train_results[Q_LOSS]
+                + fit_args[COEFF_SCALE] * train_results[SCALE_LOSS]
+                + fit_args[COEFF_R] * train_results[R_LOSS]
+                + fit_args[COEFF_SHIFT] * train_results[SHIFT_LOSS]
+                + fit_args[COEFF_CELL] * train_results[CELL_LOSS]
+                + fit_args[COEFF_RECIP] * train_results[RECIP_LOSS]
+                + fit_args[COEFF_PROJ] * train_results[PROJ_LOSS]
+                + fit_args[COEFF_OOB] * train_results[OOB_LOSS]
             )
         )
 
@@ -987,12 +993,12 @@ def train_step(neighborhood, params, fit_args):
             train_results[Q_LOSS],
             train_results[SCALE_LOSS],
             train_results[R_LOSS],
-            train_results["shift_loss"],
-            train_results["cell_loss"],
-            train_results["reciprocal_loss"],
+            train_results[SHIFT_LOSS],
+            train_results[CELL_LOSS],
+            train_results[RECIP_LOSS],
 
-            train_results["projection_loss"],
-            train_results["out_of_bounds_loss"]
+            train_results[PROJ_LOSS],
+            train_results[OOB_LOSS]
         ],
     )
 
@@ -1141,7 +1147,6 @@ class Command(BaseCommand):
             '--coeff_out_of_bounds': 10.,
             '--coeff_out_of_bounds_geq': 1.,
             '--coeff_out_of_bounds_leq': 1.,
-
 
         }
 

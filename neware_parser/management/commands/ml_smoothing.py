@@ -265,17 +265,17 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
         if cell_id_to_latent[cell_id] < 0.5:
             electrolyte_id = cell_id_to_electrolyte_id[cell_id]
             if electrolyte_id in my_data[ELE_TO_SOL].keys():
-                electrolyte_id_to_solvent_id_weight[electrolyte_id]\
+                electrolyte_id_to_solvent_id_weight[electrolyte_id] \
                     = my_data[ELE_TO_SOL][electrolyte_id]
             if electrolyte_id in my_data[ELE_TO_SALT].keys():
-                electrolyte_id_to_salt_id_weight[electrolyte_id]\
+                electrolyte_id_to_salt_id_weight[electrolyte_id] \
                     = my_data[ELE_TO_SALT][electrolyte_id]
             if electrolyte_id in my_data[ELE_TO_ADD].keys():
-                electrolyte_id_to_additive_id_weight[electrolyte_id]\
+                electrolyte_id_to_additive_id_weight[electrolyte_id] \
                     = my_data[ELE_TO_ADD][electrolyte_id]
 
             if electrolyte_id in my_data["electrolyte_id_to_latent"].keys():
-                electrolyte_id_to_latent[electrolyte_id]\
+                electrolyte_id_to_latent[electrolyte_id] \
                     = my_data["electrolyte_id_to_latent"][electrolyte_id]
 
     mess = [
@@ -332,9 +332,9 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
             main_data[I_PREV] = 1. / max_cap * main_data[I_PREV]
 
             cyc_grp_dict[k][I_CC_AVG] = 1. / max_cap * cyc_grp_dict[k][I_CC_AVG]
-            cyc_grp_dict[k][Q_END_AVG]\
+            cyc_grp_dict[k][Q_END_AVG] \
                 = 1. / max_cap * cyc_grp_dict[k][Q_END_AVG]
-            cyc_grp_dict[k][I_PREV_END_AVG]\
+            cyc_grp_dict[k][I_PREV_END_AVG] \
                 = 1. / max_cap * cyc_grp_dict[k][I_PREV_END_AVG]
 
             # range of cycles which exist for this cycle group
@@ -442,7 +442,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 neighborhood_data_i[NEIGH_MAX_CYC] = max_cyc_index
                 neighborhood_data_i[NEIGH_RATE] = k_count
                 neighborhood_data_i[NEIGH_BARCODE] = barcode_count
-                neighborhood_data_i[NEIGH_ABSOLUTE_CYCLE]\
+                neighborhood_data_i[NEIGH_ABSOLUTE_CYCLE] \
                     = number_of_compiled_cycles
                 # a weight based on prevalence. Set later
                 neighborhood_data_i[NEIGH_VALID_CYC] = 0
@@ -452,16 +452,16 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 neighborhood_data_i[NEIGH_TEMPERATURE_GRID] = 0
 
                 center_cycle = float(cyc)
-                reference_cycles\
+                reference_cycles \
                     = all_data["all_reference_mats"][N]
 
                 index_of_closest_reference = numpy.argmin(
                     abs(center_cycle - reference_cycles)
                 )
 
-                neighborhood_data_i[NEIGH_ABSOLUTE_REFERENCE]\
+                neighborhood_data_i[NEIGH_ABSOLUTE_REFERENCE] \
                     = number_of_reference_cycles
-                neighborhood_data_i[NEIGH_REFERENCE]\
+                neighborhood_data_i[NEIGH_REFERENCE] \
                     = index_of_closest_reference
 
                 neighborhood_data.append(neighborhood_data_i)
@@ -514,23 +514,10 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
     compiled_tensors["cycle"] = cycle_tensor
 
     labels = [
-        V_CC,
-        Q_CC,
-        MASK_CC,
-        Q_CV,
-        I_CV,
-        MASK_CV,
-        I_CC,
-        I_PREV,
-        V_PREV_END,
-        V_END,
-
+        V_CC, Q_CC, MASK_CC, Q_CV, I_CV, MASK_CV, I_CC, I_PREV,
+        V_PREV_END, V_END,
         COUNT_MATRIX,
-
-        SIGN_GRID,
-        V_GRID,
-        Q_GRID,
-        TEMP_GRID,
+        SIGN_GRID, V_GRID, Q_GRID, TEMP_GRID
     ]
     for label in labels:
         compiled_tensors[label] = tf.constant(compiled_data[label])
@@ -550,7 +537,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
         if my_names is not None:
             pos_to_pos_name = my_names["pos_to_pos_name"]
             neg_to_neg_name = my_names["neg_to_neg_name"]
-            electrolyte_to_electrolyte_name\
+            electrolyte_to_electrolyte_name \
                 = my_names["electrolyte_to_electrolyte_name"]
             molecule_to_molecule_name = my_names["molecule_to_molecule_name"]
 

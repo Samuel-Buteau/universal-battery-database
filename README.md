@@ -57,7 +57,7 @@ Password = password
 Host = localhost
 Port = 0000
 Backend = sqlite3
-SecretKey = your_very_secret_key
+SecretKey = secret_key
 ```
 
 #### 4. Download your dataset file and put it in the appropriate folder.
@@ -88,27 +88,27 @@ where `username` is the one created in Step 3, and enter the password after you 
 
 #### 6. Create your database.
 
-Note: `my_project`, `my_user`, and `my_password` can be changed to your own values.
+Note: `database`, `user`, and `password` can be changed to your own values.
 
 ```sql
-CREATE DATABASE my_project;
+CREATE DATABASE database;
 
-CREATE USER my_user WITH PASSWORD ‘my_password’;
+CREATE USER user WITH PASSWORD ‘password’;
 
-GRANT ALL PRIVILEGES ON DATABASE my_project TO my_user;
+GRANT ALL PRIVILEGES ON DATABASE database TO user;
 ```
 
 #### 7. Create `neware_parser/config.ini`.
 
-Note:  `my_project`, `my_user`, and `my_password` should be changed to match those in Step 6. Choosing a good `secret_key` is crucial if you care about data security.
+Note:  `database`, `user`, and `password` should be changed to match those in Step 6. Choosing a good `secret_key` is crucial if you care about data security.
 
 `neware_parser/config.ini` should contain the following:
 
 ```
 [DEFAULT]
-Database = my_project
-User = my_user
-Password = my_password
+Database = database
+User = user
+Password = password
 Host = localhost
 Port = 5432
 Backend = postgresql

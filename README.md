@@ -42,14 +42,14 @@ cmd (Windows):
 >mkvirvualenv env
 >workon env
 ```
-Here, you can replace __env__ by any name you want to use.
-
 
 Bash (macOS and Linux):
 ```bash
 $ python3 -m venv env
 $ source env/bin/activate
 ```
+
+Note: `env` can be any name you want for your environment.
 
 ##### 2. Install requirements
 
@@ -74,7 +74,9 @@ SecretKey = your_very_secret_key
 
 ##### 4. Download a dataset file and put it in the appropriate folder.
 
+
 #### With Database Install
+
 ##### 1. Create and Activate a new virtual environment.
 
 cmd (Windows):
@@ -82,8 +84,6 @@ cmd (Windows):
 >mkvirvualenv env
 >workon env
 ```
-Here, you can replace __env__ by any name you want to use.
-
 
 Bash (macOS and Linux):
 ```bash
@@ -91,7 +91,7 @@ $ python3 -m venv env
 $ source env/bin/activate
 ```
 
-
+Note: `env` can be any name you want for your environment.
 
 
 ##### 2. Install requirements
@@ -104,10 +104,10 @@ pip3 install -r requirements.txt
 ##### 3. [Install PostgreSQL](https://www.2ndquadrant.com/en/blog/pginstaller-install-postgresql/).
 
 **Make sure the installation includes the PostgreSQL Unicode ODBC driver** (e.g. ODBC 64-bit).
-(after the PostgreSQL installation, there is a separate process where you can choose a driver. I selected ODBC 64-bit)
+After the PostgreSQL installation, there is a separate process where you can choose a driver.
 
-Follow the installation instructions and create new user and password.
-**Make sure you remember the password you create**
+Follow the installation instructions to create new user and password.
+**Remember these for later**.
 
 ##### 4. Add the bin path of the install to the Path variable.
 
@@ -117,7 +117,7 @@ Follow the installation instructions and create new user and password.
 psql -U postgres
 ```
 
-and enter the password you created earlier.
+and enter the password you created in Step 3.
 
 ##### 6. Enter the following 3 commands in the terminal.
 
@@ -129,12 +129,11 @@ CREATE USER my_user WITH PASSWORD ‘my_password’;
 GRANT ALL PRIVILEGES ON DATABASE my_project TO my_user;
 ```
 
-**Press enter after each line**
-Note that __my_project__, __my_user__, and __my_password__ can be changed to your own secret values.
+Note: `my_project`, `my_user`, and `my_password` can be changed to your own secret values.
 
 ##### 7. Create `neware_parser/config.ini`.
 
-`config.ini` should contain the following (feel free to modify the values):
+`config.ini` should contain the following:
 
 ```
 [DEFAULT]
@@ -146,35 +145,33 @@ Port = 5432
 Backend = postgresql
 SecretKey = your_very_secret_key
 ```
-Note that __my_project__, __my_user__, and __my_password__ can be changed to your own secret values. (they have to be the same as those of step 6.
-
-Also note that __your_very_secret_key__ needs to be a very secret key if you care about your data's security.
+Note:  `my_project`, `my_user`, and `my_password` can be changed to your own values, but they must be the same as those in Step 6. `your_very_secret_key` should be a very secret key if you care about data security.
 
 ##### 8. Download a dataset file and put it in the appropriate folder.
 
 
-
 ## Using the Software
-First, load the virtual environment containing the software (in case this is a new terminal).
+
+First, load the virtual environment containing the software in a new terminal.
 
 cmd (Windows):
 ```cmd
 >workon env
 ```
-Here, you must replace __env__ by the name you used when creating a virtual environment.
-**if you don't remember the name of your virtual environment:**
-
-```cmd
->workon
-```
-will list the existing environments on your computer.
-
 
 Bash (macOS and Linux):
 ```bash
 $ source env/bin/activate
 ```
-Here, you must replace __env__ by the name you used when creating a virtual environment.
+
+Replace `env` by the name you used when creating the virtual environment.
+
+**If you do not remember the name of your virtual environment**, you can list existing environments with:
+
+```cmd
+>workon
+```
+
 
 To quickly see the web page and start developing, run
 ```bash
@@ -186,8 +183,7 @@ When running the code in production, run
 ```bash
 python3 manage.py process_tasks
 ```
-in a separate terminal to allow background tasks (such as parsing data files). 
-This will process the tasks as they are defined.
+in a separate terminal to allow background tasks (such as parsing data files). This will process the tasks as they are defined.
 
 ### ML Smoothing
 cmd (Windows)

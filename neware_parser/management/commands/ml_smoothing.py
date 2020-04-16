@@ -922,26 +922,26 @@ def train_step(neighborhood, params, fit_args):
         )
 
         loss = (
-            fit_args['coeff_cv_capacity'] * cv_capacity_loss
+            tf.stop_gradient(
+                fit_args['coeff_cv_capacity'] * cv_capacity_loss
+                + fit_args['coeff_cc_voltage'] * cc_voltage_loss
+                + fit_args['coeff_cc_capacity'] * cc_capacity_loss
+            )
+            + fit_args['coeff_cv_capacity'] * cv_capacity_loss
             + fit_args['coeff_cc_voltage'] * cc_voltage_loss
             + fit_args['coeff_cc_capacity'] * cc_capacity_loss
-            + 1. * tf.stop_gradient(
-
-            fit_args['coeff_cv_capacity'] * cv_capacity_loss
-            + fit_args['coeff_cc_voltage'] * cc_voltage_loss
-            + fit_args['coeff_cc_capacity'] * cc_capacity_loss
-        ) * (
+            * (
                 fit_args['coeff_q'] * train_results["q_loss"]
                 + fit_args['coeff_scale'] * train_results["scale_loss"]
                 + fit_args['coeff_r'] * train_results["r_loss"]
                 + fit_args['coeff_shift'] * train_results["shift_loss"]
                 + fit_args['coeff_cell'] * train_results["cell_loss"]
-                + fit_args['coeff_reciprocal'] * train_results[
-                    "reciprocal_loss"]
-                + fit_args['coeff_projection'] * train_results[
-                    "projection_loss"]
-                + fit_args['coeff_out_of_bounds'] * train_results[
-                    "out_of_bounds_loss"]
+                + fit_args['coeff_reciprocal']
+                * train_results["reciprocal_loss"]
+                + fit_args['coeff_projection']
+                * train_results["projection_loss"]
+                + fit_args['coeff_out_of_bounds']
+                * train_results["out_of_bounds_loss"]
             )
 
         )
@@ -989,15 +989,11 @@ def train_step(neighborhood, params, fit_args):
 
 def ml_smoothing(fit_args):
     if len(tf.config.experimental.list_physical_devices('GPU')) == 1:
-        strategy = tf.distribute.OneDeviceStrategy(
-            device = '/gpu:0'
-        )
+        strategy = tf.distribute.OneDeviceStrategy(device = '/gpu:0')
     elif len(tf.config.experimental.list_physical_devices('GPU')) > 1:
         strategy = tf.distribute.MirroredStrategy()
     else:
-        strategy = tf.distribute.OneDeviceStrategy(
-            '/cpu:0'
-        )
+        strategy = tf.distribute.OneDeviceStrategy('/cpu:0')
 
     if not os.path.exists(fit_args['path_to_plots']):
         os.mkdir(fit_args['path_to_plots'])
@@ -1045,8 +1041,10 @@ def ml_smoothing(fit_args):
     train_and_evaluate(
         initial_processing(
             my_data, my_names, barcodes, fit_args, strategy = strategy
-        ), barcodes,
-        fit_args)
+        ),
+        barcodes,
+        fit_args
+    )
 
 
 class Command(BaseCommand):

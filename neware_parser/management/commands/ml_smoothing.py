@@ -75,6 +75,12 @@ ELE_TO_LAT = "electrolyte_id_to_latent"
 
 # loss keys
 Q_LOSS = "q_loss"
+Q_CC_LOSS = "cc_capacity_loss"
+Q_CV_LOSS = "cv_capacity_loss"
+
+V_CC_LOSS = "cc_voltage_loss"
+V_CV_LOSS = "cv_voltage_loss"
+
 SCALE_LOSS = "scale_loss"
 R_LOSS = "r_loss"
 SHIFT_LOSS = "shift_loss"
@@ -603,20 +609,8 @@ class LossRecord():
     def __init__(self):
         self.data = []
         self.labels = [
-            "cc_capacity_loss",
-            "cv_capacity_loss",
-            "cc_voltage_loss",
-
-            "cv_voltage_loss",
-
-            Q_LOSS,
-            SCALE_LOSS,
-            R_LOSS,
-            SHIFT_LOSS,
-            CELL_LOSS,
-            RECIP_LOSS,
-            PROJ_LOSS,
-            OOB_LOSS
+            Q_CC_LOSS, Q_CV_LOSS, V_CC_LOSS, V_CV_LOSS, Q_LOSS, SCALE_LOSS,
+            R_LOSS, SHIFT_LOSS, CELL_LOSS, RECIP_LOSS, PROJ_LOSS, OOB_LOSS
         ]
 
     def record(self, count, losses):
@@ -750,10 +744,10 @@ def train_step(neighborhood, params, fit_args):
     count_matrix_tensor = params[TENSORS][COUNT_MATRIX]
 
     cycle_tensor = params[TENSORS]["cycle"]
-    constant_current_tensor = params[TENSORS]["constant_current"]
-    end_current_prev_tensor = params[TENSORS]["end_current_prev"]
-    end_voltage_prev_tensor = params[TENSORS]["end_voltage_prev"]
-    end_voltage_tensor = params[TENSORS]["end_voltage"]
+    constant_current_tensor = params[TENSORS][I_CC]
+    end_current_prev_tensor = params[TENSORS][I_PREV]
+    end_voltage_prev_tensor = params[TENSORS][V_PREV_END]
+    end_voltage_tensor = params[TENSORS][V_END]
 
     degradation_model = params[MODEL]
     optimizer = params["optimizer"]
@@ -802,6 +796,7 @@ def train_step(neighborhood, params, fit_args):
         indices = neighborhood[:, NEIGH_VOLTAGE_GRID], axis = 0
     )
     voltage_grid_dim = voltage_grid.shape[1]
+
     current_grid = tf.gather(
         current_grid_tensor,
         indices = neighborhood[:, NEIGH_CURRENT_GRID], axis = 0

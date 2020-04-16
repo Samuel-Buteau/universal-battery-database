@@ -28,7 +28,7 @@ Shortened Variable Names:
 TENSORS = "compiled_tensors"
 MODEL = "degradation_model"
 
-# Dictionary key names
+# Dictionary keys
 Q_CC = "cc_capacity_vector"
 Q_CV = "cv_capacity_vector"
 Q_CC_LAST = "last_cc_capacity"
@@ -59,7 +59,10 @@ COUNT_MATRIX = "count_matrix"
 SIGN_GRID = "sign_grid"
 TEMP_GRID = "temperature_grid"
 
-# my_data key names
+# data keys
+ALL_DATA = "all_data"
+
+# my_data keys
 CELL_TO_POS = "cell_id_to_pos_id"
 CELL_TO_NEG = "cell_id_to_neg_id"
 CELL_TO_ELE = "cell_id_to_electrolyte_id"
@@ -68,11 +71,16 @@ CELL_TO_LAT = "cell_id_to_latent"
 ELE_TO_SOL = "electrolyte_id_to_solvent_id_weight"
 ELE_TO_SALT = "electrolyte_id_to_salt_id_weight"
 ELE_TO_ADD = "electrolyte_id_to_additive_id_weight"
+ELE_TO_LAT = "electrolyte_id_to_latent"
 
-# loss key names
+# loss keys
 Q_LOSS = "q_loss"
 SCALE_LOSS = "scale_loss"
 R_LOSS = "r_loss"
+
+# fig args keys
+PATH_DATASET = "path_to_dataset"
+PATH_PLOTS = "path_to_plots"
 
 # TODO(sam): For each barcode, needs a multigrid of (S, V, I, T) (current
 #  needs to be adjusted)
@@ -140,7 +148,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                          1 if the cell is latent,
                          0 if made of known pos,neg,electrolyte
 
-            - "all_data": a dictionary indexed by barcode.
+            - ALL_DATA: a dictionary indexed by barcode.
                Each barcode yields:
                 - "all_reference_mats": structured array with dtype =
                     [
@@ -220,15 +228,11 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
         numpy_acc(compiled_data, key, numpy.array([my_data[key]]))
 
     my_data[Q_GRID] = my_data[Q_GRID] - numpy.log(max_cap)
-
     # the current grid is adjusted by the max capacity of the barcode. It is
     # in log space, so I/q becomes log(I) - log(q)
-    numpy_acc(
-        compiled_data,
-        Q_GRID,
-        numpy.array([my_data[Q_GRID]])
-    )
+    numpy_acc(compiled_data, Q_GRID, numpy.array([my_data[Q_GRID]]))
 
+    # TODO (harvey): simplify the following using loops
     cell_id_list = numpy.array(barcodes)
     cell_id_to_pos_id = {}
     cell_id_to_neg_id = {}
@@ -262,9 +266,9 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 electrolyte_id_to_additive_id_weight[electrolyte_id] \
                     = my_data[ELE_TO_ADD][electrolyte_id]
 
-            if electrolyte_id in my_data["electrolyte_id_to_latent"].keys():
+            if electrolyte_id in my_data[ELE_TO_LAT].keys():
                 electrolyte_id_to_latent[electrolyte_id] \
-                    = my_data["electrolyte_id_to_latent"][electrolyte_id]
+                    = my_data[ELE_TO_LAT][electrolyte_id]
 
     mess = [
         [
@@ -294,7 +298,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
 
     for barcode_count, barcode in enumerate(barcodes):
 
-        all_data = my_data["all_data"][barcode]
+        all_data = my_data[ALL_DATA][barcode]
         cyc_grp_dict = all_data["cyc_grp_dict"]
 
         for k_count, k in enumerate(cyc_grp_dict.keys()):
@@ -984,11 +988,11 @@ def ml_smoothing(fit_args):
     else:
         strategy = tf.distribute.OneDeviceStrategy("/cpu:0")
 
-    if not os.path.exists(fit_args["path_to_plots"]):
-        os.mkdir(fit_args["path_to_plots"])
+    if not os.path.exists(fit_args[PATH_PLOTS]):
+        os.mkdir(fit_args[PATH_PLOTS])
 
     with open(
-        os.path.join(fit_args["path_to_plots"], "fit_args_log.txt"), "w"
+        os.path.join(fit_args[PATH_PLOTS], "fit_args_log.txt"), "w"
     ) as f:
         my_str = ""
         for k in fit_args:
@@ -996,12 +1000,12 @@ def ml_smoothing(fit_args):
         f.write(my_str)
 
     dataset_path = os.path.join(
-        fit_args["path_to_dataset"],
+        fit_args[PATH_DATASET],
         "dataset_ver_{}.file".format(fit_args["dataset_version"])
     )
 
     dataset_names_path = os.path.join(
-        fit_args["path_to_dataset"],
+        fit_args[PATH_DATASET],
         "dataset_ver_{}_names.file".format(fit_args["dataset_version"])
     )
 
@@ -1017,7 +1021,7 @@ def ml_smoothing(fit_args):
         with open(dataset_names_path, "rb") as f:
             my_names = pickle.load(f)
 
-    barcodes = list(my_data["all_data"].keys())
+    barcodes = list(my_data[ALL_DATA].keys())
 
     if len(fit_args["wanted_barcodes"]) != 0:
         barcodes = list(

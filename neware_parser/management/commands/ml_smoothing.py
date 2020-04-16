@@ -215,21 +215,9 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
     my_data["max_cap"] = 250
     max_cap = my_data["max_cap"]
 
-    numpy_acc(
-        compiled_data,
-        V_GRID,
-        numpy.array([my_data[V_GRID]])
-    )
-    numpy_acc(
-        compiled_data,
-        TEMP_GRID,
-        numpy.array([my_data[TEMP_GRID]])
-    )
-    numpy_acc(
-        compiled_data,
-        SIGN_GRID,
-        numpy.array([my_data[SIGN_GRID]])
-    )
+    keys = [V_GRID, TEMP_GRID, SIGN_GRID]
+    for key in keys:
+        numpy_acc(compiled_data, key, numpy.array([my_data[key]]))
 
     my_data[Q_GRID] = my_data[Q_GRID] - numpy.log(max_cap)
 

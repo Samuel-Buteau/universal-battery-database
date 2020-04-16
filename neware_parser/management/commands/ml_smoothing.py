@@ -830,21 +830,18 @@ def train_step(neighborhood, params, fit_args):
             [1, cv_current.shape[1]],
         )
 
-        cc_capacity_loss = tf.reduce_mean(
-            cc_mask_2 * cc_mask * tf.square(cc_capacity - pred_cc_capacity)
-        ) / (1e-10 + tf.reduce_mean(cc_mask_2 * cc_mask))
-
-        cv_capacity_loss = tf.reduce_mean(
-            cv_mask_2 * cv_mask * tf.square(cv_capacity - pred_cv_capacity)
-        ) / (1e-10 + tf.reduce_mean(cv_mask_2 * cv_mask))
-
-        cc_voltage_loss = tf.reduce_mean(
-            cc_mask_2 * cc_mask * tf.square(cc_voltage - pred_cc_voltage)
-        ) / (1e-10 + tf.reduce_mean(cc_mask_2 * cc_mask))
-
-        cv_voltage_loss = tf.reduce_mean(
-            cv_mask_2 * cv_mask * tf.square(cv_voltage - pred_cv_voltage)
-        ) / (1e-10 + tf.reduce_mean(cv_mask_2 * cv_mask))
+        cc_capacity_loss = get_loss(
+            cc_capacity, pred_cc_capacity, cc_mask, cc_mask_2
+        )
+        cv_capacity_loss = get_loss(
+            cv_capacity, pred_cv_capacity, cv_mask, cv_mask_2
+        )
+        cc_voltage_loss = get_loss(
+            cc_voltage, pred_cc_voltage, cc_mask, cc_mask_2
+        )
+        cv_voltage_loss = get_loss(
+            cv_voltage, pred_cv_voltage, cv_mask, cv_mask_2
+        )
 
         loss = (
             tf.stop_gradient(
@@ -906,6 +903,12 @@ def train_step(neighborhood, params, fit_args):
             train_results[OOB_LOSS]
         ],
     )
+
+
+def get_loss(measured, predicted, mask, mask_2):
+    return tf.reduce_mean(
+        mask * mask_2 * tf.square(measured - predicted)
+    ) / (1e-10 + tf.reduce_mean(mask * mask_2))
 
 
 def ml_smoothing(fit_args):

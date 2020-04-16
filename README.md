@@ -15,92 +15,39 @@ The Universal Battery Database was developed at the [Jeff Dahn Research Group](h
 
 - [Installation](#installation)
   * [Prerequisites](#prerequisites)
-  * [Installing Dependencies and Configuring Environment](#installing-dependencies-and-configuring-environment)
+  * [Installing Without a Database](#installing-without-a-database)
+  * [Installing With a Database](#installing-with-a-database)
 - [Using the Software](#using-the-software)
   * [ML Smoothing](#ml-smoothing)
 - [Theoretical Physics and Computer Science Behind the Software](#theoretical-physics-and-computer-science-behind-the-software)
 
 ## Installation
 
+There are two install options:
+1. If you only want to play around with modelling and you have a compiled dataset from somewhere else, you can [install without a database](#installing-without-a-database) (you can always install a database later).
+2. If you want to use the database features such as parsing and organising experimental data and metadata, you should [install with a database](#installing-with-a-database).
+
+You should run all the given commands in Command Prompt (Windows) or Terminal (Bash environment on macOS and Linux).
+
 ### Prerequisites
 
 - [Python 3](https://www.python.org/downloads/)
 - [pip and virtualenv](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
 
+### Installing Without a Database
 
-### Installing Dependencies and Configuring Environment
+#### 1. [Create and activate a new Python environment](https://github.com/Samuel-Buteau/universal-battery-database/wiki/Creating-and-activating-a-new-Python-environment.).
 
-#### 1. Create and Activate a new virtual environment.
-
-cmd (Windows):
-```cmd
->py -m venv env
->.\env\Scripts\activate
+#### 2. Install requirements.
 ```
-
-Bash (macOS and Linux):
-```bash
-$ python3 -m venv env
-$ source env/bin/activate
-```
-
-
-#### 2. Install requirements
-
-If you do not have a database, install requirements with:
-```bash
 pip3 install -r requirements_nosql.txt
 ```
 
-Otherwise, install requirements with:
-```bash
-pip3 install -r requirements.txt
-```
+#### 3. Create `neware_parser/config.ini`.
 
+Note: You can pick your own `database`, `user`, `password`, `secret_key`.
 
-#### 3. [Install PostgreSQL](https://www.2ndquadrant.com/en/blog/pginstaller-install-postgresql/).
-
-**Make sure the installation includes the PostgreSQL Unicode ODBC driver** (e.g. ODBC 64-bitODBC 64-bit).
-
-Follow the installation instructions and create new user and password.
-
-#### 4. Add the bin path of the install to the Path variable.
-
-#### 5. Run
-
-```bash
-psql -U postgres
-```
-
-```sql
-CREATE DATABASE my_project;
-
-CREATE USER my_user WITH PASSWORD ‘my_password’;
-
-GRANT ALL PRIVILEGES ON DATABASE my_project TO my_user;
-```
-
-
-#### 6. Create `config.ini` in the root directory.
-
-`config.ini` should contain the following (feel free to modify the values):
-
-```
-[DEFAULT]
-Database = database
-User = user
-Password = password
-Host = localhost
-Port = 5432
-```
-
-This is for security purposes.
-
-#### 7. Download a dataset file and put it in the appropriate folder.
-
-#### 8. Create `neware_parser/config.ini`.
-
-`neware_parser/config.ini` should contain the following (again, feel free to modify the values):
+`neware_parser/config.ini` should contain:
 
 ```
 [DEFAULT]
@@ -110,14 +57,70 @@ Password = password
 Host = localhost
 Port = 0000
 Backend = sqlite3
-SecretKey = your_very_secret_key
+SecretKey = secret_key
 ```
 
+#### 4. Download your dataset file and put it in the appropriate folder.
+
+
+### Installing With a Database
+
+#### 1. [Create and activate a new Python environment](https://github.com/Samuel-Buteau/universal-battery-database/wiki/Creating-and-activating-a-new-Python-environment.).
+
+#### 2. Install requirements.
+```
+pip3 install -r requirements.txt
+```
+
+#### 3. [Install PostgreSQL](https://www.2ndquadrant.com/en/blog/pginstaller-install-postgresql/).
+
+There is a separate process to choose a driver after the PostgreSQL installation. **Make sure the installation includes the PostgreSQL Unicode ODBC driver** (e.g. ODBC 64-bit).
+
+Follow the installation instructions to create new user and password. **Remember these for later**.
+
+#### 4. Add the bin path of the install to the Path variable.
+
+#### 5. Connect your user.
+```bash
+psql -U username
+```
+where `username` is the one created in Step 3, and enter the password after you hit enter.
+
+#### 6. Create your database.
+
+Note: `database`, `user`, and `password` can be changed to your own values.
+
+```sql
+CREATE DATABASE database;
+
+CREATE USER user WITH PASSWORD ‘password’;
+
+GRANT ALL PRIVILEGES ON DATABASE database TO user;
+```
+
+#### 7. Create `neware_parser/config.ini`.
+
+Note:  `database`, `user`, and `password` should be changed to match those in Step 6. Choosing a good `secret_key` is crucial if you care about data security.
+
+`neware_parser/config.ini` should contain the following:
+
+```
+[DEFAULT]
+Database = database
+User = user
+Password = password
+Host = localhost
+Port = 5432
+Backend = postgresql
+SecretKey = secret_key
+```
 
 ## Using the Software
 
+[Load the virtual environment](https://github.com/Samuel-Buteau/universal-battery-database/wiki/Loading-a-Python-environment.) containing the software in a new terminal.
+
 To quickly see the web page and start developing, run
-```bash
+```
 python3 manage.py runserver 0.0.0.0:8000
 ```
 then visit `http://localhost:8000/` with a web browser.
@@ -126,13 +129,12 @@ When running the code in production, run
 ```bash
 python3 manage.py process_tasks
 ```
-in a separate terminal to allow background tasks (such as parsing data files). 
-This will process the tasks as they are defined.
+in a separate terminal to allow background tasks (such as parsing data files). This will process the tasks as they are defined.
 
 ### ML Smoothing
 cmd (Windows)
 ```cmd
->ml_smoothing.bat
+>ml_smoothing.bat path-figures
 ````
 
 Bash (macOS and Linux)
@@ -144,4 +146,4 @@ $ sh ml_smoothing.sh path-figures dataset-version "optional-note-to-self"
 
 We hypothesize that we can make [good generalizations](https://github.com/Samuel-Buteau/universal-battery-database/wiki/Generalization-Criteria) by [approximating](https://github.com/Samuel-Buteau/universal-battery-database/wiki/The-Universal-Approximation-Theorem) the functions that map one degradation mechanism to another using neural networks. 
 
-We aim to develop a theory of lithium-ion cells. We first break down the machine learning problem into smaller sub-problems. From there, we development frameworks to convert the theory to practical implementations. Finally, we apply the method to experimental data and evaluate the result.
+We aim to develop a theory of lithium-ion cells. We first break down the machine learning problem into smaller sub-problems. From there, we develop frameworks to convert the theory to practical implementations. Finally, we apply the method to experimental data and evaluate the result.

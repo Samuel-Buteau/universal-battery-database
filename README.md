@@ -37,6 +37,8 @@ There are two distinct possibilities:
 
 ##### 1. Create and Activate a new virtual environment.
 
+Note: `env` can be any name you want for your environment.
+
 cmd (Windows):
 ```cmd
 >mkvirvualenv env
@@ -48,8 +50,6 @@ Bash (macOS and Linux):
 $ python3 -m venv env
 $ source env/bin/activate
 ```
-
-Note: `env` can be any name you want for your environment.
 
 ##### 2. Install requirements
 
@@ -79,6 +79,9 @@ SecretKey = your_very_secret_key
 
 ##### 1. Create and Activate a new virtual environment.
 
+
+Note: `env` can be any name you want for your environment.
+
 cmd (Windows):
 ```cmd
 >mkvirvualenv env
@@ -90,9 +93,6 @@ Bash (macOS and Linux):
 $ python3 -m venv env
 $ source env/bin/activate
 ```
-
-Note: `env` can be any name you want for your environment.
-
 
 ##### 2. Install requirements
 
@@ -106,8 +106,7 @@ pip3 install -r requirements.txt
 **Make sure the installation includes the PostgreSQL Unicode ODBC driver** (e.g. ODBC 64-bit).
 After the PostgreSQL installation, there is a separate process where you can choose a driver.
 
-Follow the installation instructions to create new user and password.
-**Remember these for later**.
+Follow the installation instructions to create new user and password. **Remember these for later**.
 
 ##### 4. Add the bin path of the install to the Path variable.
 
@@ -121,6 +120,8 @@ and enter the password you created in Step 3.
 
 ##### 6. Enter the following 3 commands in the terminal.
 
+Note: `my_project`, `my_user`, and `my_password` can be changed to your own secret values.
+
 ```sql
 CREATE DATABASE my_project;
 
@@ -129,9 +130,10 @@ CREATE USER my_user WITH PASSWORD ‘my_password’;
 GRANT ALL PRIVILEGES ON DATABASE my_project TO my_user;
 ```
 
-Note: `my_project`, `my_user`, and `my_password` can be changed to your own secret values.
 
 ##### 7. Create `neware_parser/config.ini`.
+
+Note:  `my_project`, `my_user`, and `my_password` can be changed to your own values, but they must be the same as those in Step 6. `your_very_secret_key` should be a very secret key if you care about data security.
 
 `config.ini` should contain the following:
 
@@ -145,14 +147,13 @@ Port = 5432
 Backend = postgresql
 SecretKey = your_very_secret_key
 ```
-Note:  `my_project`, `my_user`, and `my_password` can be changed to your own values, but they must be the same as those in Step 6. `your_very_secret_key` should be a very secret key if you care about data security.
 
 ##### 8. Download a dataset file and put it in the appropriate folder.
 
 
 ## Using the Software
 
-First, load the virtual environment containing the software in a new terminal.
+First, load the virtual environment containing the software in a new terminal. Replace `env` with the name you used when creating the virtual environment.
 
 cmd (Windows):
 ```cmd
@@ -163,8 +164,6 @@ Bash (macOS and Linux):
 ```bash
 $ source env/bin/activate
 ```
-
-Replace `env` by the name you used when creating the virtual environment.
 
 **If you do not remember the name of your virtual environment**, you can list existing environments with:
 

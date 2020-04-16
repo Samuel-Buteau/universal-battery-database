@@ -24,12 +24,17 @@ Shortened Variable Names:
     res -   result
 """
 
+# params keys
+TENSORS = "compiled_tensors"
+MODEL = "degradation_model"
+
 # Dictionary key names
 Q_CC = "cc_capacity_vector"
 Q_CV = "cv_capacity_vector"
 Q_CC_LAST = "last_cc_capacity"
 Q_CV_LAST = "last_cv_capacity"
 Q_END_AVG = "avg_end_current"
+Q_GRID = "current_grid"
 
 I_CV = "cv_current_vector"
 I_CC = "constant_current"
@@ -42,11 +47,17 @@ V_END = "end_voltage"
 V_END_AVG = "avg_end_voltage"
 V_PREV_END = "end_voltage_prev"
 V_PREV_END_AVG = "avg_end_voltage_prev"
+V_GRID = "voltage_grid"
 
 MASK_CC = "cc_mask_vector"
 MASK_CV = "cv_mask_vector"
 
 N = "cycle_number"
+
+COUNT_MATRIX = "count_matrix"
+
+SIGN_GRID = "sign_grid"
+TEMP_GRID = "temperature_grid"
 
 # my_data key names
 CELL_TO_POS = "cell_id_to_pos_id"
@@ -57,6 +68,11 @@ CELL_TO_LAT = "cell_id_to_latent"
 ELE_TO_SOL = "electrolyte_id_to_solvent_id_weight"
 ELE_TO_SALT = "electrolyte_id_to_salt_id_weight"
 ELE_TO_ADD = "electrolyte_id_to_additive_id_weight"
+
+# loss key names
+Q_LOSS = "q_loss"
+SCALE_LOSS = "scale_loss"
+R_LOSS = "r_loss"
 
 # TODO(sam): For each barcode, needs a multigrid of (S, V, I, T) (current
 #  needs to be adjusted)
@@ -110,10 +126,10 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
         my_data: a dictionary indexed by various data:
             - "max_cap": a single number. the maximum capacity across the
             dataset.
-            - "voltage_grid": 1D array of voltages
-            - "current_grid": 1D array of log currents
-            - "temperature_grid": 1D array of temperatures
-            - "sign_grid": 1D array of signs
+            - GRID_V: 1D array of voltages
+            - Q_GRID: 1D array of log currents
+            - TEMP_GRID: 1D array of temperatures
+            - GRID_SIGN: 1D array of signs
             - CELL_TO_POS: a dictionary indexed by barcode yielding a
             positive electrode id.
             - CELL_TO_NEG: a dictionary indexed by barcode yielding a
@@ -133,7 +149,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                             "f4"
                         ),
                         (
-                            "count_matrix",
+                            COUNT_MATRIX,
                             "f4",
                             (
                                 len(sign_grid),
@@ -201,28 +217,28 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
 
     numpy_acc(
         compiled_data,
-        "voltage_grid",
-        numpy.array([my_data["voltage_grid"]])
+        V_GRID,
+        numpy.array([my_data[V_GRID]])
     )
     numpy_acc(
         compiled_data,
-        "temperature_grid",
-        numpy.array([my_data["temperature_grid"]])
+        TEMP_GRID,
+        numpy.array([my_data[TEMP_GRID]])
     )
     numpy_acc(
         compiled_data,
-        "sign_grid",
-        numpy.array([my_data["sign_grid"]])
+        SIGN_GRID,
+        numpy.array([my_data[SIGN_GRID]])
     )
 
-    my_data["current_grid"] = my_data["current_grid"] - numpy.log(max_cap)
+    my_data[Q_GRID] = my_data[Q_GRID] - numpy.log(max_cap)
 
     # the current grid is adjusted by the max capacity of the barcode. It is
     # in log space, so I/q becomes log(I) - log(q)
     numpy_acc(
         compiled_data,
-        "current_grid",
-        numpy.array([my_data["current_grid"]])
+        Q_GRID,
+        numpy.array([my_data[Q_GRID]])
     )
 
     cell_id_list = numpy.array(barcodes)
@@ -468,7 +484,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
 
             dict_to_acc = {
                 "reference_cycle": all_data["all_reference_mats"][N],
-                "count_matrix": all_data["all_reference_mats"]["count_matrix"],
+                COUNT_MATRIX: all_data["all_reference_mats"][COUNT_MATRIX],
                 "cycle": main_data[N],
                 V_CC: main_data[V_CC],
                 Q_CC: main_data[Q_CC],
@@ -509,12 +525,12 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
         V_PREV_END,
         V_END,
 
-        "count_matrix",
+        COUNT_MATRIX,
 
-        "sign_grid",
-        "voltage_grid",
-        "current_grid",
-        "temperature_grid",
+        SIGN_GRID,
+        V_GRID,
+        Q_GRID,
+        TEMP_GRID,
     ]
     for label in labels:
         compiled_tensors[label] = tf.constant(compiled_data[label])
@@ -574,8 +590,8 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
 
     return {
         "strategy": strategy,
-        "degradation_model": degradation_model,
-        "compiled_tensors": compiled_tensors,
+        MODEL: degradation_model,
+        TENSORS: compiled_tensors,
 
         "train_ds": train_ds,
         "cycle_m": cycle_m,
@@ -593,9 +609,9 @@ class LossRecord():
             "cc_capacity_loss",
             "cv_capacity_loss",
             "cc_voltage_loss",
-            "q_loss",
-            "scale_loss",
-            "r_loss",
+            Q_LOSS,
+            SCALE_LOSS,
+            R_LOSS,
             "shift_loss",
             "cell_loss",
             "reciprocal_loss",
@@ -645,9 +661,9 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
     now_ker = None
 
     train_step_params = {
-        "compiled_tensors": init_returns["compiled_tensors"],
+        TENSORS: init_returns[TENSORS],
         "optimizer": init_returns["optimizer"],
-        "degradation_model": init_returns["degradation_model"],
+        MODEL: init_returns[MODEL],
     }
 
     @tf.function
@@ -698,9 +714,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                         plot_v_curves(plot_params, init_returns)
                         end = time.time()
                         print("time to plot: ", end - start)
-                        ker = init_returns[
-                            "degradation_model"
-                        ].cell_direct.kernel.numpy()
+                        ker = init_returns[MODEL].cell_direct.kernel.numpy()
                         prev_ker = now_ker
                         now_ker = ker
 
@@ -728,28 +742,28 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
 
 
 def train_step(neighborhood, params, fit_args):
-    sign_grid_tensor = params["compiled_tensors"]["sign_grid"]
-    voltage_grid_tensor = params["compiled_tensors"]["voltage_grid"]
-    current_grid_tensor = params["compiled_tensors"]["current_grid"]
-    temperature_grid_tensor = params["compiled_tensors"]["temperature_grid"]
+    sign_grid_tensor = params[TENSORS][SIGN_GRID]
+    voltage_grid_tensor = params[TENSORS][V_GRID]
+    current_grid_tensor = params[TENSORS][Q_GRID]
+    temperature_grid_tensor = params[TENSORS][TEMP_GRID]
 
-    count_matrix_tensor = params["compiled_tensors"]["count_matrix"]
+    count_matrix_tensor = params[TENSORS][COUNT_MATRIX]
 
-    cycle_tensor = params["compiled_tensors"]["cycle"]
-    constant_current_tensor = params["compiled_tensors"]["constant_current"]
-    end_current_prev_tensor = params["compiled_tensors"]["end_current_prev"]
-    end_voltage_prev_tensor = params["compiled_tensors"]["end_voltage_prev"]
-    end_voltage_tensor = params["compiled_tensors"]["end_voltage"]
+    cycle_tensor = params[TENSORS]["cycle"]
+    constant_current_tensor = params[TENSORS]["constant_current"]
+    end_current_prev_tensor = params[TENSORS]["end_current_prev"]
+    end_voltage_prev_tensor = params[TENSORS]["end_voltage_prev"]
+    end_voltage_tensor = params[TENSORS]["end_voltage"]
 
-    degradation_model = params["degradation_model"]
+    degradation_model = params[MODEL]
     optimizer = params["optimizer"]
 
-    cc_voltage_tensor = params["compiled_tensors"]["cc_voltage_vector"]
-    cc_capacity_tensor = params["compiled_tensors"]["cc_capacity_vector"]
-    cc_mask_tensor = params["compiled_tensors"]["cc_mask_vector"]
-    cv_capacity_tensor = params["compiled_tensors"]["cv_capacity_vector"]
-    cv_current_tensor = params["compiled_tensors"]["cv_current_vector"]
-    cv_mask_tensor = params["compiled_tensors"]["cv_mask_vector"]
+    cc_voltage_tensor = params[TENSORS][V_CC]
+    cc_capacity_tensor = params[TENSORS][Q_CC]
+    cc_mask_tensor = params[TENSORS][MASK_CC]
+    cv_capacity_tensor = params[TENSORS][Q_CV]
+    cv_current_tensor = params[TENSORS][I_CV]
+    cv_mask_tensor = params[TENSORS][MASK_CV]
 
     # need to split the range
     batch_size2 = neighborhood.shape[0]
@@ -931,9 +945,9 @@ def train_step(neighborhood, params, fit_args):
             + fit_args["coeff_cc_voltage"] * cc_voltage_loss
             + fit_args["coeff_cc_capacity"] * cc_capacity_loss
             * (
-                fit_args["coeff_q"] * train_results["q_loss"]
-                + fit_args["coeff_scale"] * train_results["scale_loss"]
-                + fit_args["coeff_r"] * train_results["r_loss"]
+                fit_args["coeff_q"] * train_results[Q_LOSS]
+                + fit_args["coeff_scale"] * train_results[SCALE_LOSS]
+                + fit_args["coeff_r"] * train_results[R_LOSS]
                 + fit_args["coeff_shift"] * train_results["shift_loss"]
                 + fit_args["coeff_cell"] * train_results["cell_loss"]
                 + fit_args["coeff_reciprocal"]
@@ -973,9 +987,9 @@ def train_step(neighborhood, params, fit_args):
             cc_capacity_loss,
             cv_capacity_loss,
             cc_voltage_loss,
-            train_results["q_loss"],
-            train_results["scale_loss"],
-            train_results["r_loss"],
+            train_results[Q_LOSS],
+            train_results[SCALE_LOSS],
+            train_results[R_LOSS],
 
             train_results["shift_loss"],
             train_results["cell_loss"],

@@ -20,7 +20,7 @@ Shortened Variable Names:
     pred -  predicted
     meas -  measured
     eval -  evaluation
-    eq -    equillibrium
+    eq -    equilibrium
     res -   result
 """
 
@@ -46,6 +46,66 @@ NEIGH_ABSOLUTE_REFERENCE = 10
 NEIGH_REFERENCE = 11
 
 NEIGH_TOTAL = 12
+
+
+def ml_smoothing(fit_args):
+    if len(tf.config.experimental.list_physical_devices("GPU")) == 1:
+        strategy = tf.distribute.OneDeviceStrategy(device = "/gpu:0")
+    elif len(tf.config.experimental.list_physical_devices("GPU")) > 1:
+        strategy = tf.distribute.MirroredStrategy()
+    else:
+        strategy = tf.distribute.OneDeviceStrategy("/cpu:0")
+
+    if not os.path.exists(fit_args[Key.Fit.PATH_PLOTS]):
+        os.makedirs(fit_args[Key.Fit.PATH_PLOTS])
+
+    with open(
+        os.path.join(fit_args[Key.Fit.PATH_PLOTS], "fit_args_log.txt"), "w"
+    ) as f:
+        my_str = ""
+        for k in fit_args:
+            my_str = "{} \n {}: {}".format(my_str, k, str(fit_args[k]))
+        f.write(my_str)
+
+    dataset_path = os.path.join(
+        fit_args[Key.Fit.PATH_DATASET],
+        "dataset_ver_{}.file".format(fit_args[Key.Fit.DATA_VERSION])
+    )
+
+    dataset_names_path = os.path.join(
+        fit_args[Key.Fit.PATH_DATASET],
+        "dataset_ver_{}_names.file".format(fit_args[Key.Fit.DATA_VERSION])
+    )
+
+    if not os.path.exists(dataset_path):
+        print("Path \"" + dataset_path + "\" does not exist.")
+        return
+
+    with open(dataset_path, "rb") as f:
+        my_data = pickle.load(f)
+
+    my_names = None
+    if os.path.exists(dataset_names_path):
+        with open(dataset_names_path, "rb") as f:
+            my_names = pickle.load(f)
+
+    barcodes = list(my_data[ALL_DATA].keys())
+
+    if len(fit_args[Key.Fit.BARCODES]) != 0:
+        barcodes = list(
+            set(barcodes).intersection(set(fit_args[Key.Fit.BARCODES])))
+
+    if len(barcodes) == 0:
+        print("no barcodes")
+        return
+
+    train_and_evaluate(
+        initial_processing(
+            my_data, my_names, barcodes, fit_args, strategy = strategy,
+        ),
+        barcodes,
+        fit_args
+    )
 
 
 # TODO(sam): these huge tensors would be much easier to understand with
@@ -853,66 +913,6 @@ def get_loss(measured, predicted, mask, mask_2):
     return tf.reduce_mean(
         mask * mask_2 * tf.square(measured - predicted)
     ) / (1e-10 + tf.reduce_mean(mask * mask_2))
-
-
-def ml_smoothing(fit_args):
-    if len(tf.config.experimental.list_physical_devices("GPU")) == 1:
-        strategy = tf.distribute.OneDeviceStrategy(device = "/gpu:0")
-    elif len(tf.config.experimental.list_physical_devices("GPU")) > 1:
-        strategy = tf.distribute.MirroredStrategy()
-    else:
-        strategy = tf.distribute.OneDeviceStrategy("/cpu:0")
-
-    if not os.path.exists(fit_args[Key.Fit.PATH_PLOTS]):
-        os.makedirs(fit_args[Key.Fit.PATH_PLOTS])
-
-    with open(
-        os.path.join(fit_args[Key.Fit.PATH_PLOTS], "fit_args_log.txt"), "w"
-    ) as f:
-        my_str = ""
-        for k in fit_args:
-            my_str = "{} \n {}: {}".format(my_str, k, str(fit_args[k]))
-        f.write(my_str)
-
-    dataset_path = os.path.join(
-        fit_args[Key.Fit.PATH_DATASET],
-        "dataset_ver_{}.file".format(fit_args[Key.Fit.DATA_VERSION])
-    )
-
-    dataset_names_path = os.path.join(
-        fit_args[Key.Fit.PATH_DATASET],
-        "dataset_ver_{}_names.file".format(fit_args[Key.Fit.DATA_VERSION])
-    )
-
-    if not os.path.exists(dataset_path):
-        print("Path \"" + dataset_path + "\" does not exist.")
-        return
-
-    with open(dataset_path, "rb") as f:
-        my_data = pickle.load(f)
-
-    my_names = None
-    if os.path.exists(dataset_names_path):
-        with open(dataset_names_path, "rb") as f:
-            my_names = pickle.load(f)
-
-    barcodes = list(my_data[ALL_DATA].keys())
-
-    if len(fit_args[Key.Fit.BARCODES]) != 0:
-        barcodes = list(
-            set(barcodes).intersection(set(fit_args[Key.Fit.BARCODES])))
-
-    if len(barcodes) == 0:
-        print("no barcodes")
-        return
-
-    train_and_evaluate(
-        initial_processing(
-            my_data, my_names, barcodes, fit_args, strategy = strategy,
-        ),
-        barcodes,
-        fit_args
-    )
 
 
 class Command(BaseCommand):

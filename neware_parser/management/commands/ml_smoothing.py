@@ -72,58 +72,47 @@ def three_level_flatten(iterables):
 
 
 def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
-    """
-    my_data has the following structure:
-        my_data: a dictionary indexed by various data:
-            - "max_cap": a single number. the maximum capacity across the
-            dataset.
-            - GRID_V: 1D array of voltages
-            - Q_GRID: 1D array of log currents
-            - TEMP_GRID: 1D array of temperatures
-            - GRID_SIGN: 1D array of signs
-            - CELL_TO_POS: a dictionary indexed by barcode yielding a
-            positive electrode id.
-            - CELL_TO_NEG: a dictionary indexed by barcode yielding a
-            positive electrode id.
-            - CELL_TO_ELE: a dictionary indexed by barcode
-            yielding a positive electrode id.
-            - CELL_TO_LAT: a dictionary indexed by barcode yielding
-                         1 if the cell is latent,
-                         0 if made of known pos,neg,electrolyte
+    """ Handle the initial data processing
 
-            - ALL_DATA: a dictionary indexed by barcode.
-               Each barcode yields:
-                - "all_reference_mats": structured array with dtype =
+    Args:
+        my_data (dictionary):
+            "max_cap": A single number. The maximum capacity across the dataset.
+            GRID_V: 1D array of voltages,
+            Q_GRID: 1D array of log currents
+            TEMP_GRID: 1D array of temperatures
+            GRID_SIGN: 1D array of signs
+            CELL_TO_POS: a dictionary indexed by barcode yielding a positive
+                electrode id.
+            CELL_TO_NEG: a dictionary indexed by barcode yielding a positive
+                electrode id.
+            CELL_TO_ELE: a dictionary indexed by barcode yielding a positive
+                electrode id.
+            CELL_TO_LAT: a dictionary indexed by barcode yielding
+                1 if the cell is latent,
+                0 if made of known pos,neg,electrolyte
+            ALL_DATA: A dictionary indexed by barcode; each barcode yields:
+                "all_reference_mats": structured array with dtype:
                     [
+                        (N, "f4"),
                         (
-                            N,
-                            "f4"
-                        ),
-                        (
-                            COUNT_MATRIX,
-                            "f4",
+                            COUNT_MATRIX, "f4",
                             (
-                                len(sign_grid),
-                                len(voltage_grid_degradation),
-                                len(current_grid),
-                                len(temperature_grid)
+                                len(sign_grid), len(voltage_grid_degradation),
+                                len(current_grid), len(temperature_grid),
                             )
                         ),
                     ]
-
-                - "cyc_grp_dict": we know how this works.
-                    basically groups of steps indexed by group averages of
+                "cyc_grp_dict": Groups of steps indexed by group averages of
                     (
                         end_current_prev,
                         constant_current,
                         end_current,
                         end_voltage_prev,
                         end_voltage,
-                        sign
+                        sign,
                     )
-
-                    each group is a dictinary indexed by various quantities:
-                        - "main_data":  a numpy structured array with dtype:
+                    each group is a dictionary indexed by:
+                        "main_data": A numpy structured array with dtype:
                             [
                                 (N, "f4"),
                                 (V_CC, "f4", len(voltage_grid)),
@@ -145,19 +134,14 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                                 (Q_CV_LAST, "f4"),
                                 ("temperature", "f4"),
                             ]
-
-                        -     I_CC_AVG
-                        -     I_PREV_END_AVG
-                        -     Q_END_AVG
-                        -     V_PREV_END_AVG
-                        -     V_END_AVG
-                        -     "avg_last_cc_voltage"
-
-
-
-
-
+                        I_CC_AVG,
+                        I_PREV_END_AVG,
+                        Q_END_AVG,
+                        V_PREV_END_AVG,
+                        V_END_AVG,
+                        "avg_last_cc_voltage",
     """
+    # TODO (harvey) cleanup Docstring, maybe put detailed description elsewhere
 
     compiled_data = {}
     number_of_compiled_cycles = 0
@@ -200,17 +184,17 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
         if cell_id_to_latent[cell_id] < 0.5:
             electrolyte_id = cell_id_to_electrolyte_id[cell_id]
             if electrolyte_id in my_data[ELE_TO_SOL].keys():
-                electrolyte_id_to_solvent_id_weight[electrolyte_id] \
+                electrolyte_id_to_solvent_id_weight[electrolyte_id]\
                     = my_data[ELE_TO_SOL][electrolyte_id]
             if electrolyte_id in my_data[ELE_TO_SALT].keys():
-                electrolyte_id_to_salt_id_weight[electrolyte_id] \
+                electrolyte_id_to_salt_id_weight[electrolyte_id]\
                     = my_data[ELE_TO_SALT][electrolyte_id]
             if electrolyte_id in my_data[ELE_TO_ADD].keys():
-                electrolyte_id_to_additive_id_weight[electrolyte_id] \
+                electrolyte_id_to_additive_id_weight[electrolyte_id]\
                     = my_data[ELE_TO_ADD][electrolyte_id]
 
             if electrolyte_id in my_data[ELE_TO_LAT].keys():
-                electrolyte_id_to_latent[electrolyte_id] \
+                electrolyte_id_to_latent[electrolyte_id]\
                     = my_data[ELE_TO_LAT][electrolyte_id]
 
     mess = [
@@ -360,10 +344,10 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                   (len(cycles_full)).
                 - keep a slot empty for later
 
-
                 """
+
                 # TODO(sam): here, figure out where the reference cycle is,
-                #  and note the index
+                #            and note the index
 
                 neighborhood_data_i = numpy.zeros(
                     NEIGH_TOTAL, dtype = numpy.int32
@@ -373,7 +357,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 neighborhood_data_i[NEIGH_MAX_CYC] = max_cyc_index
                 neighborhood_data_i[NEIGH_RATE] = k_count
                 neighborhood_data_i[NEIGH_BARCODE] = barcode_count
-                neighborhood_data_i[NEIGH_ABSOLUTE_CYCLE] \
+                neighborhood_data_i[NEIGH_ABSOLUTE_CYCLE]\
                     = number_of_compiled_cycles
                 # a weight based on prevalence. Set later
                 neighborhood_data_i[NEIGH_VALID_CYC] = 0
@@ -389,16 +373,16 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                     abs(center_cycle - reference_cycles)
                 )
 
-                neighborhood_data_i[NEIGH_ABSOLUTE_REFERENCE] \
+                neighborhood_data_i[NEIGH_ABSOLUTE_REFERENCE]\
                     = number_of_reference_cycles
-                neighborhood_data_i[NEIGH_REFERENCE] \
+                neighborhood_data_i[NEIGH_REFERENCE]\
                     = index_of_closest_reference
 
                 neighborhood_data.append(neighborhood_data_i)
 
             if valid_cycles != 0:
                 neighborhood_data = numpy.array(
-                    neighborhood_data, dtype = numpy.int32
+                    neighborhood_data, dtype = numpy.int32,
                 )
 
                 # the empty slot becomes the count of added neighborhoods, which
@@ -463,7 +447,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
         if my_names is not None:
             pos_to_pos_name = my_names["pos_to_pos_name"]
             neg_to_neg_name = my_names["neg_to_neg_name"]
-            electrolyte_to_electrolyte_name \
+            electrolyte_to_electrolyte_name\
                 = my_names["electrolyte_to_electrolyte_name"]
             molecule_to_molecule_name = my_names["molecule_to_molecule_name"]
 

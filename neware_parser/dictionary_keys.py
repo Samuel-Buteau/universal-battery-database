@@ -2,8 +2,16 @@
 #                but at least things can be grouped logically now.
 #                Could use another refactor.
 
+
 class Key:
+    """ Provide dictionary keys
+
+    Main
+    Fit
+    """
+
     class Main:
+        """ Keys for main_data"""
         N = "cycle_number"
         V_CC = "cc_voltage_vector"
         V_END = "end_voltage"
@@ -19,7 +27,7 @@ class Key:
         MASK_CV = "cv_mask_vector"
 
     class Fit:
-        # fig args keys
+        """ Keys for fig_args"""
         WIDTH = "width"
         DEPTH = "depth"
         LRN_RATE = "learning_rate"
@@ -35,19 +43,22 @@ class Key:
         MIN_LAT = "min_latent"
         GLB_NORM_CLIP = "global_norm_clip"
 
+    class CycGrpDict:
+        MAIN = "main_data"
+        Q_END_AVG = "avg_end_current"
+        V_PREV_END_AVG = "avg_end_voltage_prev"
+        V_END_AVG = "avg_end_voltage"
+        I_CC_AVG = "avg_constant_current"
+        I_PREV_END_AVG = "avg_end_current_prev"
+
 
 # params keys
 TENSORS = "compiled_tensors"
 MODEL = "degradation_model"
 
-Q_END_AVG = "avg_end_current"
 Q_GRID = "current_grid"
 
-I_CC_AVG = "avg_constant_current"
-I_PREV_END_AVG = "avg_end_current_prev"
 
-V_END_AVG = "avg_end_voltage"
-V_PREV_END_AVG = "avg_end_voltage_prev"
 V_GRID = "voltage_grid"
 
 COUNT_MATRIX = "count_matrix"

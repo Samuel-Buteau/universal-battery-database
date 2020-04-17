@@ -130,7 +130,9 @@ def three_level_flatten(iterables):
                 yield element
 
 
-def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
+def initial_processing(
+    my_data: dict, my_names, barcodes, fit_args, strategy
+) -> dict:
     """ Handle the initial data processing
 
     Args:
@@ -171,7 +173,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                         sign,
                     )
                     each group is a dictionary indexed by:
-                        "main_data": A numpy structured array with dtype:
+                        Key.CycGrpDict.MAIN: A numpy structured array with dtype:
                             [
                                 (N, "f4"),
                                 (V_CC, "f4", len(voltage_grid)),
@@ -194,8 +196,17 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                         V_PREV_END_AVG,
                         V_END_AVG,
                         "avg_last_cc_voltage",
+
+    Returns:
+        {
+           "strategy", MODEL, TENSORS, "train_ds", "cycle_m", "cycle_v",
+           "optimizer", "my_data"
+        }
+
     """
-    # TODO (harvey) cleanup Docstring, maybe put detailed description elsewhere
+    # TODO (harvey): Cleanup Docstring, maybe put detailed description elsewhere
+    #                An appropriate place might be in the docstring for
+    #                classes inside neware_parser.Key
 
     compiled_data = {}
     number_of_compiled_cycles = 0
@@ -285,15 +296,15 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
         for k_count, k in enumerate(cyc_grp_dict.keys()):
 
             if any([
-                abs(cyc_grp_dict[k][I_PREV_END_AVG]) < 1e-5,
-                abs(cyc_grp_dict[k][I_CC_AVG]) < 1e-5,
-                abs(cyc_grp_dict[k][Q_END_AVG]) < 1e-5,
-                abs(cyc_grp_dict[k][V_PREV_END_AVG]) < 1e-5,
-                abs(cyc_grp_dict[k][V_END_AVG]) < 1e-5,
+                abs(cyc_grp_dict[k][Key.CycGrpDict.I_PREV_END_AVG]) < 1e-5,
+                abs(cyc_grp_dict[k][Key.CycGrpDict.I_CC_AVG]) < 1e-5,
+                abs(cyc_grp_dict[k][Key.CycGrpDict.Q_END_AVG]) < 1e-5,
+                abs(cyc_grp_dict[k][Key.CycGrpDict.V_PREV_END_AVG]) < 1e-5,
+                abs(cyc_grp_dict[k][Key.CycGrpDict.V_END_AVG]) < 1e-5,
             ]):
                 continue
 
-            main_data = cyc_grp_dict[k]["main_data"]
+            main_data = cyc_grp_dict[k][Key.CycGrpDict.MAIN]
 
             # normalize capacity_vector with max_cap
             normalize_keys = [
@@ -304,7 +315,10 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
             for key in normalize_keys:
                 main_data[key] = 1. / max_cap * main_data[key]
 
-            normalize_keys = [I_CC_AVG, Q_END_AVG, I_PREV_END_AVG]
+            normalize_keys = [
+                Key.CycGrpDict.I_CC_AVG, Key.CycGrpDict.Q_END_AVG,
+                Key.CycGrpDict.I_PREV_END_AVG
+            ]
             for key in normalize_keys:
                 cyc_grp_dict[k][key] = 1. / max_cap * cyc_grp_dict[k][key]
 

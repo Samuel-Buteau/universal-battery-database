@@ -18,6 +18,23 @@ class Key:
         MASK_CC = "cc_mask_vector"
         MASK_CV = "cv_mask_vector"
 
+    class Fit:
+        # fig args keys
+        WIDTH = "width"
+        DEPTH = "depth"
+        LRN_RATE = "learning_rate"
+        BATCH = "batch_size"
+        PATH_DATASET = "path_to_dataset"
+        PATH_PLOTS = "path_to_plots"
+        DATA_VERSION = "dataset_version"
+        BARCODES = "wanted_barcodes"
+        STOP = "stop_count"
+        VIS = "visualize_fit_every"
+        PRINT_LOSS = "print_loss_every"
+        N_SAMPLE = "n_sample"
+        MIN_LAT = "min_latent"
+        GLB_NORM_CLIP = "global_norm_clip"
+
 
 # params keys
 TENSORS = "compiled_tensors"
@@ -68,10 +85,6 @@ RECIP_LOSS = "reciprocal_loss"
 
 PROJ_LOSS = "projection_loss"
 OOB_LOSS = "out_of_bounds_loss"
-
-# fig args keys
-PATH_DATASET = "path_to_dataset"
-PATH_PLOTS = "path_to_plots"
 
 COEFF_Q = "coeff_q"
 COEFF_Q_CV = "coeff_cv_capacity"

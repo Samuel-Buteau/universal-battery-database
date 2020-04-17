@@ -432,7 +432,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
     for label in labels:
         compiled_tensors[label] = tf.constant(compiled_data[label])
 
-    batch_size = fit_args["batch_size"]
+    batch_size = fit_args[Key.Fit.BATCH]
 
     with strategy.scope():
         train_ds_ = tf.data.Dataset.from_tensor_slices(
@@ -452,8 +452,8 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
             molecule_to_molecule_name = my_names["molecule_to_molecule_name"]
 
         degradation_model = DegradationModel(
-            width = fit_args["width"],
-            depth = fit_args["depth"],
+            width = fit_args[Key.Fit.WIDTH],
+            depth = fit_args[Key.Fit.DEPTH],
             cell_dict = id_dict_from_id_list(cell_id_list),
             pos_dict = id_dict_from_id_list(pos_id_list),
             neg_dict = id_dict_from_id_list(neg_id_list),
@@ -476,13 +476,13 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 electrolyte_to_electrolyte_name,
                 molecule_to_molecule_name,
             ),
-            n_sample = fit_args["n_sample"],
+            n_sample = fit_args[Key.Fit.N_SAMPLE],
             incentive_coeffs = fit_args,
-            min_latent = fit_args["min_latent"]
+            min_latent = fit_args[Key.Fit.MIN_LAT]
         )
 
         optimizer = tf.keras.optimizers.Adam(
-            learning_rate = fit_args["learning_rate"]
+            learning_rate = fit_args[Key.Fit.LRN_RATE]
         )
 
     return {
@@ -579,7 +579,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                     l += l_
 
                 if count != 0:
-                    if (count % fit_args["print_loss_every"]) == 0:
+                    if (count % fit_args[Key.Fit.PRINT_LOSS]) == 0:
                         tot = l / tf.cast(sub_count, dtype = tf.float32)
                         l = None
                         sub_count = 0
@@ -592,7 +592,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                         "fit_args": fit_args,
                     }
 
-                    if (count % fit_args["visualize_fit_every"]) == 0:
+                    if (count % fit_args[Key.Fit.VIS]) == 0:
 
                         start = time.time()
                         print("time to simulate: ", start - end)
@@ -625,7 +625,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                             )
                         print()
 
-                if count >= fit_args["stop_count"]:
+                if count >= fit_args[Key.Fit.STOP]:
                     return
 
 
@@ -860,7 +860,7 @@ def train_step(neighborhood, params, fit_args):
 
     gradients_norm_clipped, _ = tf.clip_by_global_norm(
         gradients_no_nans,
-        fit_args["global_norm_clip"]
+        fit_args[Key.Fit.GLB_NORM_CLIP]
     )
 
     optimizer.apply_gradients(
@@ -903,11 +903,11 @@ def ml_smoothing(fit_args):
     else:
         strategy = tf.distribute.OneDeviceStrategy("/cpu:0")
 
-    if not os.path.exists(fit_args[PATH_PLOTS]):
-        os.makedirs(fit_args[PATH_PLOTS])
+    if not os.path.exists(fit_args[Key.Fit.PATH_PLOTS]):
+        os.makedirs(fit_args[Key.Fit.PATH_PLOTS])
 
     with open(
-        os.path.join(fit_args[PATH_PLOTS], "fit_args_log.txt"), "w"
+        os.path.join(fit_args[Key.Fit.PATH_PLOTS], "fit_args_log.txt"), "w"
     ) as f:
         my_str = ""
         for k in fit_args:
@@ -915,13 +915,13 @@ def ml_smoothing(fit_args):
         f.write(my_str)
 
     dataset_path = os.path.join(
-        fit_args[PATH_DATASET],
-        "dataset_ver_{}.file".format(fit_args["dataset_version"])
+        fit_args[Key.Fit.PATH_DATASET],
+        "dataset_ver_{}.file".format(fit_args[Key.Fit.DATA_VERSION])
     )
 
     dataset_names_path = os.path.join(
-        fit_args[PATH_DATASET],
-        "dataset_ver_{}_names.file".format(fit_args["dataset_version"])
+        fit_args[Key.Fit.PATH_DATASET],
+        "dataset_ver_{}_names.file".format(fit_args[Key.Fit.DATA_VERSION])
     )
 
     if not os.path.exists(dataset_path):
@@ -938,9 +938,9 @@ def ml_smoothing(fit_args):
 
     barcodes = list(my_data[ALL_DATA].keys())
 
-    if len(fit_args["wanted_barcodes"]) != 0:
+    if len(fit_args[Key.Fit.BARCODES]) != 0:
         barcodes = list(
-            set(barcodes).intersection(set(fit_args["wanted_barcodes"])))
+            set(barcodes).intersection(set(fit_args[Key.Fit.BARCODES])))
 
     if len(barcodes) == 0:
         print("no barcodes")

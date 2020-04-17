@@ -920,7 +920,7 @@ def ml_smoothing(fit_args):
         strategy = tf.distribute.OneDeviceStrategy("/cpu:0")
 
     if not os.path.exists(fit_args[PATH_PLOTS]):
-        os.mkdir(fit_args[PATH_PLOTS])
+        os.makedirs(fit_args[PATH_PLOTS])
 
     with open(
         os.path.join(fit_args[PATH_PLOTS], "fit_args_log.txt"), "w"

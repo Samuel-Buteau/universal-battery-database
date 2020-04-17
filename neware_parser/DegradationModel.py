@@ -681,8 +681,8 @@ class DegradationModel(Model):
         loss_cell_eq = tf.reduce_mean((1. - fetched_latent_cell) * incentive_inequality(
             features_cell_direct, Inequality.Equals, features_cell_indirect,
             Level.Proportional
+            )
         )
-                                             )
 
         if training:
             loss_output_cell =  incentive_magnitude(
@@ -1295,7 +1295,7 @@ class DegradationModel(Model):
         #Compute Loss
         loss = None
         if training:
-            loss = self.incentive_coeffs['coeff_shift_a_big']*tf.reduce_mean(incentive_magnitude(shift_a, Target.Big, Level.Proportional))
+            loss = self.incentive_coeffs['coeff_shift_a_big']*tf.reduce_mean(incentive_magnitude(shift_a, Target.Big, Level.Strong))
 
         return shift_0 + shift_a * tf.sqrt(tf.nn.relu(norm_cycle) + 1e-6), loss
 

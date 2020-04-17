@@ -118,18 +118,13 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                                 (V_CC, "f4", len(voltage_grid)),
                                 (Q_CC, "f4", len(voltage_grid)),
                                 (MASK_CC, "f4", len(voltage_grid)),
-                                (I_CV, "f4", fit_args[
-                                "current_max_n"]),
-                                (Q_CV, "f4", fit_args[
-                                "current_max_n"]),
-                                (MASK_CV, "f4", fit_args[
-                                "current_max_n"]),
+                                (I_CV, "f4", fit_args["current_max_n"]),
+                                (Q_CV, "f4", fit_args["current_max_n"]),
+                                (MASK_CV, "f4", fit_args["current_max_n"]),
                                 (I_CC, "f4"),
                                 (I_PREV, "f4"),
-                                ("end_current", "f4"),
                                 (V_PREV_END, "f4"),
                                 (V_END, "f4"),
-                                ("last_cc_voltage", "f4"),
                                 (Q_CC_LAST, "f4"),
                                 (Q_CV_LAST, "f4"),
                                 ("temperature", "f4"),
@@ -243,7 +238,9 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
 
             # normalize capacity_vector with max_cap
             normalize_keys = [
-                Q_CC, Q_CV, Q_CC_LAST, Q_CV_LAST, I_CV, I_CC, I_PREV
+                Key.Main.Q_CC, Key.Main.Q_CV, Key.Main.Q_CC_LAST,
+                Key.Main.Q_CV_LAST, Key.Main.I_CV, Key.Main.I_CC,
+                Key.Main.I_PREV
             ]
             for key in normalize_keys:
                 main_data[key] = 1. / max_cap * main_data[key]
@@ -253,8 +250,8 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 cyc_grp_dict[k][key] = 1. / max_cap * cyc_grp_dict[k][key]
 
             # range of cycles which exist for this cycle group
-            min_cyc = min(main_data[N])
-            max_cyc = max(main_data[N])
+            min_cyc = min(main_data[Key.Main.N])
+            max_cyc = max(main_data[Key.Main.N])
 
             """
             - now create neighborhoods, which contains the cycles,
@@ -309,8 +306,8 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 # False when cycle_number falls outside out of
                 # [below_cyc, above_cyc] interval
                 mask = numpy.logical_and(
-                    below_cyc <= main_data[N],
-                    main_data[N] <= above_cyc
+                    below_cyc <= main_data[Key.Main.N],
+                    main_data[Key.Main.N] <= above_cyc
                 )
 
                 # the indices for the cyc_grp_dict[k] array which correspond
@@ -367,7 +364,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 neighborhood_data_i[NEIGH_TEMPERATURE_GRID] = 0
 
                 center_cycle = float(cyc)
-                reference_cycles = all_data["all_reference_mats"][N]
+                reference_cycles = all_data["all_reference_mats"][Key.Main.N]
 
                 index_of_closest_reference = numpy.argmin(
                     abs(center_cycle - reference_cycles)
@@ -391,23 +388,24 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
 
                 numpy_acc(compiled_data, "neighborhood_data", neighborhood_data)
 
-            number_of_compiled_cycles += len(main_data[N])
-            number_of_reference_cycles += len(all_data["all_reference_mats"][N])
+            number_of_compiled_cycles += len(main_data[Key.Main.N])
+            number_of_reference_cycles\
+                += len(all_data["all_reference_mats"][Key.Main.N])
 
             dict_to_acc = {
-                "reference_cycle": all_data["all_reference_mats"][N],
+                "reference_cycle": all_data["all_reference_mats"][Key.Main.N],
                 COUNT_MATRIX: all_data["all_reference_mats"][COUNT_MATRIX],
-                "cycle": main_data[N],
-                V_CC: main_data[V_CC],
-                Q_CC: main_data[Q_CC],
-                MASK_CC: main_data[MASK_CC],
-                I_CV: main_data[I_CV],
-                Q_CV: main_data[Q_CV],
-                MASK_CV: main_data[MASK_CV],
-                I_CC: main_data[I_CC],
-                I_PREV: main_data[I_PREV],
-                V_PREV_END: main_data[V_PREV_END],
-                V_END: main_data[V_END],
+                "cycle": main_data[Key.Main.N],
+                Key.Main.V_CC: main_data[Key.Main.V_CC],
+                Key.Main.Q_CC: main_data[Key.Main.Q_CC],
+                Key.Main.MASK_CC: main_data[Key.Main.MASK_CC],
+                Key.Main.I_CV: main_data[Key.Main.I_CV],
+                Key.Main.Q_CV: main_data[Key.Main.Q_CV],
+                Key.Main.MASK_CV: main_data[Key.Main.MASK_CV],
+                Key.Main.I_CC: main_data[Key.Main.I_CC],
+                Key.Main.I_PREV: main_data[Key.Main.I_PREV],
+                Key.Main.V_PREV_END: main_data[Key.Main.V_PREV_END],
+                Key.Main.V_END: main_data[Key.Main.V_END],
             }
 
             for key in dict_to_acc:
@@ -426,8 +424,10 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
     compiled_tensors["cycle"] = cycle_tensor
 
     labels = [
-        V_CC, Q_CC, MASK_CC, Q_CV, I_CV, MASK_CV, I_CC, I_PREV, V_PREV_END,
-        V_END, COUNT_MATRIX, SIGN_GRID, V_GRID, Q_GRID, TEMP_GRID
+        Key.Main.V_CC, Key.Main.Q_CC, Key.Main.MASK_CC, Key.Main.Q_CV,
+        Key.Main.I_CV, Key.Main.MASK_CV, Key.Main.I_CC, Key.Main.I_PREV,
+        Key.Main.V_PREV_END, Key.Main.V_END, COUNT_MATRIX, SIGN_GRID, V_GRID,
+        Q_GRID, TEMP_GRID,
     ]
     for label in labels:
         compiled_tensors[label] = tf.constant(compiled_data[label])
@@ -638,20 +638,20 @@ def train_step(neighborhood, params, fit_args):
     count_matrix_tensor = params[TENSORS][COUNT_MATRIX]
 
     cycle_tensor = params[TENSORS]["cycle"]
-    constant_current_tensor = params[TENSORS][I_CC]
-    end_current_prev_tensor = params[TENSORS][I_PREV]
-    end_voltage_prev_tensor = params[TENSORS][V_PREV_END]
-    end_voltage_tensor = params[TENSORS][V_END]
+    constant_current_tensor = params[TENSORS][Key.Main.I_CC]
+    end_current_prev_tensor = params[TENSORS][Key.Main.I_PREV]
+    end_voltage_prev_tensor = params[TENSORS][Key.Main.V_PREV_END]
+    end_voltage_tensor = params[TENSORS][Key.Main.V_END]
 
     degradation_model = params[MODEL]
     optimizer = params["optimizer"]
 
-    cc_voltage_tensor = params[TENSORS][V_CC]
-    cc_capacity_tensor = params[TENSORS][Q_CC]
-    cc_mask_tensor = params[TENSORS][MASK_CC]
-    cv_capacity_tensor = params[TENSORS][Q_CV]
-    cv_current_tensor = params[TENSORS][I_CV]
-    cv_mask_tensor = params[TENSORS][MASK_CV]
+    cc_voltage_tensor = params[TENSORS][Key.Main.V_CC]
+    cc_capacity_tensor = params[TENSORS][Key.Main.Q_CC]
+    cc_mask_tensor = params[TENSORS][Key.Main.MASK_CC]
+    cv_capacity_tensor = params[TENSORS][Key.Main.Q_CV]
+    cv_current_tensor = params[TENSORS][Key.Main.I_CV]
+    cv_mask_tensor = params[TENSORS][Key.Main.MASK_CV]
 
     # need to split the range
     batch_size2 = neighborhood.shape[0]
@@ -948,7 +948,7 @@ def ml_smoothing(fit_args):
 
     train_and_evaluate(
         initial_processing(
-            my_data, my_names, barcodes, fit_args, strategy = strategy
+            my_data, my_names, barcodes, fit_args, strategy = strategy,
         ),
         barcodes,
         fit_args

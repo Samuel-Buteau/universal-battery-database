@@ -268,3 +268,6 @@ tags
 
 # End of https://www.gitignore.io/api/vim,macos,python,pycharm
 neware_parser/log_ml_metadata
+
+April*
+tensorflow*

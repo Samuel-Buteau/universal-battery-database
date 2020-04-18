@@ -2,18 +2,34 @@ class Key:
     """ Define dictionary keys """
 
     N = "cycle_number"
+    N_SAMPLE = "n_sample"
+
     V_CC = "cc_voltage_vector"
     V_END = "end_voltage"
     V_PREV_END = "end_voltage_prev"
+    V_PREV_END_AVG = "avg_end_voltage_prev"
+    V_END_AVG = "avg_end_voltage"
+    V_GRID = "voltage_grid"
+
     Q_CC = "cc_capacity_vector"
     Q_CV = "cv_capacity_vector"
+    Q_END_AVG = "avg_end_current"
     Q_CC_LAST = "last_cc_capacity"
     Q_CV_LAST = "last_cv_capacity"
+    Q_MAX = "max_cap"
+
     I_CC = "constant_current"
+    I_CC_AVG = "avg_constant_current"
     I_CV = "cv_current_vector"
     I_PREV = "end_current_prev"
+    I_PREV_END_AVG = "avg_end_current_prev"
+    I_GRID = "current_grid"
+
     MASK_CC = "cc_mask_vector"
     MASK_CV = "cv_mask_vector"
+    COUNT_MATRIX = "count_matrix"
+    SIGN_GRID = "sign_grid"
+    TEMP_GRID = "temperature_grid"
 
     WIDTH = "width"
     DEPTH = "depth"
@@ -26,20 +42,13 @@ class Key:
     STOP = "stop_count"
     VIS = "visualize_fit_every"
     PRINT_LOSS = "print_loss_every"
-    N_SAMPLE = "n_sample"
     MIN_LAT = "min_latent"
     GLB_NORM_CLIP = "global_norm_clip"
 
     MAIN = "main_data"
-    Q_END_AVG = "avg_end_current"
-    V_PREV_END_AVG = "avg_end_voltage_prev"
-    V_END_AVG = "avg_end_voltage"
-    I_CC_AVG = "avg_constant_current"
-    I_PREV_END_AVG = "avg_end_current_prev"
-
+    MY_DATA = "my_data"
     ALL_DATA = "all_data"
-    MAX_CAP = "max_cap"
-    Q_GRID = "current_grid"
+
     CELL_TO_POS = "cell_id_to_pos_id"
     CELL_TO_NEG = "cell_id_to_neg_id"
     CELL_TO_ELE = "cell_id_to_electrolyte_id"
@@ -57,12 +66,6 @@ class Key:
     CYC_M = "cycle_m"
     CYC_V = "cycle_v"
     OPT = "optimizer"
-    MY_DATA = "my_data"
-
-    V_GRID = "voltage_grid"
-    COUNT_MATRIX = "count_matrix"
-    SIGN_GRID = "sign_grid"
-    TEMP_GRID = "temperature_grid"
 
     # TODO (harvey): replace the following class of keys
     class Coeff:

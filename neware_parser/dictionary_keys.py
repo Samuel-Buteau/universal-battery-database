@@ -91,10 +91,18 @@ class Key:
         PROJ = "projection_loss"
         OOB = "out_of_bounds_loss"
 
+    class Init:
+        STRAT = "strategy"
+        TENSORS = "compiled_tensors"
+        MODEL = "degradation_model"
+        TRAIN_DS = "train_ds"
+        CYC_M = "cycle_m"
+        CYC_V = "cycle_v"
+        OPT = "optimizer"
+        MY_DATA = "my_data"
+
 
 # params keys
-TENSORS = "compiled_tensors"
-MODEL = "degradation_model"
 
 V_GRID = "voltage_grid"
 
@@ -102,12 +110,3 @@ COUNT_MATRIX = "count_matrix"
 
 SIGN_GRID = "sign_grid"
 TEMP_GRID = "temperature_grid"
-
-# data keys
-
-# my_data keys
-
-# loss keys
-
-
-

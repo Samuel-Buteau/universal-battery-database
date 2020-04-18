@@ -137,7 +137,8 @@ def initial_processing(
 
     Args:
         my_data (dictionary):
-            Key.MyData.MAX_CAP: A single number. The maximum capacity across the dataset.
+            Key.MyData.MAX_CAP: A single number. The maximum capacity across the
+                dataset.
             GRID_V: 1D array of voltages,
             Q_GRID: 1D array of log currents
             TEMP_GRID: 1D array of temperatures
@@ -173,7 +174,8 @@ def initial_processing(
                         sign,
                     )
                     each group is a dictionary indexed by:
-                        Key.CycGrpDict.MAIN: A numpy structured array with dtype:
+                        Key.CycGrpDict.MAIN: A numpy structured array with
+                            dtype:
                             [
                                 (N, "f4"),
                                 (V_CC, "f4", len(voltage_grid)),
@@ -199,8 +201,8 @@ def initial_processing(
 
     Returns:
         {
-           "strategy", MODEL, TENSORS, "train_ds", "cycle_m", "cycle_v",
-           "optimizer", "my_data"
+           Key.Init.STRAT, MODEL, TENSORS, Key.Init.TRAIN_DS, Key.Init.CYC_M,
+           Key.Init.CYC_V, Key.Init.OPT, Key.Init.MY_DATA
         }
 
     """
@@ -566,21 +568,21 @@ def initial_processing(
         )
 
     return {
-        "strategy": strategy,
-        MODEL: degradation_model,
-        TENSORS: compiled_tensors,
+        Key.Init.STRAT: strategy,
+        Key.Init.MODEL: degradation_model,
+        Key.Init.TENSORS: compiled_tensors,
 
-        "train_ds": train_ds,
-        "cycle_m": cycle_m,
-        "cycle_v": cycle_v,
+        Key.Init.TRAIN_DS: train_ds,
+        Key.Init.CYC_M: cycle_m,
+        Key.Init.CYC_V: cycle_v,
 
-        "optimizer": optimizer,
-        "my_data": my_data
+        Key.Init.OPT: optimizer,
+        Key.Init.MY_DATA: my_data
     }
 
 
 def train_and_evaluate(init_returns, barcodes, fit_args):
-    strategy = init_returns["strategy"]
+    strategy = init_returns[Key.Init.STRAT]
 
     epochs = 100000
     count = 0
@@ -590,9 +592,9 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
     now_ker = None
 
     train_step_params = {
-        TENSORS: init_returns[TENSORS],
-        "optimizer": init_returns["optimizer"],
-        MODEL: init_returns[MODEL],
+        Key.Init.TENSORS: init_returns[Key.Init.TENSORS],
+        Key.Init.OPT: init_returns[Key.Init.OPT],
+        Key.Init.MODEL: init_returns[Key.Init.MODEL],
     }
 
     @tf.function
@@ -609,7 +611,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
     with strategy.scope():
         for epoch in range(epochs):
             sub_count = 0
-            for neighborhood in init_returns["train_ds"]:
+            for neighborhood in init_returns[Key.Init.TRAIN_DS]:
                 count += 1
                 sub_count += 1
 
@@ -643,7 +645,9 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                         plot_v_curves(plot_params, init_returns)
                         end = time.time()
                         print("time to plot: ", end - start)
-                        ker = init_returns[MODEL].cell_direct.kernel.numpy()
+                        ker = init_returns[
+                            Key.Init.MODEL
+                        ].cell_direct.kernel.numpy()
                         prev_ker = now_ker
                         now_ker = ker
 
@@ -671,28 +675,28 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
 
 
 def train_step(neighborhood, params, fit_args):
-    sign_grid_tensor = params[TENSORS][SIGN_GRID]
-    voltage_grid_tensor = params[TENSORS][V_GRID]
-    current_grid_tensor = params[TENSORS][Key.MyData.Q_GRID]
-    temperature_grid_tensor = params[TENSORS][TEMP_GRID]
+    sign_grid_tensor = params[Key.Init.TENSORS][SIGN_GRID]
+    voltage_grid_tensor = params[Key.Init.TENSORS][V_GRID]
+    current_grid_tensor = params[Key.Init.TENSORS][Key.MyData.Q_GRID]
+    temperature_grid_tensor = params[Key.Init.TENSORS][TEMP_GRID]
 
-    count_matrix_tensor = params[TENSORS][COUNT_MATRIX]
+    count_matrix_tensor = params[Key.Init.TENSORS][COUNT_MATRIX]
 
-    cycle_tensor = params[TENSORS]["cycle"]
-    constant_current_tensor = params[TENSORS][Key.Main.I_CC]
-    end_current_prev_tensor = params[TENSORS][Key.Main.I_PREV]
-    end_voltage_prev_tensor = params[TENSORS][Key.Main.V_PREV_END]
-    end_voltage_tensor = params[TENSORS][Key.Main.V_END]
+    cycle_tensor = params[Key.Init.TENSORS]["cycle"]
+    constant_current_tensor = params[Key.Init.TENSORS][Key.Main.I_CC]
+    end_current_prev_tensor = params[Key.Init.TENSORS][Key.Main.I_PREV]
+    end_voltage_prev_tensor = params[Key.Init.TENSORS][Key.Main.V_PREV_END]
+    end_voltage_tensor = params[Key.Init.TENSORS][Key.Main.V_END]
 
-    degradation_model = params[MODEL]
-    optimizer = params["optimizer"]
+    degradation_model = params[Key.Init.MODEL]
+    optimizer = params[Key.Init.OPT]
 
-    cc_voltage_tensor = params[TENSORS][Key.Main.V_CC]
-    cc_capacity_tensor = params[TENSORS][Key.Main.Q_CC]
-    cc_mask_tensor = params[TENSORS][Key.Main.MASK_CC]
-    cv_capacity_tensor = params[TENSORS][Key.Main.Q_CV]
-    cv_current_tensor = params[TENSORS][Key.Main.I_CV]
-    cv_mask_tensor = params[TENSORS][Key.Main.MASK_CV]
+    cc_voltage_tensor = params[Key.Init.TENSORS][Key.Main.V_CC]
+    cc_capacity_tensor = params[Key.Init.TENSORS][Key.Main.Q_CC]
+    cc_mask_tensor = params[Key.Init.TENSORS][Key.Main.MASK_CC]
+    cv_capacity_tensor = params[Key.Init.TENSORS][Key.Main.Q_CV]
+    cv_current_tensor = params[Key.Init.TENSORS][Key.Main.I_CV]
+    cv_mask_tensor = params[Key.Init.TENSORS][Key.Main.MASK_CV]
 
     # need to split the range
     batch_size2 = neighborhood.shape[0]
@@ -809,9 +813,9 @@ def train_step(neighborhood, params, fit_args):
     cc_mask_2 = tf.tile(
         tf.reshape(
             1. / tf.cast(neighborhood[:, NEIGH_VALID_CYC], tf.float32),
-            [batch_size2, 1]
+            [batch_size2, 1],
         ),
-        [1, cc_voltage.shape[1]]
+        [1, cc_voltage.shape[1]],
     )
 
     cv_capacity = tf.gather(cv_capacity_tensor, indices = cycle_indices)
@@ -822,7 +826,7 @@ def train_step(neighborhood, params, fit_args):
             1. / tf.cast(neighborhood[:, NEIGH_VALID_CYC], tf.float32),
             [batch_size2, 1]
         ),
-        [1, cv_current.shape[1]]
+        [1, cv_current.shape[1]],
     )
 
     cell_indices = neighborhood[:, NEIGH_BARCODE]
@@ -841,7 +845,7 @@ def train_step(neighborhood, params, fit_args):
                 svit_grid,
                 count_matrix,
                 cc_capacity,
-                cv_capacity
+                cv_capacity,
             ),
             training = True
         )
@@ -856,16 +860,16 @@ def train_step(neighborhood, params, fit_args):
         )
 
         cc_capacity_loss = get_loss(
-            cc_capacity, pred_cc_capacity, cc_mask, cc_mask_2
+            cc_capacity, pred_cc_capacity, cc_mask, cc_mask_2,
         )
         cv_capacity_loss = get_loss(
-            cv_capacity, pred_cv_capacity, cv_mask, cv_mask_2
+            cv_capacity, pred_cv_capacity, cv_mask, cv_mask_2,
         )
         cc_voltage_loss = get_loss(
-            cc_voltage, pred_cc_voltage, cc_mask, cc_mask_2
+            cc_voltage, pred_cc_voltage, cc_mask, cc_mask_2,
         )
         cv_voltage_loss = get_loss(
-            cv_voltage, pred_cv_voltage, cv_mask, cv_mask_2
+            cv_voltage, pred_cv_voltage, cv_mask, cv_mask_2,
         )
 
         loss = (
@@ -891,7 +895,7 @@ def train_step(neighborhood, params, fit_args):
 
     gradients = tape.gradient(
         loss,
-        degradation_model.trainable_variables
+        degradation_model.trainable_variables,
     )
 
     gradients_no_nans = [
@@ -901,13 +905,13 @@ def train_step(neighborhood, params, fit_args):
 
     gradients_norm_clipped, _ = tf.clip_by_global_norm(
         gradients_no_nans,
-        fit_args[Key.Fit.GLB_NORM_CLIP]
+        fit_args[Key.Fit.GLB_NORM_CLIP],
     )
 
     optimizer.apply_gradients(
         zip(
             gradients_norm_clipped,
-            degradation_model.trainable_variables
+            degradation_model.trainable_variables,
         )
     )
 
@@ -925,7 +929,7 @@ def train_step(neighborhood, params, fit_args):
             train_results[Key.Loss.RECIP],
 
             train_results[Key.Loss.PROJ],
-            train_results[Key.Loss.OOB]
+            train_results[Key.Loss.OOB],
         ],
     )
 
@@ -943,7 +947,7 @@ class Command(BaseCommand):
         required_args = [
             "--path_to_dataset",
             "--dataset_version",
-            "--path_to_plots"
+            "--path_to_plots",
         ]
 
         float_args = {
@@ -1036,7 +1040,7 @@ class Command(BaseCommand):
             "--visualize_vq_every": vis,
 
             "--stop_count": 1000004,
-            "--barcode_show": 10
+            "--barcode_show": 10,
         }
 
         for arg in required_args:
@@ -1059,13 +1063,13 @@ class Command(BaseCommand):
             83225, 83226, 83227, 83228, 83229, 83230, 83231, 83232, 83233,
             83234, 83235, 83236, 83237, 83239, 83240, 83241, 83242, 83243,
             83310, 83311, 83312, 83317, 83318, 83593, 83594, 83595, 83596,
-            83741, 83742, 83743, 83744, 83745, 83746, 83747, 83748
+            83741, 83742, 83743, 83744, 83745, 83746, 83747, 83748,
         ]
         # 57706, 57707, 57710, 57711, 57714, 57715,64260,64268,83010, 83011,
         # 83012, 83013, 83014, 83015, 83016
 
         parser.add_argument(
-            "--wanted_barcodes", type = int, nargs = "+", default = barcodes
+            "--wanted_barcodes", type = int, nargs = "+", default = barcodes,
         )
 
     def handle(self, *args, **options):

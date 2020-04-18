@@ -43,6 +43,19 @@ class Key:
         MIN_LAT = "min_latent"
         GLB_NORM_CLIP = "global_norm_clip"
 
+        class Coeff:
+            Q = "coeff_q"
+            Q_CV = "coeff_cv_capacity"
+            Q_CC = "coeff_cc_capacity"
+            V_CC = "coeff_cc_voltage"
+            SCALE = "coeff_scale"
+            R = "coeff_r"
+            SHIFT = "coeff_shift"
+            CELL = "coeff_cell"
+            RECIP = "coeff_reciprocal"
+            PROJ = "coeff_projection"
+            OOB = "coeff_out_of_bounds"
+
     class CycGrpDict:
         MAIN = "main_data"
         Q_END_AVG = "avg_end_current"
@@ -97,14 +110,4 @@ TEMP_GRID = "temperature_grid"
 # loss keys
 
 
-COEFF_Q = "coeff_q"
-COEFF_Q_CV = "coeff_cv_capacity"
-COEFF_Q_CC = "coeff_cc_capacity"
-COEFF_V_CC = "coeff_cc_voltage"
-COEFF_SCALE = "coeff_scale"
-COEFF_R = "coeff_r"
-COEFF_SHIFT = "coeff_shift"
-COEFF_CELL = "coeff_cell"
-COEFF_RECIP = "coeff_reciprocal"
-COEFF_PROJ = "coeff_projection"
-COEFF_OOB = "coeff_out_of_bounds"
+

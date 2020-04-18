@@ -870,22 +870,22 @@ def train_step(neighborhood, params, fit_args):
 
         loss = (
             tf.stop_gradient(
-                fit_args[COEFF_Q_CV] * cv_capacity_loss
-                + fit_args[COEFF_V_CC] * cc_voltage_loss
-                + fit_args[COEFF_Q_CC] * cc_capacity_loss
+                fit_args[Key.Fit.Coeff.Q_CV] * cv_capacity_loss
+                + fit_args[Key.Fit.Coeff.V_CC] * cc_voltage_loss
+                + fit_args[Key.Fit.Coeff.Q_CC] * cc_capacity_loss
             )
-            + fit_args[COEFF_Q_CV] * cv_capacity_loss
-            + fit_args[COEFF_V_CC] * cc_voltage_loss
-            + fit_args[COEFF_Q_CC] * cc_capacity_loss
+            + fit_args[Key.Fit.Coeff.Q_CV] * cv_capacity_loss
+            + fit_args[Key.Fit.Coeff.V_CC] * cc_voltage_loss
+            + fit_args[Key.Fit.Coeff.Q_CC] * cc_capacity_loss
             * (
-                fit_args[COEFF_Q] * train_results[Key.Loss.Q]
-                + fit_args[COEFF_SCALE] * train_results[Key.Loss.SCALE]
-                + fit_args[COEFF_R] * train_results[Key.Loss.R]
-                + fit_args[COEFF_SHIFT] * train_results[Key.Loss.SHIFT]
-                + fit_args[COEFF_CELL] * train_results[Key.Loss.CELL]
-                + fit_args[COEFF_RECIP] * train_results[Key.Loss.RECIP]
-                + fit_args[COEFF_PROJ] * train_results[Key.Loss.PROJ]
-                + fit_args[COEFF_OOB] * train_results[Key.Loss.OOB]
+                fit_args[Key.Fit.Coeff.Q] * train_results[Key.Loss.Q]
+                + fit_args[Key.Fit.Coeff.SCALE] * train_results[Key.Loss.SCALE]
+                + fit_args[Key.Fit.Coeff.R] * train_results[Key.Loss.R]
+                + fit_args[Key.Fit.Coeff.SHIFT] * train_results[Key.Loss.SHIFT]
+                + fit_args[Key.Fit.Coeff.CELL] * train_results[Key.Loss.CELL]
+                + fit_args[Key.Fit.Coeff.RECIP] * train_results[Key.Loss.RECIP]
+                + fit_args[Key.Fit.Coeff.PROJ] * train_results[Key.Loss.PROJ]
+                + fit_args[Key.Fit.Coeff.OOB] * train_results[Key.Loss.OOB]
             )
         )
 

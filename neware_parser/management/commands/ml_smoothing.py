@@ -153,7 +153,7 @@ def initial_processing(
                 1 if the cell is latent,
                 0 if made of known pos,neg,electrolyte
             ALL_DATA: A dictionary indexed by barcode; each barcode yields:
-                "all_reference_mats": structured array with dtype:
+                Key.ALL_REF_MATS: structured array with dtype:
                     [
                         (N, "f4"),
                         (
@@ -164,7 +164,7 @@ def initial_processing(
                             )
                         ),
                     ]
-                "cyc_grp_dict": Groups of steps indexed by group averages of
+                Key.CYC_GRP_DICT: Groups of steps indexed by group averages of
                     (
                         end_current_prev,
                         constant_current,
@@ -181,23 +181,23 @@ def initial_processing(
                                 (V_CC, "f4", len(voltage_grid)),
                                 (Q_CC, "f4", len(voltage_grid)),
                                 (MASK_CC, "f4", len(voltage_grid)),
-                                (I_CV, "f4", fit_args["current_max_n"]),
-                                (Q_CV, "f4", fit_args["current_max_n"]),
-                                (MASK_CV, "f4", fit_args["current_max_n"]),
+                                (I_CV, "f4", fit_args[Key.I_MAX]),
+                                (Q_CV, "f4", fit_args[Key.I_MAX]),
+                                (MASK_CV, "f4", fit_args[Key.I_MAX]),
                                 (I_CC, "f4"),
                                 (I_PREV, "f4"),
                                 (V_PREV_END, "f4"),
                                 (V_END, "f4"),
                                 (Q_CC_LAST, "f4"),
                                 (Q_CV_LAST, "f4"),
-                                ("temperature", "f4"),
+                                (Key.TEMP, "f4"),
                             ]
                         I_CC_AVG,
                         I_PREV_END_AVG,
                         Q_END_AVG,
                         V_PREV_END_AVG,
                         V_END_AVG,
-                        "avg_last_cc_voltage",
+                        Key.V_CC_LAST_AVG,
 
     Returns:
         {
@@ -300,7 +300,7 @@ def initial_processing(
     for barcode_count, barcode in enumerate(barcodes):
 
         all_data = my_data[Key.ALL_DATA][barcode]
-        cyc_grp_dict = all_data["cyc_grp_dict"]
+        cyc_grp_dict = all_data[Key.CYC_GRP_DICT]
 
         for k_count, k in enumerate(cyc_grp_dict.keys()):
 
@@ -317,8 +317,8 @@ def initial_processing(
 
             # normalize capacity_vector with max_cap
             normalize_keys = [
-                Key.Q_CC, Key.Q_CV, Key.Q_CC_LAST,
-                Key.Q_CV_LAST, Key.I_CV, Key.I_CC,
+                Key.Q_CC_VEC, Key.Q_CV_VEC, Key.Q_CC_LAST,
+                Key.Q_CV_LAST, Key.I_CV_VEC, Key.I_CC,
                 Key.I_PREV
             ]
             for key in normalize_keys:
@@ -446,7 +446,7 @@ def initial_processing(
                 neighborhood_data_i[NEIGH_TEMPERATURE_GRID] = 0
 
                 center_cycle = float(cyc)
-                reference_cycles = all_data["all_reference_mats"][Key.N]
+                reference_cycles = all_data[Key.REF_ALL_MATS][Key.N]
 
                 index_of_closest_reference = numpy.argmin(
                     abs(center_cycle - reference_cycles)
@@ -472,19 +472,19 @@ def initial_processing(
 
             number_of_compiled_cycles += len(main_data[Key.N])
             number_of_reference_cycles\
-                += len(all_data["all_reference_mats"][Key.N])
+                += len(all_data[Key.REF_ALL_MATS][Key.N])
 
             dict_to_acc = {
-                "reference_cycle": all_data["all_reference_mats"][Key.N],
+                "reference_cycle": all_data[Key.REF_ALL_MATS][Key.N],
                 Key.COUNT_MATRIX:
-                    all_data["all_reference_mats"][Key.COUNT_MATRIX],
+                    all_data[Key.REF_ALL_MATS][Key.COUNT_MATRIX],
                 "cycle": main_data[Key.N],
-                Key.V_CC: main_data[Key.V_CC],
-                Key.Q_CC: main_data[Key.Q_CC],
-                Key.MASK_CC: main_data[Key.MASK_CC],
-                Key.I_CV: main_data[Key.I_CV],
-                Key.Q_CV: main_data[Key.Q_CV],
-                Key.MASK_CV: main_data[Key.MASK_CV],
+                Key.V_CC_VEC: main_data[Key.V_CC_VEC],
+                Key.Q_CC_VEC: main_data[Key.Q_CC_VEC],
+                Key.MASK_CC_VEC: main_data[Key.MASK_CC_VEC],
+                Key.I_CV_VEC: main_data[Key.I_CV_VEC],
+                Key.Q_CV_VEC: main_data[Key.Q_CV_VEC],
+                Key.MASK_CV_VEC: main_data[Key.MASK_CV_VEC],
                 Key.I_CC: main_data[Key.I_CC],
                 Key.I_PREV: main_data[Key.I_PREV],
                 Key.V_PREV_END: main_data[Key.V_PREV_END],
@@ -507,7 +507,7 @@ def initial_processing(
     compiled_tensors["cycle"] = cycle_tensor
 
     labels = [
-        Key.V_CC, Key.Q_CC, Key.MASK_CC, Key.Q_CV, Key.I_CV, Key.MASK_CV,
+        Key.V_CC_VEC, Key.Q_CC_VEC, Key.MASK_CC_VEC, Key.Q_CV_VEC, Key.I_CV_VEC, Key.MASK_CV_VEC,
         Key.I_CC, Key.I_PREV, Key.V_PREV_END, Key.V_END, Key.COUNT_MATRIX,
         Key.SIGN_GRID, Key.V_GRID, Key.I_GRID, Key.TEMP_GRID,
     ]
@@ -691,12 +691,12 @@ def train_step(neighborhood, params, fit_args):
     degradation_model = params[Key.MODEL]
     optimizer = params[Key.OPT]
 
-    cc_voltage_tensor = params[Key.TENSORS][Key.V_CC]
-    cc_capacity_tensor = params[Key.TENSORS][Key.Q_CC]
-    cc_mask_tensor = params[Key.TENSORS][Key.MASK_CC]
-    cv_capacity_tensor = params[Key.TENSORS][Key.Q_CV]
-    cv_current_tensor = params[Key.TENSORS][Key.I_CV]
-    cv_mask_tensor = params[Key.TENSORS][Key.MASK_CV]
+    cc_voltage_tensor = params[Key.TENSORS][Key.V_CC_VEC]
+    cc_capacity_tensor = params[Key.TENSORS][Key.Q_CC_VEC]
+    cc_mask_tensor = params[Key.TENSORS][Key.MASK_CC_VEC]
+    cv_capacity_tensor = params[Key.TENSORS][Key.Q_CV_VEC]
+    cv_current_tensor = params[Key.TENSORS][Key.I_CV_VEC]
+    cv_mask_tensor = params[Key.TENSORS][Key.MASK_CV_VEC]
 
     # need to split the range
     batch_size2 = neighborhood.shape[0]

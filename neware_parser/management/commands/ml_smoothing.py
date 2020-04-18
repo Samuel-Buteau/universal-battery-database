@@ -1035,7 +1035,7 @@ class Command(BaseCommand):
             '--coeff_shift_small': .01,
             '--coeff_shift_d3_cycle': .0,
             '--coeff_shift_mono': .0,
-            '--coeff_shift_a_big': .01,
+            '--coeff_shift_a_big': .00001,
 
             '--coeff_reciprocal': 10.,
             '--coeff_reciprocal_v': 10.,

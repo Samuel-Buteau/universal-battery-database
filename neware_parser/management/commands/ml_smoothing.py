@@ -89,7 +89,7 @@ def ml_smoothing(fit_args):
         with open(dataset_names_path, "rb") as f:
             my_names = pickle.load(f)
 
-    barcodes = list(my_data[Key.MyData.ALL_DATA].keys())
+    barcodes = list(my_data[Key.ALL_DATA].keys())
 
     if len(fit_args[Key.BARCODES]) != 0:
         barcodes = list(
@@ -137,7 +137,7 @@ def initial_processing(
 
     Args:
         my_data (dictionary):
-            Key.MyData.MAX_CAP: A single number. The maximum capacity across the
+            Key.MAX_CAP: A single number. The maximum capacity across the
                 dataset.
             GRID_V: 1D array of voltages,
             Q_GRID: 1D array of log currents
@@ -174,7 +174,7 @@ def initial_processing(
                         sign,
                     )
                     each group is a dictionary indexed by:
-                        Key.CycGrpDict.MAIN: A numpy structured array with
+                        Key.MAIN: A numpy structured array with
                             dtype:
                             [
                                 (N, "f4"),
@@ -214,19 +214,19 @@ def initial_processing(
     number_of_compiled_cycles = 0
     number_of_reference_cycles = 0
 
-    my_data[Key.MyData.MAX_CAP] = 250
-    max_cap = my_data[Key.MyData.MAX_CAP]
+    my_data[Key.MAX_CAP] = 250
+    max_cap = my_data[Key.MAX_CAP]
 
     keys = [V_GRID, TEMP_GRID, SIGN_GRID]
     for key in keys:
         numpy_acc(compiled_data, key, numpy.array([my_data[key]]))
 
-    my_data[Key.MyData.Q_GRID] = my_data[Key.MyData.Q_GRID] - numpy.log(max_cap)
+    my_data[Key.Q_GRID] = my_data[Key.Q_GRID] - numpy.log(max_cap)
     # the current grid is adjusted by the max capacity of the barcode. It is
     # in log space, so I/q becomes log(I) - log(q)
     numpy_acc(
-        compiled_data, Key.MyData.Q_GRID,
-        numpy.array([my_data[Key.MyData.Q_GRID]])
+        compiled_data, Key.Q_GRID,
+        numpy.array([my_data[Key.Q_GRID]])
     )
 
     # TODO (harvey): simplify the following using loops
@@ -242,34 +242,34 @@ def initial_processing(
     electrolyte_id_to_additive_id_weight = {}
 
     for cell_id in cell_id_list:
-        if cell_id in my_data[Key.MyData.CELL_TO_POS].keys():
+        if cell_id in my_data[Key.CELL_TO_POS].keys():
             cell_id_to_pos_id[cell_id]\
-                = my_data[Key.MyData.CELL_TO_POS][cell_id]
-        if cell_id in my_data[Key.MyData.CELL_TO_NEG].keys():
+                = my_data[Key.CELL_TO_POS][cell_id]
+        if cell_id in my_data[Key.CELL_TO_NEG].keys():
             cell_id_to_neg_id[cell_id]\
-                = my_data[Key.MyData.CELL_TO_NEG][cell_id]
-        if cell_id in my_data[Key.MyData.CELL_TO_ELE].keys():
+                = my_data[Key.CELL_TO_NEG][cell_id]
+        if cell_id in my_data[Key.CELL_TO_ELE].keys():
             cell_id_to_electrolyte_id[cell_id]\
-                = my_data[Key.MyData.CELL_TO_ELE][cell_id]
-        if cell_id in my_data[Key.MyData.CELL_TO_LAT].keys():
+                = my_data[Key.CELL_TO_ELE][cell_id]
+        if cell_id in my_data[Key.CELL_TO_LAT].keys():
             cell_id_to_latent[cell_id]\
-                = my_data[Key.MyData.CELL_TO_LAT][cell_id]
+                = my_data[Key.CELL_TO_LAT][cell_id]
 
         if cell_id_to_latent[cell_id] < 0.5:
             electrolyte_id = cell_id_to_electrolyte_id[cell_id]
-            if electrolyte_id in my_data[Key.MyData.ELE_TO_SOL].keys():
+            if electrolyte_id in my_data[Key.ELE_TO_SOL].keys():
                 electrolyte_id_to_solvent_id_weight[electrolyte_id]\
-                    = my_data[Key.MyData.ELE_TO_SOL][electrolyte_id]
-            if electrolyte_id in my_data[Key.MyData.ELE_TO_SALT].keys():
+                    = my_data[Key.ELE_TO_SOL][electrolyte_id]
+            if electrolyte_id in my_data[Key.ELE_TO_SALT].keys():
                 electrolyte_id_to_salt_id_weight[electrolyte_id]\
-                    = my_data[Key.MyData.ELE_TO_SALT][electrolyte_id]
-            if electrolyte_id in my_data[Key.MyData.ELE_TO_ADD].keys():
+                    = my_data[Key.ELE_TO_SALT][electrolyte_id]
+            if electrolyte_id in my_data[Key.ELE_TO_ADD].keys():
                 electrolyte_id_to_additive_id_weight[electrolyte_id]\
-                    = my_data[Key.MyData.ELE_TO_ADD][electrolyte_id]
+                    = my_data[Key.ELE_TO_ADD][electrolyte_id]
 
-            if electrolyte_id in my_data[Key.MyData.ELE_TO_LAT].keys():
+            if electrolyte_id in my_data[Key.ELE_TO_LAT].keys():
                 electrolyte_id_to_latent[electrolyte_id]\
-                    = my_data[Key.MyData.ELE_TO_LAT][electrolyte_id]
+                    = my_data[Key.ELE_TO_LAT][electrolyte_id]
 
     mess = [
         [
@@ -299,21 +299,21 @@ def initial_processing(
 
     for barcode_count, barcode in enumerate(barcodes):
 
-        all_data = my_data[Key.MyData.ALL_DATA][barcode]
+        all_data = my_data[Key.ALL_DATA][barcode]
         cyc_grp_dict = all_data["cyc_grp_dict"]
 
         for k_count, k in enumerate(cyc_grp_dict.keys()):
 
             if any([
-                abs(cyc_grp_dict[k][Key.CycGrpDict.I_PREV_END_AVG]) < 1e-5,
-                abs(cyc_grp_dict[k][Key.CycGrpDict.I_CC_AVG]) < 1e-5,
-                abs(cyc_grp_dict[k][Key.CycGrpDict.Q_END_AVG]) < 1e-5,
-                abs(cyc_grp_dict[k][Key.CycGrpDict.V_PREV_END_AVG]) < 1e-5,
-                abs(cyc_grp_dict[k][Key.CycGrpDict.V_END_AVG]) < 1e-5,
+                abs(cyc_grp_dict[k][Key.I_PREV_END_AVG]) < 1e-5,
+                abs(cyc_grp_dict[k][Key.I_CC_AVG]) < 1e-5,
+                abs(cyc_grp_dict[k][Key.Q_END_AVG]) < 1e-5,
+                abs(cyc_grp_dict[k][Key.V_PREV_END_AVG]) < 1e-5,
+                abs(cyc_grp_dict[k][Key.V_END_AVG]) < 1e-5,
             ]):
                 continue
 
-            main_data = cyc_grp_dict[k][Key.CycGrpDict.MAIN]
+            main_data = cyc_grp_dict[k][Key.MAIN]
 
             # normalize capacity_vector with max_cap
             normalize_keys = [
@@ -325,8 +325,8 @@ def initial_processing(
                 main_data[key] = 1. / max_cap * main_data[key]
 
             normalize_keys = [
-                Key.CycGrpDict.I_CC_AVG, Key.CycGrpDict.Q_END_AVG,
-                Key.CycGrpDict.I_PREV_END_AVG
+                Key.I_CC_AVG, Key.Q_END_AVG,
+                Key.I_PREV_END_AVG
             ]
             for key in normalize_keys:
                 cyc_grp_dict[k][key] = 1. / max_cap * cyc_grp_dict[k][key]
@@ -509,7 +509,7 @@ def initial_processing(
         Key.V_CC, Key.Q_CC, Key.MASK_CC, Key.Q_CV,
         Key.I_CV, Key.MASK_CV, Key.I_CC, Key.I_PREV,
         Key.V_PREV_END, Key.V_END, COUNT_MATRIX, SIGN_GRID, V_GRID,
-        Key.MyData.Q_GRID, TEMP_GRID,
+        Key.Q_GRID, TEMP_GRID,
     ]
     for label in labels:
         compiled_tensors[label] = tf.constant(compiled_data[label])
@@ -677,7 +677,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
 def train_step(neighborhood, params, fit_args):
     sign_grid_tensor = params[Key.Init.TENSORS][SIGN_GRID]
     voltage_grid_tensor = params[Key.Init.TENSORS][V_GRID]
-    current_grid_tensor = params[Key.Init.TENSORS][Key.MyData.Q_GRID]
+    current_grid_tensor = params[Key.Init.TENSORS][Key.Q_GRID]
     temperature_grid_tensor = params[Key.Init.TENSORS][TEMP_GRID]
 
     count_matrix_tensor = params[Key.Init.TENSORS][COUNT_MATRIX]

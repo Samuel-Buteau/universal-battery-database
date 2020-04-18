@@ -201,8 +201,8 @@ def initial_processing(
 
     Returns:
         {
-           Key.Init.STRAT, MODEL, TENSORS, Key.Init.TRAIN_DS, Key.Init.CYC_M,
-           Key.Init.CYC_V, Key.Init.OPT, Key.Init.MY_DATA
+           Key.STRAT, MODEL, TENSORS, Key.TRAIN_DS, Key.CYC_M,
+           Key.CYC_V, Key.OPT, Key.MY_DATA
         }
 
     """
@@ -568,21 +568,21 @@ def initial_processing(
         )
 
     return {
-        Key.Init.STRAT: strategy,
-        Key.Init.MODEL: degradation_model,
-        Key.Init.TENSORS: compiled_tensors,
+        Key.STRAT: strategy,
+        Key.MODEL: degradation_model,
+        Key.TENSORS: compiled_tensors,
 
-        Key.Init.TRAIN_DS: train_ds,
-        Key.Init.CYC_M: cycle_m,
-        Key.Init.CYC_V: cycle_v,
+        Key.TRAIN_DS: train_ds,
+        Key.CYC_M: cycle_m,
+        Key.CYC_V: cycle_v,
 
-        Key.Init.OPT: optimizer,
-        Key.Init.MY_DATA: my_data
+        Key.OPT: optimizer,
+        Key.MY_DATA: my_data
     }
 
 
 def train_and_evaluate(init_returns, barcodes, fit_args):
-    strategy = init_returns[Key.Init.STRAT]
+    strategy = init_returns[Key.STRAT]
 
     epochs = 100000
     count = 0
@@ -592,9 +592,9 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
     now_ker = None
 
     train_step_params = {
-        Key.Init.TENSORS: init_returns[Key.Init.TENSORS],
-        Key.Init.OPT: init_returns[Key.Init.OPT],
-        Key.Init.MODEL: init_returns[Key.Init.MODEL],
+        Key.TENSORS: init_returns[Key.TENSORS],
+        Key.OPT: init_returns[Key.OPT],
+        Key.MODEL: init_returns[Key.MODEL],
     }
 
     @tf.function
@@ -611,7 +611,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
     with strategy.scope():
         for epoch in range(epochs):
             sub_count = 0
-            for neighborhood in init_returns[Key.Init.TRAIN_DS]:
+            for neighborhood in init_returns[Key.TRAIN_DS]:
                 count += 1
                 sub_count += 1
 
@@ -646,7 +646,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                         end = time.time()
                         print("time to plot: ", end - start)
                         ker = init_returns[
-                            Key.Init.MODEL
+                            Key.MODEL
                         ].cell_direct.kernel.numpy()
                         prev_ker = now_ker
                         now_ker = ker
@@ -675,28 +675,28 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
 
 
 def train_step(neighborhood, params, fit_args):
-    sign_grid_tensor = params[Key.Init.TENSORS][SIGN_GRID]
-    voltage_grid_tensor = params[Key.Init.TENSORS][V_GRID]
-    current_grid_tensor = params[Key.Init.TENSORS][Key.Q_GRID]
-    temperature_grid_tensor = params[Key.Init.TENSORS][TEMP_GRID]
+    sign_grid_tensor = params[Key.TENSORS][SIGN_GRID]
+    voltage_grid_tensor = params[Key.TENSORS][V_GRID]
+    current_grid_tensor = params[Key.TENSORS][Key.Q_GRID]
+    temperature_grid_tensor = params[Key.TENSORS][TEMP_GRID]
 
-    count_matrix_tensor = params[Key.Init.TENSORS][COUNT_MATRIX]
+    count_matrix_tensor = params[Key.TENSORS][COUNT_MATRIX]
 
-    cycle_tensor = params[Key.Init.TENSORS]["cycle"]
-    constant_current_tensor = params[Key.Init.TENSORS][Key.I_CC]
-    end_current_prev_tensor = params[Key.Init.TENSORS][Key.I_PREV]
-    end_voltage_prev_tensor = params[Key.Init.TENSORS][Key.V_PREV_END]
-    end_voltage_tensor = params[Key.Init.TENSORS][Key.V_END]
+    cycle_tensor = params[Key.TENSORS]["cycle"]
+    constant_current_tensor = params[Key.TENSORS][Key.I_CC]
+    end_current_prev_tensor = params[Key.TENSORS][Key.I_PREV]
+    end_voltage_prev_tensor = params[Key.TENSORS][Key.V_PREV_END]
+    end_voltage_tensor = params[Key.TENSORS][Key.V_END]
 
-    degradation_model = params[Key.Init.MODEL]
-    optimizer = params[Key.Init.OPT]
+    degradation_model = params[Key.MODEL]
+    optimizer = params[Key.OPT]
 
-    cc_voltage_tensor = params[Key.Init.TENSORS][Key.V_CC]
-    cc_capacity_tensor = params[Key.Init.TENSORS][Key.Q_CC]
-    cc_mask_tensor = params[Key.Init.TENSORS][Key.MASK_CC]
-    cv_capacity_tensor = params[Key.Init.TENSORS][Key.Q_CV]
-    cv_current_tensor = params[Key.Init.TENSORS][Key.I_CV]
-    cv_mask_tensor = params[Key.Init.TENSORS][Key.MASK_CV]
+    cc_voltage_tensor = params[Key.TENSORS][Key.V_CC]
+    cc_capacity_tensor = params[Key.TENSORS][Key.Q_CC]
+    cc_mask_tensor = params[Key.TENSORS][Key.MASK_CC]
+    cv_capacity_tensor = params[Key.TENSORS][Key.Q_CV]
+    cv_current_tensor = params[Key.TENSORS][Key.I_CV]
+    cv_mask_tensor = params[Key.TENSORS][Key.MASK_CV]
 
     # need to split the range
     batch_size2 = neighborhood.shape[0]

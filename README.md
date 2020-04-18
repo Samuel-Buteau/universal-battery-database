@@ -20,6 +20,8 @@ The Universal Battery Database was developed at the [Jeff Dahn Research Group](h
 - [Using the Software](#using-the-software)
   * [ML Smoothing](#ml-smoothing)
 - [Theoretical Physics and Computer Science Behind the Software](#theoretical-physics-and-computer-science-behind-the-software)
+- [Contributing](#contributing)
+  * [Code Conventions](#code-conventions)
 
 ## Installation
 
@@ -150,6 +152,6 @@ We aim to develop a theory of lithium-ion cells. We first break down the machine
 
 ## Contributing
 
-### Coding Conventions
+### Code Conventions
 
 Generally, we follow [Google's Python Style Guide](https://github.com/google/styleguide/blob/gh-pages/pyguide.md).

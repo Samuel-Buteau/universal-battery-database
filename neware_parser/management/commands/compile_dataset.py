@@ -134,17 +134,17 @@ def initial_processing(my_barcodes, fit_args):
     """
         the output of this function has the following structure:
             a dictionary indexed by various data:
-                - "voltage_grid": 1D array of voltages
-                - "current_grid": 1D array of log currents
-                - "temperature_grid": 1D array of temperatures
-                - "sign_grid": 1D array of signs
-                - "cell_id_to_pos_id": a dictionary indexed by barcode yielding a positive electrode id.
-                - "cell_id_to_neg_id": a dictionary indexed by barcode yielding a positive electrode id.
-                - "cell_id_to_electrolyte_id": a dictionary indexed by barcode yielding a positive electrode id.
-                - "cell_id_to_latent": a dictionary indexed by barcode yielding
+                - Key.V_GRID: 1D array of voltages
+                - Key.Q_GRID: 1D array of log currents
+                - Key.TEMP_GRID: 1D array of temperatures
+                - Key.SIGN_GRID: 1D array of signs
+                - Key.CELL_TO_POS: a dictionary indexed by barcode yielding a positive electrode id.
+                - Key.CELL_TO_NEG: a dictionary indexed by barcode yielding a positive electrode id.
+                - Key.CELL_TO_ELE: a dictionary indexed by barcode yielding a positive electrode id.
+                - Key.CELL_TO_LAT: a dictionary indexed by barcode yielding
                          1 if the cell is latent,
                          0 if made of known pos,neg,electrolyte
-                - "all_data": a dictionary indexed by barcode. Each barcode yields:
+                - Key.ALL_DATA: a dictionary indexed by barcode. Each barcode yields:
                     - "all_reference_mats": structured array with dtype =
                         [
                             (
@@ -152,7 +152,7 @@ def initial_processing(my_barcodes, fit_args):
                                 "f4"
                             ),
                             (
-                                "count_matrix",
+                                Key.COUNT_MATRIX,
                                 "f4",
                                 (
                                     len(sign_grid),
@@ -175,7 +175,7 @@ def initial_processing(my_barcodes, fit_args):
                         )
 
                         each group is a dictinary indexed by various quantities:
-                        - "main_data":  a numpy structured array with dtype:
+                        - Key.MAIN:  a numpy structured array with dtype:
                             [
                                 ("cycle_number", "f4"),
                                 ("cc_voltage_vector", "f4", len(voltage_grid)),
@@ -195,11 +195,11 @@ def initial_processing(my_barcodes, fit_args):
                                 ("temperature", "f4"),
                             ]
 
-                        -     "avg_constant_current"
-                        -     "avg_end_current_prev"
-                        -     "avg_end_current"
-                        -     "avg_end_voltage_prev"
-                        -     "avg_end_voltage"
+                        -     Key.I_CC_AVG
+                        -     Key.I_PREV_END_AVG
+                        -     Key.Q_END_AVG
+                        -     Key.V_PREV_END_AVG
+                        -     Key.V_END_AVG
                         -     "avg_last_cc_voltage"
 
 
@@ -278,7 +278,7 @@ def initial_processing(my_barcodes, fit_args):
             dtype = [
                 ("cycle_number", "f4"),
                 (
-                    "count_matrix", "f4",
+                    Key.COUNT_MATRIX, "f4",
                     (
                         len(sign_grid), len(voltage_grid_degradation),
                         len(current_grid), len(temperature_grid),
@@ -303,7 +303,7 @@ def initial_processing(my_barcodes, fit_args):
         # then for reference cycle,
         # mask all cycles < reference cycle compute the average.
         for reference_cycle in reference_cycles:
-            prev_matrices = all_mats["count_matrix"][
+            prev_matrices = all_mats[Key.COUNT_MATRIX][
                 all_mats["cycle_number"] <= reference_cycle
                 ]
             avg_matrices = numpy.average(prev_matrices)
@@ -315,7 +315,7 @@ def initial_processing(my_barcodes, fit_args):
             dtype = [
                 ("cycle_number", "f4"),
                 (
-                    "count_matrix", "f4",
+                    Key.COUNT_MATRIX, "f4",
                     (
                         len(sign_grid), len(voltage_grid_degradation),
                         len(current_grid), len(temperature_grid),
@@ -402,15 +402,15 @@ def initial_processing(my_barcodes, fit_args):
                         cyc_group.end_rate, cyc_group.end_voltage,
                         cyc_group.end_voltage_prev, typ,
                     )] = {
-                        "main_data": res,
-                        "avg_constant_current":
+                        Key.MAIN: res,
+                        Key.I_CC_AVG:
                             numpy.average(res["constant_current"]),
-                        "avg_end_current_prev":
+                        Key.I_PREV_END_AVG:
                             numpy.average(res["end_current_prev"]),
-                        "avg_end_current": numpy.average(res["end_current"]),
-                        "avg_end_voltage_prev":
+                        Key.Q_END_AVG: numpy.average(res["end_current"]),
+                        Key.V_PREV_END_AVG:
                             numpy.average(res["end_voltage_prev"]),
-                        "avg_end_voltage": numpy.average(res["end_voltage"]),
+                        Key.V_END_AVG: numpy.average(res["end_voltage"]),
                         "avg_last_cc_voltage":
                             numpy.average(res["last_cc_voltage"]),
                     }
@@ -425,11 +425,11 @@ def initial_processing(my_barcodes, fit_args):
     "pos_id_list": 1D array of positive electrode ids
     "neg_id_list": 1D array of negative electrode ids
     "electrolyte_id_list": 1D array of electrolyte ids
-    "cell_id_to_pos_id": a dictionary indexed by barcode yielding a positive
+    Key.CELL_TO_POS: a dictionary indexed by barcode yielding a positive
         electrode id.
-    "cell_id_to_neg_id": a dictionary indexed by barcode yielding a positive
+    Key.CELL_TO_NEG: a dictionary indexed by barcode yielding a positive
         electrode id.
-    "cell_id_to_electrolyte_id": a dictionary indexed by barcode yielding a
+    Key.CELL_TO_ELE: a dictionary indexed by barcode yielding a
         positive electrode id.
     """
 
@@ -506,30 +506,27 @@ def initial_processing(my_barcodes, fit_args):
         cyc_grp_dict = all_data[barcode]["cyc_grp_dict"]
         # find largest cap measured for this cell (max over all cycle groups)
         for k in cyc_grp_dict.keys():
-            if len(cyc_grp_dict[k]["main_data"]["last_cc_capacity"]) > 0:
+            if len(cyc_grp_dict[k][Key.MAIN]["last_cc_capacity"]) > 0:
                 max_cap = max(
                     max_cap,
-                    max(abs(cyc_grp_dict[k]["main_data"]["last_cc_capacity"]))
+                    max(abs(cyc_grp_dict[k][Key.MAIN]["last_cc_capacity"]))
                 )
 
     return {
-               "max_cap": max_cap,
-               "all_data": all_data,
-               "voltage_grid": voltage_grid_degradation,
-               "current_grid": current_grid,
-               "temperature_grid": temperature_grid,
-               "sign_grid": sign_grid,
-               "cell_id_to_pos_id": cell_id_to_pos_id,
-               "cell_id_to_neg_id": cell_id_to_neg_id,
-               "cell_id_to_electrolyte_id": cell_id_to_electrolyte_id,
-               "cell_id_to_latent": cell_id_to_latent,
-               "electrolyte_id_to_latent": electrolyte_id_to_latent,
-               "electrolyte_id_to_solvent_id_weight":
-                   electrolyte_id_to_solvent_id_weight,
-               "electrolyte_id_to_salt_id_weight":
-                   electrolyte_id_to_salt_id_weight,
-               "electrolyte_id_to_additive_id_weight":
-                   electrolyte_id_to_additive_id_weight,
+               Key.MAX_CAP: max_cap,
+               Key.ALL_DATA: all_data,
+               Key.V_GRID: voltage_grid_degradation,
+               Key.Q_GRID: current_grid,
+               Key.TEMP_GRID: temperature_grid,
+               Key.SIGN_GRID: sign_grid,
+               Key.CELL_TO_POS: cell_id_to_pos_id,
+               Key.CELL_TO_NEG: cell_id_to_neg_id,
+               Key.CELL_TO_ELE: cell_id_to_electrolyte_id,
+               Key.CELL_TO_LAT: cell_id_to_latent,
+               Key.ELE_TO_LAT: electrolyte_id_to_latent,
+               Key.ELE_TO_SOL: electrolyte_id_to_solvent_id_weight,
+               Key.ELE_TO_SALT: electrolyte_id_to_salt_id_weight,
+               Key.ELE_TO_ADD: electrolyte_id_to_additive_id_weight,
            }, {
                "pos_to_pos_name": pos_to_pos_name,
                "neg_to_neg_name": neg_to_neg_name,

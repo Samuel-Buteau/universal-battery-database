@@ -911,7 +911,7 @@ class DegradationModel(Model):
         cell_features = get_cell_features(features = params["features"])
         encoded_stress = self.stress_to_encoded_direct(
             svit_grid=params["svit_grid"],
-            count_matrix=params["count_matrix"],
+            count_matrix=params[Key.COUNT_MATRIX],
         )
 
         scale = self.scale_direct(
@@ -983,7 +983,7 @@ class DegradationModel(Model):
         cell_features = get_cell_features(features = params["features"])
         encoded_stress = self.stress_to_encoded_direct(
             svit_grid = params["svit_grid"],
-            count_matrix = params["count_matrix"],
+            count_matrix = params[Key.COUNT_MATRIX],
         )
         scale = self.scale_direct(
             cell_features=cell_features,
@@ -1048,7 +1048,7 @@ class DegradationModel(Model):
         cell_features = get_cell_features(features = params["features"])
         encoded_stress = self.stress_to_encoded_direct(
             svit_grid = params["svit_grid"],
-            count_matrix = params["count_matrix"],
+            count_matrix = params[Key.COUNT_MATRIX],
         )
         scale = self.scale_direct(
             cell_features=cell_features,
@@ -1110,7 +1110,7 @@ class DegradationModel(Model):
 
         encoded_stress = self.stress_to_encoded_direct(
             svit_grid=params["svit_grid"],
-            count_matrix=params["count_matrix"],
+            count_matrix=params[Key.COUNT_MATRIX],
         )
 
         shift,_ = self.shift_direct(
@@ -1409,7 +1409,7 @@ class DegradationModel(Model):
 
         encoded_stress = self.stress_to_encoded_direct(
             svit_grid = params["svit_grid"],
-            count_matrix = params["count_matrix"],
+            count_matrix = params[Key.COUNT_MATRIX],
         )
 
         return self.r_direct(
@@ -1427,7 +1427,7 @@ class DegradationModel(Model):
 
         encoded_stress = self.stress_to_encoded_direct(
             svit_grid = params["svit_grid"],
-            count_matrix = params["count_matrix"],
+            count_matrix = params[Key.COUNT_MATRIX],
         )
 
         return self.scale_direct(
@@ -1448,7 +1448,7 @@ class DegradationModel(Model):
 
         encoded_stress = self.stress_to_encoded_direct(
             svit_grid = params["svit_grid"],
-            count_matrix = params["count_matrix"],
+            count_matrix = params[Key.COUNT_MATRIX],
         )
 
 
@@ -1594,7 +1594,7 @@ class DegradationModel(Model):
             "end_voltage": end_voltage,
 
             "svit_grid": svit_grid,
-            "count_matrix": count_matrix,
+            Key.COUNT_MATRIX: count_matrix,
         }
         cc_capacity = self.cc_capacity(params, training = training)
         pred_cc_capacity = tf.reshape(cc_capacity, [-1, voltage_count])
@@ -1710,7 +1710,7 @@ class DegradationModel(Model):
                     "cycle": sampled_cycles,
                     "features": sampled_features,
                     "svit_grid": sampled_svit_grid,
-                    "count_matrix": sampled_count_matrix
+                    Key.COUNT_MATRIX: sampled_count_matrix
                 },
                 der_params = {"cycle": 3, "features": 2}
             )
@@ -1723,7 +1723,7 @@ class DegradationModel(Model):
                     "cycle": sampled_cycles,
                     "features": sampled_features,
                     "svit_grid": sampled_svit_grid,
-                    "count_matrix": sampled_count_matrix
+                    Key.COUNT_MATRIX: sampled_count_matrix
                 },
                 der_params = {"features": 2},
                 internal_loss=True
@@ -1736,7 +1736,7 @@ class DegradationModel(Model):
                     "cycle": sampled_cycles,
                     "features": sampled_features,
                     "svit_grid": sampled_svit_grid,
-                    "count_matrix": sampled_count_matrix
+                    Key.COUNT_MATRIX: sampled_count_matrix
                 },
                 der_params = {"cycle": 3, "features": 2}
             )
@@ -1780,7 +1780,7 @@ class DegradationModel(Model):
 
             encoded_stress = self.stress_to_encoded_direct(
                 svit_grid = params["svit_grid"],
-                count_matrix = params["count_matrix"],
+                count_matrix = params[Key.COUNT_MATRIX],
             )
 
 

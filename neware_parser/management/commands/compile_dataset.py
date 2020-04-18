@@ -1,10 +1,9 @@
 import numpy
 from django.core.management.base import BaseCommand
-from django.db.models import Max, Min
 
-from neware_parser.models import *
 from neware_parser.neware_processing_functions import *
 from WetCellDatabase.models import *
+from neware_parser.Key import Key
 
 """
 Shortened Variable Names:

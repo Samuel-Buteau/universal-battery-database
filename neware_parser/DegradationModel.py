@@ -937,8 +937,8 @@ class DegradationModel(Model):
         )
 
         v_eq_0 = calculate_equilibrium_voltage(
-            v = params["end_voltage_prev"],
-            current = params["end_current_prev"],
+            v = params[Key.V_PREV_END],
+            current = params[Key.I_PREV],
             resistance = resistance
         )
 
@@ -946,13 +946,13 @@ class DegradationModel(Model):
             v = v_eq_0,
             shift = shift,
             cell_features = cell_features,
-            current = params["end_current_prev"],
+            current = params[Key.I_PREV],
             training=training
         )
 
         v_eq_1 = calculate_equilibrium_voltage(
             v = params["v"],
-            current = add_v_dep(params["constant_current"], params),
+            current = add_v_dep(params[Key.I_CC], params),
             resistance = add_v_dep(resistance, params)
         )
 
@@ -965,7 +965,7 @@ class DegradationModel(Model):
                 cell_features.shape[1]
             ),
             current=add_v_dep(
-                params["constant_current"],
+                params[Key.I_CC],
                 params
             ),
             training = training
@@ -1005,15 +1005,15 @@ class DegradationModel(Model):
             training = training
         )
         v_eq_0 = calculate_equilibrium_voltage(
-            v = params["end_voltage_prev"],
-            current = params["end_current_prev"],
+            v = params[Key.V_PREV_END],
+            current = params[Key.I_PREV],
             resistance = resistance,
         )
         q_0 = self.q_direct(
             v = v_eq_0,
             shift = shift,
             cell_features = cell_features,
-            current=params["end_current_prev"],
+            current=params[Key.I_PREV],
             training = training
         )
         q_over_q = tf.reshape(params["cc_capacity"], [-1, 1]) / (
@@ -1027,14 +1027,14 @@ class DegradationModel(Model):
                 cell_features, params, cell_features.shape[1]
             ),
             current=add_v_dep(
-                params["constant_current"],
+                params[Key.I_CC],
                 params,
             ),
             training = training
         )
 
         cc_v = v + add_v_dep(
-            resistance * params["constant_current"], params
+            resistance * params[Key.I_CC], params
         )
 
         return cc_v, out_of_bounds_loss
@@ -1070,15 +1070,15 @@ class DegradationModel(Model):
             training = training
         )
         v_eq_0 = calculate_equilibrium_voltage(
-            v = params["end_voltage_prev"],
-            current = params["end_current_prev"],
+            v = params[Key.V_PREV_END],
+            current = params[Key.I_PREV],
             resistance = resistance,
         )
         q_0 = self.q_direct(
             v = v_eq_0,
             shift = shift,
             cell_features = cell_features,
-            current=params["end_current_prev"],
+            current=params[Key.I_PREV],
             training = training
         )
         q_over_q = tf.reshape(params["cv_capacity"], [-1, 1]) / (
@@ -1129,8 +1129,8 @@ class DegradationModel(Model):
         )
 
         v_eq_0 = calculate_equilibrium_voltage(
-            v = params["end_voltage_prev"],
-            current = params["end_current_prev"],
+            v = params[Key.V_PREV_END],
+            current = params[Key.I_PREV],
             resistance = resistance,
         )
 
@@ -1138,7 +1138,7 @@ class DegradationModel(Model):
             v = v_eq_0,
             shift = shift,
             cell_features = cell_features,
-            current=params["end_current_prev"],
+            current=params[Key.I_PREV],
             training = training
         )
 
@@ -1153,7 +1153,7 @@ class DegradationModel(Model):
         )
 
         v_eq_1 = calculate_equilibrium_voltage(
-            v = add_current_dep(params["end_voltage"], params),
+            v = add_current_dep(params[Key.V_END], params),
             current = params["cv_current"],
             resistance = add_current_dep(resistance, params),
         )
@@ -1588,11 +1588,11 @@ class DegradationModel(Model):
             "cv_current": tf.reshape(current_tensor, [-1, 1]),
 
             "cycle": cycle,
-            "constant_current": constant_current,
-            "end_current_prev": end_current_prev,
-            "end_voltage_prev": end_voltage_prev,
+            Key.I_CC: constant_current,
+            Key.I_PREV: end_current_prev,
+            Key.V_PREV_END: end_voltage_prev,
             "features": features,
-            "end_voltage": end_voltage,
+            Key.V_END: end_voltage,
 
             "svit_grid": svit_grid,
             Key.COUNT_MATRIX: count_matrix,

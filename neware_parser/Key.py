@@ -1,7 +1,6 @@
 class Key:
-    """ Provide dictionary keys """
+    """ Define dictionary keys """
 
-    # TODO (harvey): replace the following block of keys
     N = "cycle_number"
     V_CC = "cc_voltage_vector"
     V_END = "end_voltage"
@@ -16,7 +15,6 @@ class Key:
     MASK_CC = "cc_mask_vector"
     MASK_CV = "cv_mask_vector"
 
-    # TODO (harvey): replace the following block of keys
     WIDTH = "width"
     DEPTH = "depth"
     LRN_RATE = "learning_rate"

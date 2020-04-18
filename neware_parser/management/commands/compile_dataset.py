@@ -131,7 +131,7 @@ def initial_processing(my_barcodes, fit_args):
                          1 if the cell is latent,
                          0 if made of known pos,neg,electrolyte
                 - Key.ALL_DATA: a dictionary indexed by barcode. Each barcode yields:
-                    - "all_reference_mats": structured array with dtype =
+                    - Key.ALL_REF_MATS: structured array with dtype =
                         [
                             (
                                 Key.N,
@@ -149,7 +149,7 @@ def initial_processing(my_barcodes, fit_args):
                             ),
                         ]
 
-                    - "cyc_grp_dict": we know how this works.
+                    - Key.CYC_GRP_DICT: we know how this works.
                         basically groups of steps indexed by group averages of
                         (
                             end_current_prev,
@@ -167,18 +167,18 @@ def initial_processing(my_barcodes, fit_args):
                                 (Key.V_CC, "f4", len(voltage_grid)),
                                 (Key.Q_CC, "f4", len(voltage_grid)),
                                 (Key.MASK_CC, "f4", len(voltage_grid)),
-                                (Key.I_CV, "f4", fit_args["current_max_n"]),
-                                (Key.Q_CV, "f4", fit_args["current_max_n"]),
-                                (Key.MASK_CV, "f4", fit_args["current_max_n"]),
+                                (Key.I_CV, "f4", fit_args[Key.I_MAX]),
+                                (Key.Q_CV, "f4", fit_args[Key.I_MAX]),
+                                (Key.MASK_CV, "f4", fit_args[Key.I_MAX]),
                                 (Key.I_CC, "f4"),
                                 (Key.I_PREV, "f4"),
-                                ("end_current", "f4"),
+                                (Key.I_END, "f4"),
                                 (Key.V_PREV_END, "f4"),
                                 (Key.V_END, "f4"),
-                                ("last_cc_voltage", "f4"),
+                                (Key.V_CC_LAST, "f4"),
                                 (Key.Q_CC_LAST, "f4"),
                                 (Key.Q_CV_LAST, "f4"),
-                                ("temperature", "f4"),
+                                (Key.TEMP, "f4"),
                             ]
 
                         -     Key.I_CC_AVG
@@ -186,7 +186,7 @@ def initial_processing(my_barcodes, fit_args):
                         -     Key.Q_END_AVG
                         -     Key.V_PREV_END_AVG
                         -     Key.V_END_AVG
-                        -     "avg_last_cc_voltage"
+                        -     Key.V_CC_LAST_AVG
     """
 
     all_data = {}
@@ -275,11 +275,11 @@ def initial_processing(my_barcodes, fit_args):
 
         cycle_span = max_cycle - min_cycle
 
-        delta_cycle = cycle_span / float(fit_args["reference_cycles_n"])
+        delta_cycle = cycle_span / float(fit_args[Key.REF_CYC])
 
         reference_cycles = [
             min_cycle + i * delta_cycle for i in
-            numpy.arange(1, fit_args["reference_cycles_n"] + 1)
+            numpy.arange(1, fit_args[Key.REF_CYC] + 1)
         ]
 
         all_reference_mats = []
@@ -329,7 +329,7 @@ def initial_processing(my_barcodes, fit_args):
                     if cyc.valid_cycle:
                         post_process_results = ml_post_process_cycle(
                             cyc, voltage_grid, typ,
-                            current_max_n = fit_args["current_max_n"]
+                            current_max_n = fit_args[Key.I_MAX]
                         )
 
                         if post_process_results is None:
@@ -337,18 +337,18 @@ def initial_processing(my_barcodes, fit_args):
 
                         result.append((
                             cyc.get_offset_cycle(),
-                            post_process_results["cc_voltages"],
-                            post_process_results["cc_capacities"],
-                            post_process_results["cc_masks"],
-                            sign * post_process_results["cv_currents"],
-                            post_process_results["cv_capacities"],
-                            post_process_results["cv_masks"],
+                            post_process_results[Key.V_CC],
+                            post_process_results[Key.Q_CC],
+                            post_process_results[Key.MASK_CC],
+                            sign * post_process_results[Key.I_CV],
+                            post_process_results[Key.Q_CV],
+                            post_process_results[Key.MASK_CV],
                             sign * post_process_results[Key.I_CC],
                             -sign * post_process_results[Key.I_PREV],
-                            sign * post_process_results["end_current"],
+                            sign * post_process_results[Key.I_END],
                             post_process_results[Key.V_PREV_END],
                             post_process_results[Key.V_END],
-                            post_process_results["last_cc_voltage"],
+                            post_process_results[Key.V_CC_LAST],
                             post_process_results[Key.Q_CC_LAST],
                             post_process_results[Key.Q_CV_LAST],
                             cyc.get_temperature()
@@ -359,23 +359,23 @@ def initial_processing(my_barcodes, fit_args):
                     dtype = [
                         (Key.N, "f4"),
 
-                        (Key.V_CC, "f4", len(voltage_grid)),
-                        (Key.Q_CC, "f4", len(voltage_grid)),
-                        (Key.MASK_CC, "f4", len(voltage_grid)),
+                        (Key.V_CC_VEC, "f4", len(voltage_grid)),
+                        (Key.Q_CC_VEC, "f4", len(voltage_grid)),
+                        (Key.MASK_CC_VEC, "f4", len(voltage_grid)),
 
-                        (Key.I_CV, "f4", fit_args["current_max_n"]),
-                        (Key.Q_CV, "f4", fit_args["current_max_n"]),
-                        (Key.MASK_CV, "f4", fit_args["current_max_n"]),
+                        (Key.I_CV_VEC, "f4", fit_args[Key.I_MAX]),
+                        (Key.Q_CV_VEC, "f4", fit_args[Key.I_MAX]),
+                        (Key.MASK_CV_VEC, "f4", fit_args[Key.I_MAX]),
 
                         (Key.I_CC, "f4"),
                         (Key.I_PREV, "f4"),
-                        ("end_current", "f4"),
+                        (Key.I_END, "f4"),
                         (Key.V_PREV_END, "f4"),
                         (Key.V_END, "f4"),
-                        ("last_cc_voltage", "f4"),
+                        (Key.V_CC_LAST, "f4"),
                         (Key.Q_CC_LAST, "f4"),
                         (Key.Q_CV_LAST, "f4"),
-                        ("temperature", "f4"),
+                        (Key.TEMP, "f4"),
                     ]
                 )
 
@@ -386,21 +386,17 @@ def initial_processing(my_barcodes, fit_args):
                         cyc_group.end_voltage_prev, typ,
                     )] = {
                         Key.MAIN: res,
-                        Key.I_CC_AVG:
-                            numpy.average(res[Key.I_CC]),
-                        Key.I_PREV_END_AVG:
-                            numpy.average(res[Key.I_PREV]),
-                        Key.Q_END_AVG: numpy.average(res["end_current"]),
-                        Key.V_PREV_END_AVG:
-                            numpy.average(res[Key.V_PREV_END]),
+                        Key.I_CC_AVG: numpy.average(res[Key.I_CC]),
+                        Key.I_PREV_END_AVG: numpy.average(res[Key.I_PREV]),
+                        Key.Q_END_AVG: numpy.average(res[Key.I_END]),
+                        Key.V_PREV_END_AVG: numpy.average(res[Key.V_PREV_END]),
                         Key.V_END_AVG: numpy.average(res[Key.V_END]),
-                        "avg_last_cc_voltage":
-                            numpy.average(res["last_cc_voltage"]),
+                        Key.V_CC_LAST_AVG: numpy.average(res[Key.V_CC_LAST]),
                     }
 
         all_data[barcode] = {
-            "cyc_grp_dict": cyc_grp_dict,
-            "all_reference_mats": all_reference_mats,
+            Key.CYC_GRP_DICT: cyc_grp_dict,
+            Key.REF_ALL_MATS: all_reference_mats,
         }
 
     """
@@ -486,7 +482,7 @@ def initial_processing(my_barcodes, fit_args):
     max_cap = 0.
     for barcode in all_data.keys():
 
-        cyc_grp_dict = all_data[barcode]["cyc_grp_dict"]
+        cyc_grp_dict = all_data[barcode][Key.CYC_GRP_DICT]
         # find largest cap measured for this cell (max over all cycle groups)
         for k in cyc_grp_dict.keys():
             if len(cyc_grp_dict[k][Key.MAIN][Key.Q_CC_LAST]) > 0:

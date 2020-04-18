@@ -209,7 +209,7 @@ def main_page(request):
                             "barcode": db_filename.valid_metadata.barcode,
                             "start_cycle": db_filename.valid_metadata.start_cycle,
                             "voltage": db_filename.valid_metadata.voltage,
-                            "temperature": db_filename.valid_metadata.temperature,
+                            Key.TEMP: db_filename.valid_metadata.temperature,
                             "AC": db_filename.valid_metadata.AC,
                             "AC_increment": db_filename.valid_metadata.AC_increment,
                             "version_number": db_filename.valid_metadata.version_number,

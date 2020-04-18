@@ -951,7 +951,6 @@ class Command(BaseCommand):
         ]
 
         float_args = {
-
             '--global_norm_clip': 10.,
 
             '--learning_rate': 5e-4,
@@ -1024,7 +1023,6 @@ class Command(BaseCommand):
             '--coeff_out_of_bounds': 10.,
             '--coeff_out_of_bounds_geq': 1.,
             '--coeff_out_of_bounds_leq': 1.,
-
         }
 
         vis = 10000
@@ -1045,10 +1043,8 @@ class Command(BaseCommand):
 
         for arg in required_args:
             parser.add_argument(arg, required = True)
-
         for arg in float_args:
             parser.add_argument(arg, type = float, default = float_args[arg])
-
         for arg in int_args:
             parser.add_argument(arg, type = int, default = int_args[arg])
 

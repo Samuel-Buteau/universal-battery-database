@@ -8,8 +8,9 @@ class LossRecord:
     def __init__(self):
         self.data = []
         self.labels = [
-            Q_CC_LOSS, Q_CV_LOSS, V_CC_LOSS, V_CV_LOSS, Q_LOSS, SCALE_LOSS,
-            R_LOSS, SHIFT_LOSS, CELL_LOSS, RECIP_LOSS, PROJ_LOSS, OOB_LOSS
+            Key.Loss.Q_CC, Key.Loss.Q_CV, Key.Loss.V_CC, Key.Loss.V_CV,
+            Key.Loss.Q, Key.Loss.SCALE, Key.Loss.R, Key.Loss.SHIFT,
+            Key.Loss.CELL, Key.Loss.RECIP, Key.Loss.PROJ, Key.Loss.OOB
         ]
 
     def record(self, count, losses):

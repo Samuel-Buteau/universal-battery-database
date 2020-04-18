@@ -496,10 +496,10 @@ def initial_processing(my_barcodes, fit_args):
                 )
 
     return {
-               Key.MAX_CAP: max_cap,
+               Key.Q_MAX: max_cap,
                Key.ALL_DATA: all_data,
                Key.V_GRID: voltage_grid_degradation,
-               Key.Q_GRID: current_grid,
+               Key.I_GRID: current_grid,
                Key.TEMP_GRID: temperature_grid,
                Key.SIGN_GRID: sign_grid,
                Key.CELL_TO_POS: cell_id_to_pos_id,

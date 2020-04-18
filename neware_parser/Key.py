@@ -90,6 +90,11 @@ class Key:
     ELE_TO_ADD = "electrolyte_id_to_additive_id_weight"
     ELE_TO_LAT = "electrolyte_id_to_latent"
 
+    POS_TO_POS = "pos_to_pos_name"
+    NEG_TO_NEG = "neg_to_neg_name"
+    ELE_TO_ELE = "electrolyte_to_electrolyte_name"
+    MOL_TO_MOL = "molecule_to_molecule_name"
+
     # TODO (harvey): replace the following block of keys
     STRAT = "strategy"
     TENSORS = "compiled_tensors"

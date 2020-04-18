@@ -6,6 +6,7 @@ from tensorflow.keras.layers import Dense
 from neware_parser.PrimitiveDictionaryLayer import PrimitiveDictionaryLayer
 from neware_parser.StressToEncodedLayer import StressToEncodedLayer
 from neware_parser.loss_calculator import *
+from neware_parser.Key import Key
 
 main_activation = tf.keras.activations.relu
 

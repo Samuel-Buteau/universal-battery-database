@@ -1,6 +1,7 @@
 class Key:
     """ Provide dictionary keys """
 
+    # TODO (harvey): replace the following block of keys
     N = "cycle_number"
     V_CC = "cc_voltage_vector"
     V_END = "end_voltage"
@@ -15,6 +16,7 @@ class Key:
     MASK_CC = "cc_mask_vector"
     MASK_CV = "cv_mask_vector"
 
+    # TODO (harvey): replace the following block of keys
     WIDTH = "width"
     DEPTH = "depth"
     LRN_RATE = "learning_rate"
@@ -49,6 +51,7 @@ class Key:
     ELE_TO_ADD = "electrolyte_id_to_additive_id_weight"
     ELE_TO_LAT = "electrolyte_id_to_latent"
 
+    # TODO (harvey): replace the following block of keys
     STRAT = "strategy"
     TENSORS = "compiled_tensors"
     MODEL = "degradation_model"
@@ -63,6 +66,7 @@ class Key:
     SIGN_GRID = "sign_grid"
     TEMP_GRID = "temperature_grid"
 
+    # TODO (harvey): replace the following class of keys
     class Coeff:
         Q = "coeff_q"
         Q_CV = "coeff_cv_capacity"
@@ -76,6 +80,7 @@ class Key:
         PROJ = "coeff_projection"
         OOB = "coeff_out_of_bounds"
 
+    # TODO (harvey): replace the following class of keys
     class Loss:
         Q = "q_loss"
         Q_CC = "cc_capacity_loss"

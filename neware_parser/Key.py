@@ -8,7 +8,7 @@ class Key:
     #       Are they the same values just different types?
     #           If so, maybe create a new class to store both values
     #           (don't be obsessed with primitive values)
-    #       Are they differnt values?
+    #       Are they different values?
     #           If so, give them different and more descriptive names
 
     V_CC = "cc_voltages"
@@ -20,6 +20,9 @@ class Key:
     V_PREV_END_AVG = "avg_end_voltage_prev"
     V_END_AVG = "avg_end_voltage"
     V_GRID = "voltage_grid"
+    V_MIN_GRID = "voltage_grid_min_v"
+    V_MAX_GRID = "voltage_grid_max_v"
+    V_N_GRID = "voltage_grid_n_samples"
 
     Q_CC = "cc_capacities"
     Q_CC_VEC = "cc_capacity_vector"
@@ -39,8 +42,14 @@ class Key:
     I_PREV_END_AVG = "avg_end_current_prev"
     I_GRID = "current_grid"
     I_MAX = "current_max_n"
+    I_MIN_GRID = "current_grid_min_v"
+    I_MAX_GRID = "current_grid_max_v"
+    I_N_GRID = "current_grid_n_samples"
 
     TEMP = "temperature"
+    TEMP_GRID_MIN_V = "temperature_grid_min_v"
+    TEMP_GRID_MAX_V = "temperature_grid_max_v"
+    TEMP_GRID_N = "temperature_grid_n_samples"
 
     MASK_CC = "cc_masks"
     MASK_CC_VEC = "cc_mask_vector"

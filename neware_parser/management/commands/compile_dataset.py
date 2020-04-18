@@ -191,30 +191,30 @@ def initial_processing(my_barcodes, fit_args):
 
     all_data = {}
     voltage_grid = make_voltage_grid(
-        fit_args["voltage_grid_min_v"],
-        fit_args["voltage_grid_max_v"],
-        fit_args["voltage_grid_n_samples"],
+        fit_args[Key.V_MIN_GRID],
+        fit_args[Key.V_MAX_GRID],
+        fit_args[Key.V_N_GRID],
         my_barcodes
     )
 
     voltage_grid_degradation = make_voltage_grid(
-        fit_args["voltage_grid_min_v"],
-        fit_args["voltage_grid_max_v"],
-        int(fit_args["voltage_grid_n_samples"] / 4),
+        fit_args[Key.V_MIN_GRID],
+        fit_args[Key.V_MAX_GRID],
+        int(fit_args[Key.V_N_GRID] / 4),
         my_barcodes
     )
 
     current_grid = make_current_grid(
-        fit_args["current_grid_min_v"],
-        fit_args["current_grid_max_v"],
-        fit_args["current_grid_n_samples"],
+        fit_args[Key.I_MIN_GRID],
+        fit_args[Key.I_MAX_GRID],
+        fit_args[Key.I_N_GRID],
         my_barcodes
     )
 
     temperature_grid = make_temperature_grid(
-        fit_args["temperature_grid_min_v"],
-        fit_args["temperature_grid_max_v"],
-        fit_args["temperature_grid_n_samples"],
+        fit_args[Key.TEMP_GRID_MIN_V],
+        fit_args[Key.TEMP_GRID_MAN_V],
+        fit_args[Key.TEMP_GRID_N],
         my_barcodes
     )
     sign_grid = make_sign_grid()

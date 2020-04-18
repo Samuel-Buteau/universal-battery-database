@@ -35,6 +35,25 @@ class Key:
     MIN_LAT = "min_latent"
     GLB_NORM_CLIP = "global_norm_clip"
 
+    MAIN = "main_data"
+    Q_END_AVG = "avg_end_current"
+    V_PREV_END_AVG = "avg_end_voltage_prev"
+    V_END_AVG = "avg_end_voltage"
+    I_CC_AVG = "avg_constant_current"
+    I_PREV_END_AVG = "avg_end_current_prev"
+
+    ALL_DATA = "all_data"
+    MAX_CAP = "max_cap"
+    Q_GRID = "current_grid"
+    CELL_TO_POS = "cell_id_to_pos_id"
+    CELL_TO_NEG = "cell_id_to_neg_id"
+    CELL_TO_ELE = "cell_id_to_electrolyte_id"
+    CELL_TO_LAT = "cell_id_to_latent"
+    ELE_TO_SOL = "electrolyte_id_to_solvent_id_weight"
+    ELE_TO_SALT = "electrolyte_id_to_salt_id_weight"
+    ELE_TO_ADD = "electrolyte_id_to_additive_id_weight"
+    ELE_TO_LAT = "electrolyte_id_to_latent"
+
     class Coeff:
         Q = "coeff_q"
         Q_CV = "coeff_cv_capacity"
@@ -47,27 +66,6 @@ class Key:
         RECIP = "coeff_reciprocal"
         PROJ = "coeff_projection"
         OOB = "coeff_out_of_bounds"
-
-    class CycGrpDict:
-        MAIN = "main_data"
-        Q_END_AVG = "avg_end_current"
-        V_PREV_END_AVG = "avg_end_voltage_prev"
-        V_END_AVG = "avg_end_voltage"
-        I_CC_AVG = "avg_constant_current"
-        I_PREV_END_AVG = "avg_end_current_prev"
-
-    class MyData:
-        ALL_DATA = "all_data"
-        MAX_CAP = "max_cap"
-        Q_GRID = "current_grid"
-        CELL_TO_POS = "cell_id_to_pos_id"
-        CELL_TO_NEG = "cell_id_to_neg_id"
-        CELL_TO_ELE = "cell_id_to_electrolyte_id"
-        CELL_TO_LAT = "cell_id_to_latent"
-        ELE_TO_SOL = "electrolyte_id_to_solvent_id_weight"
-        ELE_TO_SALT = "electrolyte_id_to_salt_id_weight"
-        ELE_TO_ADD = "electrolyte_id_to_additive_id_weight"
-        ELE_TO_LAT = "electrolyte_id_to_latent"
 
     class Loss:
         Q = "q_loss"

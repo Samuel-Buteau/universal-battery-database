@@ -82,7 +82,7 @@ def print_cell_info(
     electrolyte_latent_flags, names,
 ):
     """ Print cell information upon the initialization of the Model """
-    
+
     pos_to_pos_name, neg_to_neg_name = names[0], names[1]
     electrolyte_to_electrolyte_name = names[2]
     molecule_to_molecule_name = names[3]
@@ -133,8 +133,9 @@ def print_cell_info(
         print()
 
 
-# add voltage dependence ([cyc] -> [cyc, vol])
 def add_v_dep(thing, params, dim = 1):
+    """ Add voltage dependence: [cyc] -> [cyc, vol] """
+
     return tf.reshape(
         tf.tile(
             tf.expand_dims(thing, axis = 1),
@@ -179,13 +180,13 @@ def get_norm_cycle(params):
 
 def create_derivatives(nn, params, der_params, internal_loss = False):
     """
-    derivatives will only be taken inside forall statements.
-    if auxiliary variables must be given, create a lambda.
+    Derivatives will only be taken inside forall statements.
+    If auxiliary variables must be given, create a lambda.
 
-    :param der_params:
-    :param nn:
-    :param params:
-    :return:
+    Args:
+        nn: The neural network for which to compute derivatives.
+        params: The network's parameters
+
     """
     derivatives = {}
 
@@ -247,6 +248,11 @@ def create_derivatives(nn, params, der_params, internal_loss = False):
 
 
 class DegradationModel(Model):
+    """ Something
+
+    Attributes:
+        nn_r (dict): Neural network for R.
+    """
 
     def __init__(
         self, depth, width,
@@ -284,10 +290,12 @@ class DegradationModel(Model):
         self.nn_shift_0 = feedforward_nn_parameters(depth, width)
         self.nn_shift_a = feedforward_nn_parameters(depth, width)
 
-        self.nn_v_plus = feedforward_nn_parameters(depth, width,
-                                                   finalize = True)
-        self.nn_v_minus = feedforward_nn_parameters(depth, width,
-                                                    finalize = True)
+        self.nn_v_plus = feedforward_nn_parameters(
+            depth, width, finalize = True
+        )
+        self.nn_v_minus = feedforward_nn_parameters(
+            depth, width, finalize = True
+        )
 
         self.nn_pos_projection = feedforward_nn_parameters(
             depth, width, last = self.num_features
@@ -427,6 +435,7 @@ class DegradationModel(Model):
         self,
         indices, training = True, sample = False, compute_derivatives = False,
     ):
+        """ Cell from indices """
 
         features_cell_direct, loss_cell = self.cell_direct(
             indices,
@@ -857,8 +866,8 @@ class DegradationModel(Model):
 
     def sample(self, svit_grid, batch_count, count_matrix, n_sample = 4 * 32):
 
-        # NOTE(sam): this is an example of a forall. (for all voltages,
-        # and all cell features)
+        # NOTE(sam): this is an example of a forall.
+        # (for all voltages, and all cell features)
         sampled_vs = tf.random.uniform(
             minval = 2.5,
             maxval = 5.,
@@ -937,8 +946,8 @@ class DegradationModel(Model):
             sampled_cell_features,
         )
 
-    # TODO (Harvey): Group general/direct/derivative functions sensibly
-    #                (new Classes?)
+    # TODO(Harvey): Group general/direct/derivative functions sensibly
+    #               (new Classes?)
 
     """ General variable methods """
 

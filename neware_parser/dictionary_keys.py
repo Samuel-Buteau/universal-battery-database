@@ -54,6 +54,15 @@ class Key:
     ELE_TO_ADD = "electrolyte_id_to_additive_id_weight"
     ELE_TO_LAT = "electrolyte_id_to_latent"
 
+    STRAT = "strategy"
+    TENSORS = "compiled_tensors"
+    MODEL = "degradation_model"
+    TRAIN_DS = "train_ds"
+    CYC_M = "cycle_m"
+    CYC_V = "cycle_v"
+    OPT = "optimizer"
+    MY_DATA = "my_data"
+
     class Coeff:
         Q = "coeff_q"
         Q_CV = "coeff_cv_capacity"
@@ -81,15 +90,6 @@ class Key:
         PROJ = "projection_loss"
         OOB = "out_of_bounds_loss"
 
-    class Init:
-        STRAT = "strategy"
-        TENSORS = "compiled_tensors"
-        MODEL = "degradation_model"
-        TRAIN_DS = "train_ds"
-        CYC_M = "cycle_m"
-        CYC_V = "cycle_v"
-        OPT = "optimizer"
-        MY_DATA = "my_data"
 
 
 # params keys

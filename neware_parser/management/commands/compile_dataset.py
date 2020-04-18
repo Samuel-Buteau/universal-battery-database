@@ -566,35 +566,33 @@ def compile_dataset(fit_args):
 class Command(BaseCommand):
 
     def add_arguments(self, parser):
-        # TODO (harvey): replace with for loop
+        required_args = [
+            '--path_to_dataset',
+            '--dataset_version',
+        ]
+        float_args = {
+            '--voltage_grid_min_v': 2.5,
+            '--voltage_grid_max_v': 5.0,
+            '--current_grid_min_v': 1.,
+            '--current_grid_max_v': 1000.,
+            '--temperature_grid_min_v': -20.,
+            '--temperature_grid_max_v': 80.,
+        }
+        int_args = {
+            '--reference_cycles_n': 10,
+            '--voltage_grid_n_samples': 32,
+            '--current_grid_n_samples': 8,
+            '--current_max_n': 8,
+            '--temperature_grid_n_samples': 3,
+        }
 
-        parser.add_argument('--path_to_dataset', required = True)
-        parser.add_argument('--dataset_version', required = True)
-        parser.add_argument('--voltage_grid_min_v', type = float, default = 2.5)
-        parser.add_argument('--voltage_grid_max_v', type = float, default = 5.0)
-        parser.add_argument(
-            '--voltage_grid_n_samples', type = int, default = 32,
-        )
+        for arg in required_args:
+            parser.add_argument(arg, required = True)
+        for arg in float_args:
+            parser.add_argument(arg, type = float, default = float_args[arg])
+        for arg in int_args:
+            parser.add_argument(arg, type = int, default = int_args[arg])
 
-        parser.add_argument('--current_grid_min_v', type = float, default = 1.)
-        parser.add_argument(
-            '--current_grid_max_v', type = float, default = 1000.
-        )
-        parser.add_argument('--current_grid_n_samples', type = int, default = 8)
-
-        parser.add_argument(
-            '--temperature_grid_min_v', type = float, default = -20.,
-        )
-        parser.add_argument(
-            '--temperature_grid_max_v', type = float, default = 80.,
-        )
-        parser.add_argument(
-            '--temperature_grid_n_samples', type = int, default = 3,
-        )
-
-        parser.add_argument('--current_max_n', type = int, default = 8)
-
-        parser.add_argument('--reference_cycles_n', type = int, default = 10)
         parser.add_argument(
             '--wanted_barcodes', type = int, nargs = '+',
             default = [
@@ -610,8 +608,9 @@ class Command(BaseCommand):
                 83228, 83229, 83230, 83231, 83232, 83233, 83234, 83235, 83236,
                 83237, 83239, 83240, 83241, 83242, 83243, 83310, 83311, 83312,
                 83317, 83318, 83593, 83594, 83595, 83596, 83741, 83742, 83743,
-                83744, 83745, 83746, 83747, 83748
-            ]
+                83744, 83745, 83746, 83747, 83748,
+            ],
+
         )
 
     def handle(self, *args, **options):

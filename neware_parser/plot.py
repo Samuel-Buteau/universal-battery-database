@@ -1,12 +1,15 @@
 import os
 
-import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 from matplotlib.axes._axes import _log as matplotlib_axes_logger
 
+from neware_parser.Key import Key
+
 matplotlib_axes_logger.setLevel("ERROR")
-import matplotlib.patches as mpatches
 
 FIGSIZE = [6, 5]
 
@@ -657,7 +660,7 @@ def plot_v_curves(plot_params, init_returns):
                 shift = tf.constant(shift),
                 v = tf.constant(v),
                 q = tf.constant(q),
-                current= tf.constant(current, shape=[1,1])
+                current = tf.constant(current, shape = [1, 1])
             )
             for j in range(len(shift)):
                 ax = gathered_axs[j]
@@ -671,7 +674,8 @@ def plot_v_curves(plot_params, init_returns):
             ax.legend()
 
             fig.tight_layout()
-            savefig("v_curves_{}_{}_I{}.png".format(barcode, count, current), fit_args)
+            savefig("v_curves_{}_{}_I{}.png".format(barcode, count, current),
+                    fit_args)
             plt.close(fig)
 
 

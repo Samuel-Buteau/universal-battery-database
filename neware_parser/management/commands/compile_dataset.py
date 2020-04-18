@@ -5,19 +5,6 @@ from neware_parser.neware_processing_functions import *
 from WetCellDatabase.models import *
 from neware_parser.Key import Key
 
-"""
-Shortened Variable Names:
-    vol -   voltage
-    cap -   capacity
-    dchg -  discharge
-    neigh - neighbourhood
-    der -   derivative
-    pred -  predicted
-    meas -  measured
-    eval -  evaluation
-    eq -    equillibrium
-"""
-
 
 # TODO (harvey): add docstring
 def get_pos_id_from_cell_id(cell_id):
@@ -200,11 +187,7 @@ def initial_processing(my_barcodes, fit_args):
                         -     Key.V_PREV_END_AVG
                         -     Key.V_END_AVG
                         -     "avg_last_cc_voltage"
-
-
-
-
-        """
+    """
 
     all_data = {}
     voltage_grid = make_voltage_grid(
@@ -267,7 +250,8 @@ def initial_processing(my_barcodes, fit_args):
                 sign_grid,
             )
             true_cycle = cyc.get_offset_cycle()
-            # for each cycle, call COUNT_MATRIX, and get (true_cyc, COUNT_MATRIX) list
+            # for each cycle, call COUNT_MATRIX,
+            # and get (true_cyc, COUNT_MATRIX) list
             if count_matrix is None:
                 continue
             all_mats.append((true_cycle, count_matrix))

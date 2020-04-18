@@ -878,14 +878,14 @@ def train_step(neighborhood, params, fit_args):
             + fit_args[COEFF_V_CC] * cc_voltage_loss
             + fit_args[COEFF_Q_CC] * cc_capacity_loss
             * (
-                fit_args[COEFF_Q] * train_results[Q_LOSS]
-                + fit_args[COEFF_SCALE] * train_results[SCALE_LOSS]
-                + fit_args[COEFF_R] * train_results[R_LOSS]
-                + fit_args[COEFF_SHIFT] * train_results[SHIFT_LOSS]
-                + fit_args[COEFF_CELL] * train_results[CELL_LOSS]
-                + fit_args[COEFF_RECIP] * train_results[RECIP_LOSS]
-                + fit_args[COEFF_PROJ] * train_results[PROJ_LOSS]
-                + fit_args[COEFF_OOB] * train_results[OOB_LOSS]
+                fit_args[COEFF_Q] * train_results[Key.Loss.Q]
+                + fit_args[COEFF_SCALE] * train_results[Key.Loss.SCALE]
+                + fit_args[COEFF_R] * train_results[Key.Loss.R]
+                + fit_args[COEFF_SHIFT] * train_results[Key.Loss.SHIFT]
+                + fit_args[COEFF_CELL] * train_results[Key.Loss.CELL]
+                + fit_args[COEFF_RECIP] * train_results[Key.Loss.RECIP]
+                + fit_args[COEFF_PROJ] * train_results[Key.Loss.PROJ]
+                + fit_args[COEFF_OOB] * train_results[Key.Loss.OOB]
             )
         )
 
@@ -917,15 +917,15 @@ def train_step(neighborhood, params, fit_args):
             cv_capacity_loss,
             cc_voltage_loss,
             cv_voltage_loss,
-            train_results[Q_LOSS],
-            train_results[SCALE_LOSS],
-            train_results[R_LOSS],
-            train_results[SHIFT_LOSS],
-            train_results[CELL_LOSS],
-            train_results[RECIP_LOSS],
+            train_results[Key.Loss.Q],
+            train_results[Key.Loss.SCALE],
+            train_results[Key.Loss.R],
+            train_results[Key.Loss.SHIFT],
+            train_results[Key.Loss.CELL],
+            train_results[Key.Loss.RECIP],
 
-            train_results[PROJ_LOSS],
-            train_results[OOB_LOSS]
+            train_results[Key.Loss.PROJ],
+            train_results[Key.Loss.OOB]
         ],
     )
 

@@ -214,19 +214,19 @@ def initial_processing(
     number_of_compiled_cycles = 0
     number_of_reference_cycles = 0
 
-    my_data[Key.MAX_CAP] = 250
-    max_cap = my_data[Key.MAX_CAP]
+    my_data[Key.Q_MAX] = 250
+    max_cap = my_data[Key.Q_MAX]
 
     keys = [Key.V_GRID, Key.TEMP_GRID, Key.SIGN_GRID]
     for key in keys:
         numpy_acc(compiled_data, key, numpy.array([my_data[key]]))
 
-    my_data[Key.Q_GRID] = my_data[Key.Q_GRID] - numpy.log(max_cap)
+    my_data[Key.I_GRID] = my_data[Key.I_GRID] - numpy.log(max_cap)
     # the current grid is adjusted by the max capacity of the barcode. It is
     # in log space, so I/q becomes log(I) - log(q)
     numpy_acc(
-        compiled_data, Key.Q_GRID,
-        numpy.array([my_data[Key.Q_GRID]])
+        compiled_data, Key.I_GRID,
+        numpy.array([my_data[Key.I_GRID]])
     )
 
     # TODO (harvey): simplify the following using loops
@@ -509,7 +509,7 @@ def initial_processing(
     labels = [
         Key.V_CC, Key.Q_CC, Key.MASK_CC, Key.Q_CV, Key.I_CV, Key.MASK_CV,
         Key.I_CC, Key.I_PREV, Key.V_PREV_END, Key.V_END, Key.COUNT_MATRIX,
-        Key.SIGN_GRID, Key.V_GRID, Key.Q_GRID, Key.TEMP_GRID,
+        Key.SIGN_GRID, Key.V_GRID, Key.I_GRID, Key.TEMP_GRID,
     ]
     for label in labels:
         compiled_tensors[label] = tf.constant(compiled_data[label])
@@ -677,7 +677,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
 def train_step(neighborhood, params, fit_args):
     sign_grid_tensor = params[Key.TENSORS][Key.SIGN_GRID]
     voltage_grid_tensor = params[Key.TENSORS][Key.V_GRID]
-    current_grid_tensor = params[Key.TENSORS][Key.Q_GRID]
+    current_grid_tensor = params[Key.TENSORS][Key.I_GRID]
     temperature_grid_tensor = params[Key.TENSORS][Key.TEMP_GRID]
 
     count_matrix_tensor = params[Key.TENSORS][Key.COUNT_MATRIX]

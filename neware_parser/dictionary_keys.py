@@ -4,27 +4,21 @@
 
 
 class Key:
-    """ Provide dictionary keys
+    """ Provide dictionary keys """
 
-    Main
-    Fit
-    """
-
-    class Main:
-        """ Keys for main_data"""
-        N = "cycle_number"
-        V_CC = "cc_voltage_vector"
-        V_END = "end_voltage"
-        V_PREV_END = "end_voltage_prev"
-        Q_CC = "cc_capacity_vector"
-        Q_CV = "cv_capacity_vector"
-        Q_CC_LAST = "last_cc_capacity"
-        Q_CV_LAST = "last_cv_capacity"
-        I_CC = "constant_current"
-        I_CV = "cv_current_vector"
-        I_PREV = "end_current_prev"
-        MASK_CC = "cc_mask_vector"
-        MASK_CV = "cv_mask_vector"
+    N = "cycle_number"
+    V_CC = "cc_voltage_vector"
+    V_END = "end_voltage"
+    V_PREV_END = "end_voltage_prev"
+    Q_CC = "cc_capacity_vector"
+    Q_CV = "cv_capacity_vector"
+    Q_CC_LAST = "last_cc_capacity"
+    Q_CV_LAST = "last_cv_capacity"
+    I_CC = "constant_current"
+    I_CV = "cv_current_vector"
+    I_PREV = "end_current_prev"
+    MASK_CC = "cc_mask_vector"
+    MASK_CV = "cv_mask_vector"
 
     class Fit:
         """ Keys for fig_args"""

@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
 from neware_parser.plot import savefig
-from neware_parser.dictionary_keys import *
+from neware_parser.Key import *
 
 
 class LossRecord:

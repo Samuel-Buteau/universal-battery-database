@@ -8,7 +8,7 @@ from neware_parser.DegradationModel import DegradationModel
 from neware_parser.LossRecord import LossRecord
 from neware_parser.models import *
 from neware_parser.plot import *
-from neware_parser.dictionary_keys import *
+from neware_parser.Key import Key
 
 """
 Shortened Variable Names:
@@ -217,7 +217,7 @@ def initial_processing(
     my_data[Key.MAX_CAP] = 250
     max_cap = my_data[Key.MAX_CAP]
 
-    keys = [V_GRID, TEMP_GRID, SIGN_GRID]
+    keys = [Key.V_GRID, Key.TEMP_GRID, Key.SIGN_GRID]
     for key in keys:
         numpy_acc(compiled_data, key, numpy.array([my_data[key]]))
 
@@ -476,7 +476,8 @@ def initial_processing(
 
             dict_to_acc = {
                 "reference_cycle": all_data["all_reference_mats"][Key.N],
-                COUNT_MATRIX: all_data["all_reference_mats"][COUNT_MATRIX],
+                Key.COUNT_MATRIX:
+                    all_data["all_reference_mats"][Key.COUNT_MATRIX],
                 "cycle": main_data[Key.N],
                 Key.V_CC: main_data[Key.V_CC],
                 Key.Q_CC: main_data[Key.Q_CC],
@@ -506,10 +507,9 @@ def initial_processing(
     compiled_tensors["cycle"] = cycle_tensor
 
     labels = [
-        Key.V_CC, Key.Q_CC, Key.MASK_CC, Key.Q_CV,
-        Key.I_CV, Key.MASK_CV, Key.I_CC, Key.I_PREV,
-        Key.V_PREV_END, Key.V_END, COUNT_MATRIX, SIGN_GRID, V_GRID,
-        Key.Q_GRID, TEMP_GRID,
+        Key.V_CC, Key.Q_CC, Key.MASK_CC, Key.Q_CV, Key.I_CV, Key.MASK_CV,
+        Key.I_CC, Key.I_PREV, Key.V_PREV_END, Key.V_END, Key.COUNT_MATRIX,
+        Key.SIGN_GRID, Key.V_GRID, Key.Q_GRID, Key.TEMP_GRID,
     ]
     for label in labels:
         compiled_tensors[label] = tf.constant(compiled_data[label])
@@ -675,12 +675,12 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
 
 
 def train_step(neighborhood, params, fit_args):
-    sign_grid_tensor = params[Key.TENSORS][SIGN_GRID]
-    voltage_grid_tensor = params[Key.TENSORS][V_GRID]
+    sign_grid_tensor = params[Key.TENSORS][Key.SIGN_GRID]
+    voltage_grid_tensor = params[Key.TENSORS][Key.V_GRID]
     current_grid_tensor = params[Key.TENSORS][Key.Q_GRID]
-    temperature_grid_tensor = params[Key.TENSORS][TEMP_GRID]
+    temperature_grid_tensor = params[Key.TENSORS][Key.TEMP_GRID]
 
-    count_matrix_tensor = params[Key.TENSORS][COUNT_MATRIX]
+    count_matrix_tensor = params[Key.TENSORS][Key.COUNT_MATRIX]
 
     cycle_tensor = params[Key.TENSORS]["cycle"]
     constant_current_tensor = params[Key.TENSORS][Key.I_CC]

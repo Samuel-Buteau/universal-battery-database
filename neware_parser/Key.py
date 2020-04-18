@@ -1,8 +1,3 @@
-# TODO (harvey): This is probably not the most elegant solution,
-#                but at least things can be grouped logically now.
-#                Could use another refactor.
-
-
 class Key:
     """ Provide dictionary keys """
 
@@ -63,6 +58,11 @@ class Key:
     OPT = "optimizer"
     MY_DATA = "my_data"
 
+    V_GRID = "voltage_grid"
+    COUNT_MATRIX = "count_matrix"
+    SIGN_GRID = "sign_grid"
+    TEMP_GRID = "temperature_grid"
+
     class Coeff:
         Q = "coeff_q"
         Q_CV = "coeff_cv_capacity"
@@ -89,14 +89,3 @@ class Key:
         RECIP = "reciprocal_loss"
         PROJ = "projection_loss"
         OOB = "out_of_bounds_loss"
-
-
-
-# params keys
-
-V_GRID = "voltage_grid"
-
-COUNT_MATRIX = "count_matrix"
-
-SIGN_GRID = "sign_grid"
-TEMP_GRID = "temperature_grid"

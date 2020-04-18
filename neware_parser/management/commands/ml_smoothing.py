@@ -527,11 +527,11 @@ def initial_processing(
         neg_to_neg_name = {}
         electrolyte_to_electrolyte_name = {}
         if my_names is not None:
-            pos_to_pos_name = my_names["pos_to_pos_name"]
-            neg_to_neg_name = my_names["neg_to_neg_name"]
+            pos_to_pos_name = my_names[Key.POS_TO_POS]
+            neg_to_neg_name = my_names[Key.NEG_TO_NEG]
             electrolyte_to_electrolyte_name\
-                = my_names["electrolyte_to_electrolyte_name"]
-            molecule_to_molecule_name = my_names["molecule_to_molecule_name"]
+                = my_names[Key.ELE_TO_ELE]
+            molecule_to_molecule_name = my_names[Key.MOL_TO_MOL]
 
         degradation_model = DegradationModel(
             width = fit_args[Key.WIDTH],

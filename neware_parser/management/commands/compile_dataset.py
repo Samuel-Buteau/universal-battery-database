@@ -500,11 +500,10 @@ def initial_processing(my_barcodes, fit_args):
                Key.ELE_TO_SALT: electrolyte_id_to_salt_id_weight,
                Key.ELE_TO_ADD: electrolyte_id_to_additive_id_weight,
            }, {
-               "pos_to_pos_name": pos_to_pos_name,
-               "neg_to_neg_name": neg_to_neg_name,
-               "electrolyte_to_electrolyte_name":
-                   electrolyte_to_electrolyte_name,
-               "molecule_to_molecule_name": molecule_to_molecule_name,
+               Key.POS_TO_POS: pos_to_pos_name,
+               Key.NEG_TO_NEG: neg_to_neg_name,
+               Key.ELE_TO_ELE: electrolyte_to_electrolyte_name,
+               Key.MOL_TO_MOL: molecule_to_molecule_name,
            }
 
 

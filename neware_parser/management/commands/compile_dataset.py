@@ -118,50 +118,44 @@ def make_my_barcodes(fit_args):
 # TODO (harvey): reformat docstring
 def initial_processing(my_barcodes, fit_args):
     """
-        the output of this function has the following structure:
-            a dictionary indexed by various data:
-                - Key.V_GRID: 1D array of voltages
-                - Key.Q_GRID: 1D array of log currents
-                - Key.TEMP_GRID: 1D array of temperatures
-                - Key.SIGN_GRID: 1D array of signs
-                - Key.CELL_TO_POS: a dictionary indexed by barcode yielding a positive electrode id.
-                - Key.CELL_TO_NEG: a dictionary indexed by barcode yielding a positive electrode id.
-                - Key.CELL_TO_ELE: a dictionary indexed by barcode yielding a positive electrode id.
-                - Key.CELL_TO_LAT: a dictionary indexed by barcode yielding
-                         1 if the cell is latent,
-                         0 if made of known pos,neg,electrolyte
-                - Key.ALL_DATA: a dictionary indexed by barcode. Each barcode yields:
-                    - Key.ALL_REF_MATS: structured array with dtype =
-                        [
-                            (
-                                Key.N,
-                                "f4"
-                            ),
-                            (
-                                Key.COUNT_MATRIX,
-                                "f4",
-                                (
-                                    len(sign_grid),
-                                    len(voltage_grid_degradation),
-                                    len(current_grid),
-                                    len(temperature_grid)
-                                )
-                            ),
-                        ]
 
-                    - Key.CYC_GRP_DICT: we know how this works.
-                        basically groups of steps indexed by group averages of
+    Returns:
+        Two dictionaries.
+        The first dictionary contains
+            Key.V_GRID (1D array): voltages
+            Key.Q_GRID (1D array): log currents
+            Key.TEMP_GRID (1D array): temperatures
+            Key.SIGN_GRID (1D array): signs
+            Key.CELL_TO_POS (dict):
+                Indexed by barcode yielding a positive electrode id.
+            Key.CELL_TO_NEG (dict):
+                Indexed by barcode yielding a positive electrode id.
+            Key.CELL_TO_ELE (dic):
+                Indexed by barcode yielding a positive electrode id.
+            Key.CELL_TO_LAT (dict):
+                Indexed by barcode yielding
+                    1 if the cell is latent,
+                    0 if made of known pos, neg, electrolyte
+            Key.ALL_DATA (dict): Indexed by barcode. Each barcode yields:
+                Key.ALL_REF_MATS (structured array):
+                    dtype = [
+                        (Key.N, "f4"),
                         (
-                            end_current_prev,
-                            constant_current,
-                            end_current,
-                            end_voltage_prev,
-                            end_voltage,
-                            sign
-                        )
+                            Key.COUNT_MATRIX, "f4",
+                            (
+                                len(sign_grid), len(voltage_grid_degradation),
+                                len(current_grid), len(temperature_grid),
+                            )
+                        ),
+                    ]
 
-                        each group is a dictinary indexed by various quantities:
-                        - Key.MAIN:  a numpy structured array with dtype:
+                Key.CYC_GRP_DICT: Groups of steps indexed by group averages of
+                    (
+                        end_current_prev, constant_current, end_current,
+                        end_voltage_prev, end_voltage, sign,
+                    )
+                    Each group is a dictionary indexed by various quantities:
+                        Key.MAIN:  a numpy structured array with dtype:
                             [
                                 (Key.N, "f4"),
                                 (Key.V_CC, "f4", len(voltage_grid)),
@@ -180,13 +174,12 @@ def initial_processing(my_barcodes, fit_args):
                                 (Key.Q_CV_LAST, "f4"),
                                 (Key.TEMP, "f4"),
                             ]
-
-                        -     Key.I_CC_AVG
-                        -     Key.I_PREV_END_AVG
-                        -     Key.Q_END_AVG
-                        -     Key.V_PREV_END_AVG
-                        -     Key.V_END_AVG
-                        -     Key.V_CC_LAST_AVG
+                        Key.I_CC_AVG
+                        Key.I_PREV_END_AVG
+                        Key.Q_END_AVG
+                        Key.V_PREV_END_AVG
+                        Key.V_END_AVG
+                        Key.V_CC_LAST_AVG
     """
 
     all_data = {}

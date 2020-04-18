@@ -100,18 +100,17 @@ def make_my_barcodes(fit_args):
 
     used_barcodes = []
     for b in my_barcodes:
-        if (ChargeCycleGroup.objects.filter(barcode = b).exists()
+        if (
+            ChargeCycleGroup.objects.filter(barcode = b).exists()
             or DischargeCycleGroup.objects.filter(barcode = b).exists()
         ):
             used_barcodes.append(b)
 
-    if len(fit_args["wanted_barcodes"]) == 0:
+    if len(fit_args[Key.BARCODES]) == 0:
         return used_barcodes
     else:
         return list(
-            set(used_barcodes).intersection(
-                set(fit_args["wanted_barcodes"])
-            )
+            set(used_barcodes).intersection(set(fit_args[Key.BARCODES]))
         )
 
 
@@ -508,14 +507,14 @@ def initial_processing(my_barcodes, fit_args):
 
 
 def compile_dataset(fit_args):
-    if not os.path.exists(fit_args["path_to_dataset"]):
-        os.mkdir(fit_args["path_to_dataset"])
+    if not os.path.exists(fit_args[Key.PATH_DATASET]):
+        os.mkdir(fit_args[Key.PATH_DATASET])
     my_barcodes = make_my_barcodes(fit_args)
     pick, pick_names = initial_processing(my_barcodes, fit_args)
     with open(
         os.path.join(
-            fit_args["path_to_dataset"],
-            "dataset_ver_{}.file".format(fit_args["dataset_version"])
+            fit_args[Key.PATH_DATASET],
+            "dataset_ver_{}.file".format(fit_args[Key.DATA_VERSION])
         ),
         "wb"
     ) as f:
@@ -523,8 +522,8 @@ def compile_dataset(fit_args):
 
     with open(
         os.path.join(
-            fit_args["path_to_dataset"],
-            "dataset_ver_{}_names.file".format(fit_args["dataset_version"])
+            fit_args[Key.PATH_DATASET],
+            "dataset_ver_{}_names.file".format(fit_args[Key.DATA_VERSION])
         ),
         "wb"
     ) as f:

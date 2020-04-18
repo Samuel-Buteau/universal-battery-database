@@ -602,7 +602,7 @@ def test_single_voltage(
 
 def savefig(figname, fit_args):
     plt.savefig(
-        os.path.join(fit_args["path_to_plots"], figname),
+        os.path.join(fit_args[Key.PATH_PLOTS], figname),
         dpi = 300
     )
 

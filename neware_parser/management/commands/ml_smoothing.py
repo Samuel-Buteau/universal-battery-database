@@ -89,7 +89,7 @@ def ml_smoothing(fit_args):
         with open(dataset_names_path, "rb") as f:
             my_names = pickle.load(f)
 
-    barcodes = list(my_data[ALL_DATA].keys())
+    barcodes = list(my_data[Key.MyData.ALL_DATA].keys())
 
     if len(fit_args[Key.Fit.BARCODES]) != 0:
         barcodes = list(
@@ -137,7 +137,7 @@ def initial_processing(
 
     Args:
         my_data (dictionary):
-            "max_cap": A single number. The maximum capacity across the dataset.
+            Key.MyData.MAX_CAP: A single number. The maximum capacity across the dataset.
             GRID_V: 1D array of voltages,
             Q_GRID: 1D array of log currents
             TEMP_GRID: 1D array of temperatures
@@ -212,17 +212,20 @@ def initial_processing(
     number_of_compiled_cycles = 0
     number_of_reference_cycles = 0
 
-    my_data["max_cap"] = 250
-    max_cap = my_data["max_cap"]
+    my_data[Key.MyData.MAX_CAP] = 250
+    max_cap = my_data[Key.MyData.MAX_CAP]
 
     keys = [V_GRID, TEMP_GRID, SIGN_GRID]
     for key in keys:
         numpy_acc(compiled_data, key, numpy.array([my_data[key]]))
 
-    my_data[Q_GRID] = my_data[Q_GRID] - numpy.log(max_cap)
+    my_data[Key.MyData.Q_GRID] = my_data[Key.MyData.Q_GRID] - numpy.log(max_cap)
     # the current grid is adjusted by the max capacity of the barcode. It is
     # in log space, so I/q becomes log(I) - log(q)
-    numpy_acc(compiled_data, Q_GRID, numpy.array([my_data[Q_GRID]]))
+    numpy_acc(
+        compiled_data, Key.MyData.Q_GRID,
+        numpy.array([my_data[Key.MyData.Q_GRID]])
+    )
 
     # TODO (harvey): simplify the following using loops
     cell_id_list = numpy.array(barcodes)
@@ -237,30 +240,34 @@ def initial_processing(
     electrolyte_id_to_additive_id_weight = {}
 
     for cell_id in cell_id_list:
-        if cell_id in my_data[CELL_TO_POS].keys():
-            cell_id_to_pos_id[cell_id] = my_data[CELL_TO_POS][cell_id]
-        if cell_id in my_data[CELL_TO_NEG].keys():
-            cell_id_to_neg_id[cell_id] = my_data[CELL_TO_NEG][cell_id]
-        if cell_id in my_data[CELL_TO_ELE].keys():
-            cell_id_to_electrolyte_id[cell_id] = my_data[CELL_TO_ELE][cell_id]
-        if cell_id in my_data[CELL_TO_LAT].keys():
-            cell_id_to_latent[cell_id] = my_data[CELL_TO_LAT][cell_id]
+        if cell_id in my_data[Key.MyData.CELL_TO_POS].keys():
+            cell_id_to_pos_id[cell_id]\
+                = my_data[Key.MyData.CELL_TO_POS][cell_id]
+        if cell_id in my_data[Key.MyData.CELL_TO_NEG].keys():
+            cell_id_to_neg_id[cell_id]\
+                = my_data[Key.MyData.CELL_TO_NEG][cell_id]
+        if cell_id in my_data[Key.MyData.CELL_TO_ELE].keys():
+            cell_id_to_electrolyte_id[cell_id]\
+                = my_data[Key.MyData.CELL_TO_ELE][cell_id]
+        if cell_id in my_data[Key.MyData.CELL_TO_LAT].keys():
+            cell_id_to_latent[cell_id]\
+                = my_data[Key.MyData.CELL_TO_LAT][cell_id]
 
         if cell_id_to_latent[cell_id] < 0.5:
             electrolyte_id = cell_id_to_electrolyte_id[cell_id]
-            if electrolyte_id in my_data[ELE_TO_SOL].keys():
+            if electrolyte_id in my_data[Key.MyData.ELE_TO_SOL].keys():
                 electrolyte_id_to_solvent_id_weight[electrolyte_id]\
-                    = my_data[ELE_TO_SOL][electrolyte_id]
-            if electrolyte_id in my_data[ELE_TO_SALT].keys():
+                    = my_data[Key.MyData.ELE_TO_SOL][electrolyte_id]
+            if electrolyte_id in my_data[Key.MyData.ELE_TO_SALT].keys():
                 electrolyte_id_to_salt_id_weight[electrolyte_id]\
-                    = my_data[ELE_TO_SALT][electrolyte_id]
-            if electrolyte_id in my_data[ELE_TO_ADD].keys():
+                    = my_data[Key.MyData.ELE_TO_SALT][electrolyte_id]
+            if electrolyte_id in my_data[Key.MyData.ELE_TO_ADD].keys():
                 electrolyte_id_to_additive_id_weight[electrolyte_id]\
-                    = my_data[ELE_TO_ADD][electrolyte_id]
+                    = my_data[Key.MyData.ELE_TO_ADD][electrolyte_id]
 
-            if electrolyte_id in my_data[ELE_TO_LAT].keys():
+            if electrolyte_id in my_data[Key.MyData.ELE_TO_LAT].keys():
                 electrolyte_id_to_latent[electrolyte_id]\
-                    = my_data[ELE_TO_LAT][electrolyte_id]
+                    = my_data[Key.MyData.ELE_TO_LAT][electrolyte_id]
 
     mess = [
         [
@@ -290,7 +297,7 @@ def initial_processing(
 
     for barcode_count, barcode in enumerate(barcodes):
 
-        all_data = my_data[ALL_DATA][barcode]
+        all_data = my_data[Key.MyData.ALL_DATA][barcode]
         cyc_grp_dict = all_data["cyc_grp_dict"]
 
         for k_count, k in enumerate(cyc_grp_dict.keys()):
@@ -500,7 +507,7 @@ def initial_processing(
         Key.Main.V_CC, Key.Main.Q_CC, Key.Main.MASK_CC, Key.Main.Q_CV,
         Key.Main.I_CV, Key.Main.MASK_CV, Key.Main.I_CC, Key.Main.I_PREV,
         Key.Main.V_PREV_END, Key.Main.V_END, COUNT_MATRIX, SIGN_GRID, V_GRID,
-        Q_GRID, TEMP_GRID,
+        Key.MyData.Q_GRID, TEMP_GRID,
     ]
     for label in labels:
         compiled_tensors[label] = tf.constant(compiled_data[label])
@@ -666,7 +673,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
 def train_step(neighborhood, params, fit_args):
     sign_grid_tensor = params[TENSORS][SIGN_GRID]
     voltage_grid_tensor = params[TENSORS][V_GRID]
-    current_grid_tensor = params[TENSORS][Q_GRID]
+    current_grid_tensor = params[TENSORS][Key.MyData.Q_GRID]
     temperature_grid_tensor = params[TENSORS][TEMP_GRID]
 
     count_matrix_tensor = params[TENSORS][COUNT_MATRIX]

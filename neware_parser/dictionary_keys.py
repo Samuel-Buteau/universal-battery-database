@@ -51,13 +51,23 @@ class Key:
         I_CC_AVG = "avg_constant_current"
         I_PREV_END_AVG = "avg_end_current_prev"
 
+    class MyData:
+        ALL_DATA = "all_data"
+        MAX_CAP = "max_cap"
+        Q_GRID = "current_grid"
+        CELL_TO_POS = "cell_id_to_pos_id"
+        CELL_TO_NEG = "cell_id_to_neg_id"
+        CELL_TO_ELE = "cell_id_to_electrolyte_id"
+        CELL_TO_LAT = "cell_id_to_latent"
+        ELE_TO_SOL = "electrolyte_id_to_solvent_id_weight"
+        ELE_TO_SALT = "electrolyte_id_to_salt_id_weight"
+        ELE_TO_ADD = "electrolyte_id_to_additive_id_weight"
+        ELE_TO_LAT = "electrolyte_id_to_latent"
+
 
 # params keys
 TENSORS = "compiled_tensors"
 MODEL = "degradation_model"
-
-Q_GRID = "current_grid"
-
 
 V_GRID = "voltage_grid"
 
@@ -67,18 +77,8 @@ SIGN_GRID = "sign_grid"
 TEMP_GRID = "temperature_grid"
 
 # data keys
-ALL_DATA = "all_data"
 
 # my_data keys
-CELL_TO_POS = "cell_id_to_pos_id"
-CELL_TO_NEG = "cell_id_to_neg_id"
-CELL_TO_ELE = "cell_id_to_electrolyte_id"
-CELL_TO_LAT = "cell_id_to_latent"
-
-ELE_TO_SOL = "electrolyte_id_to_solvent_id_weight"
-ELE_TO_SALT = "electrolyte_id_to_salt_id_weight"
-ELE_TO_ADD = "electrolyte_id_to_additive_id_weight"
-ELE_TO_LAT = "electrolyte_id_to_latent"
 
 # loss keys
 Q_LOSS = "q_loss"

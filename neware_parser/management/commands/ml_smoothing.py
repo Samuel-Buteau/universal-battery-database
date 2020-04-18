@@ -1,12 +1,11 @@
 import time
 
-import matplotlib.pyplot as plt
-
 import numpy
 import tensorflow as tf
 from django.core.management.base import BaseCommand
 
 from neware_parser.DegradationModel import DegradationModel
+from neware_parser.LossRecord import LossRecord
 from neware_parser.models import *
 from neware_parser.plot import *
 from neware_parser.dictionary_keys import *
@@ -21,7 +20,7 @@ Shortened Variable Names:
     pred -  predicted
     meas -  measured
     eval -  evaluation
-    eq -    equillibrium
+    eq -    equilibrium
     res -   result
 """
 
@@ -49,6 +48,66 @@ NEIGH_REFERENCE = 11
 NEIGH_TOTAL = 12
 
 
+def ml_smoothing(fit_args):
+    if len(tf.config.experimental.list_physical_devices("GPU")) == 1:
+        strategy = tf.distribute.OneDeviceStrategy(device = "/gpu:0")
+    elif len(tf.config.experimental.list_physical_devices("GPU")) > 1:
+        strategy = tf.distribute.MirroredStrategy()
+    else:
+        strategy = tf.distribute.OneDeviceStrategy("/cpu:0")
+
+    if not os.path.exists(fit_args[Key.Fit.PATH_PLOTS]):
+        os.makedirs(fit_args[Key.Fit.PATH_PLOTS])
+
+    with open(
+        os.path.join(fit_args[Key.Fit.PATH_PLOTS], "fit_args_log.txt"), "w"
+    ) as f:
+        my_str = ""
+        for k in fit_args:
+            my_str = "{} \n {}: {}".format(my_str, k, str(fit_args[k]))
+        f.write(my_str)
+
+    dataset_path = os.path.join(
+        fit_args[Key.Fit.PATH_DATASET],
+        "dataset_ver_{}.file".format(fit_args[Key.Fit.DATA_VERSION])
+    )
+
+    dataset_names_path = os.path.join(
+        fit_args[Key.Fit.PATH_DATASET],
+        "dataset_ver_{}_names.file".format(fit_args[Key.Fit.DATA_VERSION])
+    )
+
+    if not os.path.exists(dataset_path):
+        print("Path \"" + dataset_path + "\" does not exist.")
+        return
+
+    with open(dataset_path, "rb") as f:
+        my_data = pickle.load(f)
+
+    my_names = None
+    if os.path.exists(dataset_names_path):
+        with open(dataset_names_path, "rb") as f:
+            my_names = pickle.load(f)
+
+    barcodes = list(my_data[Key.MyData.ALL_DATA].keys())
+
+    if len(fit_args[Key.Fit.BARCODES]) != 0:
+        barcodes = list(
+            set(barcodes).intersection(set(fit_args[Key.Fit.BARCODES])))
+
+    if len(barcodes) == 0:
+        print("no barcodes")
+        return
+
+    train_and_evaluate(
+        initial_processing(
+            my_data, my_names, barcodes, fit_args, strategy = strategy,
+        ),
+        barcodes,
+        fit_args
+    )
+
+
 # TODO(sam): these huge tensors would be much easier to understand with
 #  ragged tensors.
 # right now, I am just flattening everything.
@@ -71,109 +130,104 @@ def three_level_flatten(iterables):
                 yield element
 
 
-def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
-    """
-    my_data has the following structure:
-        my_data: a dictionary indexed by various data:
-            - "max_cap": a single number. the maximum capacity across the
-            dataset.
-            - GRID_V: 1D array of voltages
-            - Q_GRID: 1D array of log currents
-            - TEMP_GRID: 1D array of temperatures
-            - GRID_SIGN: 1D array of signs
-            - CELL_TO_POS: a dictionary indexed by barcode yielding a
-            positive electrode id.
-            - CELL_TO_NEG: a dictionary indexed by barcode yielding a
-            positive electrode id.
-            - CELL_TO_ELE: a dictionary indexed by barcode
-            yielding a positive electrode id.
-            - CELL_TO_LAT: a dictionary indexed by barcode yielding
-                         1 if the cell is latent,
-                         0 if made of known pos,neg,electrolyte
+def initial_processing(
+    my_data: dict, my_names, barcodes, fit_args, strategy
+) -> dict:
+    """ Handle the initial data processing
 
-            - ALL_DATA: a dictionary indexed by barcode.
-               Each barcode yields:
-                - "all_reference_mats": structured array with dtype =
+    Args:
+        my_data (dictionary):
+            Key.MyData.MAX_CAP: A single number. The maximum capacity across the
+                dataset.
+            GRID_V: 1D array of voltages,
+            Q_GRID: 1D array of log currents
+            TEMP_GRID: 1D array of temperatures
+            GRID_SIGN: 1D array of signs
+            CELL_TO_POS: a dictionary indexed by barcode yielding a positive
+                electrode id.
+            CELL_TO_NEG: a dictionary indexed by barcode yielding a positive
+                electrode id.
+            CELL_TO_ELE: a dictionary indexed by barcode yielding a positive
+                electrode id.
+            CELL_TO_LAT: a dictionary indexed by barcode yielding
+                1 if the cell is latent,
+                0 if made of known pos,neg,electrolyte
+            ALL_DATA: A dictionary indexed by barcode; each barcode yields:
+                "all_reference_mats": structured array with dtype:
                     [
+                        (N, "f4"),
                         (
-                            N,
-                            "f4"
-                        ),
-                        (
-                            COUNT_MATRIX,
-                            "f4",
+                            COUNT_MATRIX, "f4",
                             (
-                                len(sign_grid),
-                                len(voltage_grid_degradation),
-                                len(current_grid),
-                                len(temperature_grid)
+                                len(sign_grid), len(voltage_grid_degradation),
+                                len(current_grid), len(temperature_grid),
                             )
                         ),
                     ]
-
-                - "cyc_grp_dict": we know how this works.
-                    basically groups of steps indexed by group averages of
+                "cyc_grp_dict": Groups of steps indexed by group averages of
                     (
                         end_current_prev,
                         constant_current,
                         end_current,
                         end_voltage_prev,
                         end_voltage,
-                        sign
+                        sign,
                     )
-
-                    each group is a dictinary indexed by various quantities:
-                        - "main_data":  a numpy structured array with dtype:
+                    each group is a dictionary indexed by:
+                        Key.CycGrpDict.MAIN: A numpy structured array with
+                            dtype:
                             [
                                 (N, "f4"),
                                 (V_CC, "f4", len(voltage_grid)),
                                 (Q_CC, "f4", len(voltage_grid)),
                                 (MASK_CC, "f4", len(voltage_grid)),
-                                (I_CV, "f4", fit_args[
-                                "current_max_n"]),
-                                (Q_CV, "f4", fit_args[
-                                "current_max_n"]),
-                                (MASK_CV, "f4", fit_args[
-                                "current_max_n"]),
+                                (I_CV, "f4", fit_args["current_max_n"]),
+                                (Q_CV, "f4", fit_args["current_max_n"]),
+                                (MASK_CV, "f4", fit_args["current_max_n"]),
                                 (I_CC, "f4"),
                                 (I_PREV, "f4"),
-                                ("end_current", "f4"),
                                 (V_PREV_END, "f4"),
                                 (V_END, "f4"),
-                                ("last_cc_voltage", "f4"),
                                 (Q_CC_LAST, "f4"),
                                 (Q_CV_LAST, "f4"),
                                 ("temperature", "f4"),
                             ]
+                        I_CC_AVG,
+                        I_PREV_END_AVG,
+                        Q_END_AVG,
+                        V_PREV_END_AVG,
+                        V_END_AVG,
+                        "avg_last_cc_voltage",
 
-                        -     I_CC_AVG
-                        -     I_PREV_END_AVG
-                        -     Q_END_AVG
-                        -     V_PREV_END_AVG
-                        -     V_END_AVG
-                        -     "avg_last_cc_voltage"
-
-
-
-
+    Returns:
+        {
+           Key.Init.STRAT, MODEL, TENSORS, Key.Init.TRAIN_DS, Key.Init.CYC_M,
+           Key.Init.CYC_V, Key.Init.OPT, Key.Init.MY_DATA
+        }
 
     """
+    # TODO (harvey): Cleanup Docstring, maybe put detailed description elsewhere
+    #                An appropriate place might be in the docstring for
+    #                classes inside neware_parser.Key
 
     compiled_data = {}
     number_of_compiled_cycles = 0
     number_of_reference_cycles = 0
 
-    my_data["max_cap"] = 250
-    max_cap = my_data["max_cap"]
+    my_data[Key.MyData.MAX_CAP] = 250
+    max_cap = my_data[Key.MyData.MAX_CAP]
 
     keys = [V_GRID, TEMP_GRID, SIGN_GRID]
     for key in keys:
         numpy_acc(compiled_data, key, numpy.array([my_data[key]]))
 
-    my_data[Q_GRID] = my_data[Q_GRID] - numpy.log(max_cap)
+    my_data[Key.MyData.Q_GRID] = my_data[Key.MyData.Q_GRID] - numpy.log(max_cap)
     # the current grid is adjusted by the max capacity of the barcode. It is
     # in log space, so I/q becomes log(I) - log(q)
-    numpy_acc(compiled_data, Q_GRID, numpy.array([my_data[Q_GRID]]))
+    numpy_acc(
+        compiled_data, Key.MyData.Q_GRID,
+        numpy.array([my_data[Key.MyData.Q_GRID]])
+    )
 
     # TODO (harvey): simplify the following using loops
     cell_id_list = numpy.array(barcodes)
@@ -188,30 +242,34 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
     electrolyte_id_to_additive_id_weight = {}
 
     for cell_id in cell_id_list:
-        if cell_id in my_data[CELL_TO_POS].keys():
-            cell_id_to_pos_id[cell_id] = my_data[CELL_TO_POS][cell_id]
-        if cell_id in my_data[CELL_TO_NEG].keys():
-            cell_id_to_neg_id[cell_id] = my_data[CELL_TO_NEG][cell_id]
-        if cell_id in my_data[CELL_TO_ELE].keys():
-            cell_id_to_electrolyte_id[cell_id] = my_data[CELL_TO_ELE][cell_id]
-        if cell_id in my_data[CELL_TO_LAT].keys():
-            cell_id_to_latent[cell_id] = my_data[CELL_TO_LAT][cell_id]
+        if cell_id in my_data[Key.MyData.CELL_TO_POS].keys():
+            cell_id_to_pos_id[cell_id]\
+                = my_data[Key.MyData.CELL_TO_POS][cell_id]
+        if cell_id in my_data[Key.MyData.CELL_TO_NEG].keys():
+            cell_id_to_neg_id[cell_id]\
+                = my_data[Key.MyData.CELL_TO_NEG][cell_id]
+        if cell_id in my_data[Key.MyData.CELL_TO_ELE].keys():
+            cell_id_to_electrolyte_id[cell_id]\
+                = my_data[Key.MyData.CELL_TO_ELE][cell_id]
+        if cell_id in my_data[Key.MyData.CELL_TO_LAT].keys():
+            cell_id_to_latent[cell_id]\
+                = my_data[Key.MyData.CELL_TO_LAT][cell_id]
 
         if cell_id_to_latent[cell_id] < 0.5:
             electrolyte_id = cell_id_to_electrolyte_id[cell_id]
-            if electrolyte_id in my_data[ELE_TO_SOL].keys():
-                electrolyte_id_to_solvent_id_weight[electrolyte_id] \
-                    = my_data[ELE_TO_SOL][electrolyte_id]
-            if electrolyte_id in my_data[ELE_TO_SALT].keys():
-                electrolyte_id_to_salt_id_weight[electrolyte_id] \
-                    = my_data[ELE_TO_SALT][electrolyte_id]
-            if electrolyte_id in my_data[ELE_TO_ADD].keys():
-                electrolyte_id_to_additive_id_weight[electrolyte_id] \
-                    = my_data[ELE_TO_ADD][electrolyte_id]
+            if electrolyte_id in my_data[Key.MyData.ELE_TO_SOL].keys():
+                electrolyte_id_to_solvent_id_weight[electrolyte_id]\
+                    = my_data[Key.MyData.ELE_TO_SOL][electrolyte_id]
+            if electrolyte_id in my_data[Key.MyData.ELE_TO_SALT].keys():
+                electrolyte_id_to_salt_id_weight[electrolyte_id]\
+                    = my_data[Key.MyData.ELE_TO_SALT][electrolyte_id]
+            if electrolyte_id in my_data[Key.MyData.ELE_TO_ADD].keys():
+                electrolyte_id_to_additive_id_weight[electrolyte_id]\
+                    = my_data[Key.MyData.ELE_TO_ADD][electrolyte_id]
 
-            if electrolyte_id in my_data[ELE_TO_LAT].keys():
-                electrolyte_id_to_latent[electrolyte_id] \
-                    = my_data[ELE_TO_LAT][electrolyte_id]
+            if electrolyte_id in my_data[Key.MyData.ELE_TO_LAT].keys():
+                electrolyte_id_to_latent[electrolyte_id]\
+                    = my_data[Key.MyData.ELE_TO_LAT][electrolyte_id]
 
     mess = [
         [
@@ -241,36 +299,41 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
 
     for barcode_count, barcode in enumerate(barcodes):
 
-        all_data = my_data[ALL_DATA][barcode]
+        all_data = my_data[Key.MyData.ALL_DATA][barcode]
         cyc_grp_dict = all_data["cyc_grp_dict"]
 
         for k_count, k in enumerate(cyc_grp_dict.keys()):
 
             if any([
-                abs(cyc_grp_dict[k][I_PREV_END_AVG]) < 1e-5,
-                abs(cyc_grp_dict[k][I_CC_AVG]) < 1e-5,
-                abs(cyc_grp_dict[k][Q_END_AVG]) < 1e-5,
-                abs(cyc_grp_dict[k][V_PREV_END_AVG]) < 1e-5,
-                abs(cyc_grp_dict[k][V_END_AVG]) < 1e-5,
+                abs(cyc_grp_dict[k][Key.CycGrpDict.I_PREV_END_AVG]) < 1e-5,
+                abs(cyc_grp_dict[k][Key.CycGrpDict.I_CC_AVG]) < 1e-5,
+                abs(cyc_grp_dict[k][Key.CycGrpDict.Q_END_AVG]) < 1e-5,
+                abs(cyc_grp_dict[k][Key.CycGrpDict.V_PREV_END_AVG]) < 1e-5,
+                abs(cyc_grp_dict[k][Key.CycGrpDict.V_END_AVG]) < 1e-5,
             ]):
                 continue
 
-            main_data = cyc_grp_dict[k]["main_data"]
+            main_data = cyc_grp_dict[k][Key.CycGrpDict.MAIN]
 
             # normalize capacity_vector with max_cap
             normalize_keys = [
-                Q_CC, Q_CV, Q_CC_LAST, Q_CV_LAST, I_CV, I_CC, I_PREV
+                Key.Main.Q_CC, Key.Main.Q_CV, Key.Main.Q_CC_LAST,
+                Key.Main.Q_CV_LAST, Key.Main.I_CV, Key.Main.I_CC,
+                Key.Main.I_PREV
             ]
             for key in normalize_keys:
                 main_data[key] = 1. / max_cap * main_data[key]
 
-            normalize_keys = [I_CC_AVG, Q_END_AVG, I_PREV_END_AVG]
+            normalize_keys = [
+                Key.CycGrpDict.I_CC_AVG, Key.CycGrpDict.Q_END_AVG,
+                Key.CycGrpDict.I_PREV_END_AVG
+            ]
             for key in normalize_keys:
                 cyc_grp_dict[k][key] = 1. / max_cap * cyc_grp_dict[k][key]
 
             # range of cycles which exist for this cycle group
-            min_cyc = min(main_data[N])
-            max_cyc = max(main_data[N])
+            min_cyc = min(main_data[Key.Main.N])
+            max_cyc = max(main_data[Key.Main.N])
 
             """
             - now create neighborhoods, which contains the cycles,
@@ -325,8 +388,8 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 # False when cycle_number falls outside out of
                 # [below_cyc, above_cyc] interval
                 mask = numpy.logical_and(
-                    below_cyc <= main_data[N],
-                    main_data[N] <= above_cyc
+                    below_cyc <= main_data[Key.Main.N],
+                    main_data[Key.Main.N] <= above_cyc
                 )
 
                 # the indices for the cyc_grp_dict[k] array which correspond
@@ -360,10 +423,10 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                   (len(cycles_full)).
                 - keep a slot empty for later
 
-
                 """
+
                 # TODO(sam): here, figure out where the reference cycle is,
-                #  and note the index
+                #            and note the index
 
                 neighborhood_data_i = numpy.zeros(
                     NEIGH_TOTAL, dtype = numpy.int32
@@ -373,7 +436,7 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 neighborhood_data_i[NEIGH_MAX_CYC] = max_cyc_index
                 neighborhood_data_i[NEIGH_RATE] = k_count
                 neighborhood_data_i[NEIGH_BARCODE] = barcode_count
-                neighborhood_data_i[NEIGH_ABSOLUTE_CYCLE] \
+                neighborhood_data_i[NEIGH_ABSOLUTE_CYCLE]\
                     = number_of_compiled_cycles
                 # a weight based on prevalence. Set later
                 neighborhood_data_i[NEIGH_VALID_CYC] = 0
@@ -383,22 +446,22 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 neighborhood_data_i[NEIGH_TEMPERATURE_GRID] = 0
 
                 center_cycle = float(cyc)
-                reference_cycles = all_data["all_reference_mats"][N]
+                reference_cycles = all_data["all_reference_mats"][Key.Main.N]
 
                 index_of_closest_reference = numpy.argmin(
                     abs(center_cycle - reference_cycles)
                 )
 
-                neighborhood_data_i[NEIGH_ABSOLUTE_REFERENCE] \
+                neighborhood_data_i[NEIGH_ABSOLUTE_REFERENCE]\
                     = number_of_reference_cycles
-                neighborhood_data_i[NEIGH_REFERENCE] \
+                neighborhood_data_i[NEIGH_REFERENCE]\
                     = index_of_closest_reference
 
                 neighborhood_data.append(neighborhood_data_i)
 
             if valid_cycles != 0:
                 neighborhood_data = numpy.array(
-                    neighborhood_data, dtype = numpy.int32
+                    neighborhood_data, dtype = numpy.int32,
                 )
 
                 # the empty slot becomes the count of added neighborhoods, which
@@ -407,23 +470,24 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
 
                 numpy_acc(compiled_data, "neighborhood_data", neighborhood_data)
 
-            number_of_compiled_cycles += len(main_data[N])
-            number_of_reference_cycles += len(all_data["all_reference_mats"][N])
+            number_of_compiled_cycles += len(main_data[Key.Main.N])
+            number_of_reference_cycles\
+                += len(all_data["all_reference_mats"][Key.Main.N])
 
             dict_to_acc = {
-                "reference_cycle": all_data["all_reference_mats"][N],
+                "reference_cycle": all_data["all_reference_mats"][Key.Main.N],
                 COUNT_MATRIX: all_data["all_reference_mats"][COUNT_MATRIX],
-                "cycle": main_data[N],
-                V_CC: main_data[V_CC],
-                Q_CC: main_data[Q_CC],
-                MASK_CC: main_data[MASK_CC],
-                I_CV: main_data[I_CV],
-                Q_CV: main_data[Q_CV],
-                MASK_CV: main_data[MASK_CV],
-                I_CC: main_data[I_CC],
-                I_PREV: main_data[I_PREV],
-                V_PREV_END: main_data[V_PREV_END],
-                V_END: main_data[V_END],
+                "cycle": main_data[Key.Main.N],
+                Key.Main.V_CC: main_data[Key.Main.V_CC],
+                Key.Main.Q_CC: main_data[Key.Main.Q_CC],
+                Key.Main.MASK_CC: main_data[Key.Main.MASK_CC],
+                Key.Main.I_CV: main_data[Key.Main.I_CV],
+                Key.Main.Q_CV: main_data[Key.Main.Q_CV],
+                Key.Main.MASK_CV: main_data[Key.Main.MASK_CV],
+                Key.Main.I_CC: main_data[Key.Main.I_CC],
+                Key.Main.I_PREV: main_data[Key.Main.I_PREV],
+                Key.Main.V_PREV_END: main_data[Key.Main.V_PREV_END],
+                Key.Main.V_END: main_data[Key.Main.V_END],
             }
 
             for key in dict_to_acc:
@@ -442,13 +506,15 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
     compiled_tensors["cycle"] = cycle_tensor
 
     labels = [
-        V_CC, Q_CC, MASK_CC, Q_CV, I_CV, MASK_CV, I_CC, I_PREV, V_PREV_END,
-        V_END, COUNT_MATRIX, SIGN_GRID, V_GRID, Q_GRID, TEMP_GRID
+        Key.Main.V_CC, Key.Main.Q_CC, Key.Main.MASK_CC, Key.Main.Q_CV,
+        Key.Main.I_CV, Key.Main.MASK_CV, Key.Main.I_CC, Key.Main.I_PREV,
+        Key.Main.V_PREV_END, Key.Main.V_END, COUNT_MATRIX, SIGN_GRID, V_GRID,
+        Key.MyData.Q_GRID, TEMP_GRID,
     ]
     for label in labels:
         compiled_tensors[label] = tf.constant(compiled_data[label])
 
-    batch_size = fit_args["batch_size"]
+    batch_size = fit_args[Key.Fit.BATCH]
 
     with strategy.scope():
         train_ds_ = tf.data.Dataset.from_tensor_slices(
@@ -463,13 +529,13 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
         if my_names is not None:
             pos_to_pos_name = my_names["pos_to_pos_name"]
             neg_to_neg_name = my_names["neg_to_neg_name"]
-            electrolyte_to_electrolyte_name \
+            electrolyte_to_electrolyte_name\
                 = my_names["electrolyte_to_electrolyte_name"]
             molecule_to_molecule_name = my_names["molecule_to_molecule_name"]
 
         degradation_model = DegradationModel(
-            width = fit_args["width"],
-            depth = fit_args["depth"],
+            width = fit_args[Key.Fit.WIDTH],
+            depth = fit_args[Key.Fit.DEPTH],
             cell_dict = id_dict_from_id_list(cell_id_list),
             pos_dict = id_dict_from_id_list(pos_id_list),
             neg_dict = id_dict_from_id_list(neg_id_list),
@@ -492,70 +558,31 @@ def initial_processing(my_data, my_names, barcodes, fit_args, strategy):
                 electrolyte_to_electrolyte_name,
                 molecule_to_molecule_name,
             ),
-            n_sample = fit_args["n_sample"],
+            n_sample = fit_args[Key.Fit.N_SAMPLE],
             incentive_coeffs = fit_args,
-            min_latent = fit_args["min_latent"]
+            min_latent = fit_args[Key.Fit.MIN_LAT]
         )
 
         optimizer = tf.keras.optimizers.Adam(
-            learning_rate = fit_args["learning_rate"]
+            learning_rate = fit_args[Key.Fit.LRN_RATE]
         )
 
     return {
-        "strategy": strategy,
-        MODEL: degradation_model,
-        TENSORS: compiled_tensors,
+        Key.Init.STRAT: strategy,
+        Key.Init.MODEL: degradation_model,
+        Key.Init.TENSORS: compiled_tensors,
 
-        "train_ds": train_ds,
-        "cycle_m": cycle_m,
-        "cycle_v": cycle_v,
+        Key.Init.TRAIN_DS: train_ds,
+        Key.Init.CYC_M: cycle_m,
+        Key.Init.CYC_V: cycle_v,
 
-        "optimizer": optimizer,
-        "my_data": my_data
+        Key.Init.OPT: optimizer,
+        Key.Init.MY_DATA: my_data
     }
 
 
-class LossRecord():
-    def __init__(self):
-        self.data = []
-        self.labels = [
-            Q_CC_LOSS, Q_CV_LOSS, V_CC_LOSS, V_CV_LOSS, Q_LOSS, SCALE_LOSS,
-            R_LOSS, SHIFT_LOSS, CELL_LOSS, RECIP_LOSS, PROJ_LOSS, OOB_LOSS
-        ]
-
-    def record(self, count, losses):
-        self.data.append((count, losses))
-
-    def print_recent(self, fit_args):
-        if len(self.data) > 0:
-            count, losses = self.data[-1]
-            print("Count {}:".format(count))
-            for i in range(len(losses)):
-                print("\t{}:{}. coeff:{}".format(
-                    self.labels[i],
-                    losses[i],
-                    fit_args["coeff_" + self.labels[i].split("_loss")[0]]
-                ))
-
-    def plot(self, count, fit_args):
-        fig = plt.figure(figsize = [11, 10])
-        ax = fig.add_subplot(111)
-        ax.set_yscale("log")
-        for i in range(len(self.labels)):
-            ax.plot(
-                [s[0] for s in self.data],
-                [s[1][i] for s in self.data],
-                label = self.labels[i]
-            )
-
-        ax.legend()
-
-        savefig("losses_Count_{}.png".format(count), fit_args)
-        plt.close(fig)
-
-
 def train_and_evaluate(init_returns, barcodes, fit_args):
-    strategy = init_returns["strategy"]
+    strategy = init_returns[Key.Init.STRAT]
 
     epochs = 100000
     count = 0
@@ -565,9 +592,9 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
     now_ker = None
 
     train_step_params = {
-        TENSORS: init_returns[TENSORS],
-        "optimizer": init_returns["optimizer"],
-        MODEL: init_returns[MODEL],
+        Key.Init.TENSORS: init_returns[Key.Init.TENSORS],
+        Key.Init.OPT: init_returns[Key.Init.OPT],
+        Key.Init.MODEL: init_returns[Key.Init.MODEL],
     }
 
     @tf.function
@@ -584,7 +611,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
     with strategy.scope():
         for epoch in range(epochs):
             sub_count = 0
-            for neighborhood in init_returns["train_ds"]:
+            for neighborhood in init_returns[Key.Init.TRAIN_DS]:
                 count += 1
                 sub_count += 1
 
@@ -595,7 +622,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                     l += l_
 
                 if count != 0:
-                    if (count % fit_args["print_loss_every"]) == 0:
+                    if (count % fit_args[Key.Fit.PRINT_LOSS]) == 0:
                         tot = l / tf.cast(sub_count, dtype = tf.float32)
                         l = None
                         sub_count = 0
@@ -608,7 +635,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                         "fit_args": fit_args,
                     }
 
-                    if (count % fit_args["visualize_fit_every"]) == 0:
+                    if (count % fit_args[Key.Fit.VIS]) == 0:
 
                         start = time.time()
                         print("time to simulate: ", start - end)
@@ -618,7 +645,9 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                         plot_v_curves(plot_params, init_returns)
                         end = time.time()
                         print("time to plot: ", end - start)
-                        ker = init_returns[MODEL].cell_direct.kernel.numpy()
+                        ker = init_returns[
+                            Key.Init.MODEL
+                        ].cell_direct.kernel.numpy()
                         prev_ker = now_ker
                         now_ker = ker
 
@@ -641,33 +670,33 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                             )
                         print()
 
-                if count >= fit_args["stop_count"]:
+                if count >= fit_args[Key.Fit.STOP]:
                     return
 
 
 def train_step(neighborhood, params, fit_args):
-    sign_grid_tensor = params[TENSORS][SIGN_GRID]
-    voltage_grid_tensor = params[TENSORS][V_GRID]
-    current_grid_tensor = params[TENSORS][Q_GRID]
-    temperature_grid_tensor = params[TENSORS][TEMP_GRID]
+    sign_grid_tensor = params[Key.Init.TENSORS][SIGN_GRID]
+    voltage_grid_tensor = params[Key.Init.TENSORS][V_GRID]
+    current_grid_tensor = params[Key.Init.TENSORS][Key.MyData.Q_GRID]
+    temperature_grid_tensor = params[Key.Init.TENSORS][TEMP_GRID]
 
-    count_matrix_tensor = params[TENSORS][COUNT_MATRIX]
+    count_matrix_tensor = params[Key.Init.TENSORS][COUNT_MATRIX]
 
-    cycle_tensor = params[TENSORS]["cycle"]
-    constant_current_tensor = params[TENSORS][I_CC]
-    end_current_prev_tensor = params[TENSORS][I_PREV]
-    end_voltage_prev_tensor = params[TENSORS][V_PREV_END]
-    end_voltage_tensor = params[TENSORS][V_END]
+    cycle_tensor = params[Key.Init.TENSORS]["cycle"]
+    constant_current_tensor = params[Key.Init.TENSORS][Key.Main.I_CC]
+    end_current_prev_tensor = params[Key.Init.TENSORS][Key.Main.I_PREV]
+    end_voltage_prev_tensor = params[Key.Init.TENSORS][Key.Main.V_PREV_END]
+    end_voltage_tensor = params[Key.Init.TENSORS][Key.Main.V_END]
 
-    degradation_model = params[MODEL]
-    optimizer = params["optimizer"]
+    degradation_model = params[Key.Init.MODEL]
+    optimizer = params[Key.Init.OPT]
 
-    cc_voltage_tensor = params[TENSORS][V_CC]
-    cc_capacity_tensor = params[TENSORS][Q_CC]
-    cc_mask_tensor = params[TENSORS][MASK_CC]
-    cv_capacity_tensor = params[TENSORS][Q_CV]
-    cv_current_tensor = params[TENSORS][I_CV]
-    cv_mask_tensor = params[TENSORS][MASK_CV]
+    cc_voltage_tensor = params[Key.Init.TENSORS][Key.Main.V_CC]
+    cc_capacity_tensor = params[Key.Init.TENSORS][Key.Main.Q_CC]
+    cc_mask_tensor = params[Key.Init.TENSORS][Key.Main.MASK_CC]
+    cv_capacity_tensor = params[Key.Init.TENSORS][Key.Main.Q_CV]
+    cv_current_tensor = params[Key.Init.TENSORS][Key.Main.I_CV]
+    cv_mask_tensor = params[Key.Init.TENSORS][Key.Main.MASK_CV]
 
     # need to split the range
     batch_size2 = neighborhood.shape[0]
@@ -784,9 +813,9 @@ def train_step(neighborhood, params, fit_args):
     cc_mask_2 = tf.tile(
         tf.reshape(
             1. / tf.cast(neighborhood[:, NEIGH_VALID_CYC], tf.float32),
-            [batch_size2, 1]
+            [batch_size2, 1],
         ),
-        [1, cc_voltage.shape[1]]
+        [1, cc_voltage.shape[1]],
     )
 
     cv_capacity = tf.gather(cv_capacity_tensor, indices = cycle_indices)
@@ -797,7 +826,7 @@ def train_step(neighborhood, params, fit_args):
             1. / tf.cast(neighborhood[:, NEIGH_VALID_CYC], tf.float32),
             [batch_size2, 1]
         ),
-        [1, cv_current.shape[1]]
+        [1, cv_current.shape[1]],
     )
 
     cell_indices = neighborhood[:, NEIGH_BARCODE]
@@ -816,7 +845,7 @@ def train_step(neighborhood, params, fit_args):
                 svit_grid,
                 count_matrix,
                 cc_capacity,
-                cv_capacity
+                cv_capacity,
             ),
             training = True
         )
@@ -831,42 +860,42 @@ def train_step(neighborhood, params, fit_args):
         )
 
         cc_capacity_loss = get_loss(
-            cc_capacity, pred_cc_capacity, cc_mask, cc_mask_2
+            cc_capacity, pred_cc_capacity, cc_mask, cc_mask_2,
         )
         cv_capacity_loss = get_loss(
-            cv_capacity, pred_cv_capacity, cv_mask, cv_mask_2
+            cv_capacity, pred_cv_capacity, cv_mask, cv_mask_2,
         )
         cc_voltage_loss = get_loss(
-            cc_voltage, pred_cc_voltage, cc_mask, cc_mask_2
+            cc_voltage, pred_cc_voltage, cc_mask, cc_mask_2,
         )
         cv_voltage_loss = get_loss(
-            cv_voltage, pred_cv_voltage, cv_mask, cv_mask_2
+            cv_voltage, pred_cv_voltage, cv_mask, cv_mask_2,
         )
 
         loss = (
             tf.stop_gradient(
-                fit_args[COEFF_Q_CV] * cv_capacity_loss
-                + fit_args[COEFF_V_CC] * cc_voltage_loss
-                + fit_args[COEFF_Q_CC] * cc_capacity_loss
+                fit_args[Key.Fit.Coeff.Q_CV] * cv_capacity_loss
+                + fit_args[Key.Fit.Coeff.V_CC] * cc_voltage_loss
+                + fit_args[Key.Fit.Coeff.Q_CC] * cc_capacity_loss
             )
-            + fit_args[COEFF_Q_CV] * cv_capacity_loss
-            + fit_args[COEFF_V_CC] * cc_voltage_loss
-            + fit_args[COEFF_Q_CC] * cc_capacity_loss
+            + fit_args[Key.Fit.Coeff.Q_CV] * cv_capacity_loss
+            + fit_args[Key.Fit.Coeff.V_CC] * cc_voltage_loss
+            + fit_args[Key.Fit.Coeff.Q_CC] * cc_capacity_loss
             * (
-                fit_args[COEFF_Q] * train_results[Q_LOSS]
-                + fit_args[COEFF_SCALE] * train_results[SCALE_LOSS]
-                + fit_args[COEFF_R] * train_results[R_LOSS]
-                + fit_args[COEFF_SHIFT] * train_results[SHIFT_LOSS]
-                + fit_args[COEFF_CELL] * train_results[CELL_LOSS]
-                + fit_args[COEFF_RECIP] * train_results[RECIP_LOSS]
-                + fit_args[COEFF_PROJ] * train_results[PROJ_LOSS]
-                + fit_args[COEFF_OOB] * train_results[OOB_LOSS]
+                fit_args[Key.Fit.Coeff.Q] * train_results[Key.Loss.Q]
+                + fit_args[Key.Fit.Coeff.SCALE] * train_results[Key.Loss.SCALE]
+                + fit_args[Key.Fit.Coeff.R] * train_results[Key.Loss.R]
+                + fit_args[Key.Fit.Coeff.SHIFT] * train_results[Key.Loss.SHIFT]
+                + fit_args[Key.Fit.Coeff.CELL] * train_results[Key.Loss.CELL]
+                + fit_args[Key.Fit.Coeff.RECIP] * train_results[Key.Loss.RECIP]
+                + fit_args[Key.Fit.Coeff.PROJ] * train_results[Key.Loss.PROJ]
+                + fit_args[Key.Fit.Coeff.OOB] * train_results[Key.Loss.OOB]
             )
         )
 
     gradients = tape.gradient(
         loss,
-        degradation_model.trainable_variables
+        degradation_model.trainable_variables,
     )
 
     gradients_no_nans = [
@@ -876,13 +905,13 @@ def train_step(neighborhood, params, fit_args):
 
     gradients_norm_clipped, _ = tf.clip_by_global_norm(
         gradients_no_nans,
-        fit_args["global_norm_clip"]
+        fit_args[Key.Fit.GLB_NORM_CLIP],
     )
 
     optimizer.apply_gradients(
         zip(
             gradients_norm_clipped,
-            degradation_model.trainable_variables
+            degradation_model.trainable_variables,
         )
     )
 
@@ -892,15 +921,15 @@ def train_step(neighborhood, params, fit_args):
             cv_capacity_loss,
             cc_voltage_loss,
             cv_voltage_loss,
-            train_results[Q_LOSS],
-            train_results[SCALE_LOSS],
-            train_results[R_LOSS],
-            train_results[SHIFT_LOSS],
-            train_results[CELL_LOSS],
-            train_results[RECIP_LOSS],
+            train_results[Key.Loss.Q],
+            train_results[Key.Loss.SCALE],
+            train_results[Key.Loss.R],
+            train_results[Key.Loss.SHIFT],
+            train_results[Key.Loss.CELL],
+            train_results[Key.Loss.RECIP],
 
-            train_results[PROJ_LOSS],
-            train_results[OOB_LOSS]
+            train_results[Key.Loss.PROJ],
+            train_results[Key.Loss.OOB],
         ],
     )
 
@@ -911,66 +940,6 @@ def get_loss(measured, predicted, mask, mask_2):
     ) / (1e-10 + tf.reduce_mean(mask * mask_2))
 
 
-def ml_smoothing(fit_args):
-    if len(tf.config.experimental.list_physical_devices("GPU")) == 1:
-        strategy = tf.distribute.OneDeviceStrategy(device = "/gpu:0")
-    elif len(tf.config.experimental.list_physical_devices("GPU")) > 1:
-        strategy = tf.distribute.MirroredStrategy()
-    else:
-        strategy = tf.distribute.OneDeviceStrategy("/cpu:0")
-
-    if not os.path.exists(fit_args[PATH_PLOTS]):
-        os.makedirs(fit_args[PATH_PLOTS])
-
-    with open(
-        os.path.join(fit_args[PATH_PLOTS], "fit_args_log.txt"), "w"
-    ) as f:
-        my_str = ""
-        for k in fit_args:
-            my_str = "{} \n {}: {}".format(my_str, k, str(fit_args[k]))
-        f.write(my_str)
-
-    dataset_path = os.path.join(
-        fit_args[PATH_DATASET],
-        "dataset_ver_{}.file".format(fit_args["dataset_version"])
-    )
-
-    dataset_names_path = os.path.join(
-        fit_args[PATH_DATASET],
-        "dataset_ver_{}_names.file".format(fit_args["dataset_version"])
-    )
-
-    if not os.path.exists(dataset_path):
-        print("Path \"" + dataset_path + "\" does not exist.")
-        return
-
-    with open(dataset_path, "rb") as f:
-        my_data = pickle.load(f)
-
-    my_names = None
-    if os.path.exists(dataset_names_path):
-        with open(dataset_names_path, "rb") as f:
-            my_names = pickle.load(f)
-
-    barcodes = list(my_data[ALL_DATA].keys())
-
-    if len(fit_args["wanted_barcodes"]) != 0:
-        barcodes = list(
-            set(barcodes).intersection(set(fit_args["wanted_barcodes"])))
-
-    if len(barcodes) == 0:
-        print("no barcodes")
-        return
-
-    train_and_evaluate(
-        initial_processing(
-            my_data, my_names, barcodes, fit_args, strategy = strategy
-        ),
-        barcodes,
-        fit_args
-    )
-
-
 class Command(BaseCommand):
 
     def add_arguments(self, parser):
@@ -978,7 +947,7 @@ class Command(BaseCommand):
         required_args = [
             "--path_to_dataset",
             "--dataset_version",
-            "--path_to_plots"
+            "--path_to_plots",
         ]
 
         float_args = {
@@ -1071,7 +1040,7 @@ class Command(BaseCommand):
             "--visualize_vq_every": vis,
 
             "--stop_count": 1000004,
-            "--barcode_show": 10
+            "--barcode_show": 10,
         }
 
         for arg in required_args:
@@ -1094,13 +1063,13 @@ class Command(BaseCommand):
             83225, 83226, 83227, 83228, 83229, 83230, 83231, 83232, 83233,
             83234, 83235, 83236, 83237, 83239, 83240, 83241, 83242, 83243,
             83310, 83311, 83312, 83317, 83318, 83593, 83594, 83595, 83596,
-            83741, 83742, 83743, 83744, 83745, 83746, 83747, 83748
+            83741, 83742, 83743, 83744, 83745, 83746, 83747, 83748,
         ]
         # 57706, 57707, 57710, 57711, 57714, 57715,64260,64268,83010, 83011,
         # 83012, 83013, 83014, 83015, 83016
 
         parser.add_argument(
-            "--wanted_barcodes", type = int, nargs = "+", default = barcodes
+            "--wanted_barcodes", type = int, nargs = "+", default = barcodes,
         )
 
     def handle(self, *args, **options):

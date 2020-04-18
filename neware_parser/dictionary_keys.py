@@ -64,6 +64,20 @@ class Key:
         ELE_TO_ADD = "electrolyte_id_to_additive_id_weight"
         ELE_TO_LAT = "electrolyte_id_to_latent"
 
+    class Loss:
+        Q = "q_loss"
+        Q_CC = "cc_capacity_loss"
+        Q_CV = "cv_capacity_loss"
+        V_CC = "cc_voltage_loss"
+        V_CV = "cv_voltage_loss"
+        SCALE = "scale_loss"
+        R = "r_loss"
+        SHIFT = "shift_loss"
+        CELL = "cell_loss"
+        RECIP = "reciprocal_loss"
+        PROJ = "projection_loss"
+        OOB = "out_of_bounds_loss"
+
 
 # params keys
 TENSORS = "compiled_tensors"
@@ -81,21 +95,7 @@ TEMP_GRID = "temperature_grid"
 # my_data keys
 
 # loss keys
-Q_LOSS = "q_loss"
-Q_CC_LOSS = "cc_capacity_loss"
-Q_CV_LOSS = "cv_capacity_loss"
 
-V_CC_LOSS = "cc_voltage_loss"
-V_CV_LOSS = "cv_voltage_loss"
-
-SCALE_LOSS = "scale_loss"
-R_LOSS = "r_loss"
-SHIFT_LOSS = "shift_loss"
-CELL_LOSS = "cell_loss"
-RECIP_LOSS = "reciprocal_loss"
-
-PROJ_LOSS = "projection_loss"
-OOB_LOSS = "out_of_bounds_loss"
 
 COEFF_Q = "coeff_q"
 COEFF_Q_CV = "coeff_cv_capacity"

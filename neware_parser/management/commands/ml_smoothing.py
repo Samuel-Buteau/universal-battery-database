@@ -317,9 +317,9 @@ def initial_processing(
 
             # normalize capacity_vector with max_cap
             normalize_keys = [
-                Key.Main.Q_CC, Key.Main.Q_CV, Key.Main.Q_CC_LAST,
-                Key.Main.Q_CV_LAST, Key.Main.I_CV, Key.Main.I_CC,
-                Key.Main.I_PREV
+                Key.Q_CC, Key.Q_CV, Key.Q_CC_LAST,
+                Key.Q_CV_LAST, Key.I_CV, Key.I_CC,
+                Key.I_PREV
             ]
             for key in normalize_keys:
                 main_data[key] = 1. / max_cap * main_data[key]
@@ -332,8 +332,8 @@ def initial_processing(
                 cyc_grp_dict[k][key] = 1. / max_cap * cyc_grp_dict[k][key]
 
             # range of cycles which exist for this cycle group
-            min_cyc = min(main_data[Key.Main.N])
-            max_cyc = max(main_data[Key.Main.N])
+            min_cyc = min(main_data[Key.N])
+            max_cyc = max(main_data[Key.N])
 
             """
             - now create neighborhoods, which contains the cycles,
@@ -388,8 +388,8 @@ def initial_processing(
                 # False when cycle_number falls outside out of
                 # [below_cyc, above_cyc] interval
                 mask = numpy.logical_and(
-                    below_cyc <= main_data[Key.Main.N],
-                    main_data[Key.Main.N] <= above_cyc
+                    below_cyc <= main_data[Key.N],
+                    main_data[Key.N] <= above_cyc
                 )
 
                 # the indices for the cyc_grp_dict[k] array which correspond
@@ -446,7 +446,7 @@ def initial_processing(
                 neighborhood_data_i[NEIGH_TEMPERATURE_GRID] = 0
 
                 center_cycle = float(cyc)
-                reference_cycles = all_data["all_reference_mats"][Key.Main.N]
+                reference_cycles = all_data["all_reference_mats"][Key.N]
 
                 index_of_closest_reference = numpy.argmin(
                     abs(center_cycle - reference_cycles)
@@ -470,24 +470,24 @@ def initial_processing(
 
                 numpy_acc(compiled_data, "neighborhood_data", neighborhood_data)
 
-            number_of_compiled_cycles += len(main_data[Key.Main.N])
+            number_of_compiled_cycles += len(main_data[Key.N])
             number_of_reference_cycles\
-                += len(all_data["all_reference_mats"][Key.Main.N])
+                += len(all_data["all_reference_mats"][Key.N])
 
             dict_to_acc = {
-                "reference_cycle": all_data["all_reference_mats"][Key.Main.N],
+                "reference_cycle": all_data["all_reference_mats"][Key.N],
                 COUNT_MATRIX: all_data["all_reference_mats"][COUNT_MATRIX],
-                "cycle": main_data[Key.Main.N],
-                Key.Main.V_CC: main_data[Key.Main.V_CC],
-                Key.Main.Q_CC: main_data[Key.Main.Q_CC],
-                Key.Main.MASK_CC: main_data[Key.Main.MASK_CC],
-                Key.Main.I_CV: main_data[Key.Main.I_CV],
-                Key.Main.Q_CV: main_data[Key.Main.Q_CV],
-                Key.Main.MASK_CV: main_data[Key.Main.MASK_CV],
-                Key.Main.I_CC: main_data[Key.Main.I_CC],
-                Key.Main.I_PREV: main_data[Key.Main.I_PREV],
-                Key.Main.V_PREV_END: main_data[Key.Main.V_PREV_END],
-                Key.Main.V_END: main_data[Key.Main.V_END],
+                "cycle": main_data[Key.N],
+                Key.V_CC: main_data[Key.V_CC],
+                Key.Q_CC: main_data[Key.Q_CC],
+                Key.MASK_CC: main_data[Key.MASK_CC],
+                Key.I_CV: main_data[Key.I_CV],
+                Key.Q_CV: main_data[Key.Q_CV],
+                Key.MASK_CV: main_data[Key.MASK_CV],
+                Key.I_CC: main_data[Key.I_CC],
+                Key.I_PREV: main_data[Key.I_PREV],
+                Key.V_PREV_END: main_data[Key.V_PREV_END],
+                Key.V_END: main_data[Key.V_END],
             }
 
             for key in dict_to_acc:
@@ -506,9 +506,9 @@ def initial_processing(
     compiled_tensors["cycle"] = cycle_tensor
 
     labels = [
-        Key.Main.V_CC, Key.Main.Q_CC, Key.Main.MASK_CC, Key.Main.Q_CV,
-        Key.Main.I_CV, Key.Main.MASK_CV, Key.Main.I_CC, Key.Main.I_PREV,
-        Key.Main.V_PREV_END, Key.Main.V_END, COUNT_MATRIX, SIGN_GRID, V_GRID,
+        Key.V_CC, Key.Q_CC, Key.MASK_CC, Key.Q_CV,
+        Key.I_CV, Key.MASK_CV, Key.I_CC, Key.I_PREV,
+        Key.V_PREV_END, Key.V_END, COUNT_MATRIX, SIGN_GRID, V_GRID,
         Key.MyData.Q_GRID, TEMP_GRID,
     ]
     for label in labels:
@@ -683,20 +683,20 @@ def train_step(neighborhood, params, fit_args):
     count_matrix_tensor = params[Key.Init.TENSORS][COUNT_MATRIX]
 
     cycle_tensor = params[Key.Init.TENSORS]["cycle"]
-    constant_current_tensor = params[Key.Init.TENSORS][Key.Main.I_CC]
-    end_current_prev_tensor = params[Key.Init.TENSORS][Key.Main.I_PREV]
-    end_voltage_prev_tensor = params[Key.Init.TENSORS][Key.Main.V_PREV_END]
-    end_voltage_tensor = params[Key.Init.TENSORS][Key.Main.V_END]
+    constant_current_tensor = params[Key.Init.TENSORS][Key.I_CC]
+    end_current_prev_tensor = params[Key.Init.TENSORS][Key.I_PREV]
+    end_voltage_prev_tensor = params[Key.Init.TENSORS][Key.V_PREV_END]
+    end_voltage_tensor = params[Key.Init.TENSORS][Key.V_END]
 
     degradation_model = params[Key.Init.MODEL]
     optimizer = params[Key.Init.OPT]
 
-    cc_voltage_tensor = params[Key.Init.TENSORS][Key.Main.V_CC]
-    cc_capacity_tensor = params[Key.Init.TENSORS][Key.Main.Q_CC]
-    cc_mask_tensor = params[Key.Init.TENSORS][Key.Main.MASK_CC]
-    cv_capacity_tensor = params[Key.Init.TENSORS][Key.Main.Q_CV]
-    cv_current_tensor = params[Key.Init.TENSORS][Key.Main.I_CV]
-    cv_mask_tensor = params[Key.Init.TENSORS][Key.Main.MASK_CV]
+    cc_voltage_tensor = params[Key.Init.TENSORS][Key.V_CC]
+    cc_capacity_tensor = params[Key.Init.TENSORS][Key.Q_CC]
+    cc_mask_tensor = params[Key.Init.TENSORS][Key.MASK_CC]
+    cv_capacity_tensor = params[Key.Init.TENSORS][Key.Q_CV]
+    cv_current_tensor = params[Key.Init.TENSORS][Key.I_CV]
+    cv_mask_tensor = params[Key.Init.TENSORS][Key.MASK_CV]
 
     # need to split the range
     batch_size2 = neighborhood.shape[0]

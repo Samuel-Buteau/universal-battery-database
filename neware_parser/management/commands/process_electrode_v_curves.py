@@ -114,58 +114,13 @@ def v_curves_harvest(fit_args):
     savefig("v_curves_ground_truth.png", fit_args)
     plt.close(fig)
 
-    # For now, I will assume that there is no rate dependence in the data.
-    v_min = {}
-    v_max = {}
-    for electrode in datas.keys():
-        for rate in datas[electrode].keys():
-            local_min = numpy.min([s[1] for s in datas[electrode][rate]])
-            local_max = numpy.max([s[1] for s in datas[electrode][rate]])
-            if not electrode in v_min.keys():
-                v_min[electrode] =  local_min
-            else:
-                v_min[electrode] = min(
-                    v_min[electrode],
-                    local_min
-                )
+    if 'anode' in datas.keys():
+        with open(os.path.join(fit_args[PATH_V_CURVES], 'anode_v_curves.file'), 'wb') as file:
+            pickle.dump(datas['anode'], file, protocol= pickle.HIGHEST_PROTOCOL)
 
-            if not electrode in v_max.keys():
-                v_max[electrode] =  local_max
-            else:
-                v_max[electrode] = min(
-                    v_max[electrode],
-                    local_max
-                )
 
-    final_curves = {}
-    for electrode in datas.keys():
-        voltage_grid = numpy.linspace(v_min[electrode], v_max[electrode], 128)
-        res = []
-        for rate in datas[electrode].keys():
-            q = datas[electrode][rate][:,0]
-            v = datas[electrode][rate][:, 1]
 
-            spline = InterpolatedUnivariateSpline(v, q)
-            res.append(spline(voltage_grid))
 
-        final_curves[electrode] = {'q': numpy.average(res, axis=0), 'v':voltage_grid}
-
-    # Plot
-    fig = plt.figure(figsize=[11, 10])
-    ax = fig.add_subplot(111)
-    for electrode in datas.keys():
-        ax.plot(
-            final_curves[electrode]['q'],
-            final_curves[electrode]['v'],
-            label='{}'.format(electrode)
-        )
-
-    ax.legend()
-
-    savefig("v_curves_ground_truth_no_rate.png", fit_args)
-    plt.close(fig)
-
-    print(final_curves)
 
 
 def v_curves_complex(fit_args):
@@ -361,4 +316,4 @@ class Command(BaseCommand):
 
 
     def handle(self, *args, **options):
-        v_curves_complex(options)
+        v_curves_harvest(options)

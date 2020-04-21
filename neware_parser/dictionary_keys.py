@@ -79,3 +79,7 @@ COEFF_CELL = "coeff_cell"
 COEFF_RECIP = "coeff_reciprocal"
 COEFF_PROJ = "coeff_projection"
 COEFF_OOB = "coeff_out_of_bounds"
+
+
+PATH_V_CURVES = "path_v_curves"
+PATH_V_CURVES_META = "path_v_curves_meta"

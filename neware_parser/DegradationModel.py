@@ -226,7 +226,7 @@ def create_derivatives(nn, params, der_params, internal_loss = False):
                     source = params[k],
                     target = derivatives["d_" + k]
                 )
-                if k != "features":
+                if not k in ["features", "encoded_stress"]:
                     derivatives["d2_" + k] = derivatives["d2_" + k][:, 0, :]
 
         del tape_d2
@@ -237,7 +237,7 @@ def create_derivatives(nn, params, der_params, internal_loss = False):
                 source = params[k],
                 target = derivatives["d2_" + k]
             )
-            if k != "features":
+            if not k in ["features", "encoded_stress"]:
                 derivatives["d3_" + k] = derivatives["d3_" + k][:, 0, :]
 
     del tape_d3
@@ -1841,7 +1841,7 @@ class DegradationModel(Model):
                     "features": sampled_features,
                     "current": sampled_constant_current
                 },
-                der_params = {"q": 1, "current": 3}
+                der_params = {"q": 1, "current": 3, "cycle": 3}
             )
             v_minus, v_minus_der = create_derivatives(
                 self.v_minus_for_derivative,
@@ -1852,7 +1852,7 @@ class DegradationModel(Model):
                     "features": sampled_features,
                     "current": sampled_constant_current
                 },
-                der_params = {"q": 1, "current": 3}
+                der_params = {"q": 1, "current": 3, "cycle": 3}
             )
 
             v_minus_anode_match, _ = self.v_minus_direct(
@@ -1889,7 +1889,7 @@ class DegradationModel(Model):
                     "shift": sampled_shift,
                     "current": sampled_constant_current
                 },
-                der_params = {"v": 3, "features": 2, "shift": 3, "current": 3}
+                der_params = {"v": 3, "features": 2, "shift": 3, "current": 3, "cycle": 3}
             )
 
             q_loss = calculate_q_loss(q, q_der,
@@ -1917,7 +1917,7 @@ class DegradationModel(Model):
                     "svit_grid": sampled_svit_grid,
                     Key.COUNT_MATRIX: sampled_count_matrix
                 },
-                der_params = {"features": 2},
+                der_params = {"features": 2, "cycle": 3},
                 internal_loss = True
             )
             shift_loss = calculate_shift_loss(shift, shift_der,

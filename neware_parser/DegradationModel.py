@@ -287,8 +287,7 @@ class DegradationModel(Model):
         self.nn_r = feedforward_nn_parameters(depth, width)
         self.nn_scale = feedforward_nn_parameters(depth, width)
         self.nn_q = feedforward_nn_parameters(depth, width, finalize = True)
-        self.nn_shift_0 = feedforward_nn_parameters(depth, width)
-        self.nn_shift_a = feedforward_nn_parameters(depth, width)
+        self.nn_shift = feedforward_nn_parameters(depth, width)
 
         self.nn_v_plus = feedforward_nn_parameters(
             depth, width, finalize = True
@@ -884,10 +883,23 @@ class DegradationModel(Model):
             shape = [n_sample, 1]
         )
         sampled_constant_current = tf.random.uniform(
-            minval = 0.001,
-            maxval = 5.,
+            minval = tf.math.log(0.001),
+            maxval = tf.math.log(5.),
             shape = [n_sample, 1]
         )
+        sampled_constant_current = tf.exp(sampled_constant_current)
+        sampled_constant_current_sign = tf.random.uniform(
+            minval=0,
+            maxval=1,
+            shape=[n_sample, 1],
+            dtype = tf.int32,
+
+        )
+        sampled_constant_current_sign = tf.cast(sampled_constant_current_sign, dtype=tf.float32)
+        sampled_constant_current_sign = 1. * (sampled_constant_current_sign) + (-1.)*(1.-sampled_constant_current_sign)
+
+        sampled_constant_current = sampled_constant_current_sign * sampled_constant_current
+
         sampled_features, _, sampled_pos, sampled_neg, sampled_latent\
             = self.cell_from_indices(
             indices = tf.random.uniform(
@@ -930,6 +942,13 @@ class DegradationModel(Model):
             features = sampled_features
         )
 
+        sampled_encoded_stress = self.stress_to_encoded_direct(
+                svit_grid = sampled_svit_grid,
+                count_matrix = sampled_count_matrix,
+            )
+        sampled_norm_constant = get_norm_constant(sampled_features)
+        sampled_norm_cycle = get_norm_cycle_direct(sampled_cycles, norm_constant=sampled_norm_constant)
+
         return (
             sampled_vs,
             sampled_qs,
@@ -944,6 +963,8 @@ class DegradationModel(Model):
             sampled_svit_grid,
             sampled_count_matrix,
             sampled_cell_features,
+            sampled_encoded_stress,
+            sampled_norm_cycle,
         )
 
     # TODO(Harvey): Group general/direct/derivative functions sensibly
@@ -992,6 +1013,8 @@ class DegradationModel(Model):
         )
 
         q_0 = self.q_direct(
+            encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle,
             v = v_eq_0,
             shift = shift,
             cell_features = cell_features,
@@ -1006,6 +1029,12 @@ class DegradationModel(Model):
         )
 
         q_1 = self.q_direct(
+            encoded_stress=add_v_dep(
+                encoded_stress,
+                params,
+                encoded_stress.shape[1]
+            ),
+            norm_cycle=add_v_dep(norm_cycle, params),
             v = v_eq_1,
             shift = add_v_dep(shift, params),
             cell_features = add_v_dep(
@@ -1058,6 +1087,8 @@ class DegradationModel(Model):
             resistance = resistance,
         )
         q_0 = self.q_direct(
+            encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle,
             v = v_eq_0,
             shift = shift,
             cell_features = cell_features,
@@ -1069,6 +1100,12 @@ class DegradationModel(Model):
         )
 
         v, out_of_bounds_loss = self.v_direct(
+            encoded_stress=add_v_dep(
+                encoded_stress,
+                params,
+                encoded_stress.shape[1]
+            ),
+            norm_cycle=add_v_dep(norm_cycle, params),
             q = q_over_q + add_v_dep(q_0, params),
             shift = add_v_dep(shift, params),
             cell_features = add_v_dep(
@@ -1123,6 +1160,8 @@ class DegradationModel(Model):
             resistance = resistance,
         )
         q_0 = self.q_direct(
+            encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle,
             v = v_eq_0,
             shift = shift,
             cell_features = cell_features,
@@ -1134,6 +1173,12 @@ class DegradationModel(Model):
         )
 
         v, out_of_bounds_loss = self.v_direct(
+            encoded_stress=add_current_dep(
+                encoded_stress,
+                params,
+                encoded_stress.shape[1]
+            ),
+            norm_cycle=add_current_dep(norm_cycle, params),
             q = q_over_q + add_current_dep(q_0, params),
             shift = add_current_dep(shift, params),
             cell_features = add_current_dep(
@@ -1183,6 +1228,8 @@ class DegradationModel(Model):
         )
 
         q_0 = self.q_direct(
+            encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle,
             v = v_eq_0,
             shift = shift,
             cell_features = cell_features,
@@ -1207,6 +1254,8 @@ class DegradationModel(Model):
         )
 
         q_1 = self.q_direct(
+            encoded_stress=add_current_dep(encoded_stress, params, encoded_stress.shape[1]),
+            norm_cycle=add_current_dep(norm_cycle, params),
             v = v_eq_1,
             shift = add_current_dep(shift, params),
             cell_features = add_current_dep(
@@ -1219,9 +1268,15 @@ class DegradationModel(Model):
         return (add_current_dep(scale, params)
                 * (q_1 - add_current_dep(q_0, params)))
 
-    def reciprocal_q(self, features, q, shift, current, training = True):
+    def reciprocal_q(self, encoded_stress, cycle, features, q, shift, current, training = True):
+        norm_constant = get_norm_constant(features=features)
+        norm_cycle = get_norm_cycle_direct(
+            cycle=cycle, norm_constant=norm_constant
+        )
         cell_features = get_cell_features(features = features)
         v, out_of_bounds_loss = self.v_direct(
+            encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle,
             q = q,
             shift = shift,
             cell_features = cell_features,
@@ -1229,6 +1284,8 @@ class DegradationModel(Model):
             current = current
         )
         return self.q_direct(
+            encoded_stress=encoded_stress,
+            norm_cycle=norm_cycle,
             v = v,
             shift = shift,
             cell_features = cell_features,
@@ -1236,15 +1293,23 @@ class DegradationModel(Model):
             current = current
         ), out_of_bounds_loss
 
-    def reciprocal_v(self, features, v, shift, current, training = True):
+    def reciprocal_v(self, encoded_stress, cycle, features, v, shift, current, training = True):
+        norm_constant = get_norm_constant(features=features)
+        norm_cycle = get_norm_cycle_direct(
+            cycle=cycle, norm_constant=norm_constant
+        )
         cell_features = get_cell_features(features = features)
         q = self.q_direct(
+            encoded_stress=encoded_stress,
+            norm_cycle=norm_cycle,
             v = v, shift = shift,
             cell_features = cell_features,
             current = current,
             training = training
         )
         return self.v_direct(
+            encoded_stress=encoded_stress,
+            norm_cycle=norm_cycle,
             q = q, shift = shift,
             cell_features = cell_features,
             current = current,
@@ -1292,6 +1357,7 @@ class DegradationModel(Model):
         )
         return tf.nn.elu(nn_call(self.nn_r, dependencies, training = training))
 
+    #TODO(sam): not sure if this is needed
     def scale_direct(
         self, cell_features, encoded_stress, norm_cycle, training = True
     ):
@@ -1304,7 +1370,7 @@ class DegradationModel(Model):
             nn_call(self.nn_scale, dependencies, training = training)
         )
 
-    def q_direct(self, v, shift, cell_features, current, training = True):
+    def q_direct(self, encoded_stress, norm_cycle, v, shift, cell_features, current, training = True):
         pos_cell_features = self.pos_projection_direct(
             cell_features = cell_features,
             training = training
@@ -1314,49 +1380,45 @@ class DegradationModel(Model):
             training = training
         )
         dependencies = (
+            encoded_stress,
+            norm_cycle,
             v,
             shift,
             pos_cell_features,
             neg_cell_features,
-            tf.abs(current)
+            current
         )
         return tf.nn.elu(nn_call(self.nn_q, dependencies, training = training))
 
     def shift_direct(
         self, cell_features, encoded_stress, norm_cycle, training = True
     ):
-        dependencies_0 = (
-            cell_features,
-        )
 
-        shift_0 = nn_call(self.nn_shift_0, dependencies_0, training = training)
-
-        dependencies_a = (
+        dependencies = (
             cell_features,
             encoded_stress,
+            norm_cycle
         )
-        shift_a = tf.exp(
-            nn_call(self.nn_shift_a, dependencies_a, training = training)
+        shift = tf.exp(
+            nn_call(self.nn_shift, dependencies, training = training)
         )
 
         # Compute Loss
-        loss = None
-        if training:
-            loss = self.incentive_coeffs["coeff_shift_a_big"] * tf.reduce_mean(
-                incentive_magnitude(shift_a, Target.Big, Level.Strong)
-            )
+        loss = 0.
 
-        return shift_0 + shift_a * tf.sqrt(tf.nn.relu(norm_cycle) + 1e-6), loss
+        return shift, loss
 
-    def v_plus_direct(self, q, cell_features, current, training = True):
+    def v_plus_direct(self, encoded_stress, norm_cycle, q, cell_features, current, training = True):
         pos_cell_features = self.pos_projection_direct(
             cell_features = cell_features,
             training = training
         )
         dependencies = (
+            encoded_stress,
+            norm_cycle,
             q,
             pos_cell_features,
-            tf.abs(current)
+            current
         )
 
         out_of_bounds_loss = incentive_combine([
@@ -1375,7 +1437,7 @@ class DegradationModel(Model):
             self.nn_v_plus, dependencies, training = training
         ), out_of_bounds_loss
 
-    def v_minus_direct(self, q, cell_features, current, training = True):
+    def v_minus_direct(self, encoded_stress, norm_cycle, q, cell_features, current, training = True):
         neg_cell_features = self.neg_projection_direct(
             cell_features = cell_features,
             training = training
@@ -1395,23 +1457,29 @@ class DegradationModel(Model):
         ])
 
         dependencies = (
+            encoded_stress,
+            norm_cycle,
             q,
             neg_cell_features,
-            tf.abs(current)
+            current
         )
 
         return nn_call(
             self.nn_v_minus, dependencies, training = training
         ), out_of_bounds_loss
 
-    def v_direct(self, q, shift, cell_features, current, training = True):
+    def v_direct(self, encoded_stress, norm_cycle, q, shift, cell_features, current, training = True):
         v_plus, loss_plus = self.v_plus_direct(
+            encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle,
             q = q,
             cell_features = cell_features,
             current = current,
             training = training
         )
         v_minus, loss_minus = self.v_minus_direct(
+            encoded_stress=encoded_stress,
+            norm_cycle=norm_cycle,
             q = (q - shift),
             cell_features = cell_features,
             current = current,
@@ -1423,7 +1491,13 @@ class DegradationModel(Model):
     """ For derivative variable methods """
 
     def v_plus_for_derivative(self, params, training = True):
+        norm_cycle = get_norm_cycle(
+            params={"cycle": params["cycle"], "features": params["features"]}
+        )
+
         v_plus, loss = self.v_plus_direct(
+            encoded_stress = params["encoded_stress"],
+            norm_cycle = norm_cycle,
             cell_features = get_cell_features(features = params["features"]),
             q = params["q"],
             current = params["current"],
@@ -1432,7 +1506,13 @@ class DegradationModel(Model):
         return v_plus
 
     def v_minus_for_derivative(self, params, training = True):
+        norm_cycle = get_norm_cycle(
+            params={"cycle": params["cycle"], "features": params["features"]}
+        )
+
         v_m, loss = self.v_minus_direct(
+            encoded_stress=params["encoded_stress"],
+            norm_cycle=norm_cycle,
             cell_features = get_cell_features(features = params["features"]),
             q = params["q"],
             current = params["current"],
@@ -1441,7 +1521,12 @@ class DegradationModel(Model):
         return v_m
 
     def q_for_derivative(self, params, training = True):
+        norm_cycle = get_norm_cycle(
+            params={"cycle": params["cycle"], "features": params["features"]}
+        )
         return self.q_direct(
+            encoded_stress=params["encoded_stress"],
+            norm_cycle=norm_cycle,
             cell_features = get_cell_features(features = params["features"]),
             v = params["v"],
             shift = params["shift"],
@@ -1507,6 +1592,7 @@ class DegradationModel(Model):
         )
 
     def get_v_curves(self, barcode, shift, v, q, current):
+        #TODO(sam): this no longer works.
         """
         :param barcode: a barcode
         :param shift: a 1-D array of shifts
@@ -1678,6 +1764,8 @@ class DegradationModel(Model):
                 sampled_svit_grid,
                 sampled_count_matrix,
                 sampled_cell_features,
+                sampled_encoded_stress,
+                sampled_norm_cycle,
             ) = self.sample(
                 svit_grid, batch_count, count_matrix, n_sample = self.n_sample
             )
@@ -1697,6 +1785,8 @@ class DegradationModel(Model):
             )
 
             reciprocal_q, out_of_bounds_loss_1 = self.reciprocal_q(
+                encoded_stress = sampled_encoded_stress,
+                cycle = sampled_cycles,
                 q = sampled_qs,
                 features = sampled_features,
                 shift = sampled_shift,
@@ -1705,6 +1795,8 @@ class DegradationModel(Model):
             )
 
             reciprocal_v, out_of_bounds_loss_2 = self.reciprocal_v(
+                encoded_stress=sampled_encoded_stress,
+                cycle=sampled_cycles,
                 v = sampled_vs,
                 features = sampled_features,
                 shift = sampled_shift,
@@ -1715,6 +1807,8 @@ class DegradationModel(Model):
             v_plus, v_plus_der = create_derivatives(
                 self.v_plus_for_derivative,
                 params = {
+                    "cycle":sampled_cycles,
+                    "encoded_stress":sampled_encoded_stress,
                     "q": sampled_qs,
                     "features": sampled_features,
                     "current": sampled_constant_current
@@ -1724,6 +1818,8 @@ class DegradationModel(Model):
             v_minus, v_minus_der = create_derivatives(
                 self.v_minus_for_derivative,
                 params = {
+                    "cycle": sampled_cycles,
+                    "encoded_stress": sampled_encoded_stress,
                     "q": sampled_qs,
                     "features": sampled_features,
                     "current": sampled_constant_current
@@ -1744,6 +1840,8 @@ class DegradationModel(Model):
             q, q_der = create_derivatives(
                 self.q_for_derivative,
                 params = {
+                    "cycle": sampled_cycles,
+                    "encoded_stress": sampled_encoded_stress,
                     "v": sampled_vs,
                     "features": sampled_features,
                     "shift": sampled_shift,

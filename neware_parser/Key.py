@@ -65,6 +65,8 @@ class Key:
     BATCH = "batch_size"
     PATH_DATASET = "path_to_dataset"
     PATH_PLOTS = "path_to_plots"
+    PATH_V_CURVES = "path_v_curves"
+    PATH_V_CURVES_META = "path_v_curves_meta"
     DATA_VERSION = "dataset_version"
     BARCODES = "wanted_barcodes"
     STOP = "stop_count"

@@ -9,7 +9,7 @@ from django.core.management.base import BaseCommand
 from neware_parser.DegradationModel import DegradationModel
 from neware_parser.models import *
 from neware_parser.plot import *
-from neware_parser.dictionary_keys import *
+from neware_parser.Key import *
 import csv
 from scipy.interpolate import InterpolatedUnivariateSpline
 
@@ -19,11 +19,11 @@ from scipy.interpolate import InterpolatedUnivariateSpline
 
 
 def v_curves_harvest(fit_args):
-    if not os.path.exists(fit_args[PATH_PLOTS]):
-        os.makedirs(fit_args[PATH_PLOTS])
+    if not os.path.exists(fit_args[Key.PATH_PLOTS]):
+        os.makedirs(fit_args[Key.PATH_PLOTS])
 
-    v_curves_folder = fit_args[PATH_V_CURVES]
-    v_curves_meta = fit_args[PATH_V_CURVES_META]
+    v_curves_folder = fit_args[Key.PATH_V_CURVES]
+    v_curves_meta = fit_args[Key.PATH_V_CURVES_META]
 
 
     if not os.path.exists(v_curves_folder):
@@ -115,7 +115,7 @@ def v_curves_harvest(fit_args):
     plt.close(fig)
 
     if 'anode' in datas.keys():
-        with open(os.path.join(fit_args[PATH_V_CURVES], 'anode_v_curves.file'), 'wb') as file:
+        with open(os.path.join(fit_args[Key.PATH_V_CURVES], 'anode_v_curves.file'), 'wb') as file:
             pickle.dump(datas['anode'], file, protocol= pickle.HIGHEST_PROTOCOL)
 
 
@@ -124,8 +124,8 @@ def v_curves_harvest(fit_args):
 
 
 def v_curves_complex(fit_args):
-    v_curves_folder = fit_args[PATH_V_CURVES]
-    v_curves_meta = fit_args[PATH_V_CURVES_META]
+    v_curves_folder = fit_args[Key.PATH_V_CURVES]
+    v_curves_meta = fit_args[Key.PATH_V_CURVES_META]
 
     if not os.path.exists(v_curves_folder):
         print("Path \"" + v_curves_folder + "\" does not exist.")
@@ -296,9 +296,9 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
 
         required_args = [
-            "--" + PATH_PLOTS,
-            "--" + PATH_V_CURVES,
-            "--" + PATH_V_CURVES_META,
+            "--" + Key.PATH_PLOTS,
+            "--" + Key.PATH_V_CURVES,
+            "--" + Key.PATH_V_CURVES_META,
         ]
 
         float_args = {

@@ -114,9 +114,9 @@ def v_curves_harvest(fit_args):
     savefig("v_curves_ground_truth.png", fit_args)
     plt.close(fig)
 
-    if 'anode' in datas.keys():
-        with open(os.path.join(fit_args[Key.PATH_V_CURVES], 'anode_v_curves.file'), 'wb') as file:
-            pickle.dump(datas['anode'], file, protocol= pickle.HIGHEST_PROTOCOL)
+
+    with open(os.path.join(fit_args[Key.PATH_V_CURVES], 'v_curves.file'), 'wb') as file:
+        pickle.dump(datas, file, protocol= pickle.HIGHEST_PROTOCOL)
 
 
 

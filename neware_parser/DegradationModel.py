@@ -863,7 +863,7 @@ class DegradationModel(Model):
             features_neg, fetched_latent_cell,
         )
 
-    def sample(self, svit_grid, batch_count, count_matrix, anode_v_curve, n_sample = 4 * 32):
+    def sample(self, svit_grid, batch_count, count_matrix, anode_v_curve,cathode_v_curve, n_sample = 4 * 32):
 
         # NOTE(sam): this is an example of a forall.
         # (for all voltages, and all cell features)
@@ -970,7 +970,27 @@ class DegradationModel(Model):
             ),
             axis=0
         )
+        sampled_cathode_qs = tf.gather(
+            cathode_v_curve[:, 0:1],
+            indices=tf.random.uniform(
+                minval=0,
+                maxval=cathode_v_curve.shape[0],
+                shape=[n_sample],
+                dtype=tf.int32,
+            ),
+            axis=0
+        )
 
+        sampled_cathode_vs = tf.gather(
+            cathode_v_curve[:, 1:],
+            indices=tf.random.uniform(
+                minval=0,
+                maxval=cathode_v_curve.shape[0],
+                shape=[n_sample],
+                dtype=tf.int32,
+            ),
+            axis=0
+        )
 
         return (
             sampled_vs,
@@ -990,6 +1010,8 @@ class DegradationModel(Model):
             sampled_norm_cycle,
             sampled_anode_qs,
             sampled_anode_vs,
+            sampled_cathode_qs,
+            sampled_cathode_vs,
         )
 
     # TODO(Harvey): Group general/direct/derivative functions sensibly
@@ -1775,7 +1797,7 @@ class DegradationModel(Model):
             )
             pred_cv_voltage = tf.reshape(cv_voltage, [-1, current_count])
             anode_v_curve = x[12]
-
+            cathode_v_curve = x[13]
             (
                 sampled_vs,
                 sampled_qs,
@@ -1794,8 +1816,10 @@ class DegradationModel(Model):
                 sampled_norm_cycle,
                 sampled_anode_qs,
                 sampled_anode_vs,
+                sampled_cathode_qs,
+                sampled_cathode_vs,
             ) = self.sample(
-                svit_grid, batch_count, count_matrix, anode_v_curve, n_sample = self.n_sample
+                svit_grid, batch_count, count_matrix, anode_v_curve,cathode_v_curve, n_sample = self.n_sample
             )
 
             predicted_pos = self.pos_projection_direct(
@@ -1869,6 +1893,19 @@ class DegradationModel(Model):
                 incentive_coeffs = self.incentive_coeffs
             )
 
+            v_plus_cathode_match, _ = self.v_plus_direct(
+                encoded_stress=sampled_encoded_stress,
+                norm_cycle=sampled_norm_cycle,
+                q=sampled_cathode_qs,
+                cell_features=sampled_cell_features,
+                current=sampled_constant_current
+            )
+            cathode_match_loss = calculate_cathode_match_loss(
+                sampled_cathode_vs,
+                v_plus_cathode_match,
+                incentive_coeffs=self.incentive_coeffs
+            )
+
             out_of_bounds_loss_3 = calculate_out_of_bounds_loss(reciprocal_q,
                                                                 incentive_coeffs = self.incentive_coeffs)
 
@@ -1877,7 +1914,7 @@ class DegradationModel(Model):
                 v_plus, v_minus, v_plus_der, v_minus_der,
                 reciprocal_v, reciprocal_q,
                 incentive_coeffs = self.incentive_coeffs
-            ) + anode_match_loss
+            ) + anode_match_loss + cathode_match_loss
 
             q, q_der = create_derivatives(
                 self.q_for_derivative,

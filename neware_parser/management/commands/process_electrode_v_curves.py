@@ -239,7 +239,8 @@ class Command(BaseCommand):
         if options['mode'] == "split_csv":
             v_curves_complex(options)
         elif options['mode'] == "register_csv":
-            v_curves_harvest(options)
+            print("not implemented yet:", options['mode'])
+            # v_curves_harvest(options)
         else:
             print("not implemented yet:", options['mode'])
 

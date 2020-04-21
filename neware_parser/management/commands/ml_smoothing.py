@@ -587,7 +587,6 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
     epochs = 100000
     count = 0
 
-    template = "Epoch {}, Count {}, Loss {}"
     end = time.time()
     now_ker = None
 

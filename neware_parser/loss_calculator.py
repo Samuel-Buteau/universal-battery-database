@@ -145,7 +145,20 @@ def calculate_reciprocal_loss(
         ),
     ])
 
-
+def calculate_anode_match_loss(
+                sampled_anode_vs,
+                v_minus_anode_match,
+                incentive_coeffs
+            ):
+    return incentive_combine(
+        [
+            (incentive_coeffs['coeff_anode_match'],
+             incentive_inequality(
+                 sampled_anode_vs, Inequality.Equals, v_minus_anode_match,
+                 Level.Proportional
+             ))
+        ]
+    )
 def calculate_q_loss(q, q_der, incentive_coeffs):
     return incentive_combine([
         (

@@ -641,7 +641,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                         loss_record.plot(count, fit_args)
                         plot_things_vs_cycle_number(plot_params, init_returns)
                         plot_vq(plot_params, init_returns)
-                        plot_v_curves(plot_params, init_returns)
+                        # plot_v_curves(plot_params, init_returns)
                         end = time.time()
                         print("time to plot: ", end - start)
                         ker = init_returns[

@@ -1,6 +1,6 @@
-complex_curves_10um_1.csv,cathode,0.0036363,0.06,nmc_10um_1
-complex_curves_10um_2.csv,cathode,0.0036363,0.06,nmc_10um_2
-complex_curves_18um_1.csv,cathode,0.0036363,0.062,nmc_18um_1
-complex_curves_18um_2.csv,cathode,0.0036363,0.062,nmc_18um_2
-complex_curves_3um_1.csv,cathode,0.0036363,0.22,nmc_3um_1
-complex_curves_3um_2.csv,cathode,0.0036363,0.22,nmc_3um_2
+complex_curves_10um_1.csv,250,0.0036363,nmc10um1
+complex_curves_10um_2.csv,250,0.0036363,nmc10um2
+complex_curves_18um_1.csv,250,0.0036363,nmc18um1
+complex_curves_18um_2.csv,250,0.0036363,nmc18um2
+complex_curves_3um_1.csv,250,0.0036363,nmc3um1
+complex_curves_3um_2.csv,250,0.0036363,nmc3um2

@@ -136,23 +136,19 @@ def v_curves_complex(fit_args):
         return
 
     def process_metadata_row(row):
-        if len(row) < 5:
+        if len(row) < 4:
             return None,None,None,None
         key = row[0]
-        electrode_string = row[1]
+        cap_string = row[1]
         c_rate_string = row[2]
-        resistance_string = row[3]
-        name = row[4]
-
-        if not (electrode_string == 'cathode' or electrode_string == 'anode'):
-            return None,None,None,None,None
+        name = row[3]
 
         try:
             c_rate = float(c_rate_string)
-            resistance = float(resistance_string)
-            return key, electrode_string, c_rate, resistance, name
+            cap = float(cap_string)
+            return key, cap, c_rate,  name
         except:
-            return None,None,None,None,None
+            return None,None,None,None
 
 
 
@@ -160,11 +156,11 @@ def v_curves_complex(fit_args):
     with open(v_curves_meta) as csvfile:
         my_reader = csv.reader(csvfile)
         for row in my_reader:
-            key, electrode, c_rate, resistance, name = process_metadata_row(row)
+            key, cap, c_rate,  name = process_metadata_row(row)
             if key is not None:
-                metadatas.append((key, electrode, c_rate, resistance, name))
+                metadatas.append((key, cap, c_rate,  name))
 
-
+    print(metadatas)
 
     def process_row(row):
         if len(row) < 4:
@@ -187,7 +183,7 @@ def v_curves_complex(fit_args):
 
 
     datas = {}
-    for key, electrode_string, c_rate, resistance, name in metadatas:
+    for key, cap, c_rate,  name in metadatas:
         datas[name] = {}
         with open(os.path.join(v_curves_folder, key)) as csvfile:
             my_reader = csv.reader(csvfile)
@@ -198,95 +194,17 @@ def v_curves_complex(fit_args):
 
                 datas[name][step_count].append((current, voltage, capacity))
 
-        already_seen_c_over_20 = False
-        new_data = {}
-        for dat in datas[name].values():
-            avg_current = numpy.average([d[0] for d in dat])
-            if avg_current < -0.0001:
-                idealized_current =round(20.*avg_current/c_rate)/20.
-                if abs(idealized_current - (-.05)) < 0.001 and not already_seen_c_over_20:
-                    already_seen_c_over_20 = True
-                elif abs(idealized_current - (-.05)) < 0.001 and already_seen_c_over_20:
-                    continue
+        for step_count in datas[name].keys():
+            avg_current = numpy.average([d[0] for d in datas[name][step_count]])
+            idealized_current =avg_current/c_rate
+            new_data = [[s[2]/cap, s[1]] for s in datas[name][step_count]]
 
-                new_data[abs(idealized_current)] = numpy.array([[s[2], s[1]] for s in dat if abs(s[0] - avg_current) < 0.001])
+            with open(os.path.join(v_curves_folder, "HALF_CELL_V_CURVE_ID={}_RATE={:.2f}_STEP={}.csv".format(name, idealized_current, step_count)), 'w', newline='') as outfile:
+                my_writer = csv.writer(outfile)
+                for row in new_data:
+                    my_writer.writerow([str(x) for x in row])
 
 
-
-        already_seen_c_over_20 = 0
-        new_data_charge = {}
-        for dat in datas[name].values():
-            avg_current = numpy.average([d[0] for d in dat])
-            if avg_current > 0.0001:
-                idealized_current = round(20. * avg_current / c_rate) / 20.
-                if abs(idealized_current - (.05)) < 0.001 and already_seen_c_over_20 == 1:
-                    already_seen_c_over_20 +=1
-                elif abs(idealized_current - (.05)) < 0.001 and already_seen_c_over_20 == 0:
-                    already_seen_c_over_20 +=1
-                    continue
-                elif abs(idealized_current - (.05)) < 0.001 and already_seen_c_over_20 > 1:
-                    continue
-                # if (idealized_current - (-1.)) < 0.05:
-                #     continue
-
-                new_data_charge[abs(idealized_current)] = numpy.array(
-                    [[s[2], s[1]] for s in dat if abs(s[0] - avg_current) < 0.001])
-
-        shift = 0.
-        for rate in new_data.keys():
-            shift = max(shift, max([s[0] for s in new_data[rate]]))
-        for rate in new_data_charge.keys():
-            shift = max(shift, max([s[0] for s in new_data_charge[rate]]))
-        colors = {}
-        template_colors = ['k', 'r', 'g', 'b']
-        for i, my_rate in enumerate(sorted(list(new_data_charge.keys()))):
-            colors[my_rate] = template_colors[i]
-        # Plot orig
-        fig = plt.figure(figsize=[11, 10])
-        ax = fig.add_subplot(111)
-        for rate in new_data.keys():
-            ax.plot(
-                [s[0] for s in new_data[rate]],
-                [s[1] for s in new_data[rate]],
-                label='rate={}'.format(rate),
-                c=colors[rate]
-            )
-            ax.plot(
-                [s[0] for s in new_data_charge[rate]],
-                [s[1] for s in new_data_charge[rate]],
-                c=colors[rate]
-            )
-
-        ax.legend()
-
-        savefig("v_curves_original_{}.png".format(name), fit_args)
-        plt.close(fig)
-
-        # Plot mod
-        fig = plt.figure(figsize=[11, 10])
-        ax = fig.add_subplot(111)
-
-
-        for rate in new_data.keys():
-            # delta_v = rate* .2
-            delta_v = rate * resistance
-            # mult = mult + 0.05
-            ax.plot(
-                [(s[0] - shift) / shift for s in new_data[rate]],
-                [delta_v + s[1] for s in new_data[rate]],
-                label='rate={}'.format(rate),
-                c=colors[rate]
-            )
-            ax.plot(
-                [(s[0] - shift) / shift for s in new_data_charge[rate]],
-                [-delta_v + s[1] for s in new_data_charge[rate]],
-                c=colors[rate]
-            )
-
-        ax.legend()
-
-        savefig("v_curves_{}.png".format(name), fit_args)
-        plt.close(fig)
 
 
 
@@ -296,9 +214,9 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
 
         required_args = [
-            "--" + Key.PATH_PLOTS,
             "--" + Key.PATH_V_CURVES,
             "--" + Key.PATH_V_CURVES_META,
+
         ]
 
         float_args = {
@@ -314,6 +232,14 @@ class Command(BaseCommand):
         for arg in int_args:
             parser.add_argument(arg, type = int, default = int_args[arg])
 
+        parser.add_argument("--" + "mode", required = True, choices= ["split_csv", "register_csv", "legacy_compile"])
+        parser.add_argument("--" + Key.PATH_PLOTS)
 
     def handle(self, *args, **options):
-        v_curves_harvest(options)
+        if options['mode'] == "split_csv":
+            v_curves_complex(options)
+        elif options['mode'] == "register_csv":
+            v_curves_harvest(options)
+        else:
+            print("not implemented yet:", options['mode'])
+

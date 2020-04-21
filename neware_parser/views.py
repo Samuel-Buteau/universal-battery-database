@@ -15,7 +15,7 @@ from django.db.models import Max,Min
 import math
 from .forms import *
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from io import BytesIO
@@ -42,37 +42,37 @@ def split_interval(initial, n, M, i):
 def get_all_intervals(initial, n, M):
     return [split_interval(initial, n, M,i) for i in range(min(M, n))]
 
-colors = ['k','r','b','g','c','m','o']
+colors = ["k","r","b","g","c","m","o"]
 number_of_options = 26
 
 def view_barcode(request, barcode, cursor):
-    list_all_options = ['A','B','C','D', 'E', 'F', 'G', 'H', 'I', 'J', 'K','L',
-               'M','N', 'O', 'P', 'Q','R','S','T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+    list_all_options = ["A","B","C","D", "E", "F", "G", "H", "I", "J", "K","L",
+               "M","N", "O", "P", "Q","R","S","T", "U", "V", "W", "X", "Y", "Z"]
 
     barcode = int(barcode)
     ar = {
-        'barcode': barcode}
+        "barcode": barcode}
 
     if len(cursor) == 0:
         chosen = []
     else:
-        list_of_choices = cursor.split('_')
+        list_of_choices = cursor.split("_")
 
         chosen = [list_all_options.index(o) for o in list_of_choices if o and o in list_all_options]
 
-    if request.method == 'POST' and 'back' in request.POST:
+    if request.method == "POST" and "back" in request.POST:
         if len(chosen) == 0:
             return HttpResponseRedirect(
-                reverse('view_barcode', args=(barcode, cursor)))
+                reverse("view_barcode", args=(barcode, cursor)))
 
-        new_cursor = '_'.join([list_all_options[c] for c in chosen[:-1]]  )
+        new_cursor = "_".join([list_all_options[c] for c in chosen[:-1]]  )
 
         return HttpResponseRedirect(
-            reverse('view_barcode', args=(barcode, new_cursor)))
+            reverse("view_barcode", args=(barcode, new_cursor)))
 
-    if request.method == 'POST' and 'start' in request.POST:
+    if request.method == "POST" and "start" in request.POST:
         return HttpResponseRedirect(
-                reverse('view_barcode', args=(barcode, '')))
+                reverse("view_barcode", args=(barcode, "")))
 
 
 
@@ -84,66 +84,66 @@ def view_barcode(request, barcode, cursor):
         for f in files_barcode:
             offset_cycle = f.database_file.valid_metadata.start_cycle
             c_curves.update(set([offset_cycle + cyc
-             for cyc in Cycle.objects.filter(cycling_file=f).order_by('cycle_number').values_list(
-            'cycle_number', flat=True)]))
+             for cyc in Cycle.objects.filter(cycling_file=f).order_by("cycle_number").values_list(
+            "cycle_number", flat=True)]))
 
 
 
         cycle_list = numpy.sort(numpy.array(list(c_curves)))
         interval = (0, len(cycle_list))
 
-        '''
-        we must get to the point that 
+        """
+        we must get to the point that
         we have the whole interval,
         the list of sub intervals, and the ability to choose a sub interval.
         if at any point we go out of bounds, redirect to the prefix of the cursor
-        '''
+        """
 
-        print('interval', interval)
+        print("interval", interval)
         for count, choice in enumerate(chosen):
             if choice >= interval[1]:
-                new_cursor = '_'.join([list_all_options[c] for c in chosen[:count]])
+                new_cursor = "_".join([list_all_options[c] for c in chosen[:count]])
                 return HttpResponseRedirect(
-                    reverse('view_barcode', args=(barcode, new_cursor)))
+                    reverse("view_barcode", args=(barcode, new_cursor)))
             interval = split_interval(interval[0], interval[1], M=number_of_options, i=choice)
-            print('interval', interval)
+            print("interval", interval)
         max_possible_options = min(number_of_options, interval[1])
-        print('max_possible_options', max_possible_options)
+        print("max_possible_options", max_possible_options)
         class ChoiceForm(forms.Form):
             option = forms.ChoiceField(choices = [(o, o) for o in list_all_options[:max_possible_options]])
 
-        if request.method == 'POST' and 'zoom' in request.POST:
+        if request.method == "POST" and "zoom" in request.POST:
             if interval[1] == 1:
                 return HttpResponseRedirect(
-                    reverse('view_barcode', args=(barcode, cursor)))
+                    reverse("view_barcode", args=(barcode, cursor)))
 
             my_form = ChoiceForm(request.POST)
             if my_form.is_valid():
 
-                option = my_form.cleaned_data['option']
+                option = my_form.cleaned_data["option"]
                 if option in list_all_options[:max_possible_options]:
-                    new_cursor = '_'.join([list_all_options[c] for c in chosen] + [option])
+                    new_cursor = "_".join([list_all_options[c] for c in chosen] + [option])
                 else:
                     return HttpResponseRedirect(
-                        reverse('view_barcode', args=(barcode, cursor)))
+                        reverse("view_barcode", args=(barcode, cursor)))
 
             return HttpResponseRedirect(
-                reverse('view_barcode', args=(barcode,new_cursor)))
+                reverse("view_barcode", args=(barcode,new_cursor)))
 
-        if request.method == 'POST' and ('curse' in request.POST or 'bless' in request.POST):
-            doing = {'curse': [True, False], 'bless':[False, True]}
-            if 'curse' in request.POST:
-                doing = doing['curse']
-            elif 'bless' in request.POST:
-                doing = doing['bless']
+        if request.method == "POST" and ("curse" in request.POST or "bless" in request.POST):
+            doing = {"curse": [True, False], "bless":[False, True]}
+            if "curse" in request.POST:
+                doing = doing["curse"]
+            elif "bless" in request.POST:
+                doing = doing["bless"]
 
             my_form = ChoiceForm(request.POST)
             if my_form.is_valid():
 
-                option = my_form.cleaned_data['option']
+                option = my_form.cleaned_data["option"]
                 if not option in list_all_options[:max_possible_options]:
                     return HttpResponseRedirect(
-                        reverse('view_barcode', args=(barcode, cursor)))
+                        reverse("view_barcode", args=(barcode, cursor)))
 
                 option_index = list_all_options.index(option)
                 selected_interval = split_interval(interval[0],interval[1],M=max_possible_options, i=option_index)
@@ -164,11 +164,11 @@ def view_barcode(request, barcode, cursor):
                 BarcodeNode.objects.filter(barcode=barcode).update(valid_cache=False)
 
             return HttpResponseRedirect(
-                reverse('view_barcode', args=(barcode,cursor)))
+                reverse("view_barcode", args=(barcode,cursor)))
 
 
         all_intervals = get_all_intervals(interval[0],interval[1], M=max_possible_options)
-        print('all_intervals', all_intervals)
+        print("all_intervals", all_intervals)
         vertical_barriers = []
         for index_set_i in range(len(all_intervals) - 1):
             max_low_index = all_intervals[index_set_i+1][0]-1
@@ -186,41 +186,41 @@ def view_barcode(request, barcode, cursor):
                                     figsize=[14., 6.])
         my_form = ChoiceForm()
 
-        ar['image_base64']= image_base64
-        ar['my_form'] = my_form
+        ar["image_base64"]= image_base64
+        ar["my_form"] = my_form
 
-    ar['cursor']=cursor
+    ar["cursor"]=cursor
 
 
     active_files = CyclingFile.objects.filter(
             database_file__deprecated=False,
             database_file__valid_metadata__barcode=barcode,
-            database_file__last_modified__lte=F('import_time'))
+            database_file__last_modified__lte=F("import_time"))
     if active_files.exists():
-        ar['active_files'] = [(f.database_file.filename, f.database_file.valid_metadata.start_cycle, '{}-{}-{}'.format(f.database_file.last_modified.year,f.database_file.last_modified.month, f.database_file.last_modified.day ), int(f.database_file.filesize/1024))
-                               for f in active_files.order_by('database_file__valid_metadata__start_cycle')]
+        ar["active_files"] = [(f.database_file.filename, f.database_file.valid_metadata.start_cycle, "{}-{}-{}".format(f.database_file.last_modified.year,f.database_file.last_modified.month, f.database_file.last_modified.day ), int(f.database_file.filesize/1024))
+                               for f in active_files.order_by("database_file__valid_metadata__start_cycle")]
 
     deprecated_files = CyclingFile.objects.filter(
             database_file__deprecated=True,
             database_file__valid_metadata__barcode=barcode)
     if deprecated_files.exists():
-        ar['deprecated_files'] = [(f.database_file.filename, f.database_file.valid_metadata.start_cycle, '{}-{}-{}'.format(f.database_file.last_modified.year,f.database_file.last_modified.month, f.database_file.last_modified.day ), int(f.database_file.filesize/1024))
-                               for f in deprecated_files.order_by('database_file__valid_metadata__start_cycle')]
+        ar["deprecated_files"] = [(f.database_file.filename, f.database_file.valid_metadata.start_cycle, "{}-{}-{}".format(f.database_file.last_modified.year,f.database_file.last_modified.month, f.database_file.last_modified.day ), int(f.database_file.filesize/1024))
+                               for f in deprecated_files.order_by("database_file__valid_metadata__start_cycle")]
 
     needs_importing_files = []
     needs_importing_files1 = CyclingFile.objects.filter(
                     database_file__deprecated=False,
                     database_file__valid_metadata__barcode=barcode,
-                    database_file__last_modified__gt=F('import_time'))
+                    database_file__last_modified__gt=F("import_time"))
     if needs_importing_files1.exists():
         needs_importing_files+= [(f.database_file.filename, f.database_file.valid_metadata.start_cycle,
-                                   '{}-{}-{}'.format(f.database_file.last_modified.year,f.database_file.last_modified.month, f.database_file.last_modified.day ), int(f.database_file.filesize / 1024),
-                                  '{}-{}-{}'.format(f.import_time.year,f.import_time.month, f.import_time.day ))
-                                  for f in needs_importing_files1.order_by('database_file__valid_metadata__start_cycle')]
+                                   "{}-{}-{}".format(f.database_file.last_modified.year,f.database_file.last_modified.month, f.database_file.last_modified.day ), int(f.database_file.filesize / 1024),
+                                  "{}-{}-{}".format(f.import_time.year,f.import_time.month, f.import_time.day ))
+                                  for f in needs_importing_files1.order_by("database_file__valid_metadata__start_cycle")]
 
     exp_type = FileNameHelper.models.ExperimentType.objects.get(
-        category=FileNameHelper.models.Category.objects.get(name='cycling'),
-        subcategory=FileNameHelper.models.SubCategory.objects.get(name='neware')
+        category=FileNameHelper.models.Category.objects.get(name="cycling"),
+        subcategory=FileNameHelper.models.SubCategory.objects.get(name="neware")
     )
     needs_importing_files2 = DatabaseFile.objects.filter(
                     is_valid=True,
@@ -230,24 +230,24 @@ def view_barcode(request, barcode, cursor):
                     valid_metadata__barcode=barcode
                 ).exclude(id__in=CyclingFile.objects.filter(
                     database_file__valid_metadata__barcode=barcode
-                ).values_list('database_file_id', flat=True))
+                ).values_list("database_file_id", flat=True))
     if needs_importing_files2.exists():
         needs_importing_files += [(f.filename, f.valid_metadata.start_cycle,
-                                   '{}-{}-{}'.format(f.last_modified.year,f.last_modified.month, f.last_modified.day ), int(f.filesize / 1024), 'Never')
-                                  for f in needs_importing_files2.order_by('valid_metadata__start_cycle')]
+                                   "{}-{}-{}".format(f.last_modified.year,f.last_modified.month, f.last_modified.day ), int(f.filesize / 1024), "Never")
+                                  for f in needs_importing_files2.order_by("valid_metadata__start_cycle")]
 
     if len(needs_importing_files)!=0:
-        ar['needs_importing_files']=needs_importing_files
+        ar["needs_importing_files"]=needs_importing_files
 
 
     return render(request,
-                  'neware_parser/view_barcode.html',
+                  "neware_parser/view_barcode.html",
                   ar
                   )
 
 def index(request):
     return render(request,
-                  'neware_parser/index.html',
+                  "neware_parser/index.html",
                   )
 
 def main_page(request):
@@ -258,7 +258,7 @@ def main_page(request):
     }
 
 
-    if request.method == 'POST':
+    if request.method == "POST":
 
 
         search_form = SearchForm(request.POST)
@@ -267,89 +267,89 @@ def main_page(request):
 
         if search_form.is_valid():
 
-            ar['search_form'] = search_form
+            ar["search_form"] = search_form
 
-            if 'search_validated_cycling_data' in request.POST:
+            if "search_validated_cycling_data" in request.POST:
                 exp_type = FileNameHelper.models.ExperimentType.objects.get(
-                    category=FileNameHelper.models.Category.objects.get(name='cycling'),
-                    subcategory=FileNameHelper.models.SubCategory.objects.get(name='neware')
+                    category=FileNameHelper.models.Category.objects.get(name="cycling"),
+                    subcategory=FileNameHelper.models.SubCategory.objects.get(name="neware")
                 )
 
                 q = Q(is_valid=True) & ~Q(valid_metadata=None) & Q(valid_metadata__experiment_type=exp_type)
 
-                if search_form.cleaned_data['filename1_search']:
-                    q = q & Q(filename__icontains=search_form.cleaned_data['filename1'])
+                if search_form.cleaned_data["filename1_search"]:
+                    q = q & Q(filename__icontains=search_form.cleaned_data["filename1"])
 
-                if search_form.cleaned_data['filename2_search']:
-                    q = q & Q(filename__icontains=search_form.cleaned_data['filename2'])
+                if search_form.cleaned_data["filename2_search"]:
+                    q = q & Q(filename__icontains=search_form.cleaned_data["filename2"])
 
-                if search_form.cleaned_data['filename3_search']:
-                    q = q & Q(filename__icontains=search_form.cleaned_data['filename3'])
+                if search_form.cleaned_data["filename3_search"]:
+                    q = q & Q(filename__icontains=search_form.cleaned_data["filename3"])
 
-                if search_form.cleaned_data['root1_search']:
-                    q = q & Q(root__icontains=search_form.cleaned_data['root1'])
-                if search_form.cleaned_data['root2_search']:
-                    q = q & Q(root__icontains=search_form.cleaned_data['root2'])
-                if search_form.cleaned_data['root3_search']:
-                    q = q & Q(root__icontains=search_form.cleaned_data['root3'])
+                if search_form.cleaned_data["root1_search"]:
+                    q = q & Q(root__icontains=search_form.cleaned_data["root1"])
+                if search_form.cleaned_data["root2_search"]:
+                    q = q & Q(root__icontains=search_form.cleaned_data["root2"])
+                if search_form.cleaned_data["root3_search"]:
+                    q = q & Q(root__icontains=search_form.cleaned_data["root3"])
 
-                if search_form.cleaned_data['charID_search']:
-                    q = q & Q(valid_metadata__charID=search_form.cleaned_data['charID_exact'])
+                if search_form.cleaned_data["charID_search"]:
+                    q = q & Q(valid_metadata__charID=search_form.cleaned_data["charID_exact"])
 
-                if search_form.cleaned_data['barcode_search']:
-                    if search_form.cleaned_data['barcode_exact'] is not None:
-                        q = q & Q(valid_metadata__barcode=search_form.cleaned_data['barcode_exact'])
+                if search_form.cleaned_data["barcode_search"]:
+                    if search_form.cleaned_data["barcode_exact"] is not None:
+                        q = q & Q(valid_metadata__barcode=search_form.cleaned_data["barcode_exact"])
                     else:
-                        if search_form.cleaned_data['barcode_minimum'] is not None and search_form.cleaned_data['barcode_maximum'] is not None:
-                            q = q & Q(valid_metadata__barcode__range=(search_form.cleaned_data['barcode_minimum'], search_form.cleaned_data['barcode_maximum']))
-                        elif search_form.cleaned_data['barcode_minimum'] is None and search_form.cleaned_data['barcode_maximum'] is not None:
-                            q = q & Q(valid_metadata__barcode__lte=search_form.cleaned_data['barcode_maximum'])
-                        elif search_form.cleaned_data['barcode_minimum'] is not None and search_form.cleaned_data['barcode_maximum'] is None:
-                            q = q & Q(valid_metadata__barcode__gte=search_form.cleaned_data['barcode_minimum'])
+                        if search_form.cleaned_data["barcode_minimum"] is not None and search_form.cleaned_data["barcode_maximum"] is not None:
+                            q = q & Q(valid_metadata__barcode__range=(search_form.cleaned_data["barcode_minimum"], search_form.cleaned_data["barcode_maximum"]))
+                        elif search_form.cleaned_data["barcode_minimum"] is None and search_form.cleaned_data["barcode_maximum"] is not None:
+                            q = q & Q(valid_metadata__barcode__lte=search_form.cleaned_data["barcode_maximum"])
+                        elif search_form.cleaned_data["barcode_minimum"] is not None and search_form.cleaned_data["barcode_maximum"] is None:
+                            q = q & Q(valid_metadata__barcode__gte=search_form.cleaned_data["barcode_minimum"])
 
 
-                if search_form.cleaned_data['voltage_search']:
-                    if search_form.cleaned_data['voltage_exact'] is not None:
-                        q = q & Q(valid_metadata__voltage=search_form.cleaned_data['voltage_exact'])
+                if search_form.cleaned_data["voltage_search"]:
+                    if search_form.cleaned_data["voltage_exact"] is not None:
+                        q = q & Q(valid_metadata__voltage=search_form.cleaned_data["voltage_exact"])
                     else:
-                        if search_form.cleaned_data['voltage_minimum'] is not None and search_form.cleaned_data['voltage_maximum'] is not None:
-                            q = q & Q(valid_metadata__voltage__range=(search_form.cleaned_data['voltage_minimum'], search_form.cleaned_data['voltage_maximum']))
-                        elif search_form.cleaned_data['voltage_minimum'] is None and search_form.cleaned_data['voltage_maximum'] is not None:
-                            q = q & Q(valid_metadata__voltage__lte=search_form.cleaned_data['voltage_maximum'])
-                        elif search_form.cleaned_data['voltage_minimum'] is not None and search_form.cleaned_data['voltage_maximum'] is None:
-                            q = q & Q(valid_metadata__voltage__gte=search_form.cleaned_data['voltage_minimum'])
+                        if search_form.cleaned_data["voltage_minimum"] is not None and search_form.cleaned_data["voltage_maximum"] is not None:
+                            q = q & Q(valid_metadata__voltage__range=(search_form.cleaned_data["voltage_minimum"], search_form.cleaned_data["voltage_maximum"]))
+                        elif search_form.cleaned_data["voltage_minimum"] is None and search_form.cleaned_data["voltage_maximum"] is not None:
+                            q = q & Q(valid_metadata__voltage__lte=search_form.cleaned_data["voltage_maximum"])
+                        elif search_form.cleaned_data["voltage_minimum"] is not None and search_form.cleaned_data["voltage_maximum"] is None:
+                            q = q & Q(valid_metadata__voltage__gte=search_form.cleaned_data["voltage_minimum"])
 
 
-                if search_form.cleaned_data['temperature_search']:
-                    if search_form.cleaned_data['temperature_exact'] is not None:
-                        q = q & Q(valid_metadata__temperature=search_form.cleaned_data['temperature_exact'])
+                if search_form.cleaned_data["temperature_search"]:
+                    if search_form.cleaned_data["temperature_exact"] is not None:
+                        q = q & Q(valid_metadata__temperature=search_form.cleaned_data["temperature_exact"])
                     else:
-                        if search_form.cleaned_data['temperature_minimum'] is not None and search_form.cleaned_data['temperature_maximum'] is not None:
-                            q = q & Q(valid_metadata__temperature__range=(search_form.cleaned_data['temperature_minimum'], search_form.cleaned_data['temperature_maximum']))
-                        elif search_form.cleaned_data['temperature_minimum'] is None and search_form.cleaned_data['temperature_maximum'] is not None:
-                            q = q & Q(valid_metadata__temperature__lte=search_form.cleaned_data['temperature_maximum'])
-                        elif search_form.cleaned_data['temperature_minimum'] is not None and search_form.cleaned_data['temperature_maximum'] is None:
-                            q = q & Q(valid_metadata__temperature__gte=search_form.cleaned_data['temperature_minimum'])
+                        if search_form.cleaned_data["temperature_minimum"] is not None and search_form.cleaned_data["temperature_maximum"] is not None:
+                            q = q & Q(valid_metadata__temperature__range=(search_form.cleaned_data["temperature_minimum"], search_form.cleaned_data["temperature_maximum"]))
+                        elif search_form.cleaned_data["temperature_minimum"] is None and search_form.cleaned_data["temperature_maximum"] is not None:
+                            q = q & Q(valid_metadata__temperature__lte=search_form.cleaned_data["temperature_maximum"])
+                        elif search_form.cleaned_data["temperature_minimum"] is not None and search_form.cleaned_data["temperature_maximum"] is None:
+                            q = q & Q(valid_metadata__temperature__gte=search_form.cleaned_data["temperature_minimum"])
 
 
-                if search_form.cleaned_data['date_search']:
-                    if search_form.cleaned_data['date_exact'] is not None:
-                        q = q & Q(valid_metadata__date=search_form.cleaned_data['date_exact'])
+                if search_form.cleaned_data["date_search"]:
+                    if search_form.cleaned_data["date_exact"] is not None:
+                        q = q & Q(valid_metadata__date=search_form.cleaned_data["date_exact"])
                     else:
-                        if search_form.cleaned_data['date_minimum'] is not None and search_form.cleaned_data['date_maximum'] is not None:
-                            q = q & Q(valid_metadata__date__range=(search_form.cleaned_data['date_minimum'], search_form.cleaned_data['date_maximum']))
-                        elif search_form.cleaned_data['date_minimum'] is None and search_form.cleaned_data['date_maximum'] is not None:
-                            q = q & Q(valid_metadata__date__lte=search_form.cleaned_data['date_maximum'])
-                        elif search_form.cleaned_data['date_minimum'] is not None and search_form.cleaned_data['date_maximum'] is None:
-                            q = q & Q(valid_metadata__date__gte=search_form.cleaned_data['date_minimum'])
+                        if search_form.cleaned_data["date_minimum"] is not None and search_form.cleaned_data["date_maximum"] is not None:
+                            q = q & Q(valid_metadata__date__range=(search_form.cleaned_data["date_minimum"], search_form.cleaned_data["date_maximum"]))
+                        elif search_form.cleaned_data["date_minimum"] is None and search_form.cleaned_data["date_maximum"] is not None:
+                            q = q & Q(valid_metadata__date__lte=search_form.cleaned_data["date_maximum"])
+                        elif search_form.cleaned_data["date_minimum"] is not None and search_form.cleaned_data["date_maximum"] is None:
+                            q = q & Q(valid_metadata__date__gte=search_form.cleaned_data["date_minimum"])
 
 
-                total_query = DatabaseFile.objects.filter(q).order_by('valid_metadata__barcode').values_list(
-        'valid_metadata__barcode', flat=True).distinct()
+                total_query = DatabaseFile.objects.filter(q).order_by("valid_metadata__barcode").values_list(
+        "valid_metadata__barcode", flat=True).distinct()
 
                 number_per_page = 10
                 initial = []
-                pn = search_form.cleaned_data['page_number']
+                pn = search_form.cleaned_data["page_number"]
                 if pn is None:
                     pn = 1
                     search_form.set_page_number(pn)
@@ -370,14 +370,14 @@ def main_page(request):
 
 
                 for barcode in total_query[(pn - 1) * number_per_page:min(n, (pn) * number_per_page)]:
-                    '''
-                    barcode 
-                    exclude 
+                    """
+                    barcode
+                    exclude
                     number_of_active
                     number_of_deprecated
                     number_of_needs_importing
                     import_soon
-                    '''
+                    """
 
                     my_initial = {
                         "barcode": barcode,
@@ -385,7 +385,7 @@ def main_page(request):
                         "number_of_active": CyclingFile.objects.filter(
                             database_file__deprecated=False,
                             database_file__valid_metadata__barcode=barcode,
-                            database_file__last_modified__lte=F('import_time')).count(),
+                            database_file__last_modified__lte=F("import_time")).count(),
                         "number_of_deprecated": CyclingFile.objects.filter(
                             database_file__deprecated=True,
                             database_file__valid_metadata__barcode=barcode).count(),
@@ -393,7 +393,7 @@ def main_page(request):
                                 CyclingFile.objects.filter(
                                     database_file__deprecated=False,
                                     database_file__valid_metadata__barcode=barcode,
-                                    database_file__last_modified__gt=F('import_time')).count() +
+                                    database_file__last_modified__gt=F("import_time")).count() +
                               DatabaseFile.objects.filter(
                                   is_valid=True,
                                   deprecated=False
@@ -402,25 +402,25 @@ def main_page(request):
                                   valid_metadata__barcode=barcode
                               ).exclude(id__in=CyclingFile.objects.filter(
                                       database_file__valid_metadata__barcode=barcode
-                                  ).values_list('database_file_id', flat=True)
+                                  ).values_list("database_file_id", flat=True)
                                   ).count()),
-                        "first_active_file":''
+                        "first_active_file":""
                     }
                     if CyclingFile.objects.filter(
                             database_file__deprecated=False,
                             database_file__valid_metadata__barcode=barcode,
-                            database_file__last_modified__lte=F('import_time')).exists():
-                        my_initial['first_active_file'] = (CyclingFile.objects.filter(
+                            database_file__last_modified__lte=F("import_time")).exists():
+                        my_initial["first_active_file"] = (CyclingFile.objects.filter(
                             database_file__deprecated=False,
                             database_file__valid_metadata__barcode=barcode,
-                            database_file__last_modified__lte=F('import_time'))[0]).database_file.filename
+                            database_file__last_modified__lte=F("import_time"))[0]).database_file.filename
 
                     initial.append(my_initial)
 
                 barcode_overview_formset = BarcodeOverviewFormset(initial=initial)
 
 
-                if search_form.cleaned_data['show_visuals']:
+                if search_form.cleaned_data["show_visuals"]:
                     datas = []
                     for barcode in total_query[(pn - 1) * number_per_page:min(n, (pn) * number_per_page)]:
                         bc = plot_barcode(barcode, path_to_plots=None, figsize=[5., 4.])
@@ -431,61 +431,61 @@ def main_page(request):
                     n = 5
 
                     split_datas = [datas[i:min(len(datas), i + n)] for i in range(0, len(datas), n)]
-                    ar['visual_data'] = split_datas
+                    ar["visual_data"] = split_datas
 
-                ar['barcode_overview_formset'] = barcode_overview_formset
-                ar['search_form'] = search_form
-                ar['page_number'] = pn
-                ar['max_page_number'] = max_page
+                ar["barcode_overview_formset"] = barcode_overview_formset
+                ar["search_form"] = search_form
+                ar["page_number"] = pn
+                ar["max_page_number"] = max_page
 
 
-            elif 'trigger_reimport' in request.POST :
+            elif "trigger_reimport" in request.POST :
                 barcode_overview_formset = BarcodeOverviewFormset(request.POST)
                 collected_barcodes = []
                 for form in barcode_overview_formset:
                     validation_step = form.is_valid()
-                    to_be_excluded = form.cleaned_data['exclude']
+                    to_be_excluded = form.cleaned_data["exclude"]
 
                     if to_be_excluded:
-                        print('exclude')
+                        print("exclude")
                         continue
 
 
                     if validation_step:
-                        collected_barcodes.append(form.cleaned_data['barcode'])
+                        collected_barcodes.append(form.cleaned_data["barcode"])
 
                 full_import_barcodes(collected_barcodes)
-                ar['search_form'] = search_form
+                ar["search_form"] = search_form
 
     else:
-        ar['search_form'] = SearchForm()
+        ar["search_form"] = SearchForm()
 
-    return render(request, 'neware_parser/form_interface.html', ar)
-
-
+    return render(request, "neware_parser/form_interface.html", ar)
 
 
-StepHeaderValue = ['Step Name', 'Capacity (mAh)', 'Average Voltage (V)', 'Min Voltage (V)', 'Max Voltage (V)',
-                   'Average Current by Capacity (mA)', 'Average Current by Voltage (mA)', 'Min Current (mA)',
-                   'Max Current (mA)', 'Time (hours)', 'Cumulative Time (hours)']
-StepHeaderKey = ['Cycle Number', 'Step Number']
-CycleHeaderValue = ['Charge Capacity (mAh)', 'Discharge Capacity (mAh)', 'Charge Average Voltage (V)',
-                    'Discharge Average Voltage (V)', 'Charge Min Voltage (V)', 'Discharge Min Voltage (V)',
-                    'Charge Max Voltage (V)', 'Discharge Max Voltage (V)', 'Charge Average Current by Capacity (mA)',
-                    'Discharge Average Current by Capacity (mA)', 'Charge Average Current by Voltage (mA)',
-                    'Discharge Average Current by Voltage (mA)', 'Charge Min Current (mA)',
-                    'Discharge Min Current (mA)', 'Charge Max Current (mA)', 'Discharge Max Current (mA)',
-                    'Charge Time (hours)', 'Discharge Time (hours)', 'Charge Cumulative Time (hours)',
-                    'Discharge Cumulative Time (hours)']
-CycleHeaderKey = ['Cycle Number']
+
+
+StepHeaderValue = ["Step Name", "Capacity (mAh)", "Average Voltage (V)", "Min Voltage (V)", "Max Voltage (V)",
+                   "Average Current by Capacity (mA)", "Average Current by Voltage (mA)", "Min Current (mA)",
+                   "Max Current (mA)", "Time (hours)", "Cumulative Time (hours)"]
+StepHeaderKey = ["Cycle Number", "Step Number"]
+CycleHeaderValue = ["Charge Capacity (mAh)", "Discharge Capacity (mAh)", "Charge Average Voltage (V)",
+                    "Discharge Average Voltage (V)", "Charge Min Voltage (V)", "Discharge Min Voltage (V)",
+                    "Charge Max Voltage (V)", "Discharge Max Voltage (V)", "Charge Average Current by Capacity (mA)",
+                    "Discharge Average Current by Capacity (mA)", "Charge Average Current by Voltage (mA)",
+                    "Discharge Average Current by Voltage (mA)", "Charge Min Current (mA)",
+                    "Discharge Min Current (mA)", "Charge Max Current (mA)", "Discharge Max Current (mA)",
+                    "Charge Time (hours)", "Discharge Time (hours)", "Charge Cumulative Time (hours)",
+                    "Discharge Cumulative Time (hours)"]
+CycleHeaderKey = ["Cycle Number"]
 
 
 def convert_to_csv2(headers, numpy_content):
-    contents = ''
+    contents = ""
     for header in headers:
-        contents += ','.join(header) + '\n'
+        contents += ",".join(header) + "\n"
     for numpy_content_i in numpy_content:
-        contents += ','.join(numpy_content_i) + '\n'
+        contents += ",".join(numpy_content_i) + "\n"
     return contents
 
 
@@ -515,16 +515,16 @@ def ExportCycle(my_cycle_data):
     return my_content
 
 
-lab_header = ['Cycle Number', 'Charge Capacity (mAh)', 'Discharge Capacity (mAh)', 'Delta V (V)',
-              'Average Charge Voltage (V)', 'Average Discharge Voltage (V)', 'Charge Time (hours)',
-              'Discharge Time (hours)', 'Charge Cumulative Time (hours)', 'Discharge Cumulative Time (hours)',
-              'Normalized Charge Capacity', 'Normalized Discharge Capacity', 'Zeroed Delta V (V)', 'S (V)', 'R (V)',
-              'Zeroed S (V)', 'Zeroed R (V)']
+lab_header = ["Cycle Number", "Charge Capacity (mAh)", "Discharge Capacity (mAh)", "Delta V (V)",
+              "Average Charge Voltage (V)", "Average Discharge Voltage (V)", "Charge Time (hours)",
+              "Discharge Time (hours)", "Charge Cumulative Time (hours)", "Discharge Cumulative Time (hours)",
+              "Normalized Charge Capacity", "Normalized Discharge Capacity", "Zeroed Delta V (V)", "S (V)", "R (V)",
+              "Zeroed S (V)", "Zeroed R (V)"]
 
 first_header_line = []
-cc_header = ['First C/20', 'Second C/20', 'C/2', 'C', '2C', '3C']
+cc_header = ["First C/20", "Second C/20", "C/2", "C", "2C", "3C"]
 for header_i in cc_header:
-    first_header_line.extend([header_i] + (14 + 2) * [''])
+    first_header_line.extend([header_i] + (14 + 2) * [""])
 second_header_line = 6 * lab_header
 
 

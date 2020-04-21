@@ -1000,26 +1000,26 @@ class Command(BaseCommand):
             '--coeff_q_d3_v': 1.,
             '--coeff_q_d3_shift': .01,
             '--coeff_q_d3_current': .1,
+            '--coeff_q_d3_cycle': .02,
 
             '--coeff_scale': 5.,
             '--coeff_scale_geq': 5.,
             '--coeff_scale_leq': 5.,
             '--coeff_scale_eq': 5.,
             '--coeff_scale_mono': 1.,
-            '--coeff_scale_d3_cycle': .002,
+            '--coeff_scale_d3_cycle': .02,
 
             '--coeff_r': 5.,
             '--coeff_r_geq': 1.,
             '--coeff_r_big': .0,
-            '--coeff_r_d3_cycle': .002,
+            '--coeff_r_d3_cycle': .02,
 
             '--coeff_shift': 1.,
             '--coeff_shift_geq': .5,
             '--coeff_shift_leq': .5,
             '--coeff_shift_small': .01,
-            '--coeff_shift_d3_cycle': .0,
+            '--coeff_shift_d3_cycle': .02,
             '--coeff_shift_mono': .0,
-            '--coeff_shift_a_big': .00001,
 
             '--coeff_reciprocal': 10.,
             '--coeff_reciprocal_v': 10.,
@@ -1031,6 +1031,7 @@ class Command(BaseCommand):
             '--coeff_reciprocal_d3_current': 1.,
             '--coeff_reciprocal_d_current_minus': 10.,
             '--coeff_reciprocal_d_current_plus': 5.,
+            '--coeff_reciprocal_d3_cycle': .02,
             '--coeff_anode_match':5.,
 
             '--coeff_projection': .01,

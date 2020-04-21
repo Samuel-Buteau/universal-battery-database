@@ -1219,7 +1219,7 @@ def get_count_matrix(cyc, voltage_grid_degradation, current_grid, temperature_gr
     return total
 
 
-def machine_learning_post_process_cycle(cyc, voltage_grid, step_type, current_max_n):
+def ml_post_process_cycle(cyc, voltage_grid, step_type, current_max_n):
     if step_type == 'dchg':
         steps = cyc.step_set.filter(step_type__contains='CC_DChg').order_by('cycle__cycle_number','step_number')
 

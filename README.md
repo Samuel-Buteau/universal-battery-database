@@ -20,6 +20,8 @@ The Universal Battery Database was developed at the [Jeff Dahn Research Group](h
 - [Using the Software](#using-the-software)
   * [ML Smoothing](#ml-smoothing)
 - [Theoretical Physics and Computer Science Behind the Software](#theoretical-physics-and-computer-science-behind-the-software)
+- [Contributing](#contributing)
+  * [Code Conventions](#code-conventions)
 
 ## Installation
 
@@ -147,3 +149,9 @@ $ sh ml_smoothing.sh path-figures dataset-version "optional-note-to-self"
 We hypothesize that we can make [good generalizations](https://github.com/Samuel-Buteau/universal-battery-database/wiki/Generalization-Criteria) by [approximating](https://github.com/Samuel-Buteau/universal-battery-database/wiki/The-Universal-Approximation-Theorem) the functions that map one degradation mechanism to another using neural networks. 
 
 We aim to develop a theory of lithium-ion cells. We first break down the machine learning problem into smaller sub-problems. From there, we develop frameworks to convert the theory to practical implementations. Finally, we apply the method to experimental data and evaluate the result.
+
+## Contributing
+
+### Code Conventions
+
+Generally, we follow [Google's Python Style Guide](https://github.com/google/styleguide/blob/gh-pages/pyguide.md).

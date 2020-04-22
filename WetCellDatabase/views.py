@@ -30,8 +30,6 @@ def define_page(request, mode=None):
 
     def define_simple(post, content=None):
         if content in ['electrolyte', 'electrode', 'separator']:
-            electrode_geometry = None
-            separator_geometry = None
             components = None
             components_lot = None
 
@@ -49,7 +47,7 @@ def define_page(request, mode=None):
                 )
                 simple_form = ElectrodeForm(request.POST, prefix='electrode-form')
                 component_string = 'material'
-                define_electrode_geometry_form = ElectrodeGeometryForm(request.POST, prefix='electrode-geometry-form')
+
             elif content == 'separator':
                 SeparatorCompositionFormset = formset_factory(
                     SeparatorCompositionForm,
@@ -57,7 +55,6 @@ def define_page(request, mode=None):
                 )
                 simple_form = SeparatorForm(request.POST, prefix='separator-form')
                 component_string = 'material'
-                define_separator_geometry_form = SeparatorGeometryForm(request.POST, prefix='separator-geometry-form')
 
 
             simple_form_string = 'define_{}_form'.format(content)
@@ -67,32 +64,8 @@ def define_page(request, mode=None):
                 return None
             else:
                 ar[simple_form_string] = simple_form
-                if content == 'electrode':
-                    if not define_electrode_geometry_form.is_valid():
-                        return None
-                    else:
-                        ar['define_electrode_geometry_form'] = define_electrode_geometry_form
-                        electrode_geometry = ElectrodeGeometry(
-                            loading=define_electrode_geometry_form.cleaned_data['loading'],
-                            loading_name=define_electrode_geometry_form.cleaned_data['loading_name'],
-                            density=define_electrode_geometry_form.cleaned_data['density'],
-                            density_name=define_electrode_geometry_form.cleaned_data['density_name'],
-                            thickness=define_electrode_geometry_form.cleaned_data['thickness'],
-                            thickness_name=define_electrode_geometry_form.cleaned_data['thickness_name'],
 
-                        )
-                if content == 'separator':
-                    if not define_separator_geometry_form.is_valid():
-                        return None
-                    else:
-                        ar['define_separator_geometry_form'] = define_separator_geometry_form
-                        separator_geometry = SeparatorGeometry(
-                            thickness=define_separator_geometry_form.cleaned_data['thickness'],
-                            thickness_name=define_separator_geometry_form.cleaned_data['thickness_name'],
-                            width=define_separator_geometry_form.cleaned_data['width'],
-                            width_name=define_separator_geometry_form.cleaned_data['width_name'],
 
-                        )
 
 
                 my_composite = Composite(
@@ -154,23 +127,19 @@ def define_page(request, mode=None):
             return my_composite.define_if_possible(
                 components=components,
                 components_lot=components_lot,
-                electrode_geometry=electrode_geometry,
-                separator_geometry=separator_geometry,
                 target=my_target
             )
 
-        if content in ['active_material','molecule','inactive','separator_material']:
+        if content in ['material','molecule','separator_material']:
             atoms = None
-            if content == 'active_material':
+            if content == 'material':
                 ActiveMaterialCompositionFormset = formset_factory(
                     ElectrodeMaterialStochiometryForm,
                     extra=10
                 )
-                simple_form = ElectrodeActiveMaterialForm(request.POST, prefix='electrode-active-material-form')
+                simple_form = ElectrodeMaterialForm(request.POST, prefix='electrode-material-form')
             elif content == 'molecule':
                 simple_form = ElectrolyteMoleculeForm(post, prefix='electrolyte-molecule-form')
-            elif content == 'inactive':
-                simple_form = ElectrodeInactiveForm(request.POST, prefix='electrode-inactive-form')
             elif content == 'separator_material':
                 simple_form = SeparatorMaterialForm(request.POST, prefix='separator-material-form')
 
@@ -180,7 +149,7 @@ def define_page(request, mode=None):
                 return None
             else:
                 ar[simple_form_string] = simple_form
-                if content in ['active_material', 'inactive']:
+                if content in ['material']:
                     composite_type = simple_form.cleaned_data['composite_type']
                     composite_type_name = simple_form.cleaned_data['composite_type_name']
                 if content == 'molecule':
@@ -190,10 +159,7 @@ def define_page(request, mode=None):
                     composite_type = SEPARATOR
                     composite_type_name = False
 
-                if content == 'active_material':
-                    component_type = ACTIVE_MATERIAL
-                    component_type_name = False
-                if content in ['inactive','molecule']:
+                if content in ['material','molecule']:
                     component_type = simple_form.cleaned_data['component_type']
                     component_type_name = simple_form.cleaned_data['component_type_name']
                 if content == 'separator_material':
@@ -239,7 +205,7 @@ def define_page(request, mode=None):
                     my_component.coating_lot_name = simple_form.cleaned_data['coating_lot_name']
 
 
-                if content == 'active_material':
+                if content == 'material':
                     my_component.single_crystal = simple_form.cleaned_data['single_crystal']
                     my_component.single_crystal_name = simple_form.cleaned_data['single_crystal_name']
                     my_component.turbostratic_misalignment = simple_form.cleaned_data['turbostratic_misalignment']
@@ -248,11 +214,11 @@ def define_page(request, mode=None):
                     my_component.natural = simple_form.cleaned_data['natural']
                     my_component.natural_name = simple_form.cleaned_data['natural_name']
 
-                if content!='active_material':
-                    my_component.smiles = simple_form.cleaned_data['smiles']
-                    my_component.smiles_name = simple_form.cleaned_data['smiles_name']
 
-                if not my_component.proprietary and content=='active_material':
+                my_component.smiles = simple_form.cleaned_data['smiles']
+                my_component.smiles_name = simple_form.cleaned_data['smiles_name']
+
+                if not my_component.proprietary and content=='material':
                     active_material_composition_formset = ActiveMaterialCompositionFormset(request.POST,
                                                                                            prefix='active-material-composition-formset')
                     atoms = []
@@ -315,6 +281,13 @@ def define_page(request, mode=None):
                 )
 
         if content == 'dry_cell':
+            cathode_geometry = None
+            anode_geometry = None
+            separator_geometry = None
+            define_cathode_geometry_form = ElectrodeGeometryForm(request.POST, prefix='cathode-geometry-form')
+            define_anode_geometry_form = ElectrodeGeometryForm(request.POST, prefix='anode-geometry-form')
+            define_separator_geometry_form = SeparatorGeometryForm(request.POST, prefix='separator-geometry-form')
+
             simple_form = DryCellForm(
                 request.POST,
                 prefix='dry-cell-form'
@@ -323,7 +296,7 @@ def define_page(request, mode=None):
             simple_form_string = 'define_{}_form'.format(content)
             define_dry_cell_geometry_form = DryCellGeometryForm(request.POST, prefix='dry-cell-geometry-form')
 
-            if not define_dry_cell_geometry_form.is_valid():
+            if not define_dry_cell_geometry_form.is_valid() or not define_cathode_geometry_form.is_valid() or not define_anode_geometry_form.is_valid() or not define_separator_geometry_form.is_valid():
                 return None
             else:
                 ar['define_dry_cell_geometry_form'] = define_dry_cell_geometry_form
@@ -338,6 +311,39 @@ def define_page(request, mode=None):
                     thickness_name=define_dry_cell_geometry_form.cleaned_data['thickness_name'],
 
                 )
+
+                ar['define_cathode_geometry_form'] = define_cathode_geometry_form
+                cathode_geometry = ElectrodeGeometry(
+                    loading=define_cathode_geometry_form.cleaned_data['loading'],
+                    loading_name=define_cathode_geometry_form.cleaned_data['loading_name'],
+                    density=define_cathode_geometry_form.cleaned_data['density'],
+                    density_name=define_cathode_geometry_form.cleaned_data['density_name'],
+                    thickness=define_cathode_geometry_form.cleaned_data['thickness'],
+                    thickness_name=define_cathode_geometry_form.cleaned_data['thickness_name'],
+
+                )
+
+                ar['define_anode_geometry_form'] = define_anode_geometry_form
+                anode_geometry = ElectrodeGeometry(
+                    loading=define_anode_geometry_form.cleaned_data['loading'],
+                    loading_name=define_anode_geometry_form.cleaned_data['loading_name'],
+                    density=define_anode_geometry_form.cleaned_data['density'],
+                    density_name=define_anode_geometry_form.cleaned_data['density_name'],
+                    thickness=define_anode_geometry_form.cleaned_data['thickness'],
+                    thickness_name=define_anode_geometry_form.cleaned_data['thickness_name'],
+
+                )
+
+                ar['define_separator_geometry_form'] = define_separator_geometry_form
+                separator_geometry = SeparatorGeometry(
+                    thickness=define_separator_geometry_form.cleaned_data['thickness'],
+                    thickness_name=define_separator_geometry_form.cleaned_data['thickness_name'],
+                    width=define_separator_geometry_form.cleaned_data['width'],
+                    width_name=define_separator_geometry_form.cleaned_data['width_name'],
+
+                )
+
+
             if not simple_form.is_valid():
                 return None
             else:
@@ -404,6 +410,9 @@ def define_page(request, mode=None):
                     cathode=cathode,
                     anode=anode,
                     separator=separator,
+                    cathode_geometry=cathode_geometry,
+                    anode_geometry=anode_geometry,
+                    separator_geometry=separator_geometry,
                     target = my_target
 
                 )
@@ -422,11 +431,7 @@ def define_page(request, mode=None):
                 post,
                 prefix='coating-lot-form'
             )
-        elif content == 'inactive':
-            define_lot_form = ElectrodeInactiveLotForm(
-                post,
-                prefix='electrode-inactive-lot-form'
-            )
+
         elif content == 'separator_material':
             define_lot_form = SeparatorMaterialLotForm(
                 post,
@@ -442,10 +447,10 @@ def define_page(request, mode=None):
                 post,
                 prefix='electrode-lot-form'
             )
-        elif content == 'active_material':
-            define_lot_form = ElectrodeActiveMaterialLotForm(
+        elif content == 'material':
+            define_lot_form = ElectrodeMaterialLotForm(
                 post,
-                prefix='electrode-active-material-lot-form'
+                prefix='electrode-material-lot-form'
             )
         elif content == 'separator':
             define_lot_form = SeparatorLotForm(
@@ -481,7 +486,7 @@ def define_page(request, mode=None):
                     vendor_name=define_lot_form.cleaned_data['vendor_name'],
 
                 )
-                if content == 'molecule' or content == 'separator_material' or content == 'inactive' or content == 'active_material':
+                if content == 'molecule' or content == 'separator_material' or content == 'material':
                     type = 'component'
                     lot = ComponentLot(component = my_content)
                 elif content == 'coating':
@@ -504,9 +509,8 @@ def define_page(request, mode=None):
         for m,context in [
             ('molecule','electrolyte'),
             ('coating','electrode'),
-            ('inactive','electrode'),
             ('electrolyte','electrolyte'),
-            ('active_material','electrode'),
+            ('material','electrode'),
             ('separator_material','separator'),
             ('electrode','electrode'),
             ('separator','separator'),
@@ -571,25 +575,16 @@ def define_page(request, mode=None):
             CoatingLotForm(prefix='coating-lot-form')
         )
 
+
         conditional_register(
-            'define_inactive_form',
-            ElectrodeInactiveForm(prefix='electrode-inactive-form')
+            'define_material_form',
+            ElectrodeMaterialForm(prefix='electrode-material-form')
         )
 
         conditional_register(
-            'define_inactive_lot_form',
-            ElectrodeInactiveLotForm(prefix='electrode-inactive-lot-form')
-        )
-
-        conditional_register(
-            'define_active_material_form',
-            ElectrodeActiveMaterialForm(prefix='electrode-active-material-form')
-        )
-
-        conditional_register(
-            'define_active_material_lot_form',
-            ElectrodeActiveMaterialLotForm(
-                prefix='electrode-active-material-lot-form')
+            'define_material_lot_form',
+            ElectrodeMaterialLotForm(
+                prefix='electrode-material-lot-form')
         )
 
         conditional_register(
@@ -602,10 +597,7 @@ def define_page(request, mode=None):
             ElectrodeLotForm(prefix='electrode-lot-form')
         )
 
-        conditional_register(
-            'define_electrode_geometry_form',
-            ElectrodeGeometryForm(prefix='electrode-geometry-form')
-        )
+
 
     if mode =='electrolyte':
 
@@ -655,10 +647,7 @@ def define_page(request, mode=None):
             'define_separator_lot_form',
             SeparatorLotForm(prefix='separator-lot-form')
         )
-        conditional_register(
-            'define_separator_geometry_form',
-            SeparatorGeometryForm(prefix='separator-geometry-form')
-        )
+
 
     if mode == 'dry_cell':
         conditional_register(
@@ -673,7 +662,19 @@ def define_page(request, mode=None):
             'define_dry_cell_geometry_form',
             DryCellGeometryForm(prefix='dry-cell-geometry-form')
         )
+        conditional_register(
+            'define_separator_geometry_form',
+            SeparatorGeometryForm(prefix='separator-geometry-form')
+        )
 
+        conditional_register(
+            'define_cathode_geometry_form',
+            ElectrodeGeometryForm(prefix='cathode-geometry-form')
+        )
+        conditional_register(
+            'define_anode_geometry_form',
+            ElectrodeGeometryForm(prefix='anode-geometry-form')
+        )
 
 
     return render(request, 'WetCellDatabase/define_page.html', ar)

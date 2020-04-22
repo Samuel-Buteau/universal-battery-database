@@ -461,6 +461,12 @@ COMPOSITE_TYPES = [
     (SEPARATOR, 'separator'),
 ]
 
+ELECTRODE = 'ed'
+COMPOSITE_TYPES_2 = [
+    (ELECTROLYTE, 'electrolyte'),
+    (ELECTRODE, 'electrode'),
+    (SEPARATOR, 'separator'),
+]
 
 class ElectrodeMaterialStochiometry(models.Model):
     LITHIUM = 'Li'
@@ -524,7 +530,8 @@ class ElectrodeMaterialStochiometry(models.Model):
 def helper_return(
         set_of_object_equal=None,
         my_self=None,
-        electrode_geometry=None,
+        cathode_geometry=None,
+        anode_geometry=None,
         separator_geometry=None,
         my_stochiometry_components=None,
         my_ratio_components=None,
@@ -539,9 +546,12 @@ def helper_return(
 
         # we know for a fact that value fields don't exist.
         # so we can create it as it is.
-        if electrode_geometry is not None:
-            electrode_geometry.save()
-            my_self.electrode_geometry = electrode_geometry
+        if cathode_geometry is not None:
+            cathode_geometry.save()
+            my_self.cathode_geometry = cathode_geometry
+        if anode_geometry is not None:
+            anode_geometry.save()
+            my_self.anode_geometry = anode_geometry
 
         if dry_cell_geometry is not None:
             dry_cell_geometry.save()
@@ -621,7 +631,7 @@ class Component(models.Model):
     proprietary = models.BooleanField(default=False, blank=True)
     proprietary_name = models.BooleanField(default=False, blank=True)
 
-    composite_type = models.CharField(max_length=2, choices=COMPOSITE_TYPES, blank=True)
+    composite_type = models.CharField(max_length=2, choices=COMPOSITE_TYPES_2, blank=True)
     composite_type_name = models.BooleanField(default=False, blank=True)
 
     component_type = models.CharField(max_length=2, choices=COMPONENT_TYPES, blank=True)
@@ -1045,12 +1055,10 @@ class Composite(models.Model):
 
     notes = models.CharField(max_length=1000, null=True, blank=True)
 
-    electrode_geometry = models.OneToOneField(ElectrodeGeometry, on_delete=models.SET_NULL, null=True, blank=True)
-    separator_geometry = models.OneToOneField(SeparatorGeometry, on_delete=models.SET_NULL, null=True, blank=True)
 
     components = models.ManyToManyField(RatioComponent)
 
-    def is_valid(self, electrode_geometry=None,separator_geometry=None):
+    def is_valid(self):
         """
         if proprietary, needs a name.
         if not proprietary and active material, can't have a name.
@@ -1062,28 +1070,12 @@ class Composite(models.Model):
         if self.composite_type is None:
             return False
 
-        if self.composite_type in [ANODE,CATHODE]:
-            if electrode_geometry is None:
-                return False
-            # if electrode_geometry.loading is None and electrode_geometry.loading_name:
-            #     return False
-            # if electrode_geometry.density is None and electrode_geometry.density_name:
-            #     return False
-            # if electrode_geometry.thickness is None and electrode_geometry.thickness_name:
-            #     return False
 
-        if self.composite_type == SEPARATOR:
-            if separator_geometry is None:
-                return False
-            # if separator_geometry.thickness is None and separator_geometry.thickness_name:
-            #     return False
-            # if separator_geometry.width is None and separator_geometry.width_name:
-            #     return False
 
         #so far, this is valid.
         return True
 
-    def define_if_possible(self, components=None,components_lot=None, electrode_geometry=None,separator_geometry=None, target=None):
+    def define_if_possible(self, components=None,components_lot=None, target=None):
         """
         The objects are made of subobjects and visibility flags.
         we want to make sure that among the objects created, no two (object,visibility) have the same (object projection)
@@ -1093,7 +1085,7 @@ class Composite(models.Model):
         Else: if there is a string clash, set all visibility flags to True.
         TODO: revamp this with the new abstraction.
         """
-        if not self.is_valid(electrode_geometry=electrode_geometry, separator_geometry=separator_geometry):
+        if not self.is_valid():
             return None
 
         object_equality_query = Q(
@@ -1101,17 +1093,7 @@ class Composite(models.Model):
             composite_type=self.composite_type,
             notes=self.notes,
         )
-        if self.composite_type in [ANODE, CATHODE]:
-            object_equality_query = object_equality_query & Q(
-                electrode_geometry__loading=electrode_geometry.loading,
-                electrode_geometry__density=electrode_geometry.density,
-                electrode_geometry__thickness=electrode_geometry.thickness,
-            )
-        elif self.composite_type == SEPARATOR:
-            object_equality_query = object_equality_query & Q(
-                separator_geometry__width=separator_geometry.width,
-                separator_geometry__thickness=separator_geometry.thickness,
-            )
+
 
         string_equality_query = Q()
         if self.composite_type_name:
@@ -1134,43 +1116,10 @@ class Composite(models.Model):
         if self.composite_type in [ANODE,CATHODE]:
             string_equality_query = string_equality_query & (Q(composite_type=ANODE)|Q(composite_type=CATHODE))
 
-            if electrode_geometry.loading_name:
-                string_equality_query = string_equality_query & Q(electrode_geometry__loading=electrode_geometry.loading,
-                                                                  electrode_geometry__loading_name=True)
-            else:
-                string_equality_query = string_equality_query & Q(electrode_geometry__loading_name=False)
-
-
-            if electrode_geometry.density_name:
-                string_equality_query = string_equality_query & Q(
-                    electrode_geometry__density=electrode_geometry.density,
-                    electrode_geometry__density_name=True)
-            else:
-                string_equality_query = string_equality_query & Q(electrode_geometry__density_name=False)
-
-            if electrode_geometry.thickness_name:
-                string_equality_query = string_equality_query & Q(electrode_geometry__thickness=electrode_geometry.thickness,
-                                                                  electrode_geometry__thickness_name=True)
-            else:
-                string_equality_query = string_equality_query & Q(electrode_geometry__thickness_name=False)
 
 
         elif self.composite_type == SEPARATOR:
             string_equality_query = string_equality_query & Q(composite_type=SEPARATOR)
-
-            if separator_geometry.width_name:
-                string_equality_query = string_equality_query & Q(
-                    separator_geometry__width=separator_geometry.width,
-                    separator_geometry__width_name=True)
-            else:
-                string_equality_query = string_equality_query & Q(separator_geometry__width_name=False)
-
-            if separator_geometry.thickness_name:
-                string_equality_query = string_equality_query & Q(separator_geometry__thickness=separator_geometry.thickness,
-                                                                  separator_geometry__thickness_name=True)
-            else:
-                string_equality_query = string_equality_query & Q(separator_geometry__thickness_name=False)
-
 
 
 
@@ -1301,13 +1250,7 @@ class Composite(models.Model):
                 if (not set_of_object_equal.exists()) and string_equals:
                     self.proprietary_name = True
                     self.composite_type_name = True
-                    if self.composite_type in [ANODE, CATHODE]:
-                        electrode_geometry.loading_name = True
-                        electrode_geometry.density_name = True
-                        electrode_geometry.thickness_name = True
-                    if self.composite_type == SEPARATOR:
-                        separator_geometry.width_name = True
-                        separator_geometry.thickness_name = True
+
 
             if target_object is None:
                 my_self = self
@@ -1322,8 +1265,6 @@ class Composite(models.Model):
             return helper_return(
                     set_of_object_equal=set_of_object_equal,
                     my_self=my_self,
-                    electrode_geometry=electrode_geometry,
-                    separator_geometry=separator_geometry,
                     my_ratio_components=my_ratio_components
                 )
 
@@ -1385,34 +1326,7 @@ class Composite(models.Model):
             else:
                 secret = "NOT SECRET"
             extras.append(secret)
-        if self.electrode_geometry is not None:
-            if self.electrode_geometry.loading_name:
-                if self.electrode_geometry.loading is None:
-                    extras.append('LOADING=?')
-                else:
-                    extras.append('LOADING={:2.2f}{}'.format(self.electrode_geometry.loading,ElectrodeGeometry.UNITS_LOADING[1]))
-            if self.electrode_geometry.density_name:
-                if self.electrode_geometry.density is None:
-                    extras.append('DENSITY=?')
-                else:
-                    extras.append('DENSITY={:2.2f}{}'.format(self.electrode_geometry.density,ElectrodeGeometry.UNITS_DENSITY[1]))
-            if self.electrode_geometry.thickness_name:
-                if self.electrode_geometry.thickness is None:
-                    extras.append('THICKNESS=?')
-                else:
-                    extras.append('THICKNESS={:2.2f}{}'.format(self.electrode_geometry.thickness,ElectrodeGeometry.UNITS_THICKNESS[1]))
 
-        if self.separator_geometry is not None:
-            if self.separator_geometry.thickness_name:
-                if self.separator_geometry.thickness is None:
-                    extras.append('THICKNESS=?')
-                else:
-                    extras.append('THICKNESS={:2.2f}{}'.format(self.separator_geometry.thickness,SeparatorGeometry.UNITS[1]))
-            if self.separator_geometry.width_name:
-                if self.separator_geometry.width is None:
-                    extras.append('WIDTH=?')
-                else:
-                    extras.append('WIDTH={:2.2f}{}'.format(self.separator_geometry.width, SeparatorGeometry.UNITS[1]))
 
 
         if self.composite_type_name:
@@ -1473,22 +1387,27 @@ class DryCell(models.Model):
     geometry = models.OneToOneField(DryCellGeometry, on_delete=models.SET_NULL, null=True, blank=True)
     geometry_name = models.BooleanField(default=False, blank=True)
 
-    cathode = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True, related_name='cathode', blank=True)
+    cathode = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True,
+                                related_name='cathode', blank=True)
     cathode_name = models.BooleanField(default=False, blank=True)
+    cathode_geometry = models.OneToOneField(ElectrodeGeometry, on_delete=models.SET_NULL, null=True,
+                                          related_name='cathode_geometry', blank=True)
 
     anode = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True, related_name='anode', blank=True)
     anode_name = models.BooleanField(default=False, blank=True)
+    anode_geometry = models.OneToOneField(ElectrodeGeometry, on_delete=models.SET_NULL,
+                                          null=True, related_name='anode_geometry', blank=True)
 
     separator = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True, related_name='separator', blank=True)
     separator_name = models.BooleanField(default=False, blank=True)
+    separator_geometry = models.OneToOneField(SeparatorGeometry, on_delete=models.SET_NULL, null=True, blank=True)
 
-    def is_valid(self, geometry=None):
-
-
-        if geometry is None:
+    def is_valid(self, geometry=None, cathode_geometry=None, anode_geometry=None,separator_geometry=None):
+        if geometry is None or cathode_geometry is None or anode_geometry is None or separator_geometry is None:
             return False
         else:
             return True
+
 
     def __str__(self):
         printed_name = ''
@@ -1535,6 +1454,25 @@ class DryCell(models.Model):
                 extras.append(
                     'CATH={}'.format(self.cathode.__str__())
                 )
+        if self.cathode_geometry is not None:
+            if self.cathode_geometry.loading_name:
+                if self.cathode_geometry.loading is None:
+                    extras.append('CATH-LOADING=?')
+                else:
+                    extras.append('CATH-LOADING={:2.2f}{}'.format(self.cathode_geometry.loading,ElectrodeGeometry.UNITS_LOADING[1]))
+            if self.cathode_geometry.density_name:
+                if self.cathode_geometry.density is None:
+                    extras.append('CATH-DENSITY=?')
+                else:
+                    extras.append('CATH-DENSITY={:2.2f}{}'.format(self.cathode_geometry.density,ElectrodeGeometry.UNITS_DENSITY[1]))
+            if self.cathode_geometry.thickness_name:
+                if self.cathode_geometry.thickness is None:
+                    extras.append('CATH-THICKNESS=?')
+                else:
+                    extras.append('CATH-THICKNESS={:2.2f}{}'.format(self.cathode_geometry.thickness,ElectrodeGeometry.UNITS_THICKNESS[1]))
+
+
+
         if self.anode_name:
             if self.anode is None:
                 extras.append('ANOD=?')
@@ -1542,6 +1480,27 @@ class DryCell(models.Model):
                 extras.append(
                     'ANOD={}'.format(self.anode.__str__())
                 )
+
+        if self.anode_geometry is not None:
+            if self.anode_geometry.loading_name:
+                if self.anode_geometry.loading is None:
+                    extras.append('ANOD-LOADING=?')
+                else:
+                    extras.append(
+                        'ANOD-LOADING={:2.2f}{}'.format(self.anode_geometry.loading, ElectrodeGeometry.UNITS_LOADING[1]))
+            if self.anode_geometry.density_name:
+                if self.anode_geometry.density is None:
+                    extras.append('ANOD-DENSITY=?')
+                else:
+                    extras.append(
+                        'ANOD-DENSITY={:2.2f}{}'.format(self.anode_geometry.density, ElectrodeGeometry.UNITS_DENSITY[1]))
+            if self.anode_geometry.thickness_name:
+                if self.anode_geometry.thickness is None:
+                    extras.append('ANOD-THICKNESS=?')
+                else:
+                    extras.append('ANOD-THICKNESS={:2.2f}{}'.format(self.anode_geometry.thickness,
+                                                               ElectrodeGeometry.UNITS_THICKNESS[1]))
+
         if self.separator_name:
             if self.separator is None:
                 extras.append('SEPA=?')
@@ -1549,13 +1508,24 @@ class DryCell(models.Model):
                 extras.append(
                     'SEPA={}'.format(self.separator.__str__())
                 )
+        if self.separator_geometry is not None:
+            if self.separator_geometry.thickness_name:
+                if self.separator_geometry.thickness is None:
+                    extras.append('SEPA-THICKNESS=?')
+                else:
+                    extras.append('SEPA-THICKNESS={:2.2f}{}'.format(self.separator_geometry.thickness,SeparatorGeometry.UNITS[1]))
+            if self.separator_geometry.width_name:
+                if self.separator_geometry.width is None:
+                    extras.append('SEPA-WIDTH=?')
+                else:
+                    extras.append('SEPA-WIDTH={:2.2f}{}'.format(self.separator_geometry.width, SeparatorGeometry.UNITS[1]))
 
         if len(extras) != 0:
             return "{} [{}]".format(printed_name, ','.join(extras))
         else:
             return printed_name
 
-    def define_if_possible(self, geometry=None,cathode=None, anode=None,separator=None, target=None):
+    def define_if_possible(self, geometry=None,cathode=None, anode=None,separator=None, cathode_geometry=None,anode_geometry=None,separator_geometry=None,target=None):
         """
         The objects are made of subobjects and visibility flags.
         we want to make sure that among the objects created, no two (object,visibility) have the same (object projection)
@@ -1565,7 +1535,7 @@ class DryCell(models.Model):
         Else: if there is a string clash, set all visibility flags to True.
         TODO: revamp this with the new abstraction.
         """
-        if not self.is_valid(geometry):
+        if not self.is_valid(geometry, cathode_geometry=cathode_geometry, anode_geometry=anode_geometry, separator_geometry=separator_geometry):
             return None
 
         object_equality_query = Q(
@@ -1578,6 +1548,17 @@ class DryCell(models.Model):
             cathode=cathode,
             anode=anode,
             separator=separator,
+
+            cathode_geometry__loading=cathode_geometry.loading,
+            cathode_geometry__density=cathode_geometry.density,
+            cathode_geometry__thickness=cathode_geometry.thickness,
+
+            anode_geometry__loading=anode_geometry.loading,
+            anode_geometry__density=anode_geometry.density,
+            anode_geometry__thickness=anode_geometry.thickness,
+
+            separator_geometry__width=separator_geometry.width,
+            separator_geometry__thickness=separator_geometry.thickness,
 
         )
 
@@ -1598,6 +1579,30 @@ class DryCell(models.Model):
             print('not anode_name')
             string_equality_query = string_equality_query & Q(anode_name=False)
 
+        if anode_geometry.loading_name:
+            string_equality_query = string_equality_query & Q(anode_geometry__loading=anode_geometry.loading,
+                                                              anode_geometry__loading_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(anode_geometry__loading_name=False)
+
+
+        if anode_geometry.density_name:
+            string_equality_query = string_equality_query & Q(
+                anode_geometry__density=anode_geometry.density,
+                anode_geometry__density_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(anode_geometry__density_name=False)
+
+        if anode_geometry.thickness_name:
+            string_equality_query = string_equality_query & Q(anode_geometry__thickness=anode_geometry.thickness,
+                                                              anode_geometry__thickness_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(anode_geometry__thickness_name=False)
+
+
+
+
+
         if self.cathode_name:
             print('cathode_name', cathode)
             string_equality_query = string_equality_query & Q(cathode=cathode,
@@ -1606,11 +1611,46 @@ class DryCell(models.Model):
             print('not cathode_name')
             string_equality_query = string_equality_query & Q(cathode_name=False)
 
+        if cathode_geometry.loading_name:
+            string_equality_query = string_equality_query & Q(cathode_geometry__loading=cathode_geometry.loading,
+                                                              cathode_geometry__loading_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(cathode_geometry__loading_name=False)
+
+
+        if cathode_geometry.density_name:
+            string_equality_query = string_equality_query & Q(
+                cathode_geometry__density=cathode_geometry.density,
+                cathode_geometry__density_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(cathode_geometry__density_name=False)
+
+        if cathode_geometry.thickness_name:
+            string_equality_query = string_equality_query & Q(cathode_geometry__thickness=cathode_geometry.thickness,
+                                                              cathode_geometry__thickness_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(cathode_geometry__thickness_name=False)
+
+
         if self.separator_name:
             string_equality_query = string_equality_query & Q(separator=separator,
                                                               separator_name=True)
         else:
             string_equality_query = string_equality_query & Q(separator_name=False)
+
+
+        if separator_geometry.width_name:
+            string_equality_query = string_equality_query & Q(
+                separator_geometry__width=separator_geometry.width,
+                separator_geometry__width_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(separator_geometry__width_name=False)
+
+        if separator_geometry.thickness_name:
+            string_equality_query = string_equality_query & Q(separator_geometry__thickness=separator_geometry.thickness,
+                                                              separator_geometry__thickness_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(separator_geometry__thickness_name=False)
 
 
         if geometry.geometry_category_name:
@@ -1662,7 +1702,15 @@ class DryCell(models.Model):
             geometry.thickness_name = True
             geometry.length_name = True
 
+            cathode_geometry.loading_name = True
+            cathode_geometry.density_name = True
+            cathode_geometry.thickness_name = True
 
+            anode_geometry.loading_name = True
+            anode_geometry.density_name = True
+            anode_geometry.thickness_name = True
+            separator_geometry.width_name = True
+            separator_geometry.thickness_name = True
         if target_object is None:
             my_self = self
         else:
@@ -1682,6 +1730,9 @@ class DryCell(models.Model):
                 anode=anode,
                 cathode=cathode,
                 separator=separator,
+                cathode_geometry=cathode_geometry,
+                anode_geometry=anode_geometry,
+                separator_geometry=separator_geometry,
             )
 
 

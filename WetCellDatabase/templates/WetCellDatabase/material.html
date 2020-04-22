@@ -1,0 +1,48 @@
+<table>
+    <tr>
+        <th></th><th>Value</th><th>Use in Name?</th>
+    </tr>
+    <tr>
+        <th>Notes: </th><td>{{define_material_form.notes}}</td>
+    </tr>
+
+    <tr>
+        <th>Smiles: </th><td>{{define_material_form.smiles}}</td><td>{{define_material_form.smiles_name}}</td>
+    </tr>
+    <tr>
+        <th>Electrode: </th><td>{{define_material_form.composite_type}}</td> <td>{{define_material_form.composite_type_name}} </td>
+    </tr>
+    <tr>
+        <th>Type: </th><td>{{define_material_form.component_type}}</td> <td>{{define_material_form.component_type_name}} </td>
+    </tr>
+
+    <tr>
+        <th>Proprietary: </th><td>{{define_material_form.proprietary}}</td> <td>{{define_material_form.proprietary_name}} </td>
+    </tr>
+    <tr>
+        <th>Particle Size: </th><td>{{define_material_form.particle_size}}<br>{{define_material_form.particle_size.help_text}}</td> <td>{{define_material_form.particle_size_name}} </td>
+    </tr>
+    <tr>
+        <th>Turbostratic Misalignment: </th><td>{{define_material_form.turbostratic_misalignment}}<br>{{define_material_form.turbostratic_misalignment.help_text}}</td> <td>{{define_material_form.turbostratic_misalignment_name}} </td>
+    </tr>
+    <tr>
+        <th>Preparation Temperature: </th><td>{{define_material_form.preparation_temperature}}<br>{{define_material_form.preparation_temperature.help_text}}</td> <td>{{define_material_form.preparation_temperature_name}} </td>
+    </tr>
+    <tr>
+        <th>Natural: </th><td>{{define_material_form.natural}}</td> <td>{{define_material_form.natural_name}} </td>
+    </tr>
+    <tr>
+        <th>Crystaline Structure: </th><td>{{define_material_form.single_crystal}}</td> <td>{{define_material_form.single_crystal_name}} </td>
+    </tr>
+
+    <tr>
+        <th>Coating: </th><td>{{define_material_form.coating}}</td><td>{{define_material_form.coating_lot_name}} </td>
+    </tr>
+
+
+</table>
+
+Override Target (leave blank to define a brand new material):
+<br>
+{{define_material_form.override_target}}
+<br>

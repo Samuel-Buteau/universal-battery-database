@@ -147,14 +147,19 @@ class ElectrolyteMoleculeLotForm(ModelForm):
 
 
 # ActiveMaterial
-class ElectrodeActiveMaterialForm(ModelForm):
+class ElectrodeMaterialForm(ModelForm):
     coating = forms.ChoiceField(choices=coating_choices, required=False)
     composite_type = forms.ChoiceField(choices=filter(
-        lambda x: x[0] in [ANODE, CATHODE],
-        COMPOSITE_TYPES))
+        lambda x: x[0] in [ELECTRODE],
+        COMPOSITE_TYPES_2))
+    component_type = forms.ChoiceField(choices=filter(
+        lambda x: x[0] in [CONDUCTIVE_ADDITIVE, BINDER, ACTIVE_MATERIAL],
+        COMPONENT_TYPES))
 
     override_target = forms.ModelChoiceField(
-        queryset=Component.objects.filter(component_type=ACTIVE_MATERIAL),
+        queryset=Component.objects.filter( Q(component_type=CONDUCTIVE_ADDITIVE) |
+                                           Q(component_type=BINDER) |
+                                           Q(component_type=ACTIVE_MATERIAL)),
         required=False
     )
 
@@ -163,6 +168,8 @@ class ElectrodeActiveMaterialForm(ModelForm):
         fields = ['proprietary',
                   'proprietary_name',
                   'notes',
+                  'smiles',
+                  'smiles_name',
                   'particle_size',
                   'particle_size_name',
                   'single_crystal',
@@ -174,56 +181,16 @@ class ElectrodeActiveMaterialForm(ModelForm):
                   'natural',
                   'natural_name',
                   'composite_type_name',
-                  'coating_lot_name',
-
-                  ]
-
-class ElectrodeActiveMaterialLotForm(ModelForm):
-    predefined_active_material = forms.ModelChoiceField(queryset=Component.objects.filter(component_type=ACTIVE_MATERIAL), required=False)
-    class Meta:
-        model = LotInfo
-        exclude = []
-
-
-# Inactive Material
-
-class ElectrodeInactiveForm(ModelForm):
-    coating = forms.ChoiceField(choices=coating_choices, required=False)
-    composite_type = forms.ChoiceField(choices=filter(
-        lambda x: x[0] in [ANODE, CATHODE],
-        COMPOSITE_TYPES))
-    component_type = forms.ChoiceField(choices=filter(
-        lambda x: x[0] in [CONDUCTIVE_ADDITIVE, BINDER],
-        COMPONENT_TYPES))
-
-    override_target = forms.ModelChoiceField(
-        queryset=Component.objects.filter(
-            Q(component_type=CONDUCTIVE_ADDITIVE) | Q(component_type=BINDER)
-        ),
-        required=False
-    )
-
-    class Meta:
-        model = Component
-        fields = ['smiles',
-                  'smiles_name',
-                  'proprietary',
-                  'proprietary_name',
-                  'particle_size',
-                  'particle_size_name',
-                  'preparation_temperature',
-                  'preparation_temperature_name',
-                  'notes',
-                  'composite_type_name',
                   'component_type_name',
                   'coating_lot_name',
+
                   ]
 
-class ElectrodeInactiveLotForm(ModelForm):
-    predefined_inactive_material = forms.ModelChoiceField(
-        queryset=Component.objects.filter(
-            Q(component_type=CONDUCTIVE_ADDITIVE)|Q(component_type=BINDER)
-        ), required=False)
+class ElectrodeMaterialLotForm(ModelForm):
+    predefined_active_material = forms.ModelChoiceField(queryset=Component.objects.filter(
+        Q(component_type=CONDUCTIVE_ADDITIVE) |
+        Q(component_type=BINDER) |
+        Q(component_type=ACTIVE_MATERIAL)), required=False)
     class Meta:
         model = LotInfo
         exclude = []

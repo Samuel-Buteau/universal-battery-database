@@ -248,6 +248,8 @@ def initial_processing(
     cell_id_to_pos_id = {}
     cell_id_to_neg_id = {}
     cell_id_to_electrolyte_id = {}
+    cell_id_to_dry_cell_id = {}
+    dry_cell_id_to_meta = {}
     cell_id_to_latent = {}
 
     electrolyte_id_to_latent = {}
@@ -265,6 +267,16 @@ def initial_processing(
         if cell_id in my_data[Key.CELL_TO_ELE].keys():
             cell_id_to_electrolyte_id[cell_id]\
                 = my_data[Key.CELL_TO_ELE][cell_id]
+        if cell_id in my_data["cell_to_dry"].keys():
+            dry_cell_id = my_data["cell_to_dry"][cell_id]
+            cell_id_to_dry_cell_id[cell_id] \
+                = dry_cell_id
+
+            if dry_cell_id in my_data["dry_to_meta"].keys():
+                dry_cell_id_to_meta[dry_cell_id] \
+                    = my_data["dry_to_meta"][dry_cell_id]
+
+
         if cell_id in my_data[Key.CELL_TO_LAT].keys():
             cell_id_to_latent[cell_id]\
                 = my_data[Key.CELL_TO_LAT][cell_id]
@@ -305,6 +317,7 @@ def initial_processing(
         sorted(list(set(list(three_level_flatten(mess)))))
     )
 
+    dry_cell_id_list = numpy.array(sorted(list(set(cell_id_to_dry_cell_id.values()))))
     pos_id_list = numpy.array(sorted(list(set(cell_id_to_pos_id.values()))))
     neg_id_list = numpy.array(sorted(list(set(cell_id_to_neg_id.values()))))
     electrolyte_id_list = numpy.array(
@@ -321,9 +334,9 @@ def initial_processing(
             if any([
                 abs(cyc_grp_dict[k][Key.I_PREV_END_AVG]) < 1e-5,
                 abs(cyc_grp_dict[k][Key.I_CC_AVG]) < 1e-5,
-                abs(cyc_grp_dict[k][Key.Q_END_AVG]) < 1e-5,
-                abs(cyc_grp_dict[k][Key.V_PREV_END_AVG]) < 1e-5,
-                abs(cyc_grp_dict[k][Key.V_END_AVG]) < 1e-5,
+                abs(cyc_grp_dict[k][Key.I_END_AVG]) < 1e-5,
+                abs(cyc_grp_dict[k][Key.V_PREV_END_AVG]) < 1e-1,
+                abs(cyc_grp_dict[k][Key.V_END_AVG]) < 1e-1,
             ]):
                 continue
 
@@ -539,6 +552,7 @@ def initial_processing(
 
         train_ds = strategy.experimental_distribute_dataset(train_ds_)
 
+        dry_cell_to_dry_cell_name = {}
         pos_to_pos_name = {}
         neg_to_neg_name = {}
         electrolyte_to_electrolyte_name = {}
@@ -548,6 +562,7 @@ def initial_processing(
             electrolyte_to_electrolyte_name\
                 = my_names[Key.ELE_TO_ELE]
             molecule_to_molecule_name = my_names[Key.MOL_TO_MOL]
+            dry_cell_to_dry_cell_name = my_names["dry_to_dry_name"]
 
         degradation_model = DegradationModel(
             width = fit_args[Key.WIDTH],
@@ -557,10 +572,14 @@ def initial_processing(
             neg_dict = id_dict_from_id_list(neg_id_list),
             electrolyte_dict = id_dict_from_id_list(electrolyte_id_list),
             molecule_dict = id_dict_from_id_list(molecule_id_list),
+            dry_cell_dict = id_dict_from_id_list(dry_cell_id_list),
 
             cell_to_pos = cell_id_to_pos_id,
             cell_to_neg = cell_id_to_neg_id,
             cell_to_electrolyte = cell_id_to_electrolyte_id,
+            cell_to_dry_cell=cell_id_to_dry_cell_id,
+            dry_cell_to_meta=dry_cell_id_to_meta,
+
             cell_latent_flags = cell_id_to_latent,
 
             electrolyte_to_solvent = electrolyte_id_to_solvent_id_weight,
@@ -573,6 +592,7 @@ def initial_processing(
                 neg_to_neg_name,
                 electrolyte_to_electrolyte_name,
                 molecule_to_molecule_name,
+                dry_cell_to_dry_cell_name,
             ),
             n_sample = fit_args[Key.N_SAMPLE],
             incentive_coeffs = fit_args,
@@ -954,7 +974,7 @@ def train_step(neighborhood, params, fit_args):
 
 def get_loss(measured, predicted, mask, mask_2):
     return tf.reduce_mean(
-        mask * mask_2 * tf.square(measured - predicted)
+        (1e-10 + mask * mask_2) * tf.square(measured - predicted)
     ) / (1e-10 + tf.reduce_mean(mask * mask_2))
 
 
@@ -1041,6 +1061,7 @@ class Command(BaseCommand):
             '--coeff_projection': .01,
             '--coeff_projection_pos': 1.,
             '--coeff_projection_neg': 1.,
+            '--coeff_projection_dry_cell':1.,
 
             '--coeff_out_of_bounds': 10.,
             '--coeff_out_of_bounds_geq': 1.,

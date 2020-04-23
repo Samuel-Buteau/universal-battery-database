@@ -2,8 +2,8 @@ from neware_parser.incentives import *
 
 
 def calculate_projection_loss(
-    sampled_latent, sampled_pos, sampled_neg,
-    predicted_pos, predicted_neg,
+    sampled_latent, sampled_pos, sampled_neg, sampled_dry_cell,
+    predicted_pos, predicted_neg, predicted_dry_cell,
     incentive_coeffs
 ):
     return incentive_combine([
@@ -18,6 +18,13 @@ def calculate_projection_loss(
             incentive_coeffs['coeff_projection_neg'],
             (1. - sampled_latent) * incentive_inequality(
                 sampled_neg, Inequality.Equals, predicted_neg,
+                Level.Proportional
+            )
+        ),
+        (
+            incentive_coeffs['coeff_projection_dry_cell'],
+            (1. - sampled_latent) * incentive_inequality(
+                sampled_dry_cell, Inequality.Equals, predicted_dry_cell,
                 Level.Proportional
             )
         ),

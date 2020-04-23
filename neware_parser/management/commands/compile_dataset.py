@@ -6,6 +6,43 @@ from WetCellDatabase.models import *
 from neware_parser.Key import Key
 
 
+def get_dry_cell_meta_from_cell_id(cell_id):
+    wet_cells = WetCell.objects.filter(cell_id = cell_id)
+    if wet_cells.exists():
+        wet_cell = wet_cells[0]
+        dry_cell = wet_cell.dry_cell
+        if dry_cell is None:
+            return None, None, None
+        dry_cell = dry_cell.dry_cell
+        if dry_cell is None:
+            return None, None, None
+
+        meta = {}
+        dry_cell_id = dry_cell.id
+        dry_cell_str = str(dry_cell)
+        if dry_cell.proprietary:
+            return dry_cell_id, {}, dry_cell_str
+
+        if dry_cell.cathode_geometry is not None:
+            if dry_cell.cathode_geometry.loading is not None:
+                meta['cathode_loading'] = dry_cell.cathode_geometry.loading
+            if dry_cell.cathode_geometry.density is not None:
+                meta['cathode_density'] = dry_cell.cathode_geometry.density
+            if dry_cell.cathode_geometry.thickness is not None:
+                meta['cathode_thickness'] = dry_cell.cathode_geometry.thickness /1000.
+
+        if dry_cell.anode_geometry is not None:
+            if dry_cell.anode_geometry.loading is not None:
+                meta['anode_loading'] = dry_cell.anode_geometry.loading
+            if dry_cell.anode_geometry.density is not None:
+                meta['anode_density'] = dry_cell.anode_geometry.density
+            if dry_cell.anode_geometry.thickness is not None:
+                meta['anode_thickness'] = dry_cell.anode_geometry.thickness /1000.
+
+        return dry_cell_id, meta, dry_cell_str
+
+    return None, None, None
+
 # TODO (harvey): add docstring
 def get_pos_id_from_cell_id(cell_id):
     wet_cells = WetCell.objects.filter(cell_id = cell_id)
@@ -205,7 +242,7 @@ def initial_processing(my_barcodes, fit_args):
 
     temperature_grid = make_temperature_grid(
         fit_args[Key.TEMP_GRID_MIN_V],
-        fit_args[Key.TEMP_GRID_MAN_V],
+        fit_args[Key.TEMP_GRID_MAX_V],
         fit_args[Key.TEMP_GRID_N],
         my_barcodes
     )
@@ -407,6 +444,9 @@ def initial_processing(my_barcodes, fit_args):
     cell_id_to_pos_id = {}
     cell_id_to_neg_id = {}
     cell_id_to_electrolyte_id = {}
+    cell_id_to_dry_cell_id = {}
+    dry_cell_id_to_meta = {}
+
     cell_id_to_latent = {}
     electrolyte_id_to_latent = {}
     electrolyte_id_to_solvent_id_weight = {}
@@ -416,22 +456,29 @@ def initial_processing(my_barcodes, fit_args):
     pos_to_pos_name = {}
     neg_to_neg_name = {}
     electrolyte_to_electrolyte_name = {}
+    dry_cell_to_dry_cell_name = {}
     molecule_to_molecule_name = {}
 
     for cell_id in my_barcodes:
         pos, pos_name = get_pos_id_from_cell_id(cell_id)
         neg, neg_name = get_neg_id_from_cell_id(cell_id)
         electrolyte, electrolyte_name = get_electrolyte_id_from_cell_id(cell_id)
-        if pos is None or neg is None or electrolyte is None:
+        dry_cell_id, dry_cell_meta, dry_cell_name = get_dry_cell_meta_from_cell_id(cell_id)
+
+        if pos is None or neg is None or electrolyte is None or dry_cell_id is None:
             cell_id_to_latent[cell_id] = 1.
         else:
             pos_to_pos_name[pos] = pos_name
             neg_to_neg_name[neg] = neg_name
             electrolyte_to_electrolyte_name[electrolyte] = electrolyte_name
+            dry_cell_to_dry_cell_name[dry_cell_id] = dry_cell_name
 
             cell_id_to_latent[cell_id] = 0.
             cell_id_to_pos_id[cell_id] = pos
             cell_id_to_neg_id[cell_id] = neg
+            cell_id_to_dry_cell_id[cell_id] = dry_cell_id
+            dry_cell_id_to_meta[dry_cell_id] = dry_cell_meta
+
             cell_id_to_electrolyte_id[cell_id] = electrolyte
 
             component_weight, component_name\
@@ -493,6 +540,8 @@ def initial_processing(my_barcodes, fit_args):
                Key.CELL_TO_POS: cell_id_to_pos_id,
                Key.CELL_TO_NEG: cell_id_to_neg_id,
                Key.CELL_TO_ELE: cell_id_to_electrolyte_id,
+               "cell_to_dry": cell_id_to_dry_cell_id,
+               "dry_to_meta": dry_cell_id_to_meta,
                Key.CELL_TO_LAT: cell_id_to_latent,
                Key.ELE_TO_LAT: electrolyte_id_to_latent,
                Key.ELE_TO_SOL: electrolyte_id_to_solvent_id_weight,
@@ -503,6 +552,7 @@ def initial_processing(my_barcodes, fit_args):
                Key.NEG_TO_NEG: neg_to_neg_name,
                Key.ELE_TO_ELE: electrolyte_to_electrolyte_name,
                Key.MOL_TO_MOL: molecule_to_molecule_name,
+               "dry_to_dry_name": dry_cell_to_dry_cell_name,
            }
 
 
@@ -542,8 +592,8 @@ class Command(BaseCommand):
             "--voltage_grid_max_v": 5.0,
             "--current_grid_min_v": 1.,
             "--current_grid_max_v": 1000.,
-            "--temperature_grid_min_v": -20.,
-            "--temperature_grid_max_v": 80.,
+            "--temperature_grid_min_v": 20.,
+            "--temperature_grid_max_v": 60.,
         }
         int_args = {
             "--reference_cycles_n": 10,

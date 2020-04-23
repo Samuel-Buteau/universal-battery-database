@@ -78,14 +78,18 @@ def nn_call(nn_func, dependencies, training = True):
 
 def print_cell_info(
     cell_latent_flags, cell_to_pos, cell_to_neg, cell_to_electrolyte,
+    cell_to_dry_cell, dry_cell_to_meta,
     electrolyte_to_solvent, electrolyte_to_salt, electrolyte_to_additive,
     electrolyte_latent_flags, names,
 ):
     """ Print cell information upon the initialization of the Model """
 
+    #TODO: names being a tuple is really dumb. use some less error prone way.
     pos_to_pos_name, neg_to_neg_name = names[0], names[1]
     electrolyte_to_electrolyte_name = names[2]
     molecule_to_molecule_name = names[3]
+    dry_cell_to_dry_cell_name = names[4]
+
     print("\ncell_id: Known Components (Y/N):\n")
     for k in cell_latent_flags.keys():
         known = "Y"
@@ -103,12 +107,44 @@ def print_cell_info(
                 print("\tanode:\t\t\t\t{}".format(neg_to_neg_name[neg_id]))
             else:
                 print("\tanode id:\t\t\t{}".format(neg_id))
+
+            dry_cell_id = cell_to_dry_cell[k]
+            if dry_cell_id in dry_cell_to_dry_cell_name.keys():
+                print("\tdry cell:\t\t\t{}".format(
+                    dry_cell_to_dry_cell_name[dry_cell_id]))
+            else:
+                print("\tdry cell id:\t\t\t{}".format(dry_cell_id))
+
+            if dry_cell_id in dry_cell_to_meta.keys():
+                my_meta = dry_cell_to_meta[dry_cell_id]
+            else:
+                my_meta = {}
+
+            todo= [
+                ('cathode_loading', 'cathode_loading',),
+                ('cathode_density', 'cathode_density',),
+                ('cathode_thickness', 'cathode_thickness',),
+                ('anode_loading', 'anode_loading',),
+                ('anode_density', 'anode_density',),
+                ('anode_thickness', 'anode_thickness',),
+
+            ]
+
+            for label, key in todo:
+                val = '?'
+                if key in my_meta.keys():
+                    val = "{:.5f}".format(my_meta[key])
+
+                print("\t\t{}:\t{}".format(label, val))
+
             electrolyte_id = cell_to_electrolyte[k]
             if electrolyte_id in electrolyte_to_electrolyte_name.keys():
                 print("\telectrolyte:\t\t\t{}".format(
                     electrolyte_to_electrolyte_name[electrolyte_id]))
             else:
                 print("\telectrolyte id:\t\t\t{}".format(electrolyte_id))
+
+
 
             electrolyte_known = "Y"
             if electrolyte_latent_flags[electrolyte_id] > .5:
@@ -257,7 +293,11 @@ class DegradationModel(Model):
     def __init__(
         self, depth, width,
         cell_dict, pos_dict, neg_dict, electrolyte_dict, molecule_dict,
-        cell_latent_flags, cell_to_pos, cell_to_neg, cell_to_electrolyte,
+        dry_cell_dict,
+        cell_latent_flags, cell_to_pos, cell_to_neg,
+        cell_to_electrolyte,
+        cell_to_dry_cell,
+        dry_cell_to_meta,
 
         electrolyte_to_solvent, electrolyte_to_salt, electrolyte_to_additive,
         electrolyte_latent_flags, names,
@@ -272,6 +312,8 @@ class DegradationModel(Model):
 
         print_cell_info(
             cell_latent_flags, cell_to_pos, cell_to_neg, cell_to_electrolyte,
+            cell_to_dry_cell,
+            dry_cell_to_meta,
             electrolyte_to_solvent, electrolyte_to_salt,
             electrolyte_to_additive, electrolyte_latent_flags, names
         )
@@ -303,7 +345,42 @@ class DegradationModel(Model):
             depth, width, last = self.num_features
         )
 
+        self.nn_dry_cell_projection = feedforward_nn_parameters(
+            depth, width, last=6
+        )
+
         """ Primitive Dictionary Layer variables """
+        self.dry_cell_direct = PrimitiveDictionaryLayer(
+            num_features=6, id_dict=dry_cell_dict
+        )
+
+        self.dry_cell_latent_flags = numpy.ones(
+            (self.dry_cell_direct.num_keys, 6),
+            dtype = numpy.float32
+        )
+        self.dry_cell_given = numpy.zeros(
+            (self.dry_cell_direct.num_keys, 6),
+            dtype=numpy.float32
+        )
+
+        for dry_cell_id in self.dry_cell_direct.id_dict.keys():
+            if dry_cell_id in dry_cell_to_meta.keys():
+                todo = [
+                    'cathode_loading',
+                    'cathode_density',
+                    'cathode_thickness',
+                    'anode_loading',
+                    'anode_density',
+                    'anode_thickness',
+                ]
+                for i, key in enumerate(todo):
+                    if key in dry_cell_to_meta[dry_cell_id].keys():
+                        val = dry_cell_to_meta[dry_cell_id][key]
+                        self.dry_cell_given[self.dry_cell_direct.id_dict[dry_cell_id], i] = val
+                        self.dry_cell_latent_flags[self.dry_cell_direct.id_dict[dry_cell_id], i] = 0.
+
+        self.dry_cell_given = tf.constant(self.dry_cell_given)
+        self.dry_cell_latent_flags = tf.constant(self.dry_cell_latent_flags)
 
         self.cell_direct = PrimitiveDictionaryLayer(
             num_features = self.num_features, id_dict = cell_dict
@@ -338,9 +415,10 @@ class DegradationModel(Model):
         self.cell_latent_flags = tf.constant(latent_flags)
 
         cell_pointers = numpy.zeros(
-            shape = (self.cell_direct.num_keys, 3), dtype = numpy.int32
+            shape = (self.cell_direct.num_keys, 4), dtype = numpy.int32
         )
 
+        # TODO(sam): dry_cell
         for cell_id in self.cell_direct.id_dict.keys():
             if cell_id in cell_to_pos.keys():
                 cell_pointers[self.cell_direct.id_dict[cell_id], 0]\
@@ -351,6 +429,10 @@ class DegradationModel(Model):
             if cell_id in cell_to_electrolyte.keys():
                 cell_pointers[self.cell_direct.id_dict[cell_id], 2]\
                     = electrolyte_dict[cell_to_electrolyte[cell_id]]
+            if cell_id in cell_to_dry_cell.keys():
+                cell_pointers[self.cell_direct.id_dict[cell_id], 3]\
+                    = dry_cell_dict[cell_to_dry_cell[cell_id]]
+
 
         self.cell_pointers = tf.constant(cell_pointers)
         self.cell_indirect = feedforward_nn_parameters(
@@ -435,7 +517,7 @@ class DegradationModel(Model):
         indices, training = True, sample = False, compute_derivatives = False,
     ):
         """ Cell from indices """
-
+        # TODO(sam): dry_cell
         features_cell_direct, loss_cell = self.cell_direct(
             indices,
             training = training,
@@ -456,12 +538,13 @@ class DegradationModel(Model):
             axis = 0
         )
 
-        pas_indices = fetched_pointers_cell[:, 0]
+        pos_indices = fetched_pointers_cell[:, 0]
         neg_indices = fetched_pointers_cell[:, 1]
         electrolyte_indices = fetched_pointers_cell[:, 2]
+        dry_cell_indices = fetched_pointers_cell[:, 3]
 
         features_pos, loss_pos = self.pos_direct(
-            pas_indices,
+            pos_indices,
             training = training,
             sample = sample
         )
@@ -471,6 +554,28 @@ class DegradationModel(Model):
             training = training,
             sample = sample
         )
+
+        features_dry_cell_unknown, loss_dry_cell_unknown = self.dry_cell_direct(
+            dry_cell_indices,
+            training = training,
+            sample = sample
+        )
+
+        latent_dry_cell = tf.gather(
+            self.dry_cell_latent_flags,
+            dry_cell_indices,
+            axis=0
+        )
+
+        features_dry_cell_given = tf.gather(
+            self.dry_cell_given,
+            dry_cell_indices,
+            axis=0
+        )
+
+        features_dry_cell = latent_dry_cell*features_dry_cell_unknown + (1. - latent_dry_cell)*features_dry_cell_given
+        loss_dry_cell = loss_dry_cell_unknown # TODO(sam): this is not quite right
+
 
         (
             features_electrolyte_direct, loss_electrolyte_direct
@@ -665,10 +770,15 @@ class DegradationModel(Model):
                     features_electrolyte
                 )
 
+                tape_d1.watch(
+                    features_dry_cell
+                )
+
                 cell_dependencies = (
                     features_pos,
                     features_neg,
                     features_electrolyte,
+                    features_dry_cell
                 )
 
                 features_cell_indirect = nn_call(
@@ -689,6 +799,11 @@ class DegradationModel(Model):
                 source = features_electrolyte,
                 target = features_cell_indirect
             )
+            derivatives["d_features_dry_cell"] = tape_d1.batch_jacobian(
+                source=features_dry_cell,
+                target=features_cell_indirect
+            )
+
 
             del tape_d1
         else:
@@ -696,6 +811,7 @@ class DegradationModel(Model):
                 features_pos,
                 features_neg,
                 features_electrolyte,
+                features_dry_cell,
             )
 
             features_cell_indirect = nn_call(
@@ -805,6 +921,7 @@ class DegradationModel(Model):
             loss_input_cell_indirect = (
                 (1. - fetched_latent_cell) * loss_pos +
                 (1. - fetched_latent_cell) * loss_neg +
+                (1. - fetched_latent_cell) * loss_dry_cell +
                 (1. - fetched_latent_cell) *
                 self.incentive_coeffs["coeff_electrolyte"] * loss_electrolyte
             )
@@ -825,9 +942,14 @@ class DegradationModel(Model):
                     Target.Small,
                     Level.Proportional
                 )
+                l_dry_cell = incentive_magnitude(
+                    derivatives["d_features_dry_cell"],
+                    Target.Small,
+                    Level.Proportional
+                )
                 mult = (1. - tf.reshape(fetched_latent_cell, [-1, 1, 1]))
                 loss_derivative_cell_indirect = (
-                    mult * l_pos + mult * l_neg + mult * l_electrolyte
+                    mult * l_pos + mult * l_neg + mult * l_electrolyte + mult * l_dry_cell
                 )
             else:
                 loss_derivative_cell_indirect = 0.
@@ -860,7 +982,7 @@ class DegradationModel(Model):
 
         return (
             features_cell, loss, features_pos,
-            features_neg, fetched_latent_cell,
+            features_neg, features_dry_cell, fetched_latent_cell,
         )
 
     def sample(self, svit_grid, batch_count, count_matrix, anode_v_curve,cathode_v_curve, n_sample = 4 * 32):
@@ -900,7 +1022,7 @@ class DegradationModel(Model):
 
         sampled_constant_current = sampled_constant_current_sign * sampled_constant_current
 
-        sampled_features, _, sampled_pos, sampled_neg, sampled_latent\
+        sampled_features, _, sampled_pos, sampled_neg, sampled_dry_cell, sampled_latent\
             = self.cell_from_indices(
             indices = tf.random.uniform(
                 maxval = self.cell_direct.num_keys,
@@ -1000,6 +1122,7 @@ class DegradationModel(Model):
             sampled_features,
             sampled_pos,
             sampled_neg,
+            sampled_dry_cell,
             sampled_latent,
             sampled_features,
             sampled_shift,
@@ -1394,6 +1517,15 @@ class DegradationModel(Model):
             self.nn_neg_projection, dependencies, training = training
         )
 
+    def dry_cell_projection_direct(self, cell_features, training = True):
+        dependencies = (
+            cell_features
+        )
+        return nn_call(
+            self.nn_dry_cell_projection, dependencies, training = training
+        )
+
+
     def r_direct(
         self, cell_features, encoded_stress, norm_cycle, training = True
     ):
@@ -1456,15 +1588,21 @@ class DegradationModel(Model):
         return shift, loss
 
     def v_plus_direct(self, encoded_stress, norm_cycle, q, cell_features, current, training = True):
-        pos_cell_features = self.pos_projection_direct(
+        pos_features = self.pos_projection_direct(
             cell_features = cell_features,
             training = training
+        )
+
+        dry_cell_features = self.dry_cell_projection_direct(
+            cell_features=cell_features,
+            training=training
         )
         dependencies = (
             encoded_stress,
             norm_cycle,
             q,
-            pos_cell_features,
+            pos_features,
+            dry_cell_features,
             current
         )
 
@@ -1485,11 +1623,14 @@ class DegradationModel(Model):
         ), out_of_bounds_loss
 
     def v_minus_direct(self, encoded_stress, norm_cycle, q, cell_features, current, training = True):
-        neg_cell_features = self.neg_projection_direct(
+        neg_features = self.neg_projection_direct(
             cell_features = cell_features,
             training = training
         )
-
+        dry_cell_features = self.dry_cell_projection_direct(
+            cell_features=cell_features,
+            training=training
+        )
         out_of_bounds_loss = incentive_combine([
             (
                 self.incentive_coeffs["coeff_out_of_bounds_leq"],
@@ -1507,7 +1648,8 @@ class DegradationModel(Model):
             encoded_stress,
             norm_cycle,
             q,
-            neg_cell_features,
+            neg_features,
+            dry_cell_features,
             current
         )
 
@@ -1746,7 +1888,7 @@ class DegradationModel(Model):
         svit_grid = x[8]
         count_matrix = x[9]
 
-        features, _, _, _, _ = self.cell_from_indices(
+        features, _, _, _, _, _ = self.cell_from_indices(
             indices = indices,
             training = training,
             sample = False
@@ -1806,6 +1948,7 @@ class DegradationModel(Model):
                 sampled_features,
                 sampled_pos,
                 sampled_neg,
+                sampled_dry_cell,
                 sampled_latent,
                 sampled_features,
                 sampled_shift,
@@ -1830,9 +1973,14 @@ class DegradationModel(Model):
                 cell_features = sampled_cell_features, training = training
             )
 
+            predicted_dry_cell = self.dry_cell_projection_direct(
+                cell_features=sampled_cell_features, training=training
+            )
+
             projection_loss = calculate_projection_loss(
-                sampled_latent, sampled_pos, sampled_neg,
+                sampled_latent, sampled_pos, sampled_neg, sampled_dry_cell,
                 predicted_pos, predicted_neg,
+                predicted_dry_cell,
                 incentive_coeffs = self.incentive_coeffs
             )
 

@@ -1607,18 +1607,9 @@ class DegradationModel(Model):
             current
         )
 
-        out_of_bounds_loss = incentive_combine([
-            (
-                self.incentive_coeffs["coeff_out_of_bounds_leq"],
-                incentive_inequality(q, Inequality.LessThan, 1., Level.Strong)
-            ),
-            (
-                self.incentive_coeffs["coeff_out_of_bounds_geq"],
-                incentive_inequality(
-                    q, Inequality.GreaterThan, 0., Level.Strong
-                )
-            ),
-        ])
+        out_of_bounds_loss = calculate_out_of_bounds_loss(q=q, incentive_coeffs=self.incentive_coeffs)
+
+
         return nn_call(
             self.nn_v_plus, dependencies, training = training
         ), out_of_bounds_loss
@@ -1632,18 +1623,7 @@ class DegradationModel(Model):
             cell_features=cell_features,
             training=training
         )
-        out_of_bounds_loss = incentive_combine([
-            (
-                self.incentive_coeffs["coeff_out_of_bounds_leq"],
-                incentive_inequality(q, Inequality.LessThan, 1., Level.Strong)
-            ),
-            (
-                self.incentive_coeffs["coeff_out_of_bounds_geq"],
-                incentive_inequality(
-                    q, Inequality.GreaterThan, 0., Level.Strong
-                )
-            ),
-        ])
+        out_of_bounds_loss = calculate_out_of_bounds_loss(q=q, incentive_coeffs=self.incentive_coeffs)
 
         dependencies = (
             encoded_stress,
@@ -2055,7 +2035,7 @@ class DegradationModel(Model):
                 incentive_coeffs=self.incentive_coeffs
             )
 
-            out_of_bounds_loss_3 = calculate_out_of_bounds_loss(reciprocal_q,
+            out_of_bounds_loss_3 = calculate_out_of_bounds_loss(q = reciprocal_q,
                                                                 incentive_coeffs = self.incentive_coeffs)
 
             reciprocal_loss = calculate_reciprocal_loss(

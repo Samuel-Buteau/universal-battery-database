@@ -28,7 +28,7 @@ class Key:
     Q_CC_VEC = "cc_capacity_vector"
     Q_CV = "cv_capacities"
     Q_CV_VEC = "cv_capacity_vector"
-    Q_END_AVG = "avg_end_current"
+
     Q_CC_LAST = "last_cc_capacity"
     Q_CV_LAST = "last_cv_capacity"
     Q_MAX = "max_cap"
@@ -38,6 +38,7 @@ class Key:
     I_CV = "cv_currents"
     I_CV_VEC = "cv_current_vector"
     I_END = "end_current"
+    I_END_AVG = "avg_end_current"
     I_PREV = "end_current_prev"
     I_PREV_END_AVG = "avg_end_current_prev"
     I_GRID = "current_grid"

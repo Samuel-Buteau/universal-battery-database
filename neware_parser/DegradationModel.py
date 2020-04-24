@@ -135,7 +135,7 @@ def print_cell_info(
                 if key in my_meta.keys():
                     val = "{:.5f}".format(my_meta[key])
 
-                print("\t\t{}:\t{}".format(label, val))
+                print("\t\t{}:\t\t\t{}".format(label, val))
 
             electrolyte_id = cell_to_electrolyte[k]
             if electrolyte_id in electrolyte_to_electrolyte_name.keys():
@@ -947,9 +947,10 @@ class DegradationModel(Model):
                     Target.Small,
                     Level.Proportional
                 )
-                mult = (1. - tf.reshape(fetched_latent_cell, [-1, 1, 1]))
+                mult = (1. - tf.reshape(fetched_latent_cell, [-1, 1]))
                 loss_derivative_cell_indirect = (
-                    mult * l_pos + mult * l_neg + mult * l_electrolyte + mult * l_dry_cell
+                    mult * tf.reduce_mean(l_pos, axis=2) + mult * tf.reduce_mean(l_neg, axis=2) \
+                    + mult *tf.reduce_mean(l_electrolyte, axis=2) + mult * tf.reduce_mean(l_dry_cell, axis=2)
                 )
             else:
                 loss_derivative_cell_indirect = 0.
@@ -1804,7 +1805,7 @@ class DegradationModel(Model):
             shape = [1]
         )
 
-        features, _, _, _, _ = self.cell_from_indices(
+        features, _, _, _, _, _ = self.cell_from_indices(
             indices = indices,
             training = training,
             sample = False
@@ -2121,7 +2122,7 @@ class DegradationModel(Model):
             r_loss = calculate_r_loss(r, r_der,
                                       incentive_coeffs = self.incentive_coeffs)
 
-            _, cell_loss, _, _, _ = self.cell_from_indices(
+            _, cell_loss, _, _, _, _ = self.cell_from_indices(
                 indices = tf.range(
                     self.cell_direct.num_keys,
                     dtype = tf.int32,

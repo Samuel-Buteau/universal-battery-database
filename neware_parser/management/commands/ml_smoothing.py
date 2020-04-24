@@ -352,7 +352,7 @@ def initial_processing(
                 main_data[key] = 1. / max_cap * main_data[key]
 
             normalize_keys = [
-                Key.I_CC_AVG, Key.Q_END_AVG,
+                Key.I_CC_AVG, Key.I_END_AVG,
                 Key.I_PREV_END_AVG
             ]
             for key in normalize_keys:

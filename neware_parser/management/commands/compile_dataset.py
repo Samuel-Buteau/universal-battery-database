@@ -417,7 +417,7 @@ def initial_processing(my_barcodes, fit_args):
                         Key.MAIN: res,
                         Key.I_CC_AVG: numpy.average(res[Key.I_CC]),
                         Key.I_PREV_END_AVG: numpy.average(res[Key.I_PREV]),
-                        Key.Q_END_AVG: numpy.average(res[Key.I_END]),
+                        Key.I_END_AVG: numpy.average(res[Key.I_END]),
                         Key.V_PREV_END_AVG: numpy.average(res[Key.V_PREV_END]),
                         Key.V_END_AVG: numpy.average(res[Key.V_END]),
                         Key.V_CC_LAST_AVG: numpy.average(res[Key.V_CC_LAST]),

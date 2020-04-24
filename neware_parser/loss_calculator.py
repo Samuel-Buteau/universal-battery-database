@@ -31,18 +31,18 @@ def calculate_projection_loss(
     ])
 
 
-def calculate_out_of_bounds_loss(reciprocal_q, incentive_coeffs=None):
+def calculate_out_of_bounds_loss(q, incentive_coeffs=None):
     return incentive_combine([
         (
             incentive_coeffs['coeff_out_of_bounds_geq'],
             incentive_inequality(
-                reciprocal_q, Inequality.GreaterThan, 0., Level.Strong
+                q, Inequality.GreaterThan, 0., Level.Proportional
             )
         ),
         (
             incentive_coeffs['coeff_out_of_bounds_leq'],
             incentive_inequality(
-                reciprocal_q, Inequality.LessThan, 1., Level.Strong
+                q, Inequality.LessThan, 1., Level.Proportional
             )
         ),
     ])

@@ -123,9 +123,25 @@ def calculate_reciprocal_loss(
             )
         ),
         (
+            incentive_coeffs['coeff_reciprocal_d_cycle'],
+            incentive_magnitude(
+                v_plus_der['d_cycle'],
+                Target.Small,
+                Level.Proportional
+            )
+        ),
+        (
             incentive_coeffs['coeff_reciprocal_d3_cycle'],
             incentive_magnitude(
                 v_minus_der['d3_cycle'],
+                Target.Small,
+                Level.Proportional
+            )
+        ),
+        (
+            incentive_coeffs['coeff_reciprocal_d_cycle'],
+            incentive_magnitude(
+                v_minus_der['d_cycle'],
                 Target.Small,
                 Level.Proportional
             )
@@ -244,31 +260,6 @@ def calculate_q_loss(q, q_der, incentive_coeffs):
                 Level.Proportional
             )
         ),
-
-        (
-            incentive_coeffs['coeff_q_d3_cycle'],
-            incentive_magnitude(
-                q_der['d3_cycle'],
-                Target.Small,
-                Level.Proportional
-            )
-        ),
-        (
-            incentive_coeffs['coeff_d_features'],
-            incentive_magnitude(
-                q_der['d_features'],
-                Target.Small,
-                Level.Proportional
-            )
-        ),
-        (
-            incentive_coeffs['coeff_d2_features'],
-            incentive_magnitude(
-                q_der['d2_features'],
-                Target.Small,
-                Level.Strong
-            )
-        ),
         (
             incentive_coeffs['coeff_q_d3_shift'],
             incentive_magnitude(
@@ -285,6 +276,51 @@ def calculate_q_loss(q, q_der, incentive_coeffs):
                 Level.Proportional
             )
         ),
+
+        (
+            incentive_coeffs['coeff_q_d3_cycle'],
+            incentive_magnitude(
+                q_der['d3_cycle'],
+                Target.Small,
+                Level.Proportional
+            )
+        ),
+
+        (
+            incentive_coeffs['coeff_q_d_current'],
+            incentive_magnitude(
+                q_der['d_current'],
+                Target.Small,
+                Level.Proportional
+            )
+        ),
+
+        (
+            incentive_coeffs['coeff_q_d_cycle'],
+            incentive_magnitude(
+                q_der['d_cycle'],
+                Target.Small,
+                Level.Proportional
+            )
+        ),
+
+        (
+            incentive_coeffs['coeff_d_features'],
+            incentive_magnitude(
+                q_der['d_features'],
+                Target.Small,
+                Level.Proportional
+            )
+        ),
+        (
+            incentive_coeffs['coeff_d2_features'],
+            incentive_magnitude(
+                q_der['d2_features'],
+                Target.Small,
+                Level.Strong
+            )
+        ),
+
     ])
 
 

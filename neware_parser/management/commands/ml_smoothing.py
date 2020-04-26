@@ -556,6 +556,8 @@ def initial_processing(
         pos_to_pos_name = {}
         neg_to_neg_name = {}
         electrolyte_to_electrolyte_name = {}
+        molecule_to_molecule_name = {}
+        
         if my_names is not None:
             pos_to_pos_name = my_names[Key.POS_TO_POS]
             neg_to_neg_name = my_names[Key.NEG_TO_NEG]

@@ -283,36 +283,37 @@ def plot_vq(plot_params, init_returns):
         plt.close(fig)
 
 
+def plot_measured(cyc_grp_dict, mode, list_of_keys, list_of_patches, ax1):
+    for k_count, k in enumerate(list_of_keys):
+        list_of_patches.append(
+            mpatches.Patch(
+                color = COLORS[k_count], label = make_legend(k)
+            )
+        )
+
+        main_data = cyc_grp_dict[k]["main_data"]
+
+        if k[-1] == "dchg":
+            sign_change = -1.
+        else:
+            sign_change = +1.
+
+        if mode == "cc":
+            cap = sign_change * main_data["last_cc_capacity"]
+        elif mode == "cv":
+            cap = sign_change * main_data["last_cv_capacity"]
+
+        ax1.scatter(
+            main_data["cycle_number"],
+            cap,
+            c = COLORS[k_count],
+            s = 5,
+            label = make_legend(k)
+        )
+
+
 def plot_things_vs_cycle_number(plot_params, init_returns):
     def plot_capacities():
-        def plot_measured():
-            for k_count, k in enumerate(list_of_keys):
-                list_of_patches.append(
-                    mpatches.Patch(
-                        color = COLORS[k_count], label = make_legend(k)
-                    )
-                )
-
-                main_data = cyc_grp_dict[k]["main_data"]
-
-                if k[-1] == "dchg":
-                    sign_change = -1.
-                else:
-                    sign_change = +1.
-
-                if mode == "cc":
-                    cap = sign_change * main_data["last_cc_capacity"]
-                elif mode == "cv":
-                    cap = sign_change * main_data["last_cv_capacity"]
-
-                ax1.scatter(
-                    main_data["cycle_number"],
-                    cap,
-                    c = COLORS[k_count],
-                    s = 5,
-                    label = make_legend(k)
-                )
-
         def plot_predicted():
             for k_count, k in enumerate(list_of_keys):
 
@@ -376,7 +377,11 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
             ax1 = fig.add_subplot(6, 1, 1 + off)
             ax1.set_ylabel(mode + "-" + typ + "-capacity")
 
-            plot_measured()
+
+            plot_measured(
+                cyc_grp_dict, mode, list_of_keys, list_of_patches, ax1,
+            )
+
             plot_predicted()
 
             ax1.legend(

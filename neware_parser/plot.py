@@ -371,35 +371,39 @@ def plot_predicted(
         ax1.plot(cycle, sign_change * pred_cap, c = COLORS[k_count])
 
 
+def plot_capacities(
+    cyc_grp_dict, cycle_m, cycle_v, barcode_count,
+    degradation_model, svit_and_count,
+    fig,
+):
+    for typ, off, mode in [
+        ("dchg", 0, "cc"), ("chg", 1, "cc"), ("chg", 2, "cv")
+    ]:
+        list_of_patches = []
+        list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
+
+        ax1 = fig.add_subplot(6, 1, 1 + off)
+        ax1.set_ylabel(mode + "-" + typ + "-capacity")
+
+        plot_measured(
+            cyc_grp_dict, mode, list_of_keys, list_of_patches, ax1,
+        )
+
+        plot_predicted(
+            cyc_grp_dict, mode, list_of_keys, cycle_m, cycle_v,
+            barcode_count, degradation_model, svit_and_count,
+            ax1,
+        )
+
+        ax1.legend(
+            handles = list_of_patches,
+            fontsize = "small",
+            bbox_to_anchor = (0.7, 1),
+            loc = "upper left"
+        )
+
+
 def plot_things_vs_cycle_number(plot_params, init_returns):
-    def plot_capacities():
-
-        for typ, off, mode in [
-            ("dchg", 0, "cc"), ("chg", 1, "cc"), ("chg", 2, "cv")
-        ]:
-            list_of_patches = []
-            list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
-
-            ax1 = fig.add_subplot(6, 1, 1 + off)
-            ax1.set_ylabel(mode + "-" + typ + "-capacity")
-
-            plot_measured(
-                cyc_grp_dict, mode, list_of_keys, list_of_patches, ax1,
-            )
-
-            plot_predicted(
-                cyc_grp_dict, mode, list_of_keys, cycle_m, cycle_v,
-                barcode_count, degradation_model, svit_and_count,
-                ax1,
-            )
-
-            ax1.legend(
-                handles = list_of_patches,
-                fontsize = "small",
-                bbox_to_anchor = (0.7, 1),
-                loc = "upper left"
-            )
-
     def plot_scale():
         for typ, off, mode in [("dchg", 3, "cc")]:
 

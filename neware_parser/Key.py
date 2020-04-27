@@ -19,6 +19,7 @@ class Key:
     V_PREV_END = "end_voltage_prev"
     V_PREV_END_AVG = "avg_end_voltage_prev"
     V_END_AVG = "avg_end_voltage"
+    # 1D array of voltages,
     V_GRID = "voltage_grid"
     V_MIN_GRID = "voltage_grid_min_v"
     V_MAX_GRID = "voltage_grid_max_v"
@@ -28,10 +29,11 @@ class Key:
     Q_CC_VEC = "cc_capacity_vector"
     Q_CV = "cv_capacities"
     Q_CV_VEC = "cv_capacity_vector"
-
     Q_CC_LAST = "last_cc_capacity"
     Q_CV_LAST = "last_cv_capacity"
+    # A single number. The maximum capacity across the dataset.
     Q_MAX = "max_cap"
+    # Q_GRID: 1D array of log currents
 
     I_CC = "constant_current"
     I_CC_AVG = "avg_constant_current"
@@ -57,8 +59,11 @@ class Key:
     MASK_CV = "cv_masks"
     MASK_CV_VEC = "cv_mask_vector"
     COUNT_MATRIX = "count_matrix"
+    # 1D array of signs
     SIGN_GRID = "sign_grid"
+    # 1D array of temperatures
     TEMP_GRID = "temperature_grid"
+    SVIT_GRID = "svit_grid"
 
     WIDTH = "width"
     DEPTH = "depth"
@@ -76,17 +81,36 @@ class Key:
     MIN_LAT = "min_latent"
     GLB_NORM_CLIP = "global_norm_clip"
 
+    FIT_ARGS = "fit_args"
     MAIN = "main_data"
     MY_DATA = "my_data"
+    # Dictionary indexed by barcode.
     ALL_DATA = "all_data"
     CYC_GRP_DICT = "cyc_grp_dict"
 
+    # Structured array with dtype:
+    # [
+    #     (N, "f4"),
+    #     (
+    #         COUNT_MATRIX, "f4",
+    #         (
+    #             len(sign_grid), len(voltage_grid_degradation),
+    #             len(current_grid), len(temperature_grid),
+    #         )
+    #     ),
+    # ]
     REF_ALL_MATS = "all_reference_mats"
     REF_CYC = "reference_cycles_n"
 
+    # Dictionary indexed by barcode yielding a positive electrode id.
     CELL_TO_POS = "cell_id_to_pos_id"
+    # Dictionary indexed by barcode yielding a positive electrode id.
     CELL_TO_NEG = "cell_id_to_neg_id"
+    # Dictionary indexed by barcode yielding a positive electrode id.
     CELL_TO_ELE = "cell_id_to_electrolyte_id"
+    # Dictionary indexed by barcode yielding
+    #     1 if the cell is latent,
+    #     0 if made of known pos, neg, electrolyte
     CELL_TO_LAT = "cell_id_to_latent"
     ELE_TO_SOL = "electrolyte_id_to_solvent_id_weight"
     ELE_TO_SALT = "electrolyte_id_to_salt_id_weight"
@@ -98,7 +122,6 @@ class Key:
     ELE_TO_ELE = "electrolyte_to_electrolyte_name"
     MOL_TO_MOL = "molecule_to_molecule_name"
 
-    # TODO (harvey): replace the following block of keys
     STRAT = "strategy"
     TENSORS = "compiled_tensors"
     MODEL = "degradation_model"

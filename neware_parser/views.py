@@ -84,8 +84,8 @@ def view_barcode(request, barcode, cursor):
         for f in files_barcode:
             offset_cycle = f.database_file.valid_metadata.start_cycle
             c_curves.update(set([offset_cycle + cyc
-             for cyc in Cycle.objects.filter(cycling_file=f).order_by("cycle_number").values_list(
-            "cycle_number", flat=True)]))
+             for cyc in Cycle.objects.filter(cycling_file=f).order_by(Key.N).values_list(
+            Key.N, flat=True)]))
 
 
 

@@ -121,17 +121,17 @@ def print_cell_info(
                 my_meta = {}
 
             todo= [
-                ('cathode_loading', 'cathode_loading',),
-                ('cathode_density', 'cathode_density',),
-                ('cathode_thickness', 'cathode_thickness',),
-                ('anode_loading', 'anode_loading',),
-                ('anode_density', 'anode_density',),
-                ('anode_thickness', 'anode_thickness',),
+                ("cathode_loading", "cathode_loading",),
+                ("cathode_density", "cathode_density",),
+                ("cathode_thickness", "cathode_thickness",),
+                ("anode_loading", "anode_loading",),
+                ("anode_density", "anode_density",),
+                ("anode_thickness", "anode_thickness",),
 
             ]
 
             for label, key in todo:
-                val = '?'
+                val = "?"
                 if key in my_meta.keys():
                     val = "{:.5f}".format(my_meta[key])
 
@@ -221,7 +221,7 @@ def create_derivatives(nn, params, der_params, internal_loss = False):
 
     Args:
         nn: The neural network for which to compute derivatives.
-        params: The network's parameters
+        params: The network"s parameters
 
     """
     derivatives = {}
@@ -366,12 +366,12 @@ class DegradationModel(Model):
         for dry_cell_id in self.dry_cell_direct.id_dict.keys():
             if dry_cell_id in dry_cell_to_meta.keys():
                 todo = [
-                    'cathode_loading',
-                    'cathode_density',
-                    'cathode_thickness',
-                    'anode_loading',
-                    'anode_density',
-                    'anode_thickness',
+                    "cathode_loading",
+                    "cathode_density",
+                    "cathode_thickness",
+                    "anode_loading",
+                    "anode_density",
+                    "anode_thickness",
                 ]
                 for i, key in enumerate(todo):
                     if key in dry_cell_to_meta[dry_cell_id].keys():

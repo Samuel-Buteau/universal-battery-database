@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
-main_activation = 'relu'
+main_activation = "relu"
 
 class StressToEncodedLayer(Layer):
     def __init__(self, n_channels):
@@ -43,35 +43,35 @@ class StressToEncodedLayer(Layer):
         val_1 = tf.concat((svit_grid_1, count_matrix_1), axis = -1)
 
         filters = [
-            (self.input_kernel, 'none'),
-            (0, 'branch'),
+            (self.input_kernel, "none"),
+            (0, "branch"),
             (self.v_i_kernel_1, main_activation),
-            (self.v_i_kernel_2, 'none'),
-            (0, 'combine'),
+            (self.v_i_kernel_2, "none"),
+            (0, "combine"),
             (self.t_kernel, main_activation),
-            (self.output_kernel, 'none')
+            (self.output_kernel, "none")
         ]
 
         for fil, activ in filters:
-            if activ == 'branch':
+            if activ == "branch":
                 val_0_save = val_0
                 val_1_save = val_1
                 continue
-            if activ == 'combine':
+            if activ == "combine":
                 val_0 = tf.nn.relu(val_0 + val_0_save)
                 val_1 = tf.nn.relu(val_1 + val_1_save)
                 continue
             val_0 = tf.nn.convolution(
-                input = val_0, filters = fil, padding = 'SAME'
+                input = val_0, filters = fil, padding = "SAME"
             )
             val_1 = tf.nn.convolution(
-                input = val_1, filters = fil, padding = 'SAME'
+                input = val_1, filters = fil, padding = "SAME"
             )
 
-            if activ is 'relu':
+            if activ is "relu":
                 val_0 = tf.nn.relu(val_0)
                 val_1 = tf.nn.relu(val_1)
-            elif activ is 'elu':
+            elif activ is "elu":
                 val_0 = tf.nn.elu(val_0)
                 val_1 = tf.nn.elu(val_1)
 

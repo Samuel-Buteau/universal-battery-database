@@ -52,27 +52,27 @@ class SearchForm(forms.Form):
 
     def set_page_number(self, page_number):
         data = self.data.copy()
-        data['page_number'] = page_number
+        data["page_number"] = page_number
         self.data = data
 
 
 class BarcodeOverviewForm(forms.Form):
     barcode = forms.IntegerField(
-        widget=forms.TextInput(attrs={'readonly': 'readonly', 'size': 5}),
+        widget=forms.TextInput(attrs={"readonly": "readonly", "size": 5}),
         required=False)
     exclude = forms.BooleanField(required=False)
 
     number_of_active = forms.IntegerField(
-        widget=forms.TextInput(attrs={'readonly': 'readonly', 'size': 5}),
+        widget=forms.TextInput(attrs={"readonly": "readonly", "size": 5}),
         required=False)
     number_of_deprecated = forms.IntegerField(
-        widget=forms.TextInput(attrs={'readonly': 'readonly', 'size': 5}),
+        widget=forms.TextInput(attrs={"readonly": "readonly", "size": 5}),
         required=False)
     number_of_needs_importing = forms.IntegerField(
-        widget=forms.TextInput(attrs={'readonly': 'readonly', 'size': 5}),
+        widget=forms.TextInput(attrs={"readonly": "readonly", "size": 5}),
         required=False)
     first_active_file = forms.CharField(
-            widget=forms.TextInput(attrs={'readonly': 'readonly', 'size': 100}),
+            widget=forms.TextInput(attrs={"readonly": "readonly", "size": 100}),
             required=False)
 
 

@@ -41,7 +41,7 @@ def v_curves_harvest(fit_args):
         electrode_string = row[1]
         rate_string = row[2]
 
-        if not (electrode_string == 'cathode' or electrode_string == 'anode'):
+        if not (electrode_string == "cathode" or electrode_string == "anode"):
             return None,None,None
 
         try:
@@ -106,7 +106,7 @@ def v_curves_harvest(fit_args):
             ax.plot(
                 [s[0] for s in datas[electrode][rate]],
                 [s[1] for s in datas[electrode][rate]],
-                label='{}, rate={}'.format(electrode, rate)
+                label="{}, rate={}".format(electrode, rate)
             )
 
     ax.legend()
@@ -115,7 +115,7 @@ def v_curves_harvest(fit_args):
     plt.close(fig)
 
 
-    with open(os.path.join(fit_args[Key.PATH_V_CURVES], 'v_curves.file'), 'wb') as file:
+    with open(os.path.join(fit_args[Key.PATH_V_CURVES], "v_curves.file"), "wb") as file:
         pickle.dump(datas, file, protocol= pickle.HIGHEST_PROTOCOL)
 
 
@@ -199,7 +199,7 @@ def v_curves_complex(fit_args):
             idealized_current =avg_current/c_rate
             new_data = [[s[2]/cap, s[1]] for s in datas[name][step_count]]
 
-            with open(os.path.join(v_curves_folder, "HALF_CELL_V_CURVE_ID={}_RATE={:.2f}_STEP={}.csv".format(name, idealized_current, step_count)), 'w', newline='') as outfile:
+            with open(os.path.join(v_curves_folder, "HALF_CELL_V_CURVE_ID={}_RATE={:.2f}_STEP={}.csv".format(name, idealized_current, step_count)), "w", newline="") as outfile:
                 my_writer = csv.writer(outfile)
                 for row in new_data:
                     my_writer.writerow([str(x) for x in row])
@@ -236,11 +236,11 @@ class Command(BaseCommand):
         parser.add_argument("--" + Key.PATH_PLOTS)
 
     def handle(self, *args, **options):
-        if options['mode'] == "split_csv":
+        if options["mode"] == "split_csv":
             v_curves_complex(options)
-        elif options['mode'] == "register_csv":
-            print("not implemented yet:", options['mode'])
+        elif options["mode"] == "register_csv":
+            print("not implemented yet:", options["mode"])
             # v_curves_harvest(options)
         else:
-            print("not implemented yet:", options['mode'])
+            print("not implemented yet:", options["mode"])
 

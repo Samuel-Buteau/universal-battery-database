@@ -5,7 +5,7 @@ from neware_parser.models import *
 
 def create_cycle_tags():
     my_tags = [
-        ('rate_maps', i)
+        ("rate_maps", i)
 
         for i in range(7)
     ]
@@ -15,7 +15,7 @@ def create_cycle_tags():
 
 def debug_crop_cycles(crop):
     for _ in range(100):
-        print('DEBUG CROP CYCLES!!!!!')
+        print("DEBUG CROP CYCLES!!!!!")
     Cycle.objects.filter(cycle_number__gte = crop).delete()
     CyclingFile.objects.all().update(
         import_time = datetime.datetime(1970, 1, 1))

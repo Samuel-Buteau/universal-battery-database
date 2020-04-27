@@ -79,7 +79,7 @@ def ml_smoothing(fit_args):
 
     v_curves_path = os.path.join(
         fit_args[Key.PATH_V_CURVES],
-        'v_curves.file'
+        "v_curves.file"
     )
 
     if not os.path.exists(dataset_path):
@@ -92,8 +92,8 @@ def ml_smoothing(fit_args):
 
     with open(v_curves_path, "rb") as f:
         my_v_curves = pickle.load(f)
-        my_anode_v_curves = my_v_curves['anode']
-        my_cathode_v_curves = my_v_curves['cathode']
+        my_anode_v_curves = my_v_curves["anode"]
+        my_cathode_v_curves = my_v_curves["cathode"]
 
     with open(dataset_path, "rb") as f:
         my_data = pickle.load(f)
@@ -941,85 +941,85 @@ class Command(BaseCommand):
         ]
 
         float_args = {
-            '--global_norm_clip': 10.,
+            "--global_norm_clip": 10.,
 
-            '--learning_rate': 5e-4,
-            '--min_latent': .05,
+            "--learning_rate": 5e-4,
+            "--min_latent": .05,
 
-            '--coeff_d_features': .001,
-            '--coeff_d2_features': .01,
+            "--coeff_d_features": .001,
+            "--coeff_d2_features": .01,
 
-            '--coeff_cell': 1.,
-            '--coeff_cell_output': .1,
-            '--coeff_cell_input': .1,
-            '--coeff_cell_derivative': .1,
-            '--coeff_cell_eq': 10.,
+            "--coeff_cell": 1.,
+            "--coeff_cell_output": .1,
+            "--coeff_cell_input": .1,
+            "--coeff_cell_derivative": .1,
+            "--coeff_cell_eq": 10.,
 
-            '--coeff_electrolyte': 1.,
-            '--coeff_electrolyte_output': .1,
-            '--coeff_electrolyte_input': .1,
-            '--coeff_electrolyte_derivative': .1,
-            '--coeff_electrolyte_eq': 10.,
+            "--coeff_electrolyte": 1.,
+            "--coeff_electrolyte_output": .1,
+            "--coeff_electrolyte_input": .1,
+            "--coeff_electrolyte_derivative": .1,
+            "--coeff_electrolyte_eq": 10.,
 
-            '--coeff_cv_capacity': 1.,
-            '--coeff_cv_voltage': 1.,
-            '--coeff_cc_voltage': 1.,
-            '--coeff_cc_capacity': 1.,
+            "--coeff_cv_capacity": 1.,
+            "--coeff_cv_voltage": 1.,
+            "--coeff_cc_voltage": 1.,
+            "--coeff_cc_capacity": 1.,
 
-            '--coeff_q': 1.,
-            '--coeff_q_small': .001,
-            '--coeff_q_geq': 1.,
-            '--coeff_q_leq': 1.,
-            '--coeff_q_v_mono': 10.,
-            '--coeff_q_d3_v': 1.,
-            '--coeff_q_d3_shift': .01,
-            '--coeff_q_d3_current': 10.,
-            '--coeff_q_d3_cycle': 10.,
-            '--coeff_q_d_current': 1.,
-            '--coeff_q_d_cycle': 5.,
+            "--coeff_q": 1.,
+            "--coeff_q_small": .001,
+            "--coeff_q_geq": 1.,
+            "--coeff_q_leq": 1.,
+            "--coeff_q_v_mono": 10.,
+            "--coeff_q_d3_v": 1.,
+            "--coeff_q_d3_shift": .01,
+            "--coeff_q_d3_current": 10.,
+            "--coeff_q_d3_cycle": 10.,
+            "--coeff_q_d_current": 1.,
+            "--coeff_q_d_cycle": 5.,
 
-            '--coeff_scale': 5.,
-            '--coeff_scale_geq': 5.,
-            '--coeff_scale_leq': 5.,
-            '--coeff_scale_eq': 5.,
-            '--coeff_scale_mono': 1.,
-            '--coeff_scale_d3_cycle': .02,
+            "--coeff_scale": 5.,
+            "--coeff_scale_geq": 5.,
+            "--coeff_scale_leq": 5.,
+            "--coeff_scale_eq": 5.,
+            "--coeff_scale_mono": 1.,
+            "--coeff_scale_d3_cycle": .02,
 
-            '--coeff_r': 5.,
-            '--coeff_r_geq': 100.,
-            '--coeff_r_big': .0,
-            '--coeff_r_d3_cycle': .02,
+            "--coeff_r": 5.,
+            "--coeff_r_geq": 100.,
+            "--coeff_r_big": .0,
+            "--coeff_r_d3_cycle": .02,
 
-            '--coeff_shift': 1.,
-            '--coeff_shift_geq': .5,
-            '--coeff_shift_leq': .5,
-            '--coeff_shift_small': .01,
-            '--coeff_shift_d3_cycle': .02,
-            '--coeff_shift_mono': .0,
+            "--coeff_shift": 1.,
+            "--coeff_shift_geq": .5,
+            "--coeff_shift_leq": .5,
+            "--coeff_shift_small": .01,
+            "--coeff_shift_d3_cycle": .02,
+            "--coeff_shift_mono": .0,
 
-            '--coeff_reciprocal': 10.,
-            '--coeff_reciprocal_v': 10.,
-            '--coeff_reciprocal_q': 10.,
-            '--coeff_reciprocal_v_small': .001,
-            '--coeff_reciprocal_v_geq': 1.,
-            '--coeff_reciprocal_v_leq': .5,
-            '--coeff_reciprocal_v_mono': 10.,
-            '--coeff_reciprocal_d3_current': 10.,
-            '--coeff_reciprocal_d_current_minus': 10.,
-            '--coeff_reciprocal_d_current_plus': 2.,
-            '--coeff_reciprocal_d3_cycle': 10.,
-            '--coeff_reciprocal_d_cycle': 1.,
-            '--coeff_anode_match': 5.,
-            '--coeff_cathode_match': 1.,
+            "--coeff_reciprocal": 10.,
+            "--coeff_reciprocal_v": 10.,
+            "--coeff_reciprocal_q": 10.,
+            "--coeff_reciprocal_v_small": .001,
+            "--coeff_reciprocal_v_geq": 1.,
+            "--coeff_reciprocal_v_leq": .5,
+            "--coeff_reciprocal_v_mono": 10.,
+            "--coeff_reciprocal_d3_current": 10.,
+            "--coeff_reciprocal_d_current_minus": 10.,
+            "--coeff_reciprocal_d_current_plus": 2.,
+            "--coeff_reciprocal_d3_cycle": 10.,
+            "--coeff_reciprocal_d_cycle": 1.,
+            "--coeff_anode_match": 5.,
+            "--coeff_cathode_match": 1.,
 
-            '--coeff_projection': 1.,
-            '--coeff_projection_pos': 1.,
-            '--coeff_projection_neg': 1.,
-            '--coeff_projection_dry_cell': 1.,
+            "--coeff_projection": 1.,
+            "--coeff_projection_pos": 1.,
+            "--coeff_projection_neg": 1.,
+            "--coeff_projection_dry_cell": 1.,
 
-            '--coeff_out_of_bounds': 10.,
-            '--coeff_out_of_bounds_geq': 1.,
-            '--coeff_out_of_bounds_leq': 1.,
+            "--coeff_out_of_bounds": 10.,
+            "--coeff_out_of_bounds_geq": 1.,
+            "--coeff_out_of_bounds_leq": 1.,
         }
 
         vis = 10000

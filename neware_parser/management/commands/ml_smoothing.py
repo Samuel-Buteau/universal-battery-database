@@ -115,7 +115,8 @@ def ml_smoothing(fit_args):
 
     train_and_evaluate(
         initial_processing(
-            my_data, my_names, barcodes, my_anode_v_curves, my_cathode_v_curves, fit_args, strategy = strategy,
+            my_data, my_names, barcodes, my_anode_v_curves, my_cathode_v_curves,
+            fit_args, strategy = strategy,
         ),
         barcodes,
         fit_args
@@ -145,77 +146,23 @@ def three_level_flatten(iterables):
 
 
 def initial_processing(
-    my_data: dict, my_names, barcodes, anode_v_curves, cathode_v_curves, fit_args, strategy
+    my_data: dict, my_names, barcodes, anode_v_curves, cathode_v_curves,
+    fit_args, strategy
 ) -> dict:
     """ Handle the initial data processing
 
     Args:
-        my_data (dictionary):
-            Key.MAX_CAP: A single number. The maximum capacity across the
-                dataset.
-            GRID_V: 1D array of voltages,
-            Q_GRID: 1D array of log currents
-            TEMP_GRID: 1D array of temperatures
-            GRID_SIGN: 1D array of signs
-            CELL_TO_POS: a dictionary indexed by barcode yielding a positive
-                electrode id.
-            CELL_TO_NEG: a dictionary indexed by barcode yielding a positive
-                electrode id.
-            CELL_TO_ELE: a dictionary indexed by barcode yielding a positive
-                electrode id.
-            CELL_TO_LAT: a dictionary indexed by barcode yielding
-                1 if the cell is latent,
-                0 if made of known pos,neg,electrolyte
-            ALL_DATA: A dictionary indexed by barcode; each barcode yields:
-                Key.ALL_REF_MATS: structured array with dtype:
-                    [
-                        (N, "f4"),
-                        (
-                            COUNT_MATRIX, "f4",
-                            (
-                                len(sign_grid), len(voltage_grid_degradation),
-                                len(current_grid), len(temperature_grid),
-                            )
-                        ),
-                    ]
-                Key.CYC_GRP_DICT: Groups of steps indexed by group averages of
-                    (
-                        end_current_prev,
-                        constant_current,
-                        end_current,
-                        end_voltage_prev,
-                        end_voltage,
-                        sign,
-                    )
-                    each group is a dictionary indexed by:
-                        Key.MAIN: A numpy structured array with
-                            dtype:
-                            [
-                                (N, "f4"),
-                                (V_CC, "f4", len(voltage_grid)),
-                                (Q_CC, "f4", len(voltage_grid)),
-                                (MASK_CC, "f4", len(voltage_grid)),
-                                (I_CV, "f4", fit_args[Key.I_MAX]),
-                                (Q_CV, "f4", fit_args[Key.I_MAX]),
-                                (MASK_CV, "f4", fit_args[Key.I_MAX]),
-                                (I_CC, "f4"),
-                                (I_PREV, "f4"),
-                                (V_PREV_END, "f4"),
-                                (V_END, "f4"),
-                                (Q_CC_LAST, "f4"),
-                                (Q_CV_LAST, "f4"),
-                                (Key.TEMP, "f4"),
-                            ]
-                        I_CC_AVG,
-                        I_PREV_END_AVG,
-                        Q_END_AVG,
-                        V_PREV_END_AVG,
-                        V_END_AVG,
-                        Key.V_CC_LAST_AVG,
+        my_data (dictionary).
+        my_names: TODO(harvey)
+        barcodes: TODO(harvey)
+        anode_v_curves: TODO(harvey)
+        cathode_v_curves: TODO(harvey)
+        fit_args: TODO(harvey)
+        strategy: TODO(harvey)
 
     Returns:
         {
-           Key.STRAT, MODEL, TENSORS, Key.TRAIN_DS, Key.CYC_M,
+           Key.STRAT, Key.MODEL, Key.TENSORS, Key.TRAIN_DS, Key.CYC_M,
            Key.CYC_V, Key.OPT, Key.MY_DATA
         }
 
@@ -269,13 +216,11 @@ def initial_processing(
                 = my_data[Key.CELL_TO_ELE][cell_id]
         if cell_id in my_data["cell_to_dry"].keys():
             dry_cell_id = my_data["cell_to_dry"][cell_id]
-            cell_id_to_dry_cell_id[cell_id] \
-                = dry_cell_id
+            cell_id_to_dry_cell_id[cell_id] = dry_cell_id
 
             if dry_cell_id in my_data["dry_to_meta"].keys():
-                dry_cell_id_to_meta[dry_cell_id] \
+                dry_cell_id_to_meta[dry_cell_id]\
                     = my_data["dry_to_meta"][dry_cell_id]
-
 
         if cell_id in my_data[Key.CELL_TO_LAT].keys():
             cell_id_to_latent[cell_id]\
@@ -317,7 +262,9 @@ def initial_processing(
         sorted(list(set(list(three_level_flatten(mess)))))
     )
 
-    dry_cell_id_list = numpy.array(sorted(list(set(cell_id_to_dry_cell_id.values()))))
+    dry_cell_id_list = numpy.array(
+        sorted(list(set(cell_id_to_dry_cell_id.values())))
+    )
     pos_id_list = numpy.array(sorted(list(set(cell_id_to_pos_id.values()))))
     neg_id_list = numpy.array(sorted(list(set(cell_id_to_neg_id.values()))))
     electrolyte_id_list = numpy.array(
@@ -533,12 +480,16 @@ def initial_processing(
     cycle_tensor = (cycle_tensor - cycle_m) / tf.sqrt(cycle_v)
     compiled_tensors["cycle"] = cycle_tensor
 
-    compiled_tensors["anode_v_curve"] = tf.constant(list(anode_v_curves.values())[0])
-    compiled_tensors["cathode_v_curve"] = tf.constant(list(cathode_v_curves.values())[0])
+    compiled_tensors["anode_v_curve"] = tf.constant(
+        list(anode_v_curves.values())[0]
+    )
+    compiled_tensors["cathode_v_curve"] = tf.constant(
+        list(cathode_v_curves.values())[0]
+    )
     labels = [
-        Key.V_CC_VEC, Key.Q_CC_VEC, Key.MASK_CC_VEC, Key.Q_CV_VEC, Key.I_CV_VEC, Key.MASK_CV_VEC,
-        Key.I_CC, Key.I_PREV, Key.V_PREV_END, Key.V_END, Key.COUNT_MATRIX,
-        Key.SIGN_GRID, Key.V_GRID, Key.I_GRID, Key.TEMP_GRID,
+        Key.V_CC_VEC, Key.Q_CC_VEC, Key.MASK_CC_VEC, Key.Q_CV_VEC, Key.I_CV_VEC,
+        Key.MASK_CV_VEC, Key.I_CC, Key.I_PREV, Key.V_PREV_END, Key.V_END,
+        Key.COUNT_MATRIX, Key.SIGN_GRID, Key.V_GRID, Key.I_GRID, Key.TEMP_GRID,
     ]
     for label in labels:
         compiled_tensors[label] = tf.constant(compiled_data[label])
@@ -557,7 +508,7 @@ def initial_processing(
         neg_to_neg_name = {}
         electrolyte_to_electrolyte_name = {}
         molecule_to_molecule_name = {}
-        
+
         if my_names is not None:
             pos_to_pos_name = my_names[Key.POS_TO_POS]
             neg_to_neg_name = my_names[Key.NEG_TO_NEG]
@@ -579,8 +530,8 @@ def initial_processing(
             cell_to_pos = cell_id_to_pos_id,
             cell_to_neg = cell_id_to_neg_id,
             cell_to_electrolyte = cell_id_to_electrolyte_id,
-            cell_to_dry_cell=cell_id_to_dry_cell_id,
-            dry_cell_to_meta=dry_cell_id_to_meta,
+            cell_to_dry_cell = cell_id_to_dry_cell_id,
+            dry_cell_to_meta = dry_cell_id_to_meta,
 
             cell_latent_flags = cell_id_to_latent,
 
@@ -609,11 +560,9 @@ def initial_processing(
         Key.STRAT: strategy,
         Key.MODEL: degradation_model,
         Key.TENSORS: compiled_tensors,
-
         Key.TRAIN_DS: train_ds,
         Key.CYC_M: cycle_m,
         Key.CYC_V: cycle_v,
-
         Key.OPT: optimizer,
         Key.MY_DATA: my_data
     }
@@ -1060,13 +1009,13 @@ class Command(BaseCommand):
             '--coeff_reciprocal_d_current_plus': 2.,
             '--coeff_reciprocal_d3_cycle': 10.,
             '--coeff_reciprocal_d_cycle': 1.,
-            '--coeff_anode_match':5.,
+            '--coeff_anode_match': 5.,
             '--coeff_cathode_match': 1.,
 
             '--coeff_projection': 1.,
             '--coeff_projection_pos': 1.,
             '--coeff_projection_neg': 1.,
-            '--coeff_projection_dry_cell':1.,
+            '--coeff_projection_dry_cell': 1.,
 
             '--coeff_out_of_bounds': 10.,
             '--coeff_out_of_bounds_geq': 1.,

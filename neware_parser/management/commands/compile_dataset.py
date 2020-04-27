@@ -25,19 +25,19 @@ def get_dry_cell_meta_from_cell_id(cell_id):
 
         if dry_cell.cathode_geometry is not None:
             if dry_cell.cathode_geometry.loading is not None:
-                meta['cathode_loading'] = dry_cell.cathode_geometry.loading
+                meta["cathode_loading"] = dry_cell.cathode_geometry.loading
             if dry_cell.cathode_geometry.density is not None:
-                meta['cathode_density'] = dry_cell.cathode_geometry.density
+                meta["cathode_density"] = dry_cell.cathode_geometry.density
             if dry_cell.cathode_geometry.thickness is not None:
-                meta['cathode_thickness'] = dry_cell.cathode_geometry.thickness /1000.
+                meta["cathode_thickness"] = dry_cell.cathode_geometry.thickness /1000.
 
         if dry_cell.anode_geometry is not None:
             if dry_cell.anode_geometry.loading is not None:
-                meta['anode_loading'] = dry_cell.anode_geometry.loading
+                meta["anode_loading"] = dry_cell.anode_geometry.loading
             if dry_cell.anode_geometry.density is not None:
-                meta['anode_density'] = dry_cell.anode_geometry.density
+                meta["anode_density"] = dry_cell.anode_geometry.density
             if dry_cell.anode_geometry.thickness is not None:
-                meta['anode_thickness'] = dry_cell.anode_geometry.thickness /1000.
+                meta["anode_thickness"] = dry_cell.anode_geometry.thickness /1000.
 
         return dry_cell_id, meta, dry_cell_str
 

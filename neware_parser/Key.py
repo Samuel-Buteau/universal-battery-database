@@ -59,6 +59,7 @@ class Key:
     COUNT_MATRIX = "count_matrix"
     SIGN_GRID = "sign_grid"
     TEMP_GRID = "temperature_grid"
+    SVIT_GRID = "svit_grid"
 
     WIDTH = "width"
     DEPTH = "depth"

@@ -316,8 +316,7 @@ def plot_measured(cyc_grp_dict, mode, list_of_keys, list_of_patches, ax1):
 
 def plot_predicted(
     cyc_grp_dict, mode, list_of_keys, cycle_m, cycle_v, barcode_count,
-    degradation_model, svit_and_count,
-    ax1,
+    degradation_model, svit_and_count, ax1,
 ):
     for k_count, k in enumerate(list_of_keys):
 
@@ -375,8 +374,7 @@ def plot_predicted(
 
 def plot_capacities(
     cyc_grp_dict, cycle_m, cycle_v, barcode_count,
-    degradation_model, svit_and_count,
-    fig,
+    degradation_model, svit_and_count, fig,
 ):
     for typ, off, mode in [
         ("dchg", 0, "cc"), ("chg", 1, "cc"), ("chg", 2, "cv")
@@ -407,8 +405,7 @@ def plot_capacities(
 
 def plot_scale(
     cyc_grp_dict, cycle_m, cycle_v, barcode_count,
-    degradation_model, svit_and_count,
-    fig,
+    degradation_model, svit_and_count, fig,
 ):
     for typ, off, mode in [("dchg", 3, "cc")]:
 
@@ -457,8 +454,7 @@ def plot_scale(
 
 def plot_resistance(
     cyc_grp_dict, cycle_m, cycle_v, barcode_count,
-    degradation_model, svit_and_count,
-    fig,
+    degradation_model, svit_and_count, fig,
 ):
     for typ, off, mode in [("dchg", 4, "cc")]:
 

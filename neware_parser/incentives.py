@@ -40,16 +40,16 @@ def incentive_inequality(x, symbol, y, level):
     (either Level.Strong or Level.Proportional)
 
         Level.Strong means that we take the L1 norm, so the gradient trying
-        to satisfy 'x symbol B' will be constant no matter how far from 'x
-        symbol B' we
+        to satisfy "x symbol B" will be constant no matter how far from "x
+        symbol B" we
         are.
 
         Level.Proportional means that we take the L2 norm, so the gradient
-        trying to satisfy 'x symbol B' will be proportional to how far from
-        'x symbol B' we are.
+        trying to satisfy "x symbol B" will be proportional to how far from
+        "x symbol B" we are.
 
-    :return: A loss which will give the model an incentive to satisfy 'x
-    symbol B', with level.
+    :return: A loss which will give the model an incentive to satisfy "x
+    symbol B", with level.
     """
 
     if symbol == Inequality.LessThan:
@@ -105,14 +105,14 @@ def incentive_magnitude(x, target, level):
         multiplier = -1.
 
     else:
-        raise Exception('not yet implemented target {}'.format(target))
+        raise Exception("not yet implemented target {}".format(target))
 
     if level == Level.Strong:
         x_prime = x_prime
     elif level == Level.Proportional:
         x_prime = tf.square(x_prime)
     else:
-        raise Exception('not yet implemented level {}'.format(level))
+        raise Exception("not yet implemented level {}".format(level))
 
     return multiplier * x_prime
 

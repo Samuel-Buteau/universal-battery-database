@@ -669,7 +669,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                     plot_params = {
                         "barcodes": barcodes,
                         "count": count,
-                        "fit_args": fit_args,
+                        Key.FIT_ARGS: fit_args,
                     }
 
                     if (count % fit_args[Key.VIS]) == 0:

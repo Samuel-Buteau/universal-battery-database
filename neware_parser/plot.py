@@ -95,7 +95,7 @@ def get_svit_and_count(my_data, barcode):
     n_temperature = len(my_data["temperature_grid"])
 
     count_matrix = np.reshape(
-        my_data["all_data"][barcode]["all_reference_mats"]["count_matrix"][-1],
+        my_data[Key.ALL_DATA][barcode]["all_reference_mats"][Key.COUNT_MATRIX][-1],
         [n_sign, n_voltage, n_current, n_temperature, 1]
     )
 
@@ -123,25 +123,25 @@ def get_svit_and_count(my_data, barcode):
         ),
         axis = -1
     )
-    return {"svit_grid": svit_grid, "count_matrix": count_matrix}
+    return {Key.SVIT_GRID: svit_grid, Key.COUNT_MATRIX: count_matrix}
 
 
 def plot_vq(plot_params, init_returns):
-    barcodes = plot_params["barcodes"][:plot_params["fit_args"]["barcode_show"]]
+    barcodes = plot_params["barcodes"][:plot_params[Key.FIT_ARGS]["barcode_show"]]
     count = plot_params["count"]
-    fit_args = plot_params["fit_args"]
+    fit_args = plot_params[Key.FIT_ARGS]
 
-    degradation_model = init_returns["degradation_model"]
-    my_data = init_returns["my_data"]
-    cycle_m = init_returns["cycle_m"]
-    cycle_v = init_returns["cycle_v"]
+    degradation_model = init_returns[Key.MODEL]
+    my_data = init_returns[Key.MY_DATA]
+    cycle_m = init_returns[Key.CYC_M]
+    cycle_v = init_returns[Key.CYC_V]
     x_lim = [-0.01, 1.01]
     y_lim = [2.95, 4.35]
 
     for barcode_count, barcode in enumerate(barcodes):
 
         fig, axs = plt.subplots(nrows = 3, figsize = [5, 10], sharex = True)
-        cyc_grp_dict = my_data["all_data"][barcode]["cyc_grp_dict"]
+        cyc_grp_dict = my_data[Key.ALL_DATA][barcode][Key.CYC_GRP_DICT]
 
         for typ, off, mode, x_leg, y_leg in [
             ("dchg", 0, "cc", 0.5, 1),
@@ -158,7 +158,7 @@ def plot_vq(plot_params, init_returns):
                 else:
                     sign_change = +1.
 
-                barcode_k = cyc_grp_dict[k]["main_data"]
+                barcode_k = cyc_grp_dict[k][Key.MAIN]
 
                 if mode == "cc":
                     capacity_tensor = barcode_k["cc_capacity_vector"]
@@ -166,7 +166,7 @@ def plot_vq(plot_params, init_returns):
                     capacity_tensor = barcode_k["cv_capacity_vector"]
 
                 for vq_count, vq in enumerate(capacity_tensor):
-                    cyc = barcode_k["cycle_number"][vq_count]
+                    cyc = barcode_k[Key.N][vq_count]
 
                     mult = 1. - (.5 * float(cyc) / 6000.)
 
@@ -212,7 +212,7 @@ def plot_vq(plot_params, init_returns):
                 v_min = min(k[3], k[4])
                 v_max = max(k[3], k[4])
                 v_range = np.arange(v_min, v_max, 0.05)
-                curr_min = abs(cyc_grp_dict[k]["avg_constant_current"])
+                curr_min = abs(cyc_grp_dict[k][Key.I_CC_AVG])
                 curr_max = abs(cyc_grp_dict[k]["avg_end_current"])
 
                 if curr_min == curr_max:
@@ -234,16 +234,16 @@ def plot_vq(plot_params, init_returns):
 
                     test_results = test_all_voltages(
                         scaled_cyc,
-                        cyc_grp_dict[k]["avg_constant_current"],
-                        cyc_grp_dict[k]["avg_end_current_prev"],
-                        cyc_grp_dict[k]["avg_end_voltage_prev"],
-                        cyc_grp_dict[k]["avg_end_voltage"],
+                        cyc_grp_dict[k][Key.I_CC_AVG],
+                        cyc_grp_dict[k][Key.I_PREV_END_AVG],
+                        cyc_grp_dict[k][Key.V_PREV_END_AVG],
+                        cyc_grp_dict[k][Key.V_END_AVG],
                         barcode_count,
                         degradation_model,
                         v_range,
                         current_range,
-                        svit_and_count["svit_grid"],
-                        svit_and_count["count_matrix"],
+                        svit_and_count[Key.SVIT_GRID],
+                        svit_and_count[Key.COUNT_MATRIX],
                     )
 
                     if mode == "cc":
@@ -291,7 +291,7 @@ def plot_measured(cyc_grp_dict, mode, list_of_keys, list_of_patches, ax1):
             )
         )
 
-        main_data = cyc_grp_dict[k]["main_data"]
+        main_data = cyc_grp_dict[k][Key.MAIN]
 
         if k[-1] == "dchg":
             sign_change = -1.
@@ -304,7 +304,7 @@ def plot_measured(cyc_grp_dict, mode, list_of_keys, list_of_patches, ax1):
             cap = sign_change * main_data["last_cv_capacity"]
 
         ax1.scatter(
-            main_data["cycle_number"],
+            main_data[Key.N],
             cap,
             c = COLORS[k_count],
             s = 5,
@@ -330,10 +330,10 @@ def plot_predicted(
 
         if mode == "cc":
             target_voltage = cyc_grp_dict[k]["avg_last_cc_voltage"]
-            target_currents = [cyc_grp_dict[k]["avg_constant_current"]]
+            target_currents = [cyc_grp_dict[k][Key.I_CC_AVG]]
         elif mode == "cv":
-            target_voltage = cyc_grp_dict[k]["avg_end_voltage"]
-            curr_min = abs(cyc_grp_dict[k]["avg_constant_current"])
+            target_voltage = cyc_grp_dict[k][Key.V_END_AVG]
+            curr_min = abs(cyc_grp_dict[k][Key.I_CC_AVG])
             curr_max = abs(cyc_grp_dict[k]["avg_end_current"])
 
             if curr_min == curr_max:
@@ -350,14 +350,14 @@ def plot_predicted(
         test_results = test_single_voltage(
             my_cycle,
             target_voltage,
-            cyc_grp_dict[k]["avg_constant_current"],
-            cyc_grp_dict[k]["avg_end_current_prev"],
-            cyc_grp_dict[k]["avg_end_voltage_prev"],
-            cyc_grp_dict[k]["avg_end_voltage"],
+            cyc_grp_dict[k][Key.I_CC_AVG],
+            cyc_grp_dict[k][Key.I_PREV_END_AVG],
+            cyc_grp_dict[k][Key.V_PREV_END_AVG],
+            cyc_grp_dict[k][Key.V_END_AVG],
             target_currents,
             barcode_count, degradation_model,
-            svit_and_count["svit_grid"],
-            svit_and_count["count_matrix"]
+            svit_and_count[Key.SVIT_GRID],
+            svit_and_count[Key.COUNT_MATRIX]
         )
 
         if mode == "cc":
@@ -427,19 +427,19 @@ def plot_scale(
             my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
 
             target_voltage = cyc_grp_dict[k]["avg_last_cc_voltage"]
-            target_currents = [cyc_grp_dict[k]["avg_constant_current"]]
+            target_currents = [cyc_grp_dict[k][Key.I_CC_AVG]]
 
             test_results = test_single_voltage(
                 my_cycle,
                 target_voltage,
-                cyc_grp_dict[k]["avg_constant_current"],
-                cyc_grp_dict[k]["avg_end_current_prev"],
-                cyc_grp_dict[k]["avg_end_voltage_prev"],
-                cyc_grp_dict[k]["avg_end_voltage"],
+                cyc_grp_dict[k][Key.I_CC_AVG],
+                cyc_grp_dict[k][Key.I_PREV_END_AVG],
+                cyc_grp_dict[k][Key.V_PREV_END_AVG],
+                cyc_grp_dict[k][Key.V_END_AVG],
                 target_currents,
                 barcode_count, degradation_model,
-                svit_and_count["svit_grid"],
-                svit_and_count["count_matrix"]
+                svit_and_count[Key.SVIT_GRID],
+                svit_and_count[Key.COUNT_MATRIX]
             )
 
             pred_cap = tf.reshape(
@@ -473,19 +473,19 @@ def plot_resistance(
             my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
 
             target_voltage = cyc_grp_dict[k]["avg_last_cc_voltage"]
-            target_currents = [cyc_grp_dict[k]["avg_constant_current"]]
+            target_currents = [cyc_grp_dict[k][Key.I_CC_AVG]]
 
             test_results = test_single_voltage(
                 my_cycle,
                 target_voltage,
-                cyc_grp_dict[k]["avg_constant_current"],
-                cyc_grp_dict[k]["avg_end_current_prev"],
-                cyc_grp_dict[k]["avg_end_voltage_prev"],
-                cyc_grp_dict[k]["avg_end_voltage"],
+                cyc_grp_dict[k][Key.I_CC_AVG],
+                cyc_grp_dict[k][Key.I_PREV_END_AVG],
+                cyc_grp_dict[k][Key.V_PREV_END_AVG],
+                cyc_grp_dict[k][Key.V_END_AVG],
                 target_currents,
                 barcode_count, degradation_model,
-                svit_and_count["svit_grid"],
-                svit_and_count["count_matrix"]
+                svit_and_count[Key.SVIT_GRID],
+                svit_and_count[Key.COUNT_MATRIX]
             )
 
             pred_cap = tf.reshape(test_results["pred_R"], shape = [-1])
@@ -511,19 +511,19 @@ def plot_shift(
             my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
 
             target_voltage = cyc_grp_dict[k]["avg_last_cc_voltage"]
-            target_currents = [cyc_grp_dict[k]["avg_constant_current"]]
+            target_currents = [cyc_grp_dict[k][Key.I_CC_AVG]]
 
             test_results = test_single_voltage(
                 my_cycle,
                 target_voltage,
-                cyc_grp_dict[k]["avg_constant_current"],
-                cyc_grp_dict[k]["avg_end_current_prev"],
-                cyc_grp_dict[k]["avg_end_voltage_prev"],
-                cyc_grp_dict[k]["avg_end_voltage"],
+                cyc_grp_dict[k][Key.I_CC_AVG],
+                cyc_grp_dict[k][Key.I_PREV_END_AVG],
+                cyc_grp_dict[k][Key.V_PREV_END_AVG],
+                cyc_grp_dict[k][Key.V_END_AVG],
                 target_currents,
                 barcode_count, degradation_model,
-                svit_and_count["svit_grid"],
-                svit_and_count["count_matrix"],
+                svit_and_count[Key.SVIT_GRID],
+                svit_and_count[Key.COUNT_MATRIX],
             )
             pred_cap = tf.reshape(test_results["pred_shift"], shape = [-1])
 
@@ -531,20 +531,20 @@ def plot_shift(
 
 
 def plot_things_vs_cycle_number(plot_params, init_returns):
-    barcodes = plot_params["barcodes"][:plot_params["fit_args"]["barcode_show"]]
+    barcodes = plot_params["barcodes"][:plot_params[Key.FIT_ARGS]["barcode_show"]]
     count = plot_params["count"]
-    fit_args = plot_params["fit_args"]
+    fit_args = plot_params[Key.FIT_ARGS]
 
-    degradation_model = init_returns["degradation_model"]
-    my_data = init_returns["my_data"]
-    cycle_m = init_returns["cycle_m"]
-    cycle_v = init_returns["cycle_v"]
+    degradation_model = init_returns[Key.MODEL]
+    my_data = init_returns[Key.MY_DATA]
+    cycle_m = init_returns[Key.CYC_M]
+    cycle_v = init_returns[Key.CYC_V]
 
     # for each cell, plot the quantities of interest
     for barcode_count, barcode in enumerate(barcodes):
         svit_and_count = get_svit_and_count(my_data, barcode)
         fig = plt.figure(figsize = [11, 10])
-        cyc_grp_dict = my_data["all_data"][barcode]["cyc_grp_dict"]
+        cyc_grp_dict = my_data[Key.ALL_DATA][barcode][Key.CYC_GRP_DICT]
 
         plot_capacities(
             cyc_grp_dict, cycle_m, cycle_v, barcode_count,
@@ -686,10 +686,10 @@ def get_nearest_point(xys, y):
 
 def plot_v_curves(plot_params, init_returns):
     # for now, this is a 2 by 2 plot.
-    barcodes = plot_params["barcodes"][:plot_params["fit_args"]["barcode_show"]]
+    barcodes = plot_params["barcodes"][:plot_params[Key.FIT_ARGS]["barcode_show"]]
     count = plot_params["count"]
-    fit_args = plot_params["fit_args"]
-    degradation_model = init_returns["degradation_model"]
+    fit_args = plot_params[Key.FIT_ARGS]
+    degradation_model = init_returns[Key.MODEL]
     shift = np.linspace(start = -.2, stop = .2, num = 9, dtype = np.float32)
     v = np.linspace(start = 2., stop = 5.5, num = 64, dtype = np.float32)
     q = np.linspace(start = -0.25, stop = 1.25, num = 64, dtype = np.float32)

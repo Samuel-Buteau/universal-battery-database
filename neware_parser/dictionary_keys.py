@@ -1,6 +1,6 @@
 # params keys
-TENSORS = "compiled_tensors"
-MODEL = "degradation_model"
+TENSORS = Key.TENSORS
+MODEL = Key.MODEL
 
 # Dictionary keys
 Q_CC = "cc_capacity_vector"
@@ -13,28 +13,28 @@ Q_GRID = "current_grid"
 I_CV = "cv_current_vector"
 I_CC = "constant_current"
 I_PREV = "end_current_prev"
-I_CC_AVG = "avg_constant_current"
-I_PREV_END_AVG = "avg_end_current_prev"
+I_CC_AVG = Key.I_CC_AVG
+I_PREV_END_AVG = Key.I_PREV_END_AVG
 
 V_CC = "cc_voltage_vector"
 V_END = "end_voltage"
-V_END_AVG = "avg_end_voltage"
+V_END_AVG = Key.V_END_AVG
 V_PREV_END = "end_voltage_prev"
-V_PREV_END_AVG = "avg_end_voltage_prev"
+V_PREV_END_AVG = Key.V_PREV_END_AVG
 V_GRID = "voltage_grid"
 
 MASK_CC = "cc_mask_vector"
 MASK_CV = "cv_mask_vector"
 
-N = "cycle_number"
+N = Key.N
 
-COUNT_MATRIX = "count_matrix"
+COUNT_MATRIX = Key.COUNT_MATRIX
 
 SIGN_GRID = "sign_grid"
 TEMP_GRID = "temperature_grid"
 
 # data keys
-ALL_DATA = "all_data"
+ALL_DATA = Key.ALL_DATA
 
 # my_data keys
 CELL_TO_POS = "cell_id_to_pos_id"

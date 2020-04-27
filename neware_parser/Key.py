@@ -76,6 +76,7 @@ class Key:
     MIN_LAT = "min_latent"
     GLB_NORM_CLIP = "global_norm_clip"
 
+    FIT_ARGS = "fit_args"
     MAIN = "main_data"
     MY_DATA = "my_data"
     ALL_DATA = "all_data"
@@ -98,7 +99,6 @@ class Key:
     ELE_TO_ELE = "electrolyte_to_electrolyte_name"
     MOL_TO_MOL = "molecule_to_molecule_name"
 
-    # TODO (harvey): replace the following block of keys
     STRAT = "strategy"
     TENSORS = "compiled_tensors"
     MODEL = "degradation_model"

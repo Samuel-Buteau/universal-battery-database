@@ -407,49 +407,47 @@ def plot_scale(
     cyc_grp_dict, cycle_m, cycle_v, barcode_count,
     degradation_model, svit_and_count, fig,
 ):
-    for typ, off, mode in [("dchg", 3, "cc")]:
+    typ, off, mode = "dchg", 3, "cc"
 
-        list_of_patches = []
-        list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
+    list_of_patches = []
+    list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
 
-        ax1 = fig.add_subplot(6, 1, 1 + off)
-        ax1.set_ylabel("scale")
+    ax1 = fig.add_subplot(6, 1, 1 + off)
+    ax1.set_ylabel("scale")
 
-        for k_count, k in enumerate(list_of_keys):
-            list_of_patches.append(mpatches.Patch(
-                color = COLORS[k_count], label = make_legend(k),
-            ))
-
-            cycle = [x for x in np.arange(0., 6000., 20.)]
-
-            my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
-
-            target_voltage = cyc_grp_dict[k]["avg_last_cc_voltage"]
-            target_currents = [cyc_grp_dict[k][Key.I_CC_AVG]]
-
-            test_results = test_single_voltage(
-                my_cycle,
-                target_voltage,
-                cyc_grp_dict[k][Key.I_CC_AVG],
-                cyc_grp_dict[k][Key.I_PREV_END_AVG],
-                cyc_grp_dict[k][Key.V_PREV_END_AVG],
-                cyc_grp_dict[k][Key.V_END_AVG],
-                target_currents,
-                barcode_count, degradation_model,
-                svit_and_count[Key.SVIT_GRID],
-                svit_and_count[Key.COUNT_MATRIX],
-            )
-
-            pred_cap = tf.reshape(
-                test_results["pred_scale"], shape = [-1],
-            )
-
-            ax1.plot(cycle, pred_cap, c = COLORS[k_count])
-
-        ax1.legend(
-            handles = list_of_patches, fontsize = "small",
-            bbox_to_anchor = (0.7, 1), loc = "upper left"
+    for k_count, k in enumerate(list_of_keys):
+        list_of_patches.append(
+            mpatches.Patch(color = COLORS[k_count], label = make_legend(k))
         )
+
+        cycle = [x for x in np.arange(0., 6000., 20.)]
+
+        my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
+
+        target_voltage = cyc_grp_dict[k]["avg_last_cc_voltage"]
+        target_currents = [cyc_grp_dict[k][Key.I_CC_AVG]]
+
+        test_results = test_single_voltage(
+            my_cycle,
+            target_voltage,
+            cyc_grp_dict[k][Key.I_CC_AVG],
+            cyc_grp_dict[k][Key.I_PREV_END_AVG],
+            cyc_grp_dict[k][Key.V_PREV_END_AVG],
+            cyc_grp_dict[k][Key.V_END_AVG],
+            target_currents,
+            barcode_count, degradation_model,
+            svit_and_count[Key.SVIT_GRID],
+            svit_and_count[Key.COUNT_MATRIX],
+        )
+
+        pred_cap = tf.reshape(test_results["pred_scale"], shape = [-1])
+
+        ax1.plot(cycle, pred_cap, c = COLORS[k_count])
+
+    ax1.legend(
+        handles = list_of_patches, fontsize = "small",
+        bbox_to_anchor = (0.7, 1), loc = "upper left"
+    )
 
 
 def plot_resistance(

@@ -586,7 +586,7 @@ def test_all_voltages(
     expanded_svit_grid = tf.constant([svit_grid])
     expanded_count_matrix = tf.constant([count_matrix])
 
-    indecies = tf.reshape(barcode_count, [1])
+    indices = tf.reshape(barcode_count, [1])
 
     return degradation_model(
         (
@@ -595,7 +595,7 @@ def test_all_voltages(
             expanded_end_current_prev,
             expanded_end_voltage_prev,
             expanded_end_voltage,
-            indecies,
+            indices,
             tf.reshape(voltages, [1, len(voltages)]),
             tf.reshape(currents, [1, len(currents)]),
             expanded_svit_grid,

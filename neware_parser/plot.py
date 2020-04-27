@@ -95,7 +95,8 @@ def get_svit_and_count(my_data, barcode):
     n_temperature = len(my_data["temperature_grid"])
 
     count_matrix = np.reshape(
-        my_data[Key.ALL_DATA][barcode]["all_reference_mats"][Key.COUNT_MATRIX][-1],
+        my_data[Key.ALL_DATA][barcode]["all_reference_mats"]
+        [Key.COUNT_MATRIX][-1],
         [n_sign, n_voltage, n_current, n_temperature, 1]
     )
 
@@ -127,7 +128,8 @@ def get_svit_and_count(my_data, barcode):
 
 
 def plot_vq(plot_params, init_returns):
-    barcodes = plot_params["barcodes"][:plot_params[Key.FIT_ARGS]["barcode_show"]]
+    barcodes\
+        = plot_params["barcodes"][:plot_params[Key.FIT_ARGS]["barcode_show"]]
     count = plot_params["count"]
     fit_args = plot_params[Key.FIT_ARGS]
 
@@ -399,7 +401,7 @@ def plot_capacities(
             handles = list_of_patches,
             fontsize = "small",
             bbox_to_anchor = (0.7, 1),
-            loc = "upper left"
+            loc = "upper left",
         )
 
 
@@ -418,8 +420,7 @@ def plot_scale(
 
         for k_count, k in enumerate(list_of_keys):
             list_of_patches.append(mpatches.Patch(
-                color = COLORS[k_count],
-                label = make_legend(k)
+                color = COLORS[k_count], label = make_legend(k),
             ))
 
             cycle = [x for x in np.arange(0., 6000., 20.)]
@@ -439,12 +440,11 @@ def plot_scale(
                 target_currents,
                 barcode_count, degradation_model,
                 svit_and_count[Key.SVIT_GRID],
-                svit_and_count[Key.COUNT_MATRIX]
+                svit_and_count[Key.COUNT_MATRIX],
             )
 
             pred_cap = tf.reshape(
-                test_results["pred_scale"],
-                shape = [-1]
+                test_results["pred_scale"], shape = [-1],
             )
 
             ax1.plot(cycle, pred_cap, c = COLORS[k_count])
@@ -531,7 +531,8 @@ def plot_shift(
 
 
 def plot_things_vs_cycle_number(plot_params, init_returns):
-    barcodes = plot_params["barcodes"][:plot_params[Key.FIT_ARGS]["barcode_show"]]
+    barcodes\
+        = plot_params["barcodes"][:plot_params[Key.FIT_ARGS]["barcode_show"]]
     count = plot_params["count"]
     fit_args = plot_params[Key.FIT_ARGS]
 
@@ -574,7 +575,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
 def test_all_voltages(
     cycle, constant_current, end_current_prev, end_voltage_prev, end_voltage,
     barcode_count, degradation_model,
-    voltages, currents, svit_grid, count_matrix
+    voltages, currents, svit_grid, count_matrix,
 ):
     expanded_cycle = tf.constant(cycle, shape = [1, 1])
     expanded_constant_current = tf.constant(constant_current, shape = [1, 1])
@@ -610,26 +611,23 @@ def test_single_voltage(
 ):
     expanded_cycle = tf.expand_dims(cycle, axis = 1)
     expanded_constant_current = tf.constant(
-        constant_current,
-        shape = [len(cycle), 1]
+        constant_current, shape = [len(cycle), 1],
     )
     expanded_end_current_prev = tf.constant(
-        end_current_prev,
-        shape = [len(cycle), 1]
+        end_current_prev, shape = [len(cycle), 1],
     )
     expanded_end_voltage_prev = tf.constant(
-        end_voltage_prev,
-        shape = [len(cycle), 1]
+        end_voltage_prev, shape = [len(cycle), 1],
     )
     expanded_end_voltage = tf.constant(end_voltage, shape = [len(cycle), 1])
 
     indecies = tf.tile(tf.expand_dims(barcode_count, axis = 0), [len(cycle)])
 
     expanded_svit_grid = tf.tile(
-        tf.constant([svit_grid]), [len(cycle), 1, 1, 1, 1, 1]
+        tf.constant([svit_grid]), [len(cycle), 1, 1, 1, 1, 1],
     )
     expanded_count_matrix = tf.tile(
-        tf.constant([count_matrix]), [len(cycle), 1, 1, 1, 1, 1]
+        tf.constant([count_matrix]), [len(cycle), 1, 1, 1, 1, 1],
     )
 
     return degradation_model(
@@ -646,7 +644,7 @@ def test_single_voltage(
                 [len(cycle), 1]
             ),
             expanded_svit_grid,
-            expanded_count_matrix
+            expanded_count_matrix,
         ),
         training = False
     )
@@ -654,8 +652,7 @@ def test_single_voltage(
 
 def savefig(figname, fit_args):
     plt.savefig(
-        os.path.join(fit_args[Key.PATH_PLOTS], figname),
-        dpi = 300
+        os.path.join(fit_args[Key.PATH_PLOTS], figname), dpi = 300
     )
 
 
@@ -686,7 +683,8 @@ def get_nearest_point(xys, y):
 
 def plot_v_curves(plot_params, init_returns):
     # for now, this is a 2 by 2 plot.
-    barcodes = plot_params["barcodes"][:plot_params[Key.FIT_ARGS]["barcode_show"]]
+    barcodes\
+        = plot_params["barcodes"][:plot_params[Key.FIT_ARGS]["barcode_show"]]
     count = plot_params["count"]
     fit_args = plot_params[Key.FIT_ARGS]
     degradation_model = init_returns[Key.MODEL]
@@ -696,8 +694,10 @@ def plot_v_curves(plot_params, init_returns):
     for current in [0.05, 3.]:
         for barcode in barcodes:
 
-            fig, axs = plt.subplots(nrows = 3, ncols = 3, figsize = [10, 10],
-                                    sharex = True, sharey = True)
+            fig, axs = plt.subplots(
+                nrows = 3, ncols = 3, figsize = [10, 10],
+                sharex = True, sharey = True,
+            )
 
             gathered_axs = []
             for ax_i in axs:
@@ -723,8 +723,10 @@ def plot_v_curves(plot_params, init_returns):
             ax.legend()
 
             fig.tight_layout()
-            savefig("v_curves_{}_{}_I{}.png".format(barcode, count, current),
-                    fit_args)
+            savefig(
+                "v_curves_{}_{}_I{}.png".format(barcode, count, current),
+                fit_args,
+            )
             plt.close(fig)
 
 

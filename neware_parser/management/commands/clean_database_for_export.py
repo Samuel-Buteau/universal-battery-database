@@ -29,9 +29,9 @@ class Command(BaseCommand):
             DatabaseFile.objects.filter(valid_metadata = None).delete()
             DatabaseFile.objects.exclude(
                 valid_metadata__experiment_type = ExperimentType.objects.get(
-                    category = Category.objects.get(name = 'cycling'),
+                    category = Category.objects.get(name = "cycling"),
                     subcategory = SubCategory.objects.get(
-                        name = 'neware'))).delete()
+                        name = "neware"))).delete()
             DatabaseFile.objects.filter(deprecated = True).delete()
             DatabaseFile.objects.filter(is_valid = False).delete()
             DatabaseFile.objects.exclude(

@@ -408,17 +408,16 @@ def compute_and_plot_scale(
     cyc_grp_dict, cycle_m, cycle_v, barcode_count,
     degradation_model, svit_and_count, fig,
 ) -> None:
-    step, off, mode = "dchg", 3, "cc"
+    step, mode = "dchg", "cc"
 
-    list_of_patches = []
-    list_of_keys = make_keys(cyc_grp_dict, step)
-
+    patches = []
+    keys = make_keys(cyc_grp_dict, step)
     scales = []
 
-    for k_count, k in enumerate(list_of_keys):
-        cycle = [x for x in np.arange(0., 6000., 20.)]
+    for k_count, k in enumerate(keys):
+        cycles = [x for x in np.arange(0., 6000., 20.)]
 
-        my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
+        my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycles]
 
         target_voltage = cyc_grp_dict[k]["avg_last_cc_voltage"]
         target_currents = [cyc_grp_dict[k][Key.I_CC_AVG]]
@@ -437,21 +436,20 @@ def compute_and_plot_scale(
         )
         scales.append(tf.reshape(test_results["pred_scale"], shape = [-1]))
 
-    plot_scale(fig, list_of_patches, list_of_keys, scales, cycle)
+    plot_scale(fig, patches, keys, scales, cycles)
 
 
-def plot_scale(fig, list_of_patches, list_of_keys, scales, cycle):
-    step, off, mode = "dchg", 3, "cc"
+def plot_scale(fig, patches, keys, scales, cycles, off = 3):
     ax1 = fig.add_subplot(6, 1, 1 + off)
-    for k_count, (k, scale) in enumerate(zip(list_of_keys, scales)):
-        list_of_patches.append(
+    for k_count, (k, scale) in enumerate(zip(keys, scales)):
+        patches.append(
             mpatches.Patch(color = COLORS[k_count], label = make_legend(k))
         )
-        ax1.plot(cycle, scale, c = COLORS[k_count])
+        ax1.plot(cycles, scale, c = COLORS[k_count])
 
     ax1.set_ylabel("scale")
     ax1.legend(
-        handles = list_of_patches, fontsize = "small",
+        handles = patches, fontsize = "small",
         bbox_to_anchor = (0.7, 1), loc = "upper left"
     )
 
@@ -739,13 +737,11 @@ def make_keys(cyc_grp_dict: dict, step: str) -> list:
         list: Keys representing charge/discharge configurations
     """
 
-    list_of_keys = [
-        key for key in cyc_grp_dict.keys() if key[-1] == step
-    ]
-    list_of_keys.sort(
+    keys = [key for key in cyc_grp_dict.keys() if key[-1] == step]
+    keys.sort(
         key = lambda k: (
             round(20. * k[0]), round(20. * k[1]), round(20. * k[2]),
             round(20. * k[3]), round(20. * k[4])
         )
     )
-    return list_of_keys
+    return keys

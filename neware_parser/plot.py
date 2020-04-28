@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.axes._axes import _log as matplotlib_axes_logger
 
+from neware_parser.Print import Print
 from neware_parser.Key import Key
 
 matplotlib_axes_logger.setLevel("ERROR")
@@ -150,7 +151,7 @@ def plot_vq(plot_params, init_returns):
             ("chg", 1, "cc", 0.5, 0.5),
             ("chg", 2, "cv", 0., 0.5)
         ]:
-            list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
+            list_of_keys = make_keys(cyc_grp_dict, typ)
 
             list_of_patches = []
             ax = axs[off]
@@ -380,7 +381,7 @@ def plot_capacities(
         ("dchg", 0, "cc"), ("chg", 1, "cc"), ("chg", 2, "cv")
     ]:
         list_of_patches = []
-        list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
+        list_of_keys = make_keys(cyc_grp_dict, typ)
 
         ax1 = fig.add_subplot(6, 1, 1 + off)
         ax1.set_ylabel(mode + "-" + typ + "-capacity")
@@ -403,23 +404,18 @@ def plot_capacities(
         )
 
 
-def plot_scale(
+def compute_and_plot_scale(
     cyc_grp_dict, cycle_m, cycle_v, barcode_count,
     degradation_model, svit_and_count, fig,
-):
-    typ, off, mode = "dchg", 3, "cc"
+) -> None:
+    step, off, mode = "dchg", 3, "cc"
 
     list_of_patches = []
-    list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
+    list_of_keys = make_keys(cyc_grp_dict, step)
 
-    ax1 = fig.add_subplot(6, 1, 1 + off)
-    ax1.set_ylabel("scale")
+    scales = []
 
     for k_count, k in enumerate(list_of_keys):
-        list_of_patches.append(
-            mpatches.Patch(color = COLORS[k_count], label = make_legend(k))
-        )
-
         cycle = [x for x in np.arange(0., 6000., 20.)]
 
         my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
@@ -439,11 +435,21 @@ def plot_scale(
             svit_and_count[Key.SVIT_GRID],
             svit_and_count[Key.COUNT_MATRIX],
         )
+        scales.append(tf.reshape(test_results["pred_scale"], shape = [-1]))
 
-        pred_cap = tf.reshape(test_results["pred_scale"], shape = [-1])
+    plot_scale(fig, list_of_patches, list_of_keys, scales, cycle)
 
-        ax1.plot(cycle, pred_cap, c = COLORS[k_count])
 
+def plot_scale(fig, list_of_patches, list_of_keys, scales, cycle):
+    step, off, mode = "dchg", 3, "cc"
+    ax1 = fig.add_subplot(6, 1, 1 + off)
+    for k_count, (k, scale) in enumerate(zip(list_of_keys, scales)):
+        list_of_patches.append(
+            mpatches.Patch(color = COLORS[k_count], label = make_legend(k))
+        )
+        ax1.plot(cycle, scale, c = COLORS[k_count])
+
+    ax1.set_ylabel("scale")
     ax1.legend(
         handles = list_of_patches, fontsize = "small",
         bbox_to_anchor = (0.7, 1), loc = "upper left"
@@ -456,7 +462,7 @@ def plot_resistance(
 ):
     for typ, off, mode in [("dchg", 4, "cc")]:
 
-        list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
+        list_of_keys = make_keys(cyc_grp_dict, typ)
 
         ax1 = fig.add_subplot(6, 1, 1 + off)
         ax1.set_ylabel("resistance")
@@ -494,7 +500,7 @@ def plot_shift(
 ):
     for typ, off, mode in [("dchg", 5, "cc")]:
 
-        list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
+        list_of_keys = make_keys(cyc_grp_dict, typ)
 
         ax1 = fig.add_subplot(6, 1, 1 + off)
         ax1.set_ylabel("shift")
@@ -546,7 +552,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
             degradation_model, svit_and_count,
             fig,
         )
-        plot_scale(
+        compute_and_plot_scale(
             cyc_grp_dict, cycle_m, cycle_v, barcode_count,
             degradation_model, svit_and_count,
             fig,
@@ -724,9 +730,17 @@ def plot_v_curves(plot_params, init_returns):
             plt.close(fig)
 
 
-def get_list_of_keys(cyc_grp_dict, typ):
+def make_keys(cyc_grp_dict: dict, step: str) -> list:
+    """
+    Args:
+        cyc_grp_dict (dict)
+        step (str): Specifies charge or discharge
+    Returns:
+        list: Keys representing charge/discharge configurations
+    """
+
     list_of_keys = [
-        key for key in cyc_grp_dict.keys() if key[-1] == typ
+        key for key in cyc_grp_dict.keys() if key[-1] == step
     ]
     list_of_keys.sort(
         key = lambda k: (

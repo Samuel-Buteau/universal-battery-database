@@ -1,14 +1,12 @@
 import time
-
-import numpy
-import tensorflow as tf
+import pickle
+import numpy as np
 from django.core.management.base import BaseCommand
-
-from neware_parser.DegradationModel import DegradationModel
-from neware_parser.LossRecord import LossRecord
-from neware_parser.models import *
 from neware_parser.plot import *
 from neware_parser.Key import Key
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from matplotlib.axes._axes import _log as matplotlib_axes_logger
 
 """
 Shortened Variable Names:
@@ -110,9 +108,83 @@ def initial_processing(
                     cyc_grp_dict[k][Key.V_END_AVG],
                 )
 
-            main_data = cyc_grp_dict[k][Key.MAIN]
+        plot_1(cyc_grp_dict, barcode, fit_args)
 
 
+
+def plot_1(cyc_grp_dict, barcode, fit_args):
+    # x_lim = [-0.01, 1.01]
+    y_lim = [2.95, 4.35]
+
+    fig, axs = plt.subplots(nrows = 3, figsize = [5, 10], sharex = True)
+
+    for typ, off, mode, x_leg, y_leg in [
+        ("dchg", 0, "cc", 0.5, 1),
+        ("chg", 1, "cc", 0.5, 0.5),
+        ("chg", 2, "cv", 0., 0.5)
+    ]:
+        list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
+
+        list_of_patches = []
+        ax = axs[off]
+        for k_count, k in enumerate(list_of_keys):
+            if k[-1] == "dchg":
+                sign_change = -1.
+            else:
+                sign_change = +1.
+
+            barcode_k = cyc_grp_dict[k][Key.MAIN]
+
+            if mode == "cc":
+                capacity_tensor = barcode_k["cc_capacity_vector"]
+            elif mode == "cv":
+                capacity_tensor = barcode_k["cv_capacity_vector"]
+
+            for vq_count, vq in enumerate(capacity_tensor):
+                cyc = barcode_k[Key.N][vq_count]
+
+                mult = 1. - (.5 * float(cyc) / 6000.)
+
+                if mode == "cc":
+                    vq_mask = barcode_k["cc_mask_vector"][vq_count]
+                    y_axis = barcode_k["cc_voltage_vector"][vq_count]
+                    y_lim = [2.95, 4.35]
+                elif mode == "cv":
+                    vq_mask = barcode_k["cv_mask_vector"][vq_count]
+                    y_axis = barcode_k["cv_current_vector"][vq_count]
+                    y_lim = [
+                        min([key[2] for key in list_of_keys]) - 0.05,
+                        0.05 + max([key[0] for key in list_of_keys])
+                    ]
+
+                valids = vq_mask > .5
+
+                # ax.set_xlim(x_lim)
+                ax.set_ylim(y_lim)
+
+                ax.scatter(
+                    sign_change * vq[valids],
+                    y_axis[valids],
+                    c = [[
+                        mult * COLORS[k_count][0],
+                        mult * COLORS[k_count][1],
+                        mult * COLORS[k_count][2]
+                    ]],
+                    s = 3
+                )
+
+
+        ax.legend(
+            handles = list_of_patches, fontsize = "small",
+            bbox_to_anchor = (x_leg, y_leg), loc = "upper left"
+        )
+        ax.set_ylabel(typ + "-" + mode)
+
+    axs[2].set_xlabel("pred_cap")
+    fig.tight_layout()
+    fig.subplots_adjust(hspace = 0)
+    savefig("voltage_dependence_{}.png".format(barcode), fit_args)
+    plt.close(fig)
 
 
 

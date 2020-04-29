@@ -406,9 +406,21 @@ def plot_capacities(
 
 
 def compute_scale(
-    cyc_grp_dict, cycle_m, cycle_v, barcode_count,
-    degradation_model, svit_and_count, filename,
+    degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
+    svit_and_count, step, mode, filename,
 ) -> None:
+    """ Compute the predicted scale and save it in a pickle file
+
+    Args:
+        cyc_grp_dict (dict)
+        cycle_m: Cycle mean.
+        cycle_v: Cycle variance.
+        barcode_count: Number of barcodes.
+        degradation_model
+        svit_and_count: TODO(harvey)
+        filename: Filename (including path) to save the generated pickle file
+    """
+
     step, mode = "dchg", "cc"
 
     patches = []
@@ -460,9 +472,17 @@ def pickle_load_scale(filename: str) -> tuple:
     return patches, keys, scales, cycles
 
 
-def plot_scale(fig, filename, off = 3):
+def plot_scale(filename: str, fig, offset: int) -> None:
+    """ Plot scale from the given pickle
+
+    Args:
+        filename (str): Filename (including path) to the pickle file
+        fig: The figure on which to plot scale
+        offset (int): The offset on the figure for the scale plot
+    """
+
     patches, keys, scales, cycles = pickle_load_scale(filename)
-    ax1 = fig.add_subplot(6, 1, 1 + off)
+    ax1 = fig.add_subplot(6, 1, 1 + offset)
 
     for k_count, (k, scale) in enumerate(zip(keys, scales)):
         patches.append(
@@ -579,11 +599,10 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
             "scale_{}_count_{}.pickle".format(barcode, count),
         )
         compute_scale(
-            cyc_grp_dict, cycle_m, cycle_v, barcode_count,
-            degradation_model, svit_and_count,
-            scale_pickle_file,
+            degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
+            svit_and_count, "dchg", "cc", scale_pickle_file,
         )
-        plot_scale(fig, scale_pickle_file)
+        plot_scale(filename = scale_pickle_file, fig = fig, offset = 3)
         plot_resistance(
             cyc_grp_dict, cycle_m, cycle_v, barcode_count,
             degradation_model, svit_and_count,

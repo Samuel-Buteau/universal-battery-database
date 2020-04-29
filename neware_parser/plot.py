@@ -1,5 +1,6 @@
 import os
 import pickle
+import sys
 
 import numpy as np
 import tensorflow as tf
@@ -290,9 +291,7 @@ def plot_vq(plot_params, init_returns):
 def plot_measured(cyc_grp_dict, mode, list_of_keys, list_of_patches, ax1):
     for k_count, k in enumerate(list_of_keys):
         list_of_patches.append(
-            mpatches.Patch(
-                color = COLORS[k_count], label = make_legend(k)
-            )
+            mpatches.Patch(color = COLORS[k_count], label = make_legend(k))
         )
 
         main_data = cyc_grp_dict[k][Key.MAIN]
@@ -306,6 +305,8 @@ def plot_measured(cyc_grp_dict, mode, list_of_keys, list_of_patches, ax1):
             cap = sign_change * main_data["last_cc_capacity"]
         elif mode == "cv":
             cap = sign_change * main_data["last_cv_capacity"]
+        else:
+            sys.exit("Unknown mode in measured.")
 
         ax1.scatter(
             main_data[Key.N],
@@ -320,16 +321,14 @@ def plot_predicted(
     cyc_grp_dict, mode, list_of_keys, cycle_m, cycle_v, barcode_count,
     degradation_model, svit_and_count, ax1,
 ):
+    cycle = [x for x in np.arange(0., 6000., 20.)]
+    my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
     for k_count, k in enumerate(list_of_keys):
 
         if k[-1] == "dchg":
             sign_change = -1.
         else:
             sign_change = +1.
-
-        cycle = [x for x in np.arange(0., 6000., 20.)]
-
-        my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
 
         if mode == "cc":
             target_voltage = cyc_grp_dict[k]["avg_last_cc_voltage"]
@@ -349,6 +348,8 @@ def plot_predicted(
                         .05 * (np.log(curr_max) - np.log(curr_min))
                     )
                 )
+        else:
+            sys.exit("Unknown mode in predicted.")
 
         test_results = test_single_voltage(
             my_cycle,
@@ -407,7 +408,7 @@ def plot_capacities(
 
 def compute_scale(
     degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
-    svit_and_count, step, mode, filename,
+    svit_and_count, filename,
 ) -> None:
     """ Compute the predicted scale and save it in a pickle file
 
@@ -427,21 +428,17 @@ def compute_scale(
     keys = make_keys(cyc_grp_dict, step)
     scales = []
     cycles = [x for x in np.arange(0., 6000., 20.)]
+    my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycles]
 
     for k_count, k in enumerate(keys):
-        my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycles]
-
-        target_voltage = cyc_grp_dict[k]["avg_last_cc_voltage"]
-        target_currents = [cyc_grp_dict[k][Key.I_CC_AVG]]
-
         test_results = test_single_voltage(
             my_cycle,
-            target_voltage,
+            cyc_grp_dict[k]["avg_last_cc_voltage"],
             cyc_grp_dict[k][Key.I_CC_AVG],
             cyc_grp_dict[k][Key.I_PREV_END_AVG],
             cyc_grp_dict[k][Key.V_PREV_END_AVG],
             cyc_grp_dict[k][Key.V_END_AVG],
-            target_currents,
+            [cyc_grp_dict[k][Key.I_CC_AVG]],
             barcode_count, degradation_model,
             svit_and_count[Key.SVIT_GRID],
             svit_and_count[Key.COUNT_MATRIX],
@@ -596,7 +593,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
         )
         compute_scale(
             degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
-            svit_and_count, "dchg", "cc", scale_pickle_file,
+            svit_and_count, scale_pickle_file,
         )
         plot_scale(filename = scale_pickle_file, fig = fig, offset = 3)
         plot_resistance(

@@ -1,4 +1,5 @@
 import os
+import pickle
 
 import numpy as np
 import tensorflow as tf
@@ -404,9 +405,9 @@ def plot_capacities(
         )
 
 
-def compute_and_plot_scale(
+def compute_scale(
     cyc_grp_dict, cycle_m, cycle_v, barcode_count,
-    degradation_model, svit_and_count, fig,
+    degradation_model, svit_and_count, filename,
 ) -> None:
     step, mode = "dchg", "cc"
 
@@ -436,11 +437,33 @@ def compute_and_plot_scale(
         )
         scales.append(tf.reshape(test_results["pred_scale"], shape = [-1]))
 
-    plot_scale(fig, patches, keys, scales, cycles)
+    pickle_dump_scale(filename, patches, keys, scales, cycles)
 
 
-def plot_scale(fig, patches, keys, scales, cycles, off = 3):
+def pickle_dump_scale(filename: str, patches, keys, scales, cycles) -> None:
+    f = open(filename, "wb+")
+    pickle.dump(patches, f)
+    pickle.dump(keys, f)
+    pickle.dump(scales, f)
+    pickle.dump(cycles, f)
+    f.close()
+
+
+def pickle_load_scale(filename: str) -> tuple:
+    f = open(filename, "rb")
+    patches = pickle.load(f)
+    keys = pickle.load(f)
+    scales = pickle.load(f)
+    cycles = pickle.load(f)
+    f.close()
+
+    return patches, keys, scales, cycles
+
+
+def plot_scale(fig, filename, off = 3):
+    patches, keys, scales, cycles = pickle_load_scale(filename)
     ax1 = fig.add_subplot(6, 1, 1 + off)
+
     for k_count, (k, scale) in enumerate(zip(keys, scales)):
         patches.append(
             mpatches.Patch(color = COLORS[k_count], label = make_legend(k))
@@ -550,11 +573,17 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
             degradation_model, svit_and_count,
             fig,
         )
-        compute_and_plot_scale(
+
+        scale_pickle_file = os.path.join(
+            fit_args[Key.PATH_PLOTS],
+            "scale_{}_count_{}.pickle".format(barcode, count),
+        )
+        compute_scale(
             cyc_grp_dict, cycle_m, cycle_v, barcode_count,
             degradation_model, svit_and_count,
-            fig,
+            scale_pickle_file,
         )
+        plot_scale(fig, scale_pickle_file)
         plot_resistance(
             cyc_grp_dict, cycle_m, cycle_v, barcode_count,
             degradation_model, svit_and_count,
@@ -648,9 +677,9 @@ def test_single_voltage(
     )
 
 
-def savefig(figname, fit_args):
+def savefig(fig_name, fit_args):
     plt.savefig(
-        os.path.join(fit_args[Key.PATH_PLOTS], figname), dpi = 300
+        os.path.join(fit_args[Key.PATH_PLOTS], fig_name), dpi = 300
     )
 
 

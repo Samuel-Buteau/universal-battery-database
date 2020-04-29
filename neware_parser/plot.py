@@ -426,10 +426,9 @@ def compute_scale(
     patches = []
     keys = make_keys(cyc_grp_dict, step)
     scales = []
+    cycles = [x for x in np.arange(0., 6000., 20.)]
 
     for k_count, k in enumerate(keys):
-        cycles = [x for x in np.arange(0., 6000., 20.)]
-
         my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycles]
 
         target_voltage = cyc_grp_dict[k]["avg_last_cc_voltage"]
@@ -541,34 +540,31 @@ def plot_shift(
 ):
     for typ, off, mode in [("dchg", 5, "cc")]:
 
-        list_of_keys = make_keys(cyc_grp_dict, typ)
+        keys = make_keys(cyc_grp_dict, typ)
+        shifts = []
+        # TODO(harvey): Why not use np array instead of casting to list?
+        cycle = [x for x in np.arange(0., 6000., 20.)]
+        my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
 
-        ax1 = fig.add_subplot(6, 1, 1 + off)
-        ax1.set_ylabel("shift")
-
-        for k_count, k in enumerate(list_of_keys):
-            cycle = [x for x in np.arange(0., 6000., 20.)]
-
-            my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
-
-            target_voltage = cyc_grp_dict[k]["avg_last_cc_voltage"]
-            target_currents = [cyc_grp_dict[k][Key.I_CC_AVG]]
-
+        for k_count, k in enumerate(keys):
             test_results = test_single_voltage(
                 my_cycle,
-                target_voltage,
+                cyc_grp_dict[k]["avg_last_cc_voltage"],  # target voltage
                 cyc_grp_dict[k][Key.I_CC_AVG],
                 cyc_grp_dict[k][Key.I_PREV_END_AVG],
                 cyc_grp_dict[k][Key.V_PREV_END_AVG],
                 cyc_grp_dict[k][Key.V_END_AVG],
-                target_currents,
+                [cyc_grp_dict[k][Key.I_CC_AVG]],  # target currents
                 barcode_count, degradation_model,
                 svit_and_count[Key.SVIT_GRID],
                 svit_and_count[Key.COUNT_MATRIX],
             )
-            pred_cap = tf.reshape(test_results["pred_shift"], shape = [-1])
+            shifts.append(tf.reshape(test_results["pred_shift"], shape = [-1]))
 
-            ax1.plot(cycle, pred_cap, c = COLORS[k_count])
+        ax1 = fig.add_subplot(6, 1, 1 + off)
+        ax1.set_ylabel("shift")
+        for count, (k, shift) in enumerate(zip(keys, shifts)):
+            ax1.plot(cycle, shift, c = COLORS[count])
 
 
 def plot_things_vs_cycle_number(plot_params, init_returns):
@@ -652,8 +648,9 @@ def test_all_voltages(
 
 
 def test_single_voltage(
-    cycle, v, constant_current, end_current_prev, end_voltage_prev, end_voltage,
-    currents, barcode_count, degradation_model, svit_grid, count_matrix
+    cycle, target_voltage, constant_current, end_current_prev,
+    end_voltage_prev, end_voltage, target_currents, barcode_count,
+    degradation_model, svit_grid, count_matrix,
 ):
     expanded_cycle = tf.expand_dims(cycle, axis = 1)
     expanded_constant_current = tf.constant(
@@ -684,9 +681,9 @@ def test_single_voltage(
             expanded_end_voltage_prev,
             expanded_end_voltage,
             indecies,
-            tf.constant(v, shape = [len(cycle), 1]),
+            tf.constant(target_voltage, shape = [len(cycle), 1]),
             tf.tile(
-                tf.reshape(currents, shape = [1, len(currents)]),
+                tf.reshape(target_currents, shape = [1, len(target_currents)]),
                 [len(cycle), 1]
             ),
             expanded_svit_grid,

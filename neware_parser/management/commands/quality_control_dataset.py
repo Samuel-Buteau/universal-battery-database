@@ -118,9 +118,9 @@ def initial_processing(
 
             # Test for points of opposite polarity
             if k[-1] == 'dchg':
-                f = lambda c: c > 0.
+                f = lambda c: c > 1e-3
             elif k[-1] == 'chg':
-                f = lambda c: c < 0.
+                f = lambda c: c < -1e-3
             else:
                 continue
 

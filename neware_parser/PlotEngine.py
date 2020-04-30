@@ -26,15 +26,13 @@ COLORS = [
 class PlotEngine:
 
     @staticmethod
-    def pickle_load_scale(filename: str) -> tuple:
-        f = open(filename, "rb")
-        patches = pickle.load(f)
-        keys = pickle.load(f)
-        scales = pickle.load(f)
-        cycles = pickle.load(f)
-        f.close()
+    def plot_shift(filename: str, fig, offset: int) -> None:
 
-        return patches, keys, scales, cycles
+        keys, shifts, cycles = PickleLoad.shift(filename)
+        ax1 = fig.add_subplot(6, 1, 1 + offset)
+        ax1.set_ylabel("shift")
+        for count, (k, shift) in enumerate(zip(keys, shifts)):
+            ax1.plot(cycles, shift, c = COLORS[count])
 
     @staticmethod
     def plot_scale(filename: str, fig, offset: int) -> None:
@@ -46,7 +44,7 @@ class PlotEngine:
             offset (int): The offset on the figure for the scale plot
         """
 
-        patches, keys, scales, cycles = PlotEngine.pickle_load_scale(filename)
+        patches, keys, scales, cycles = PickleLoad.scale(filename)
         ax1 = fig.add_subplot(6, 1, 1 + offset)
 
         for k_count, (k, scale) in enumerate(zip(keys, scales)):
@@ -60,6 +58,28 @@ class PlotEngine:
             handles = patches, fontsize = "small",
             bbox_to_anchor = (0.7, 1), loc = "upper left"
         )
+
+
+class PickleLoad:
+
+    @staticmethod
+    def shift(filename: str) -> tuple:
+        f = open(filename, "rb")
+        keys = pickle.load(f)
+        shifts = pickle.load(f)
+        cycles = pickle.load(f)
+        f.close()
+        return keys, shifts, cycles
+
+    @staticmethod
+    def scale(filename: str) -> tuple:
+        f = open(filename, "rb")
+        patches = pickle.load(f)
+        keys = pickle.load(f)
+        scales = pickle.load(f)
+        cycles = pickle.load(f)
+        f.close()
+        return patches, keys, scales, cycles
 
 
 # TODO(harvey) duplicate in plot.py

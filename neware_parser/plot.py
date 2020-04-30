@@ -174,6 +174,8 @@ def plot_vq(plot_params, init_returns):
                     capacity_tensor = barcode_k["cc_capacity_vector"]
                 elif mode == "cv":
                     capacity_tensor = barcode_k["cv_capacity_vector"]
+                else:
+                    sys.exit("Unknown mode in plot_vq.")
 
                 for vq_count, vq in enumerate(capacity_tensor):
                     cyc = barcode_k[Key.N][vq_count]
@@ -191,6 +193,8 @@ def plot_vq(plot_params, init_returns):
                             min([key[2] for key in list_of_keys]) - 0.05,
                             0.05 + max([key[0] for key in list_of_keys])
                         ]
+                    else:
+                        sys.exit("Unknown mode in plot_vq.")
 
                     valids = vq_mask > .5
 
@@ -266,6 +270,8 @@ def plot_vq(plot_params, init_returns):
                         pred_cap = tf.reshape(
                             test_results["pred_cv_capacity"], shape = [-1]
                         )
+                    else:
+                        sys.exit("Unknown mode in plot_vq.")
 
                     ax.set_xlim(x_lim)
                     if mode == "cc":
@@ -376,6 +382,8 @@ def plot_predicted(
             )
         elif mode == "cv":
             pred_cap = test_results["pred_cv_capacity"].numpy()[:, -1]
+        else:
+            sys.exit("Unknown mode in predicted.")
 
         ax1.plot(cycle, sign_change * pred_cap, c = COLORS[k_count])
 
@@ -553,7 +561,7 @@ def test_single_voltage(
     )
     expanded_end_voltage = tf.constant(end_voltage, shape = [len(cycle), 1])
 
-    indecies = tf.tile(tf.expand_dims(barcode_count, axis = 0), [len(cycle)])
+    indices = tf.tile(tf.expand_dims(barcode_count, axis = 0), [len(cycle)])
 
     expanded_svit_grid = tf.tile(
         tf.constant([svit_grid]), [len(cycle), 1, 1, 1, 1, 1],
@@ -569,7 +577,7 @@ def test_single_voltage(
             expanded_end_current_prev,
             expanded_end_voltage_prev,
             expanded_end_voltage,
-            indecies,
+            indices,
             tf.constant(target_voltage, shape = [len(cycle), 1]),
             tf.tile(
                 tf.reshape(target_currents, shape = [1, len(target_currents)]),
@@ -643,6 +651,7 @@ def plot_v_curves(plot_params, init_returns):
                 q = tf.constant(q),
                 current = tf.constant(current, shape = [1, 1])
             )
+            ax = None
             for j in range(len(shift)):
                 ax = gathered_axs[j]
 
@@ -652,6 +661,8 @@ def plot_v_curves(plot_params, init_returns):
                 ax.plot(res["q"][j], v, label = "q_full (inverted)")
                 ax.axvline(shift[j], 0, 1)
 
+            if ax is None:
+                sys.exit("No shift in plot_v_curves.")
             ax.legend()
 
             fig.tight_layout()

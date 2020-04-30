@@ -39,7 +39,7 @@ class DataEngine:
                 tf.reshape(test_results["pred_shift"], shape = [-1]),
             )
 
-        PickleDump.shift(filename, keys, shifts, cycles)
+        Pickle.dump(filename, (keys, shifts, cycles))
 
     @staticmethod
     def compute_scale(
@@ -82,27 +82,17 @@ class DataEngine:
             )
             scales.append(tf.reshape(test_results["pred_scale"], shape = [-1]))
 
-        PickleDump.scale(filename, patches, keys, scales, cycles)
+        Pickle.dump(filename, (patches, keys, scales, cycles))
 
 
 # TODO(harvey): Need a better protocol for dumping
-class PickleDump:
+class Pickle:
 
     @staticmethod
-    def shift(filename: str, keys, shifts, cycles) -> None:
+    def dump(filename: str, objects: tuple) -> None:
         f = open(filename, "wb+")
-        pickle.dump(keys, f)
-        pickle.dump(shifts, f)
-        pickle.dump(cycles, f)
-        f.close()
-
-    @staticmethod
-    def scale(filename: str, patches, keys, scales, cycles) -> None:
-        f = open(filename, "wb+")
-        pickle.dump(patches, f)
-        pickle.dump(keys, f)
-        pickle.dump(scales, f)
-        pickle.dump(cycles, f)
+        for o in objects:
+            pickle.dump(o, f)
         f.close()
 
 

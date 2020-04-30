@@ -138,7 +138,7 @@ def get_svit_and_count(my_data, barcode):
 def plot_vq(plot_params, init_returns):
     barcodes\
         = plot_params["barcodes"][:plot_params[Key.FIT_ARGS]["barcode_show"]]
-    count = plot_params["count"]
+    protocol_count = plot_params["count"]
     fit_args = plot_params[Key.FIT_ARGS]
 
     degradation_model = init_returns[Key.MODEL]
@@ -153,22 +153,22 @@ def plot_vq(plot_params, init_returns):
         fig, axs = plt.subplots(nrows = 3, figsize = [5, 10], sharex = True)
         cyc_grp_dict = my_data[Key.ALL_DATA][barcode][Key.CYC_GRP_DICT]
 
-        for typ, off, mode, x_leg, y_leg in [
+        for step, offset, mode, x_leg, y_leg in [
             ("dchg", 0, "cc", 0.5, 1),
             ("chg", 1, "cc", 0.5, 0.5),
             ("chg", 2, "cv", 0., 0.5)
         ]:
-            keys = make_keys(cyc_grp_dict, typ)
+            protocols = get_protocols(cyc_grp_dict, step)
 
             patches = []
-            ax = axs[off]
-            for k_count, k in enumerate(keys):
-                if k[-1] == "dchg":
+            ax = axs[offset]
+            for protocol_count, protocol in enumerate(protocols):
+                if protocol[-1] == "dchg":
                     sign_change = -1.
                 else:
                     sign_change = +1.
 
-                barcode_k = cyc_grp_dict[k][Key.MAIN]
+                barcode_k = cyc_grp_dict[protocol][Key.MAIN]
 
                 if mode == "cc":
                     capacity_tensor = barcode_k["cc_capacity_vector"]
@@ -178,9 +178,9 @@ def plot_vq(plot_params, init_returns):
                     sys.exit("Unknown mode in plot_vq.")
 
                 for vq_count, vq in enumerate(capacity_tensor):
-                    cyc = barcode_k[Key.N][vq_count]
+                    cycle = barcode_k[Key.N][vq_count]
 
-                    mult = 1. - (.5 * float(cyc) / 6000.)
+                    mult = 1. - (.5 * float(cycle) / 6000.)
 
                     if mode == "cc":
                         vq_mask = barcode_k["cc_mask_vector"][vq_count]
@@ -190,8 +190,8 @@ def plot_vq(plot_params, init_returns):
                         vq_mask = barcode_k["cv_mask_vector"][vq_count]
                         y_axis = barcode_k["cv_current_vector"][vq_count]
                         y_lim = [
-                            min([key[2] for key in keys]) - 0.05,
-                            0.05 + max([key[0] for key in keys])
+                            min([key[2] for key in protocols]) - 0.05,
+                            0.05 + max([key[0] for key in protocols])
                         ]
                     else:
                         sys.exit("Unknown mode in plot_vq.")
@@ -205,29 +205,30 @@ def plot_vq(plot_params, init_returns):
                         sign_change * vq[valids],
                         y_axis[valids],
                         c = [[
-                            mult * COLORS[k_count][0],
-                            mult * COLORS[k_count][1],
-                            mult * COLORS[k_count][2]
+                            mult * COLORS[protocol_count][0],
+                            mult * COLORS[protocol_count][1],
+                            mult * COLORS[protocol_count][2]
                         ]],
                         s = 3
                     )
 
-            cycle = [0, 6000 / 2, 6000]
-            for k_count, k in enumerate(keys):
+            cycles = [0, 6000 / 2, 6000]
+            for protocol_count, protocol in enumerate(protocols):
                 patches.append(mpatches.Patch(
-                    color = COLORS[k_count], label = make_legend(k)
+                    color = COLORS[protocol_count],
+                    label = make_legend(protocol)
                 ))
 
-                if k[-1] == "dchg":
+                if protocol[-1] == "dchg":
                     sign_change = -1.
                 else:
                     sign_change = +1.
 
-                v_min = min(k[3], k[4])
-                v_max = max(k[3], k[4])
+                v_min = min(protocol[3], protocol[4])
+                v_max = max(protocol[3], protocol[4])
                 v_range = np.arange(v_min, v_max, 0.05)
-                curr_min = abs(cyc_grp_dict[k][Key.I_CC_AVG])
-                curr_max = abs(cyc_grp_dict[k]["avg_end_current"])
+                curr_min = abs(cyc_grp_dict[protocol][Key.I_CC_AVG])
+                curr_max = abs(cyc_grp_dict[protocol]["avg_end_current"])
 
                 if curr_min == curr_max:
                     current_range = np.array([curr_min])
@@ -242,16 +243,16 @@ def plot_vq(plot_params, init_returns):
 
                 svit_and_count = get_svit_and_count(my_data, barcode)
 
-                for i, cyc in enumerate(cycle):
-                    scaled_cyc = ((float(cyc) - cycle_m) / tf.sqrt(cycle_v))
-                    mult = 1. - (.5 * float(cyc) / 6000.)
+                for cycle_count, cycle in enumerate(cycles):
+                    scaled_cyc = ((float(cycle) - cycle_m) / tf.sqrt(cycle_v))
+                    mult = 1. - (.5 * float(cycle) / 6000.)
 
                     test_results = test_all_voltages(
                         scaled_cyc,
-                        cyc_grp_dict[k][Key.I_CC_AVG],
-                        cyc_grp_dict[k][Key.I_PREV_END_AVG],
-                        cyc_grp_dict[k][Key.V_PREV_END_AVG],
-                        cyc_grp_dict[k][Key.V_END_AVG],
+                        cyc_grp_dict[protocol][Key.I_CC_AVG],
+                        cyc_grp_dict[protocol][Key.I_PREV_END_AVG],
+                        cyc_grp_dict[protocol][Key.V_PREV_END_AVG],
+                        cyc_grp_dict[protocol][Key.V_END_AVG],
                         barcode_count,
                         degradation_model,
                         v_range,
@@ -280,9 +281,9 @@ def plot_vq(plot_params, init_returns):
                         sign_change * pred_cap,
                         yrange,
                         c = (
-                            mult * COLORS[k_count][0],
-                            mult * COLORS[k_count][1],
-                            mult * COLORS[k_count][2],
+                            mult * COLORS[protocol_count][0],
+                            mult * COLORS[protocol_count][1],
+                            mult * COLORS[protocol_count][2],
                         ),
                     )
 
@@ -290,12 +291,12 @@ def plot_vq(plot_params, init_returns):
                 handles = patches, fontsize = "small",
                 bbox_to_anchor = (x_leg, y_leg), loc = "upper left"
             )
-            ax.set_ylabel(typ + "-" + mode)
+            ax.set_ylabel(step + "-" + mode)
 
         axs[2].set_xlabel("pred_cap")
         fig.tight_layout()
         fig.subplots_adjust(hspace = 0)
-        savefig("VQ_{}_Count_{}.png".format(barcode, count), fit_args)
+        savefig("VQ_{}_Count_{}.png".format(barcode, protocol_count), fit_args)
         plt.close(fig)
 
 
@@ -402,7 +403,7 @@ def plot_capacities(
         ("dchg", 0, "cc"), ("chg", 1, "cc"), ("chg", 2, "cv")
     ]:
         patches = []
-        keys = make_keys(cyc_grp_dict, typ)
+        keys = get_protocols(cyc_grp_dict, typ)
 
         ax1 = fig.add_subplot(6, 1, 1 + off)
         ax1.set_ylabel(mode + "-" + typ + "-capacity")
@@ -652,7 +653,7 @@ def plot_v_curves(plot_params, init_returns):
 
 
 # TODO(harvey): duplicate in DataEngine.py
-def make_keys(cyc_grp_dict: dict, step: str) -> list:
+def get_protocols(cyc_grp_dict: dict, step: str) -> list:
     """
     Args:
         cyc_grp_dict (dict)

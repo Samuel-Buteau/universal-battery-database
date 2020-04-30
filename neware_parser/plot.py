@@ -610,8 +610,15 @@ def plot_v_curves(plot_params, init_returns):
     shift = np.linspace(start = -.2, stop = .2, num = 9, dtype = np.float32)
     v = np.linspace(start = 2., stop = 5.5, num = 64, dtype = np.float32)
     q = np.linspace(start = -0.25, stop = 1.25, num = 64, dtype = np.float32)
+    curr_count = 0
     for current in [0.05, 3.]:
+        curr_count += 1
+        Print.colour(Print.RED, str(curr_count) + ", " + str(current))
+
+        bar_count = 0
         for barcode in barcodes:
+            bar_count += 1
+            Print.colour(Print.RED, str(bar_count) + ", " + str(barcode))
 
             fig, axs = plt.subplots(
                 nrows = 3, ncols = 3, figsize = [10, 10],

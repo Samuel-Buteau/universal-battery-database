@@ -190,8 +190,8 @@ def plot_vq(plot_params, init_returns):
                         vq_mask = barcode_k["cv_mask_vector"][vq_count]
                         y_axis = barcode_k["cv_current_vector"][vq_count]
                         y_lim = [
-                            min([key[2] for key in protocols]) - 0.05,
-                            0.05 + max([key[0] for key in protocols])
+                            min([protocol[2] for protocol in protocols]) - 0.05,
+                            0.05 + max([protocol[0] for protocol in protocols])
                         ]
                     else:
                         sys.exit("Unknown mode in plot_vq.")

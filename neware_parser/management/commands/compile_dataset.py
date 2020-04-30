@@ -152,7 +152,7 @@ def make_my_barcodes(fit_args):
 
 
 # TODO (harvey): reformat docstring
-def initial_processing(my_barcodes, fit_args):
+def initial_processing(my_barcodes, fit_args, flags):
     """
 
     Returns:
@@ -356,9 +356,36 @@ def initial_processing(my_barcodes, fit_args):
 
                 for cyc in cyc_group.cycle_set.order_by(Key.N):
                     if cyc.valid_cycle:
+                        offset_cycle = cyc.get_offset_cycle()
+                        future_key = (cyc_group.constant_rate, cyc_group.end_rate_prev,
+                        cyc_group.end_rate, cyc_group.end_voltage,
+                        cyc_group.end_voltage_prev, typ)
+                        # Check if flagged.
+                        flagged = False
+                        for flag_type in flags.keys():
+                            list_of_flags = flags[flag_type]
+                            if len(list_of_flags) == 0:
+                                continue
+                            list_of_flags = [fs for fs in list_of_flags if fs["barcode"] == barcode]
+                            if len(list_of_flags) == 0:
+                                continue
+
+                            list_of_flags = [fs for fs in list_of_flags if fs["cycle"] == offset_cycle]
+                            if len(list_of_flags) == 0:
+                                continue
+                            list_of_flags= [fs for fs in list_of_flags if fs["group"] == future_key]
+                            if len(list_of_flags) == 0:
+                                continue
+
+                            flagged = True
+                            print("Flags were triggered:")
+                            print(list_of_flags)
+                            break
+
                         post_process_results = ml_post_process_cycle(
                             cyc, voltage_grid, typ,
-                            current_max_n = fit_args[Key.I_MAX]
+                            current_max_n = fit_args[Key.I_MAX],
+                            flagged = flagged
                         )
 
                         if post_process_results is None:
@@ -560,7 +587,15 @@ def compile_dataset(fit_args):
     if not os.path.exists(fit_args[Key.PATH_DATASET]):
         os.mkdir(fit_args[Key.PATH_DATASET])
     my_barcodes = make_my_barcodes(fit_args)
-    pick, pick_names = initial_processing(my_barcodes, fit_args)
+
+    flags = {}
+    if fit_args["path_to_flags"] != '':
+        flag_filename = os.path.join(fit_args["path_to_flags"], "FLAGS.file")
+        if os.path.exists(flag_filename):
+            with open(flag_filename, 'rb') as file:
+                flags = pickle.load(file)
+
+    pick, pick_names = initial_processing(my_barcodes, fit_args, flags)
     with open(
         os.path.join(
             fit_args[Key.PATH_DATASET],
@@ -631,6 +666,9 @@ class Command(BaseCommand):
             "--wanted_barcodes", type = int, nargs = "+",
             default = default_barcodes,
 
+        )
+        parser.add_argument(
+            "--path_to_flags", default=""
         )
 
     def handle(self, *args, **options):

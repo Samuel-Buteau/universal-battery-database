@@ -331,25 +331,27 @@ def plot_measured(cyc_grp_dict, mode, protocols, patches, ax1):
 
 
 def plot_predicted(
-    cyc_grp_dict, mode, list_of_keys, cycle_m, cycle_v, barcode_count,
+    cyc_grp_dict, mode, protocols, cycle_m, cycle_v, barcode_count,
     degradation_model, svit_and_count, ax1,
 ):
     cycles = [x for x in np.arange(0., 6000., 20.)]
     my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycles]
-    for k_count, k in enumerate(list_of_keys):
+    caps = []
 
-        if k[-1] == "dchg":
+    for count, protocol in enumerate(protocols):
+
+        if protocol[-1] == "dchg":
             sign_change = -1.
         else:
             sign_change = +1.
 
         if mode == "cc":
-            target_voltage = cyc_grp_dict[k]["avg_last_cc_voltage"]
-            target_currents = [cyc_grp_dict[k][Key.I_CC_AVG]]
+            target_voltage = cyc_grp_dict[protocol]["avg_last_cc_voltage"]
+            target_currents = [cyc_grp_dict[protocol][Key.I_CC_AVG]]
         elif mode == "cv":
-            target_voltage = cyc_grp_dict[k][Key.V_END_AVG]
-            curr_min = abs(cyc_grp_dict[k][Key.I_CC_AVG])
-            curr_max = abs(cyc_grp_dict[k]["avg_end_current"])
+            target_voltage = cyc_grp_dict[protocol][Key.V_END_AVG]
+            curr_min = abs(cyc_grp_dict[protocol][Key.I_CC_AVG])
+            curr_max = abs(cyc_grp_dict[protocol]["avg_end_current"])
 
             if curr_min == curr_max:
                 target_currents = np.array([curr_min])
@@ -367,10 +369,10 @@ def plot_predicted(
         test_results = test_single_voltage(
             my_cycle,
             target_voltage,
-            cyc_grp_dict[k][Key.I_CC_AVG],
-            cyc_grp_dict[k][Key.I_PREV_END_AVG],
-            cyc_grp_dict[k][Key.V_PREV_END_AVG],
-            cyc_grp_dict[k][Key.V_END_AVG],
+            cyc_grp_dict[protocol][Key.I_CC_AVG],
+            cyc_grp_dict[protocol][Key.I_PREV_END_AVG],
+            cyc_grp_dict[protocol][Key.V_PREV_END_AVG],
+            cyc_grp_dict[protocol][Key.V_END_AVG],
             target_currents,
             barcode_count, degradation_model,
             svit_and_count[Key.SVIT_GRID],
@@ -379,15 +381,17 @@ def plot_predicted(
 
         if mode == "cc":
             pred_cap = tf.reshape(
-                test_results["pred_cc_capacity"],
-                shape = [-1]
+                test_results["pred_cc_capacity"], shape = [-1],
             )
         elif mode == "cv":
             pred_cap = test_results["pred_cv_capacity"].numpy()[:, -1]
         else:
             sys.exit("Unknown mode in predicted.")
 
-        ax1.plot(cycles, sign_change * pred_cap, c = COLORS[k_count])
+        caps.append(sign_change * pred_cap)
+
+    for count, pred_cap in enumerate(caps):
+        ax1.plot(cycles, pred_cap, c = COLORS[count])
 
 
 def plot_capacities(

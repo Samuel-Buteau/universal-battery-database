@@ -1,5 +1,4 @@
 import os
-import pickle
 import sys
 
 import numpy as np
@@ -11,12 +10,14 @@ from matplotlib.axes._axes import _log as matplotlib_axes_logger
 
 from neware_parser.Print import Print
 from neware_parser.Key import Key
+from neware_parser.PlotEngine import PlotEngine
 from neware_parser.DataEngine import DataEngine
 
 matplotlib_axes_logger.setLevel("ERROR")
 
 FIGSIZE = [6, 5]
 
+# TODO(harvey) duplicate in PlotEngine.py
 COLORS = [
     (.4, .4, .4),
 
@@ -37,6 +38,7 @@ COLORS = [
 ]
 
 
+# TODO(harvey) duplicate in PlotEngine.py
 def bake_rate(rate_in):
     rate = round(20. * rate_in) / 20.
     if rate == .05:
@@ -63,6 +65,7 @@ def bake_rate(rate_in):
     return rate
 
 
+# TODO(harvey) duplicate in PlotEngine.py
 def bake_voltage(vol_in):
     vol = round(10. * vol_in) / 10.
     if vol == 1. or vol == 2. or vol == 3. or vol == 4. or vol == 5.:
@@ -72,6 +75,7 @@ def bake_voltage(vol_in):
     return vol
 
 
+# TODO(harvey) duplicate in PlotEngine.py
 def make_legend(key):
     constant_rate = key[0]
     constant_rate = bake_rate(constant_rate)
@@ -154,11 +158,11 @@ def plot_vq(plot_params, init_returns):
             ("chg", 1, "cc", 0.5, 0.5),
             ("chg", 2, "cv", 0., 0.5)
         ]:
-            list_of_keys = make_keys(cyc_grp_dict, typ)
+            keys = make_keys(cyc_grp_dict, typ)
 
-            list_of_patches = []
+            patches = []
             ax = axs[off]
-            for k_count, k in enumerate(list_of_keys):
+            for k_count, k in enumerate(keys):
                 if k[-1] == "dchg":
                     sign_change = -1.
                 else:
@@ -170,6 +174,8 @@ def plot_vq(plot_params, init_returns):
                     capacity_tensor = barcode_k["cc_capacity_vector"]
                 elif mode == "cv":
                     capacity_tensor = barcode_k["cv_capacity_vector"]
+                else:
+                    sys.exit("Unknown mode in plot_vq.")
 
                 for vq_count, vq in enumerate(capacity_tensor):
                     cyc = barcode_k[Key.N][vq_count]
@@ -184,9 +190,11 @@ def plot_vq(plot_params, init_returns):
                         vq_mask = barcode_k["cv_mask_vector"][vq_count]
                         y_axis = barcode_k["cv_current_vector"][vq_count]
                         y_lim = [
-                            min([key[2] for key in list_of_keys]) - 0.05,
-                            0.05 + max([key[0] for key in list_of_keys])
+                            min([key[2] for key in keys]) - 0.05,
+                            0.05 + max([key[0] for key in keys])
                         ]
+                    else:
+                        sys.exit("Unknown mode in plot_vq.")
 
                     valids = vq_mask > .5
 
@@ -205,8 +213,8 @@ def plot_vq(plot_params, init_returns):
                     )
 
             cycle = [0, 6000 / 2, 6000]
-            for k_count, k in enumerate(list_of_keys):
-                list_of_patches.append(mpatches.Patch(
+            for k_count, k in enumerate(keys):
+                patches.append(mpatches.Patch(
                     color = COLORS[k_count], label = make_legend(k)
                 ))
 
@@ -262,6 +270,8 @@ def plot_vq(plot_params, init_returns):
                         pred_cap = tf.reshape(
                             test_results["pred_cv_capacity"], shape = [-1]
                         )
+                    else:
+                        sys.exit("Unknown mode in plot_vq.")
 
                     ax.set_xlim(x_lim)
                     if mode == "cc":
@@ -277,7 +287,7 @@ def plot_vq(plot_params, init_returns):
                     )
 
             ax.legend(
-                handles = list_of_patches, fontsize = "small",
+                handles = patches, fontsize = "small",
                 bbox_to_anchor = (x_leg, y_leg), loc = "upper left"
             )
             ax.set_ylabel(typ + "-" + mode)
@@ -289,9 +299,9 @@ def plot_vq(plot_params, init_returns):
         plt.close(fig)
 
 
-def plot_measured(cyc_grp_dict, mode, list_of_keys, list_of_patches, ax1):
+def plot_measured(cyc_grp_dict, mode, list_of_keys, patches, ax1):
     for k_count, k in enumerate(list_of_keys):
-        list_of_patches.append(
+        patches.append(
             mpatches.Patch(color = COLORS[k_count], label = make_legend(k))
         )
 
@@ -322,8 +332,8 @@ def plot_predicted(
     cyc_grp_dict, mode, list_of_keys, cycle_m, cycle_v, barcode_count,
     degradation_model, svit_and_count, ax1,
 ):
-    cycle = [x for x in np.arange(0., 6000., 20.)]
-    my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
+    cycles = [x for x in np.arange(0., 6000., 20.)]
+    my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycles]
     for k_count, k in enumerate(list_of_keys):
 
         if k[-1] == "dchg":
@@ -372,8 +382,10 @@ def plot_predicted(
             )
         elif mode == "cv":
             pred_cap = test_results["pred_cv_capacity"].numpy()[:, -1]
+        else:
+            sys.exit("Unknown mode in predicted.")
 
-        ax1.plot(cycle, sign_change * pred_cap, c = COLORS[k_count])
+        ax1.plot(cycles, sign_change * pred_cap, c = COLORS[k_count])
 
 
 def plot_capacities(
@@ -383,135 +395,28 @@ def plot_capacities(
     for typ, off, mode in [
         ("dchg", 0, "cc"), ("chg", 1, "cc"), ("chg", 2, "cv")
     ]:
-        list_of_patches = []
-        list_of_keys = make_keys(cyc_grp_dict, typ)
+        patches = []
+        keys = make_keys(cyc_grp_dict, typ)
 
         ax1 = fig.add_subplot(6, 1, 1 + off)
         ax1.set_ylabel(mode + "-" + typ + "-capacity")
 
         plot_measured(
-            cyc_grp_dict, mode, list_of_keys, list_of_patches, ax1,
+            cyc_grp_dict, mode, keys, patches, ax1,
         )
 
         plot_predicted(
-            cyc_grp_dict, mode, list_of_keys, cycle_m, cycle_v,
+            cyc_grp_dict, mode, keys, cycle_m, cycle_v,
             barcode_count, degradation_model, svit_and_count,
             ax1,
         )
 
         ax1.legend(
-            handles = list_of_patches,
+            handles = patches,
             fontsize = "small",
             bbox_to_anchor = (0.7, 1),
             loc = "upper left",
         )
-
-
-def pickle_load_scale(filename: str) -> tuple:
-    f = open(filename, "rb")
-    patches = pickle.load(f)
-    keys = pickle.load(f)
-    scales = pickle.load(f)
-    cycles = pickle.load(f)
-    f.close()
-
-    return patches, keys, scales, cycles
-
-
-def plot_scale(filename: str, fig, offset: int) -> None:
-    """ Plot scale from the given pickle
-
-    Args:
-        filename (str): Filename (including path) to the pickle file
-        fig: The figure on which to plot scale
-        offset (int): The offset on the figure for the scale plot
-    """
-
-    patches, keys, scales, cycles = pickle_load_scale(filename)
-    ax1 = fig.add_subplot(6, 1, 1 + offset)
-
-    for k_count, (k, scale) in enumerate(zip(keys, scales)):
-        patches.append(
-            mpatches.Patch(color = COLORS[k_count], label = make_legend(k))
-        )
-        ax1.plot(cycles, scale, c = COLORS[k_count])
-
-    ax1.set_ylabel("scale")
-    ax1.legend(
-        handles = patches, fontsize = "small",
-        bbox_to_anchor = (0.7, 1), loc = "upper left"
-    )
-
-
-def plot_resistance(
-    cyc_grp_dict, cycle_m, cycle_v, barcode_count,
-    degradation_model, svit_and_count, fig,
-):
-    for typ, off, mode in [("dchg", 4, "cc")]:
-
-        list_of_keys = make_keys(cyc_grp_dict, typ)
-
-        ax1 = fig.add_subplot(6, 1, 1 + off)
-        ax1.set_ylabel("resistance")
-
-        for k_count, k in enumerate(list_of_keys):
-            cycle = [x for x in np.arange(0., 6000., 20.)]
-
-            my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
-
-            target_voltage = cyc_grp_dict[k]["avg_last_cc_voltage"]
-            target_currents = [cyc_grp_dict[k][Key.I_CC_AVG]]
-
-            test_results = test_single_voltage(
-                my_cycle,
-                target_voltage,
-                cyc_grp_dict[k][Key.I_CC_AVG],
-                cyc_grp_dict[k][Key.I_PREV_END_AVG],
-                cyc_grp_dict[k][Key.V_PREV_END_AVG],
-                cyc_grp_dict[k][Key.V_END_AVG],
-                target_currents,
-                barcode_count, degradation_model,
-                svit_and_count[Key.SVIT_GRID],
-                svit_and_count[Key.COUNT_MATRIX]
-            )
-
-            pred_cap = tf.reshape(test_results["pred_R"], shape = [-1])
-
-            ax1.plot(cycle, pred_cap, c = COLORS[k_count])
-
-
-def plot_shift(
-    cyc_grp_dict, cycle_m, cycle_v, barcode_count,
-    degradation_model, svit_and_count,
-    fig,
-):
-    for typ, off, mode in [("dchg", 5, "cc")]:
-
-        keys = make_keys(cyc_grp_dict, typ)
-        shifts = []
-        # TODO(harvey): Why not use np array instead of casting to list?
-        cycle = [x for x in np.arange(0., 6000., 20.)]
-        my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
-
-        for k_count, k in enumerate(keys):
-            test_results = test_single_voltage(
-                my_cycle,
-                cyc_grp_dict[k]["avg_last_cc_voltage"],  # target voltage
-                cyc_grp_dict[k][Key.I_CC_AVG],
-                cyc_grp_dict[k][Key.I_PREV_END_AVG],
-                cyc_grp_dict[k][Key.V_PREV_END_AVG],
-                cyc_grp_dict[k][Key.V_END_AVG],
-                [cyc_grp_dict[k][Key.I_CC_AVG]],  # target currents
-                barcode_count, degradation_model,
-                svit_and_count[Key.SVIT_GRID],
-                svit_and_count[Key.COUNT_MATRIX],
-            )
-            shifts.append(tf.reshape(test_results["pred_shift"], shape = [-1]))
-
-        ax1 = fig.add_subplot(6, 1, 1 + off)
-        ax1.set_ylabel("shift")
-        for count, (k, shift) in enumerate(zip(keys, shifts)):
-            ax1.plot(cycle, shift, c = COLORS[count])
 
 
 def plot_things_vs_cycle_number(plot_params, init_returns):
@@ -541,20 +446,36 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
             fit_args[Key.PATH_PLOTS],
             "scale_{}_count_{}.pickle".format(barcode, count),
         )
-        DataEngine.compute_scale(
+        DataEngine.scale(
             degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
             svit_and_count, scale_pickle_file,
         )
-        plot_scale(filename = scale_pickle_file, fig = fig, offset = 3)
-        plot_resistance(
-            cyc_grp_dict, cycle_m, cycle_v, barcode_count,
-            degradation_model, svit_and_count,
-            fig,
+        PlotEngine.scale(scale_pickle_file, fig, offset = 3)
+
+        resistance_pickle_file = os.path.join(
+            fit_args[Key.PATH_PLOTS],
+            "resistance_{}_count_{}.pickle".format(barcode, count),
         )
-        plot_shift(
-            cyc_grp_dict, cycle_m, cycle_v, barcode_count,
-            degradation_model, svit_and_count,
-            fig,
+        DataEngine.resistance(
+            degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
+            svit_and_count, resistance_pickle_file,
+        )
+        PlotEngine.quantity_vs_capacity(
+            resistance_pickle_file, fig,
+            name = "resistance", subplot_count = 6, offset = 4,
+        )
+
+        shift_pickle_file = os.path.join(
+            fit_args[Key.PATH_PLOTS],
+            "shift_{}_count_{}.pickle".format(barcode, count),
+        )
+        DataEngine.shift(
+            degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
+            svit_and_count, shift_pickle_file,
+        )
+        PlotEngine.quantity_vs_capacity(
+            shift_pickle_file, fig,
+            name = "shift", subplot_count = 6, offset = 5,
         )
 
         savefig("Cap_{}_Count_{}.png".format(barcode, count), fit_args)
@@ -594,7 +515,7 @@ def test_all_voltages(
     )
 
 
-# TODO(harvey): duplicate function in DataEngine.py
+# TODO(harvey): duplicate in DataEngine.py
 def test_single_voltage(
     cycle, target_voltage, constant_current, end_current_prev,
     end_voltage_prev, end_voltage, target_currents, barcode_count,
@@ -612,7 +533,7 @@ def test_single_voltage(
     )
     expanded_end_voltage = tf.constant(end_voltage, shape = [len(cycle), 1])
 
-    indecies = tf.tile(tf.expand_dims(barcode_count, axis = 0), [len(cycle)])
+    indices = tf.tile(tf.expand_dims(barcode_count, axis = 0), [len(cycle)])
 
     expanded_svit_grid = tf.tile(
         tf.constant([svit_grid]), [len(cycle), 1, 1, 1, 1, 1],
@@ -628,7 +549,7 @@ def test_single_voltage(
             expanded_end_current_prev,
             expanded_end_voltage_prev,
             expanded_end_voltage,
-            indecies,
+            indices,
             tf.constant(target_voltage, shape = [len(cycle), 1]),
             tf.tile(
                 tf.reshape(target_currents, shape = [1, len(target_currents)]),
@@ -702,6 +623,7 @@ def plot_v_curves(plot_params, init_returns):
                 q = tf.constant(q),
                 current = tf.constant(current, shape = [1, 1])
             )
+            ax = None
             for j in range(len(shift)):
                 ax = gathered_axs[j]
 
@@ -711,6 +633,8 @@ def plot_v_curves(plot_params, init_returns):
                 ax.plot(res["q"][j], v, label = "q_full (inverted)")
                 ax.axvline(shift[j], 0, 1)
 
+            if ax is None:
+                sys.exit("No shift in plot_v_curves.")
             ax.legend()
 
             fig.tight_layout()
@@ -721,7 +645,7 @@ def plot_v_curves(plot_params, init_returns):
             plt.close(fig)
 
 
-# TODO(harvey): duplicate function in DataEngine.py
+# TODO(harvey): duplicate in DataEngine.py
 def make_keys(cyc_grp_dict: dict, step: str) -> list:
     """
     Args:

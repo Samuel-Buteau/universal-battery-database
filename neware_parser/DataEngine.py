@@ -84,6 +84,7 @@ class DataEngine:
         PickleDump.scale(filename, patches, keys, scales, cycles)
 
 
+# TODO(harvey): Need a better protocol for dumping
 class PickleDump:
 
     @staticmethod

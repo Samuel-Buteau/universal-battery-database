@@ -60,6 +60,7 @@ class PlotEngine:
         )
 
 
+# TODO(harvey): Need a better protocol for loading
 class PickleLoad:
 
     @staticmethod

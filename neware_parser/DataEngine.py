@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 
 from neware_parser.Key import Key
+from neware_parser.Pickle import Pickle
 
 
 class DataEngine:
@@ -83,17 +84,6 @@ class DataEngine:
             scales.append(tf.reshape(test_results["pred_scale"], shape = [-1]))
 
         Pickle.dump(filename, (patches, keys, scales, cycles))
-
-
-# TODO(harvey): Need a better protocol for dumping
-class Pickle:
-
-    @staticmethod
-    def dump(filename: str, objects: tuple) -> None:
-        f = open(filename, "wb+")
-        for o in objects:
-            pickle.dump(o, f)
-        f.close()
 
 
 # TODO(harvey): duplicate function in plot.py

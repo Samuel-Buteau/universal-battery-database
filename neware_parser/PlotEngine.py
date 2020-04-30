@@ -2,6 +2,8 @@ import pickle
 
 import matplotlib.patches as mpatches
 
+from neware_parser.Pickle import Pickle
+
 # TODO(harvey) duplicate in plot.py
 COLORS = [
     (.4, .4, .4),
@@ -58,19 +60,6 @@ class PlotEngine:
             handles = patches, fontsize = "small",
             bbox_to_anchor = (0.7, 1), loc = "upper left"
         )
-
-
-# TODO(harvey): Need a better protocol for loading
-class Pickle:
-
-    @staticmethod
-    def load(filename: str, object_count: int) -> tuple:
-        f = open(filename, "rb")
-        objects = []
-        for _ in range(object_count):
-            objects.append(pickle.load(f))
-        f.close()
-        return tuple(objects)
 
 
 # TODO(harvey) duplicate in plot.py

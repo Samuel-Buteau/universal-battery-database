@@ -219,12 +219,7 @@ def initial_processing(my_barcodes, fit_args, flags):
     """
 
     all_data = {}
-    voltage_grid = make_voltage_grid(
-        fit_args[Key.V_MIN_GRID],
-        fit_args[Key.V_MAX_GRID],
-        fit_args[Key.V_N_GRID],
-        my_barcodes
-    )
+
 
     voltage_grid_degradation = make_voltage_grid(
         fit_args[Key.V_MIN_GRID],
@@ -383,7 +378,7 @@ def initial_processing(my_barcodes, fit_args, flags):
                             break
 
                         post_process_results = ml_post_process_cycle(
-                            cyc, voltage_grid, typ,
+                            cyc, fit_args[Key.V_N_GRID], typ,
                             current_max_n = fit_args[Key.I_MAX],
                             flagged = flagged
                         )
@@ -415,9 +410,9 @@ def initial_processing(my_barcodes, fit_args, flags):
                     dtype = [
                         (Key.N, "f4"),
 
-                        (Key.V_CC_VEC, "f4", len(voltage_grid)),
-                        (Key.Q_CC_VEC, "f4", len(voltage_grid)),
-                        (Key.MASK_CC_VEC, "f4", len(voltage_grid)),
+                        (Key.V_CC_VEC, "f4", fit_args[Key.V_N_GRID]),
+                        (Key.Q_CC_VEC, "f4", fit_args[Key.V_N_GRID]),
+                        (Key.MASK_CC_VEC, "f4", fit_args[Key.V_N_GRID]),
 
                         (Key.I_CV_VEC, "f4", fit_args[Key.I_MAX]),
                         (Key.Q_CV_VEC, "f4", fit_args[Key.I_MAX]),

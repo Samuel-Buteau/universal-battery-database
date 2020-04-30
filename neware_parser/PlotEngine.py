@@ -40,24 +40,6 @@ class PlotEngine:
             ax1.plot(cycles, quantity, c = COLORS[count])
 
     @staticmethod
-    def resistance(filename: str, fig, offset: int) -> None:
-
-        keys, resistances, cycles = Pickle.load(filename, 3)
-        ax1 = fig.add_subplot(6, 1, 1 + offset)
-        ax1.set_ylabel("resistance")
-        for count, (k, resistance) in enumerate(zip(keys, resistances)):
-            ax1.plot(cycles, resistance, c = COLORS[count])
-
-    @staticmethod
-    def shift(filename: str, fig, offset: int) -> None:
-
-        keys, shifts, cycles = Pickle.load(filename, 3)
-        ax1 = fig.add_subplot(6, 1, 1 + offset)
-        ax1.set_ylabel("shift")
-        for count, (k, shift) in enumerate(zip(keys, shifts)):
-            ax1.plot(cycles, shift, c = COLORS[count])
-
-    @staticmethod
     def scale(filename: str, fig, offset: int) -> None:
         """ Plot scale from the given pickle
 

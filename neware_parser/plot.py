@@ -460,7 +460,10 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
             degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
             svit_and_count, resistance_pickle_file,
         )
-        PlotEngine.shift(resistance_pickle_file, fig, offset = 4)
+        PlotEngine.quantity_vs_capacity(
+            resistance_pickle_file, fig,
+            name = "resistance", subplot_count = 6, offset = 4,
+        )
 
         shift_pickle_file = os.path.join(
             fit_args[Key.PATH_PLOTS],

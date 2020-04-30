@@ -299,32 +299,34 @@ def plot_vq(plot_params, init_returns):
         plt.close(fig)
 
 
-def plot_measured(cyc_grp_dict, mode, list_of_keys, patches, ax1):
-    for k_count, k in enumerate(list_of_keys):
-        patches.append(
-            mpatches.Patch(color = COLORS[k_count], label = make_legend(k))
-        )
+def plot_measured(cyc_grp_dict, mode, protocols, patches, ax1):
+    caps = []
+    for count, protocol in enumerate(protocols):
 
-        main_data = cyc_grp_dict[k][Key.MAIN]
-
-        if k[-1] == "dchg":
+        if protocol[-1] == "dchg":
             sign_change = -1.
         else:
             sign_change = +1.
 
         if mode == "cc":
-            cap = sign_change * main_data["last_cc_capacity"]
+            cap = cyc_grp_dict[protocol][Key.MAIN]["last_cc_capacity"]
         elif mode == "cv":
-            cap = sign_change * main_data["last_cv_capacity"]
+            cap = cyc_grp_dict[protocol][Key.MAIN]["last_cv_capacity"]
         else:
             sys.exit("Unknown mode in measured.")
 
+        caps.append(sign_change * cap)
+
+    for count, (protocol, cap) in enumerate(zip(protocols, caps)):
+        patches.append(
+            mpatches.Patch(color = COLORS[count], label = make_legend(protocol))
+        )
         ax1.scatter(
-            main_data[Key.N],
+            cyc_grp_dict[protocol][Key.MAIN][Key.N],
             cap,
-            c = COLORS[k_count],
+            c = COLORS[count],
             s = 5,
-            label = make_legend(k)
+            label = make_legend(protocol)
         )
 
 

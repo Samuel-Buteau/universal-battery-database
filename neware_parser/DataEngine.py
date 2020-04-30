@@ -40,7 +40,8 @@ class DataEngine:
             )
 
             resistances.append(
-                tf.reshape(test_results["pred_R"], shape = [-1]))
+                tf.reshape(test_results["pred_R"], shape = [-1])
+            )
 
         Pickle.dump(filename, (keys, resistances, cycles))
 

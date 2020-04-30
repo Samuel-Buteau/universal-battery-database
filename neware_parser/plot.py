@@ -31,11 +31,28 @@ COLORS = [
     (1., .5, 0.),
     (.5, 1., 0.),
 ]
+#TODO(sam): keep track of these in the database and allow users to modify.
+Preferred_Legends = {
+    ("C/20", "C/20", "C/20", None, None):0,
+    ("C/20", "C/2", "C/2", None, None): 1,
+    ("C/20", "1C", "1C", None, None): 2,
+    ("C/20", "2C", "2C", None, None): 3,
+    ("C/20", "3C", "3C", None, None): 4,
 
+    ("C/20", "C/20", "C/20", None, None): 0,
+    ("C/20", "1C", "C/20", None, None): 5,
+    ("C/2", "1C", None, None, None): 1,
+    ("1C", "1C", "C/20", None, None): 2,
+    ("2C", "1C", "C/20", None, None): 3,
+    ("3C", "1C", "C/20", None, None): 4,
+
+}
 
 def bake_rate(rate_in):
-    rate = round(20. * rate_in) / 20.
-    if rate == .05:
+    rate = round(40. * rate_in) / 40.
+    if rate == .025:
+        rate = "C/40"
+    elif rate == .05:
         rate = "C/20"
     elif rate > 1.75:
         rate = "{}C".format(int(round(rate)))
@@ -68,7 +85,7 @@ def bake_voltage(vol_in):
     return vol
 
 
-def make_legend(key):
+def make_legend_key(key):
     constant_rate = key[0]
     constant_rate = bake_rate(constant_rate)
     end_rate_prev = key[1]
@@ -82,6 +99,24 @@ def make_legend(key):
     end_voltage_prev = key[4]
     end_voltage_prev = bake_voltage(end_voltage_prev)
 
+    return (
+        end_rate_prev, constant_rate, end_rate, end_voltage_prev, end_voltage
+    )
+
+def match_legend_key(legend_key, rule):
+    match = True
+    for i in range(len(legend_key)):
+        if rule[i] is None:
+            continue
+        if rule[i] == legend_key[i]:
+            continue
+        else:
+            match = False
+            break
+    return match
+
+def make_legend(key):
+    end_rate_prev, constant_rate, end_rate, end_voltage_prev, end_voltage = make_legend_key(key)
     template = "I {}:{}:{:5}   V {}:{}"
     return template.format(
         end_rate_prev, constant_rate, end_rate, end_voltage_prev, end_voltage
@@ -732,8 +767,8 @@ def get_list_of_keys(cyc_grp_dict, typ):
     ]
     list_of_keys.sort(
         key = lambda k: (
-            round(20. * k[0]), round(20. * k[1]), round(20. * k[2]),
-            round(20. * k[3]), round(20. * k[4])
+            round(40. * k[0]), round(40. * k[1]), round(40. * k[2]),
+            round(10. * k[3]), round(10. * k[4])
         )
     )
     return list_of_keys

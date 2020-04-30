@@ -454,7 +454,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
 
         resistance_pickle_file = os.path.join(
             fit_args[Key.PATH_PLOTS],
-            "scale_{}_count_{}.pickle".format(barcode, count),
+            "resistance_{}_count_{}.pickle".format(barcode, count),
         )
         DataEngine.resistance(
             degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
@@ -464,13 +464,16 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
 
         shift_pickle_file = os.path.join(
             fit_args[Key.PATH_PLOTS],
-            "scale_{}_count_{}.pickle".format(barcode, count),
+            "shift_{}_count_{}.pickle".format(barcode, count),
         )
         DataEngine.shift(
             degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
             svit_and_count, shift_pickle_file,
         )
-        PlotEngine.shift(shift_pickle_file, fig, offset = 5)
+        PlotEngine.quantity_vs_capacity(
+            shift_pickle_file, fig,
+            name = "shift", subplot_count = 6, offset = 5,
+        )
 
         savefig("Cap_{}_Count_{}.png".format(barcode, count), fit_args)
         plt.close(fig)

@@ -29,11 +29,8 @@ class PlotEngine:
 
     @staticmethod
     def quantity_vs_capacity(
-        filename: str,
-        fig,
-        subplot_count = 1,
-        offset = 0,
-        name = "some quantity",
+        filename: str, fig,
+        name = "some quantity", subplot_count = 1, offset = 0,
     ) -> None:
 
         protocols, quantities, cycles = Pickle.load(filename, 3)

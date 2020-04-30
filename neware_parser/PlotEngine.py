@@ -28,7 +28,7 @@ class PlotEngine:
     @staticmethod
     def plot_shift(filename: str, fig, offset: int) -> None:
 
-        keys, shifts, cycles = PickleLoad.shift(filename)
+        keys, shifts, cycles = Pickle.load(filename, 3)
         ax1 = fig.add_subplot(6, 1, 1 + offset)
         ax1.set_ylabel("shift")
         for count, (k, shift) in enumerate(zip(keys, shifts)):
@@ -44,7 +44,7 @@ class PlotEngine:
             offset (int): The offset on the figure for the scale plot
         """
 
-        patches, keys, scales, cycles = PickleLoad.scale(filename)
+        patches, keys, scales, cycles = Pickle.load(filename, 4)
         ax1 = fig.add_subplot(6, 1, 1 + offset)
 
         for k_count, (k, scale) in enumerate(zip(keys, scales)):
@@ -61,26 +61,16 @@ class PlotEngine:
 
 
 # TODO(harvey): Need a better protocol for loading
-class PickleLoad:
+class Pickle:
 
     @staticmethod
-    def shift(filename: str) -> tuple:
+    def load(filename: str, object_count: int) -> tuple:
         f = open(filename, "rb")
-        keys = pickle.load(f)
-        shifts = pickle.load(f)
-        cycles = pickle.load(f)
+        objects = []
+        for _ in range(object_count):
+            objects.append(pickle.load(f))
         f.close()
-        return keys, shifts, cycles
-
-    @staticmethod
-    def scale(filename: str) -> tuple:
-        f = open(filename, "rb")
-        patches = pickle.load(f)
-        keys = pickle.load(f)
-        scales = pickle.load(f)
-        cycles = pickle.load(f)
-        f.close()
-        return patches, keys, scales, cycles
+        return tuple(objects)
 
 
 # TODO(harvey) duplicate in plot.py

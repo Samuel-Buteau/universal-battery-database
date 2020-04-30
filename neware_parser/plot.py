@@ -1,5 +1,4 @@
 import os
-import pickle
 import sys
 
 import numpy as np
@@ -11,12 +10,14 @@ from matplotlib.axes._axes import _log as matplotlib_axes_logger
 
 from neware_parser.Print import Print
 from neware_parser.Key import Key
+from neware_parser.PlotEngine import PlotEngine
 from neware_parser.DataEngine import DataEngine
 
 matplotlib_axes_logger.setLevel("ERROR")
 
 FIGSIZE = [6, 5]
 
+# TODO(harvey) duplicate in PlotEngine.py
 COLORS = [
     (.4, .4, .4),
 
@@ -37,6 +38,7 @@ COLORS = [
 ]
 
 
+# TODO(harvey) duplicate in PlotEngine.py
 def bake_rate(rate_in):
     rate = round(20. * rate_in) / 20.
     if rate == .05:
@@ -63,6 +65,7 @@ def bake_rate(rate_in):
     return rate
 
 
+# TODO(harvey) duplicate in PlotEngine.py
 def bake_voltage(vol_in):
     vol = round(10. * vol_in) / 10.
     if vol == 1. or vol == 2. or vol == 3. or vol == 4. or vol == 5.:
@@ -72,6 +75,7 @@ def bake_voltage(vol_in):
     return vol
 
 
+# TODO(harvey) duplicate in PlotEngine.py
 def make_legend(key):
     constant_rate = key[0]
     constant_rate = bake_rate(constant_rate)
@@ -407,42 +411,6 @@ def plot_capacities(
         )
 
 
-def pickle_load_scale(filename: str) -> tuple:
-    f = open(filename, "rb")
-    patches = pickle.load(f)
-    keys = pickle.load(f)
-    scales = pickle.load(f)
-    cycles = pickle.load(f)
-    f.close()
-
-    return patches, keys, scales, cycles
-
-
-def plot_scale(filename: str, fig, offset: int) -> None:
-    """ Plot scale from the given pickle
-
-    Args:
-        filename (str): Filename (including path) to the pickle file
-        fig: The figure on which to plot scale
-        offset (int): The offset on the figure for the scale plot
-    """
-
-    patches, keys, scales, cycles = pickle_load_scale(filename)
-    ax1 = fig.add_subplot(6, 1, 1 + offset)
-
-    for k_count, (k, scale) in enumerate(zip(keys, scales)):
-        patches.append(
-            mpatches.Patch(color = COLORS[k_count], label = make_legend(k))
-        )
-        ax1.plot(cycles, scale, c = COLORS[k_count])
-
-    ax1.set_ylabel("scale")
-    ax1.legend(
-        handles = patches, fontsize = "small",
-        bbox_to_anchor = (0.7, 1), loc = "upper left"
-    )
-
-
 def plot_resistance(
     cyc_grp_dict, cycle_m, cycle_v, barcode_count,
     degradation_model, svit_and_count, fig,
@@ -545,7 +513,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
             degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
             svit_and_count, scale_pickle_file,
         )
-        plot_scale(filename = scale_pickle_file, fig = fig, offset = 3)
+        PlotEngine.plot_scale(filename = scale_pickle_file, fig = fig, offset = 3)
         plot_resistance(
             cyc_grp_dict, cycle_m, cycle_v, barcode_count,
             degradation_model, svit_and_count,
@@ -594,7 +562,7 @@ def test_all_voltages(
     )
 
 
-# TODO(harvey): duplicate function in DataEngine.py
+# TODO(harvey): duplicate in DataEngine.py
 def test_single_voltage(
     cycle, target_voltage, constant_current, end_current_prev,
     end_voltage_prev, end_voltage, target_currents, barcode_count,
@@ -721,7 +689,7 @@ def plot_v_curves(plot_params, init_returns):
             plt.close(fig)
 
 
-# TODO(harvey): duplicate function in DataEngine.py
+# TODO(harvey): duplicate in DataEngine.py
 def make_keys(cyc_grp_dict: dict, step: str) -> list:
     """
     Args:

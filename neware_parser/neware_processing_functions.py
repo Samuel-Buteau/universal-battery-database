@@ -1219,11 +1219,23 @@ def get_count_matrix(cyc, voltage_grid_degradation, current_grid, temperature_gr
     return total
 
 
-def ml_post_process_cycle(cyc, voltage_grid, step_type, current_max_n):
+def ml_post_process_cycle(cyc, voltage_grid, step_type, current_max_n, flagged=False):
+    #TODO(sam): if flagged, be verbose
+    if flagged:
+        print("Starting Verbose ml_post_process_cycle(cyc={}, voltage_gride={}, step_type={}, current_max_n={}".format(
+            cyc,
+            voltage_grid,
+            step_type,
+            current_max_n
+        ))
+
+
     if step_type == "dchg":
         steps = cyc.step_set.filter(step_type__contains="CC_DChg").order_by("cycle__cycle_number","step_number")
 
         if len(steps) == 0:
+            if flagged:
+                print("return because len(steps) == 0")
             return None
         else:
             first_step = steps[0]
@@ -1233,11 +1245,16 @@ def ml_post_process_cycle(cyc, voltage_grid, step_type, current_max_n):
             curve = numpy.flip(curve, 0)
             cv_curve = []
 
+
     if step_type == "chg":
         steps = cyc.step_set.filter(step_type__contains="CC_Chg").order_by("cycle__cycle_number","step_number")
         if len(steps) == 0:
+            if flagged:
+                print("len(steps) was 0 first time.")
             steps = cyc.step_set.filter(step_type__contains="CCCV_Chg").order_by("cycle__cycle_number", "step_number")
             if len(steps) == 0:
+                if flagged:
+                    print("return because len(steps) was 0 second time")
                 return None
             else:
                 #has some CV data
@@ -1245,9 +1262,13 @@ def ml_post_process_cycle(cyc, voltage_grid, step_type, current_max_n):
                 vcqt_curve = first_step.get_v_c_q_t_data()
 
                 if len(vcqt_curve)==1:
+                    if flagged:
+                        print("len(vcqt_curve) was 0")
                     curve = vcqt_curve[:, [0,2]]
                     cv_curve = []
                 else:
+                    if flagged:
+                        print("len(vcqt_curve) was not 0")
                     delta_currents = numpy.abs(vcqt_curve[1:,1] - vcqt_curve[:-1,1])
                     delta_count = 0
                     for d in delta_currents:
@@ -1256,6 +1277,8 @@ def ml_post_process_cycle(cyc, voltage_grid, step_type, current_max_n):
                         else:
                             break
 
+                    if flagged:
+                        print('delta_currents = {}, delta_count = {}'.format(delta_currents, delta_count))
                     curve = vcqt_curve[:delta_count+1, [0, 2]]
                     cv_curve = vcqt_curve[delta_count+1:, [1,2]]
 
@@ -1266,6 +1289,13 @@ def ml_post_process_cycle(cyc, voltage_grid, step_type, current_max_n):
             curve = vcqt_curve[:, [0, 2]]
             cv_curve = []
 
+    if flagged:
+        print("first_step = {}, vcqt_curve = {}, curve = {}, cv_curve = {}".format(
+            first_step,
+            vcqt_curve,
+            curve,
+            cv_curve
+        ))
 
     cursor = numpy.array([-1, len(curve)], dtype=numpy.int32)
     limits_v = numpy.array([-10., 10.], dtype=numpy.float32)

@@ -51,6 +51,9 @@ def quality_control(fit_args):
     if not os.path.exists(fit_args[Key.PATH_PLOTS]):
         os.makedirs(fit_args[Key.PATH_PLOTS])
 
+    if not os.path.exists(fit_args["path_to_flags"]):
+        os.makedirs(fit_args["path_to_flags"])
+
     dataset_path = os.path.join(
         fit_args[Key.PATH_DATASET],
         "dataset_ver_{}.file".format(fit_args[Key.DATA_VERSION])
@@ -82,7 +85,7 @@ def initial_processing(
 ) -> dict:
 
 
-
+    errors = []
 
     max_cap = my_data[Key.Q_MAX]
 
@@ -108,7 +111,52 @@ def initial_processing(
                     cyc_grp_dict[k][Key.V_END_AVG],
                 )
 
+            caps = cyc_grp_dict[k][Key.MAIN][Key.Q_CC_VEC]
+            cycs = cyc_grp_dict[k][Key.MAIN][Key.N]
+            vols = cyc_grp_dict[k][Key.MAIN][Key.V_CC_VEC]
+            masks = cyc_grp_dict[k][Key.MAIN][Key.MASK_CC_VEC]
+
+            # Test for points of opposite polarity
+            if k[-1] == 'dchg':
+                f = lambda c: c > 0.
+            elif k[-1] == 'chg':
+                f = lambda c: c < 0.
+            else:
+                continue
+
+            for i in range(len(cycs)):
+                if any([f(c) for c in caps[i]]):
+                    errors.append(
+                        {
+                            "type": 'opposite_polarity',
+                            "flag":{
+                                "barcode": barcode,
+                                "group": k,
+                                "cycle": cycs[i],
+                            },
+                            "caps": caps[i],
+                            "vols": vols[i],
+                            "masks": masks[i]
+                        }
+                    )
+        print('Full error list:')
+        print(errors)
+
+        types = list(set([e["type"] for e in errors]))
+
+        flags = {}
+        for type in types:
+
+            flags[type] = [e["flag"] for e in errors if e["type"] == type]
+
+        print('Only the flags')
+        print(flags)
+        with open(os.path.join(fit_args["path_to_flags"], "FLAGS.file"), 'wb') as file:
+            pickle.dump(flags, file, pickle.HIGHEST_PROTOCOL)
+
+
         plot_1(cyc_grp_dict, barcode, fit_args)
+
 
 
 
@@ -128,6 +176,10 @@ def plot_1(cyc_grp_dict, barcode, fit_args):
         list_of_patches = []
         ax = axs[off]
         for k_count, k in enumerate(list_of_keys):
+            list_of_patches.append(mpatches.Patch(
+                color=COLORS[k_count], label=make_legend(k)
+            ))
+
             if k[-1] == "dchg":
                 sign_change = -1.
             else:
@@ -196,6 +248,7 @@ class Command(BaseCommand):
             "--path_to_dataset",
             "--dataset_version",
             "--path_to_plots",
+            "--path_to_flags"
         ]
 
 

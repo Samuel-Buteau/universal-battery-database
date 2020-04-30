@@ -1219,14 +1219,106 @@ def get_count_matrix(cyc, voltage_grid_degradation, current_grid, temperature_gr
     return total
 
 
-def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n, flagged=False):
-    #TODO(sam): if flagged, be verbose
+def get_non_redundent_mask(mat):
+    """
+    this assumes mat is sorted
+    :param mat:
+    :return:
+    """
+    mask = numpy.ones(len(mat), dtype=numpy.bool)
+    for i in range(1, len(mat)):
+        if mat[i] == mat[i-1]:
+            mask[i] = False
+
+    return mask
+
+
+def reshuffle(x, y):
+
+    sorted_ind = numpy.argsort(x)
+    x = x[sorted_ind]
+    y = y[sorted_ind]
+
+    redundency_mask = get_non_redundent_mask(x)
+    x = x[redundency_mask]
+    y = y[redundency_mask]
+    return x, y
+
+
+def resampler(x, y, x_n, flagged=False, log_space=False, delta_grace = 0.001):
+
+
+    x_min = numpy.min(x)
+    x_max = numpy.max(x)
+
+    if log_space:
+        new_x = numpy.exp(numpy.linspace(numpy.log(x_min), numpy.log(x_max), x_n))
+    else:
+        new_x = numpy.linspace(x_min, x_max, x_n)
+
+    spline = PchipInterpolator(x, y, extrapolate=True)
+    new_y = spline(new_x)
     if flagged:
-        print("Starting Verbose ml_post_process_cycle(cyc={}, voltage_grid_n={}, step_type={}, current_max_n={}".format(
+        print("new_x {}, x {}, y {}".format(
+            new_x,
+            x,
+            y,
+        )
+        )
+
+        print("spline: {}".format(new_y))
+
+    new_mask = numpy.where(
+        numpy.logical_and(
+            new_x >= (x_min - delta_grace),
+            new_x <= (x_max + delta_grace)
+        ),
+        numpy.ones(x_n, dtype=numpy.float32),
+        0.0 * numpy.ones(x_n, dtype=numpy.float32),
+    )
+
+    mask = numpy.where(
+        numpy.logical_and(
+            new_x >= (x_min ),
+            new_x <= (x_max )
+        ),
+        numpy.ones(x_n, dtype=numpy.float32),
+        0.0 * numpy.ones(x_n, dtype=numpy.float32),
+    )
+    if flagged:
+        print("x_min {}, x_max {}, delta_grace {}, mask1 {}, mask {}".format(
+            x_min,
+            x_max,
+            delta_grace,
+            new_mask,
+            mask
+        ))
+
+    if not is_monotonically_increasing(new_x, mask=mask):
+        new_x[:] = x[:x_n]
+        new_y[:] = y[:x_n]
+        new_mask[:] = 1.
+        if flagged:
+            print("was not increasing")
+    else:
+        if flagged:
+            print("was increasing")
+
+
+
+    return new_x, new_y, new_mask
+
+
+def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n,voltage_grid_min_v,voltage_grid_max_v,flagged=False):
+
+    if flagged:
+        print("Starting Verbose ml_post_process_cycle(cyc={}, voltage_grid_n={}, step_type={}, current_max_n={}, voltage_grid_min_v={}, voltage_grid_max_v={}".format(
             cyc,
             voltage_grid_n,
             step_type,
-            current_max_n
+            current_max_n,
+            voltage_grid_min_v,
+            voltage_grid_max_v
         ))
 
 
@@ -1289,6 +1381,14 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n, flagged
             curve = vcqt_curve[:, [0, 2]]
             cv_curve = []
 
+
+    within_bounds = numpy.logical_and(
+            voltage_grid_min_v <= curve[:,0],
+            curve[:, 0] <= voltage_grid_max_v
+    )
+
+    curve = curve[within_bounds, :]
+
     if flagged:
         print("first_step = {}, vcqt_curve = {}, curve = {}, cv_curve = {}".format(
             first_step,
@@ -1296,6 +1396,8 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n, flagged
             curve,
             cv_curve
         ))
+
+
 
     cursor = numpy.array([-1, len(curve)], dtype=numpy.int32)
     limits_v = numpy.array([-10., 10.], dtype=numpy.float32)
@@ -1432,14 +1534,12 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n, flagged
 
     # uniformly sample it
 
-    v = valid_curve[:, 0]
-    q = valid_curve[:, 1]
 
-    #print(step_type)
-    #print(v, q)
-    sorted_ind = numpy.argsort(v)
-    v = v[sorted_ind]
-    q = q[sorted_ind]
+    v, q = reshuffle(
+        x=valid_curve[:, 0],
+        y=valid_curve[:, 1],
+    )
+
 
     if flagged:
         print("sorted: v: {}, q: {}".format(v, q))
@@ -1461,19 +1561,39 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n, flagged
     else:
         last_cv_capacity = last_cc_capacity
 
+    if flagged:
+        print("last_cv_capacity {}".format(last_cv_capacity))
+
+
     cv_currents = numpy.zeros(shape=(current_max_n), dtype=numpy.float32)
     cv_qs = numpy.zeros(shape=(current_max_n), dtype=numpy.float32)
     cv_mask = numpy.zeros(shape=(current_max_n), dtype=numpy.float32)
 
-    if len(cv_curve) >0:
+    if len(cv_curve) > 0:
         if current_max_n >= len(cv_curve):
             cv_currents[:len(cv_curve)] = cv_curve[:, 0]
             cv_qs[:len(cv_curve)] = cv_curve[:, 1]
             cv_mask[:len(cv_curve)] = 1.
+
         else:
-            cv_currents[:] = cv_curve[:current_max_n, 0]
-            cv_qs[:] = cv_curve[:current_max_n, 1]
-            cv_mask[:] = 1.
+            # uniformly sample it
+            cv_x, cv_y = reshuffle(
+                x=cv_curve[:, 0],
+                y=cv_curve[:, 1],
+            )
+
+            cv_currents, cv_qs, cv_mask = resampler(
+                x = cv_x,
+                y = cv_y,
+                x_n =current_max_n,
+                flagged=flagged,
+                log_space=True
+            )
+
+
+
+
+
 
 
     if voltage_grid_n >= len(v):
@@ -1505,79 +1625,17 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n, flagged
     if flagged:
         print("len(voltage_grid) < len(v)")
 
-
-    v_min = numpy.min(v)
-    v_max = numpy.max(v)
-
-    voltage_grid = numpy.linspace(v_min, v_max, voltage_grid_n)
-    spline = PchipInterpolator(v, q, extrapolate=True)
-    res = spline(voltage_grid)
-    if flagged:
-        print("spline res: {}".format(res))
-
-
-    delta_grace = 0.1*abs(voltage_grid[1]-voltage_grid[0]) + 0.001
-    mask1 = numpy.where(
-        numpy.logical_and(
-            voltage_grid >= (v_min-delta_grace),
-            voltage_grid <= (v_max+delta_grace)
-        ),
-        numpy.ones(len(voltage_grid), dtype=numpy.float32),
-        0.0 * numpy.ones(len(voltage_grid), dtype=numpy.float32),
+    voltages, cc_capacities, cc_masks = resampler(
+        x = v,
+        y = q,
+        x_n = voltage_grid_n,
+        flagged = flagged,
+        log_space=False
     )
 
-    mask = numpy.where(
-        numpy.logical_and(
-            voltage_grid >= v_min,
-            voltage_grid <= v_max
-        ),
-        numpy.ones(len(voltage_grid), dtype=numpy.float32),
-        0.0 * numpy.ones(len(voltage_grid), dtype=numpy.float32),
-    )
-    if flagged:
-        print("v_min {}, v_max {}, delta_grace {}, mask1 {}, mask {}".format(
-            v_min,
-            v_max,
-            delta_grace,
-            mask1,
-            mask
-        ))
 
-    if not is_monotonically_increasing(res, mask=mask):
-        if flagged:
-            print("was not increasing {}, with mask {}".format(res,mask1))
-        return None
-
-    if flagged:
-        print("was increasing")
-
-    mask2 = numpy.minimum(
-        mask1,
-        numpy.sum(
-            numpy.exp(
-                -(1./(voltage_grid[1]-voltage_grid[0])**2)*
-                numpy.square(
-                    numpy.tile(
-                        numpy.expand_dims(
-                            voltage_grid,
-                            axis=1
-                        ),
-                        (1, len(v))) -
-                    numpy.tile(
-                        numpy.expand_dims(
-                            v,
-                            axis=0),
-                        (len(voltage_grid),1))
-                )
-            ), axis=1)
-    )
-
-    if flagged:
-        print("mask2 {}".format(mask2))
-
-    voltages = voltage_grid
     #TODO(sam): treat and include the CV data as well.
-    return {"cc_voltages":voltages, "cc_capacities":res, "cc_masks":mask2,
+    return {"cc_voltages":voltages, "cc_capacities":cc_capacities, "cc_masks":cc_masks,
             "cv_currents": cv_currents, "cv_capacities": cv_qs, "cv_masks": cv_mask,
             "end_current_prev": first_step.end_current_prev,
             "end_current": first_step.end_current,

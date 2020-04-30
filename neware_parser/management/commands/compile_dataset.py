@@ -349,12 +349,25 @@ def initial_processing(my_barcodes, fit_args, flags):
             for cyc_group in groups:
                 result = []
 
+                future_key = (cyc_group.constant_rate, cyc_group.end_rate_prev,
+                              cyc_group.end_rate, cyc_group.end_voltage,
+                              cyc_group.end_voltage_prev, typ)
+
+                if any([
+                    abs(cyc_group.end_rate_prev) < 1e-5,
+                    abs(cyc_group.constant_rate) < 1e-5,
+                    abs(cyc_group.end_rate) < 1e-5,
+                    fit_args["voltage_grid_min_v"] > cyc_group.end_voltage,
+                    fit_args["voltage_grid_max_v"] < cyc_group.end_voltage,
+                    fit_args["voltage_grid_min_v"] > cyc_group.end_voltage_prev,
+                    fit_args["voltage_grid_max_v"] < cyc_group.end_voltage_prev,
+
+                ]):
+                    continue
+
                 for cyc in cyc_group.cycle_set.order_by(Key.N):
                     if cyc.valid_cycle:
                         offset_cycle = cyc.get_offset_cycle()
-                        future_key = (cyc_group.constant_rate, cyc_group.end_rate_prev,
-                        cyc_group.end_rate, cyc_group.end_voltage,
-                        cyc_group.end_voltage_prev, typ)
                         # Check if flagged.
                         flagged = False
                         for flag_type in flags.keys():
@@ -380,6 +393,8 @@ def initial_processing(my_barcodes, fit_args, flags):
                         post_process_results = ml_post_process_cycle(
                             cyc, fit_args[Key.V_N_GRID], typ,
                             current_max_n = fit_args[Key.I_MAX],
+                            voltage_grid_min_v=fit_args["voltage_grid_min_v"],
+                            voltage_grid_max_v=fit_args["voltage_grid_max_v"],
                             flagged = flagged
                         )
 
@@ -656,7 +671,7 @@ class Command(BaseCommand):
         #     83744, 83745, 83746, 83747, 83748,
         # ]
 
-        default_barcodes = [57706]
+        default_barcodes = []
         parser.add_argument(
             "--wanted_barcodes", type = int, nargs = "+",
             default = default_barcodes,

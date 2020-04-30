@@ -89,32 +89,64 @@ def initial_processing(
 
     max_cap = my_data[Key.Q_MAX]
 
-    for barcode_count, barcode in enumerate(barcodes):
 
+    for barcode_count, barcode in enumerate(barcodes):
         all_data = my_data[Key.ALL_DATA][barcode]
         cyc_grp_dict = all_data[Key.CYC_GRP_DICT]
 
+        dual_legends = {}
+        for typ in ['chg', 'dchg']:
+            legends = {}
+            for k in cyc_grp_dict.keys():
+                if k[-1] == typ:
+                    legend = make_legend(k)
+                    if legend in legends.keys():
+                        legends[legend] +=1
+                    else:
+                        legends[legend] = 1
+
+            dual_legends_typ = []
+            for legend in legends:
+                if legends[legend] > 1:
+                    dual_legends_typ.append(legend)
+
+            if len(dual_legends_typ) >0:
+                dual_legends[typ] = dual_legends_typ
+
         for k_count, k in enumerate(cyc_grp_dict.keys()):
+            if k[-1] in dual_legends.keys():
+                legend = make_legend(k)
+                if legend in dual_legends[k[-1]]:
+                    print(k)
+            caps = cyc_grp_dict[k][Key.MAIN][Key.Q_CC_VEC]
+            cycs = cyc_grp_dict[k][Key.MAIN][Key.N]
+            vols = cyc_grp_dict[k][Key.MAIN][Key.V_CC_VEC]
+            masks = cyc_grp_dict[k][Key.MAIN][Key.MASK_CC_VEC]
 
             if any([
                 abs(cyc_grp_dict[k][Key.I_PREV_END_AVG]) < 1e-5,
                 abs(cyc_grp_dict[k][Key.I_CC_AVG]) < 1e-5,
                 abs(cyc_grp_dict[k][Key.I_END_AVG]) < 1e-5,
-                abs(cyc_grp_dict[k][Key.V_PREV_END_AVG]) < 1e-1,
-                abs(cyc_grp_dict[k][Key.V_END_AVG]) < 1e-1,
-            ]):
-                print(
-                    cyc_grp_dict[k][Key.I_PREV_END_AVG],
-                    cyc_grp_dict[k][Key.I_CC_AVG],
-                    cyc_grp_dict[k][Key.I_END_AVG],
-                    cyc_grp_dict[k][Key.V_PREV_END_AVG],
-                    cyc_grp_dict[k][Key.V_END_AVG],
-                )
+                fit_args["voltage_grid_min_v"] > cyc_grp_dict[k][Key.V_PREV_END_AVG],
+                fit_args["voltage_grid_max_v"] < cyc_grp_dict[k][Key.V_PREV_END_AVG],
+                fit_args["voltage_grid_min_v"] > cyc_grp_dict[k][Key.V_END_AVG],
+                fit_args["voltage_grid_max_v"] < cyc_grp_dict[k][Key.V_END_AVG],
 
-            caps = cyc_grp_dict[k][Key.MAIN][Key.Q_CC_VEC]
-            cycs = cyc_grp_dict[k][Key.MAIN][Key.N]
-            vols = cyc_grp_dict[k][Key.MAIN][Key.V_CC_VEC]
-            masks = cyc_grp_dict[k][Key.MAIN][Key.MASK_CC_VEC]
+            ]):
+                for i in range(len(cycs)):
+                    errors.append(
+                        {
+                            "type": 'bad_group_bounds',
+                            "flag": {
+                                "barcode": barcode,
+                                "group": k,
+                                "cycle": cycs[i],
+                            },
+                            "caps": caps[i],
+                            "vols": vols[i],
+                            "masks": masks[i]
+                        }
+                    )
 
             # Test for points of opposite polarity
             if k[-1] == 'dchg':
@@ -139,30 +171,35 @@ def initial_processing(
                             "masks": masks[i]
                         }
                     )
-        print('Full error list:')
-        print(errors)
+        if len(errors) > 0:
+            print('Full error list:')
+            print(errors)
 
         types = list(set([e["type"] for e in errors]))
 
         flags = {}
         for type in types:
-
             flags[type] = [e["flag"] for e in errors if e["type"] == type]
 
-        print('Only the flags')
-        print(flags)
+        if len(flags) > 0:
+            print('Only the flags')
+            print(flags)
         with open(os.path.join(fit_args["path_to_flags"], "FLAGS.file"), 'wb') as file:
             pickle.dump(flags, file, pickle.HIGHEST_PROTOCOL)
 
 
-        plot_1(cyc_grp_dict, barcode, fit_args)
+
+        plot_1(cyc_grp_dict, barcode, fit_args, legends=Preferred_Legends)
 
 
 
 
-def plot_1(cyc_grp_dict, barcode, fit_args):
+def plot_1(cyc_grp_dict, barcode, fit_args, legends=None):
     # x_lim = [-0.01, 1.01]
     y_lim = [2.95, 4.35]
+    if legends is None:
+        legends = {}
+
 
     fig, axs = plt.subplots(nrows = 3, figsize = [5, 10], sharex = True)
 
@@ -173,11 +210,56 @@ def plot_1(cyc_grp_dict, barcode, fit_args):
     ]:
         list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
 
+        custom_colors = {}
+        colors_taken = []
+        for k in list_of_keys:
+            legend_key = make_legend_key(k)
+            matched = False
+            for legend_rule in legends.keys():
+                if match_legend_key(legend_key, legend_rule):
+                    matched = True
+                    color_index = legends[legend_rule]
+                    if color_index in colors_taken:
+                        possible_colors = [c_i for c_i in range(len(COLORS)) if c_i not in colors_taken]
+                        if len(possible_colors) == 0:
+                            color_index = 0
+                        else:
+                            color_index = sorted(possible_colors)[0]
+
+                    if not color_index in colors_taken:
+                        colors_taken.append(color_index)
+                    custom_colors[k] = color_index
+                    break
+            if not matched:
+                continue
+
+        for color_index in legends.values():
+            if not color_index in colors_taken:
+                colors_taken.append(color_index)
+
+        for k in list_of_keys:
+            if not k in custom_colors.keys():
+                possible_colors = [c_i for c_i in range(len(COLORS)) if c_i not in colors_taken]
+                if len(possible_colors) == 0:
+                    color_index = 0
+                else:
+                    color_index = sorted(possible_colors)[0]
+
+                if not color_index in colors_taken:
+                    colors_taken.append(color_index)
+                custom_colors[k] = color_index
+
+
+
         list_of_patches = []
         ax = axs[off]
         for k_count, k in enumerate(list_of_keys):
+
+
+            color = custom_colors[k]
+
             list_of_patches.append(mpatches.Patch(
-                color=COLORS[k_count], label=make_legend(k)
+                color=COLORS[color], label=make_legend(k)
             ))
 
             if k[-1] == "dchg":
@@ -212,15 +294,15 @@ def plot_1(cyc_grp_dict, barcode, fit_args):
                 valids = vq_mask > .5
 
                 # ax.set_xlim(x_lim)
-                ax.set_ylim(y_lim)
+                # ax.set_ylim(y_lim)
 
                 ax.scatter(
                     sign_change * vq[valids],
                     y_axis[valids],
                     c = [[
-                        mult * COLORS[k_count][0],
-                        mult * COLORS[k_count][1],
-                        mult * COLORS[k_count][2]
+                        mult * COLORS[color][0],
+                        mult * COLORS[color][1],
+                        mult * COLORS[color][2]
                     ]],
                     s = 3
                 )
@@ -251,12 +333,18 @@ class Command(BaseCommand):
             "--path_to_flags"
         ]
 
+        float_args = {
+            "--voltage_grid_min_v": 2.5,
+            "--voltage_grid_max_v": 5.0,
 
+        }
 
 
 
         for arg in required_args:
             parser.add_argument(arg, required = True)
+        for arg in float_args:
+            parser.add_argument(arg, type=float, default=float_args[arg])
 
         # barcodes = [
         #     81602, 81603, 81604, 81605, 81606, 81607, 81608, 81609, 81610,

@@ -36,7 +36,8 @@ class DataEngine:
                     svit_and_count[Key.COUNT_MATRIX],
                 )
                 shifts.append(
-                    tf.reshape(test_results["pred_shift"], shape = [-1]))
+                    tf.reshape(test_results["pred_shift"], shape = [-1]),
+                )
 
         PickleDump.shift(filename, keys, shifts, cycles)
 

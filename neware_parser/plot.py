@@ -425,16 +425,13 @@ def plot_resistance(
 ):
     for typ, off, mode in [("dchg", 4, "cc")]:
 
-        list_of_keys = make_keys(cyc_grp_dict, typ)
+        keys = make_keys(cyc_grp_dict, typ)
+        resistances = []
 
-        ax1 = fig.add_subplot(6, 1, 1 + off)
-        ax1.set_ylabel("resistance")
+        cycles = [x for x in np.arange(0., 6000., 20.)]
+        my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycles]
 
-        for k_count, k in enumerate(list_of_keys):
-            cycle = [x for x in np.arange(0., 6000., 20.)]
-
-            my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
-
+        for k_count, k in enumerate(keys):
             target_voltage = cyc_grp_dict[k]["avg_last_cc_voltage"]
             target_currents = [cyc_grp_dict[k][Key.I_CC_AVG]]
 
@@ -451,9 +448,12 @@ def plot_resistance(
                 svit_and_count[Key.COUNT_MATRIX]
             )
 
-            pred_cap = tf.reshape(test_results["pred_R"], shape = [-1])
+            resistances.append(tf.reshape(test_results["pred_R"], shape = [-1]))
 
-            ax1.plot(cycle, pred_cap, c = COLORS[k_count])
+        ax1 = fig.add_subplot(6, 1, 1 + off)
+        ax1.set_ylabel("resistance")
+        for count, (k, resistance) in enumerate(zip(keys, resistances)):
+            ax1.plot(cycles, resistance, c = COLORS[count])
 
 
 def plot_things_vs_cycle_number(plot_params, init_returns):

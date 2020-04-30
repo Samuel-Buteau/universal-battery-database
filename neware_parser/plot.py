@@ -11,6 +11,7 @@ from matplotlib.axes._axes import _log as matplotlib_axes_logger
 
 from neware_parser.Print import Print
 from neware_parser.Key import Key
+from neware_parser.DataEngine import DataEngine
 
 matplotlib_axes_logger.setLevel("ERROR")
 
@@ -406,57 +407,6 @@ def plot_capacities(
         )
 
 
-def compute_scale(
-    degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
-    svit_and_count, filename,
-) -> None:
-    """ Compute the predicted scale and save it in a pickle file
-
-    Args:
-        cyc_grp_dict (dict)
-        cycle_m: Cycle mean.
-        cycle_v: Cycle variance.
-        barcode_count: Number of barcodes.
-        degradation_model
-        svit_and_count: TODO(harvey)
-        filename: Filename (including path) to save the generated pickle file
-    """
-
-    step, mode = "dchg", "cc"
-
-    patches = []
-    keys = make_keys(cyc_grp_dict, step)
-    scales = []
-    cycles = [x for x in np.arange(0., 6000., 20.)]
-    my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycles]
-
-    for k_count, k in enumerate(keys):
-        test_results = test_single_voltage(
-            my_cycle,
-            cyc_grp_dict[k]["avg_last_cc_voltage"],
-            cyc_grp_dict[k][Key.I_CC_AVG],
-            cyc_grp_dict[k][Key.I_PREV_END_AVG],
-            cyc_grp_dict[k][Key.V_PREV_END_AVG],
-            cyc_grp_dict[k][Key.V_END_AVG],
-            [cyc_grp_dict[k][Key.I_CC_AVG]],
-            barcode_count, degradation_model,
-            svit_and_count[Key.SVIT_GRID],
-            svit_and_count[Key.COUNT_MATRIX],
-        )
-        scales.append(tf.reshape(test_results["pred_scale"], shape = [-1]))
-
-    pickle_dump_scale(filename, patches, keys, scales, cycles)
-
-
-def pickle_dump_scale(filename: str, patches, keys, scales, cycles) -> None:
-    f = open(filename, "wb+")
-    pickle.dump(patches, f)
-    pickle.dump(keys, f)
-    pickle.dump(scales, f)
-    pickle.dump(cycles, f)
-    f.close()
-
-
 def pickle_load_scale(filename: str) -> tuple:
     f = open(filename, "rb")
     patches = pickle.load(f)
@@ -591,7 +541,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
             fit_args[Key.PATH_PLOTS],
             "scale_{}_count_{}.pickle".format(barcode, count),
         )
-        compute_scale(
+        DataEngine.compute_scale(
             degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
             svit_and_count, scale_pickle_file,
         )
@@ -644,6 +594,7 @@ def test_all_voltages(
     )
 
 
+# TODO(harvey): duplicate function in DataEngine.py
 def test_single_voltage(
     cycle, target_voltage, constant_current, end_current_prev,
     end_voltage_prev, end_voltage, target_currents, barcode_count,
@@ -770,6 +721,7 @@ def plot_v_curves(plot_params, init_returns):
             plt.close(fig)
 
 
+# TODO(harvey): duplicate function in DataEngine.py
 def make_keys(cyc_grp_dict: dict, step: str) -> list:
     """
     Args:

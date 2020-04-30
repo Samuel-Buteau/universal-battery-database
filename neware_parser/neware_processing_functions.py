@@ -1219,12 +1219,12 @@ def get_count_matrix(cyc, voltage_grid_degradation, current_grid, temperature_gr
     return total
 
 
-def ml_post_process_cycle(cyc, voltage_grid, step_type, current_max_n, flagged=False):
+def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n, flagged=False):
     #TODO(sam): if flagged, be verbose
     if flagged:
-        print("Starting Verbose ml_post_process_cycle(cyc={}, voltage_gride={}, step_type={}, current_max_n={}".format(
+        print("Starting Verbose ml_post_process_cycle(cyc={}, voltage_grid_n={}, step_type={}, current_max_n={}".format(
             cyc,
-            voltage_grid,
+            voltage_grid_n,
             step_type,
             current_max_n
         ))
@@ -1416,12 +1416,17 @@ def ml_post_process_cycle(cyc, voltage_grid, step_type, current_max_n, flagged=F
 
     valid_curve = curve[masks]
     invalid_curve = curve[~masks]
+
+    if flagged:
+        print("valid_curve {}, invalid_curve {}".format(valid_curve, invalid_curve))
     if len(invalid_curve) > 20:
-        print("too many invalids {}. (valids were {})".format(invalid_curve, valid_curve))
+        if flagged:
+            print("too many invalids {}. (valids were {})".format(invalid_curve, valid_curve))
         return None
 
     if len(valid_curve) == 0:
-        print("not enough valids. curve was {}".format(curve))
+        if flagged:
+            print("not enough valids. curve was {}".format(curve))
         return None
 
 
@@ -1436,6 +1441,9 @@ def ml_post_process_cycle(cyc, voltage_grid, step_type, current_max_n, flagged=F
     v = v[sorted_ind]
     q = q[sorted_ind]
 
+    if flagged:
+        print("sorted: v: {}, q: {}".format(v, q))
+
     #print(v, q)
     if step_type == "dchg":
 
@@ -1444,6 +1452,9 @@ def ml_post_process_cycle(cyc, voltage_grid, step_type, current_max_n, flagged=F
     else:
         last_cc_voltage = v[-1]
         last_cc_capacity = q[-1]
+
+    if flagged:
+        print("last_cc_voltage {}, last_cc_capacity {}".format(last_cc_voltage, last_cc_capacity))
 
     if len(cv_curve) > 0:
         last_cv_capacity = cv_curve[-1, 1]
@@ -1465,14 +1476,18 @@ def ml_post_process_cycle(cyc, voltage_grid, step_type, current_max_n, flagged=F
             cv_mask[:] = 1.
 
 
-    if len(voltage_grid) >= len(v):
-        voltages = numpy.zeros(shape=(len(voltage_grid)), dtype=numpy.float32)
-        qs = numpy.zeros(shape=(len(voltage_grid)), dtype=numpy.float32)
-        mask = numpy.zeros(shape=(len(voltage_grid)), dtype=numpy.float32)
+    if voltage_grid_n >= len(v):
+        if flagged:
+            print("len(voltage_grid) >= len(v)")
+        voltages = numpy.zeros(shape=( voltage_grid_n), dtype=numpy.float32)
+        qs = numpy.zeros(shape=( voltage_grid_n), dtype=numpy.float32)
+        mask = numpy.zeros(shape=( voltage_grid_n), dtype=numpy.float32)
 
         voltages[:len(v)] = v[:]
         qs[:len(v)] =  q[:]
         mask[:len(v)] = 1.0
+        if flagged:
+            print("voltages {}, qs {}, mask {}".format(voltages, qs, mask))
 
         return {"cc_voltages":voltages, "cc_capacities":qs, "cc_masks":mask,
                 "cv_currents": cv_currents, "cv_capacities": cv_qs, "cv_masks": cv_mask,
@@ -1487,22 +1502,29 @@ def ml_post_process_cycle(cyc, voltage_grid, step_type, current_max_n, flagged=F
                 "last_cc_capacity": last_cc_capacity,
                 "last_cv_capacity": last_cv_capacity,
         }
+    if flagged:
+        print("len(voltage_grid) < len(v)")
 
-    #print(last_cc_voltage,last_cc_capacity)
-    spline = PchipInterpolator(v, q, extrapolate=True)
-    res = spline(voltage_grid)
 
     v_min = numpy.min(v)
     v_max = numpy.max(v)
-    delta_grace = abs(voltage_grid[1]-voltage_grid[0]) + 0.001
+
+    voltage_grid = numpy.linspace(v_min, v_max, voltage_grid_n)
+    spline = PchipInterpolator(v, q, extrapolate=True)
+    res = spline(voltage_grid)
+    if flagged:
+        print("spline res: {}".format(res))
+
+
+    delta_grace = 0.1*abs(voltage_grid[1]-voltage_grid[0]) + 0.001
     mask1 = numpy.where(
-                    numpy.logical_and(
-                        voltage_grid >= (v_min-delta_grace),
-                        voltage_grid <= (v_max+delta_grace)
-                    ),
-                    numpy.ones(len(voltage_grid), dtype=numpy.float32),
-                    0.0 * numpy.ones(len(voltage_grid), dtype=numpy.float32),
-                )
+        numpy.logical_and(
+            voltage_grid >= (v_min-delta_grace),
+            voltage_grid <= (v_max+delta_grace)
+        ),
+        numpy.ones(len(voltage_grid), dtype=numpy.float32),
+        0.0 * numpy.ones(len(voltage_grid), dtype=numpy.float32),
+    )
 
     mask = numpy.where(
         numpy.logical_and(
@@ -1512,12 +1534,22 @@ def ml_post_process_cycle(cyc, voltage_grid, step_type, current_max_n, flagged=F
         numpy.ones(len(voltage_grid), dtype=numpy.float32),
         0.0 * numpy.ones(len(voltage_grid), dtype=numpy.float32),
     )
+    if flagged:
+        print("v_min {}, v_max {}, delta_grace {}, mask1 {}, mask {}".format(
+            v_min,
+            v_max,
+            delta_grace,
+            mask1,
+            mask
+        ))
 
     if not is_monotonically_increasing(res, mask=mask):
-        print("was not increasing {}, with mask {}".format(res,mask1))
+        if flagged:
+            print("was not increasing {}, with mask {}".format(res,mask1))
         return None
 
-
+    if flagged:
+        print("was increasing")
 
     mask2 = numpy.minimum(
         mask1,
@@ -1539,6 +1571,9 @@ def ml_post_process_cycle(cyc, voltage_grid, step_type, current_max_n, flagged=F
                 )
             ), axis=1)
     )
+
+    if flagged:
+        print("mask2 {}".format(mask2))
 
     voltages = voltage_grid
     #TODO(sam): treat and include the CV data as well.

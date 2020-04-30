@@ -14,30 +14,30 @@ class DataEngine:
         svit_and_count, filename,
     ) -> None:
 
-        for typ, off, mode in [("dchg", 5, "cc")]:
+        typ, off, mode = ("dchg", 5, "cc")
 
-            keys = make_keys(cyc_grp_dict, typ)
-            shifts = []
-            # TODO(harvey): Why not use np array instead of casting to list?
-            cycles = [x for x in np.arange(0., 6000., 20.)]
-            my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycles]
+        keys = make_keys(cyc_grp_dict, typ)
+        shifts = []
+        # TODO(harvey): Why not use np array instead of casting to list?
+        cycles = [x for x in np.arange(0., 6000., 20.)]
+        my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycles]
 
-            for k_count, k in enumerate(keys):
-                test_results = test_single_voltage(
-                    my_cycle,
-                    cyc_grp_dict[k]["avg_last_cc_voltage"],  # target voltage
-                    cyc_grp_dict[k][Key.I_CC_AVG],
-                    cyc_grp_dict[k][Key.I_PREV_END_AVG],
-                    cyc_grp_dict[k][Key.V_PREV_END_AVG],
-                    cyc_grp_dict[k][Key.V_END_AVG],
-                    [cyc_grp_dict[k][Key.I_CC_AVG]],  # target currents
-                    barcode_count, degradation_model,
-                    svit_and_count[Key.SVIT_GRID],
-                    svit_and_count[Key.COUNT_MATRIX],
-                )
-                shifts.append(
-                    tf.reshape(test_results["pred_shift"], shape = [-1]),
-                )
+        for k_count, k in enumerate(keys):
+            test_results = test_single_voltage(
+                my_cycle,
+                cyc_grp_dict[k]["avg_last_cc_voltage"],  # target voltage
+                cyc_grp_dict[k][Key.I_CC_AVG],
+                cyc_grp_dict[k][Key.I_PREV_END_AVG],
+                cyc_grp_dict[k][Key.V_PREV_END_AVG],
+                cyc_grp_dict[k][Key.V_END_AVG],
+                [cyc_grp_dict[k][Key.I_CC_AVG]],  # target currents
+                barcode_count, degradation_model,
+                svit_and_count[Key.SVIT_GRID],
+                svit_and_count[Key.COUNT_MATRIX],
+            )
+            shifts.append(
+                tf.reshape(test_results["pred_shift"], shape = [-1]),
+            )
 
         PickleDump.shift(filename, keys, shifts, cycles)
 

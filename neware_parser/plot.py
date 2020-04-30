@@ -158,11 +158,11 @@ def plot_vq(plot_params, init_returns):
             ("chg", 1, "cc", 0.5, 0.5),
             ("chg", 2, "cv", 0., 0.5)
         ]:
-            list_of_keys = make_keys(cyc_grp_dict, typ)
+            keys = make_keys(cyc_grp_dict, typ)
 
-            list_of_patches = []
+            patches = []
             ax = axs[off]
-            for k_count, k in enumerate(list_of_keys):
+            for k_count, k in enumerate(keys):
                 if k[-1] == "dchg":
                     sign_change = -1.
                 else:
@@ -190,8 +190,8 @@ def plot_vq(plot_params, init_returns):
                         vq_mask = barcode_k["cv_mask_vector"][vq_count]
                         y_axis = barcode_k["cv_current_vector"][vq_count]
                         y_lim = [
-                            min([key[2] for key in list_of_keys]) - 0.05,
-                            0.05 + max([key[0] for key in list_of_keys])
+                            min([key[2] for key in keys]) - 0.05,
+                            0.05 + max([key[0] for key in keys])
                         ]
                     else:
                         sys.exit("Unknown mode in plot_vq.")
@@ -213,8 +213,8 @@ def plot_vq(plot_params, init_returns):
                     )
 
             cycle = [0, 6000 / 2, 6000]
-            for k_count, k in enumerate(list_of_keys):
-                list_of_patches.append(mpatches.Patch(
+            for k_count, k in enumerate(keys):
+                patches.append(mpatches.Patch(
                     color = COLORS[k_count], label = make_legend(k)
                 ))
 
@@ -287,7 +287,7 @@ def plot_vq(plot_params, init_returns):
                     )
 
             ax.legend(
-                handles = list_of_patches, fontsize = "small",
+                handles = patches, fontsize = "small",
                 bbox_to_anchor = (x_leg, y_leg), loc = "upper left"
             )
             ax.set_ylabel(typ + "-" + mode)
@@ -299,9 +299,9 @@ def plot_vq(plot_params, init_returns):
         plt.close(fig)
 
 
-def plot_measured(cyc_grp_dict, mode, list_of_keys, list_of_patches, ax1):
+def plot_measured(cyc_grp_dict, mode, list_of_keys, patches, ax1):
     for k_count, k in enumerate(list_of_keys):
-        list_of_patches.append(
+        patches.append(
             mpatches.Patch(color = COLORS[k_count], label = make_legend(k))
         )
 
@@ -332,8 +332,8 @@ def plot_predicted(
     cyc_grp_dict, mode, list_of_keys, cycle_m, cycle_v, barcode_count,
     degradation_model, svit_and_count, ax1,
 ):
-    cycle = [x for x in np.arange(0., 6000., 20.)]
-    my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
+    cycles = [x for x in np.arange(0., 6000., 20.)]
+    my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycles]
     for k_count, k in enumerate(list_of_keys):
 
         if k[-1] == "dchg":
@@ -385,7 +385,7 @@ def plot_predicted(
         else:
             sys.exit("Unknown mode in predicted.")
 
-        ax1.plot(cycle, sign_change * pred_cap, c = COLORS[k_count])
+        ax1.plot(cycles, sign_change * pred_cap, c = COLORS[k_count])
 
 
 def plot_capacities(
@@ -395,24 +395,24 @@ def plot_capacities(
     for typ, off, mode in [
         ("dchg", 0, "cc"), ("chg", 1, "cc"), ("chg", 2, "cv")
     ]:
-        list_of_patches = []
-        list_of_keys = make_keys(cyc_grp_dict, typ)
+        patches = []
+        keys = make_keys(cyc_grp_dict, typ)
 
         ax1 = fig.add_subplot(6, 1, 1 + off)
         ax1.set_ylabel(mode + "-" + typ + "-capacity")
 
         plot_measured(
-            cyc_grp_dict, mode, list_of_keys, list_of_patches, ax1,
+            cyc_grp_dict, mode, keys, patches, ax1,
         )
 
         plot_predicted(
-            cyc_grp_dict, mode, list_of_keys, cycle_m, cycle_v,
+            cyc_grp_dict, mode, keys, cycle_m, cycle_v,
             barcode_count, degradation_model, svit_and_count,
             ax1,
         )
 
         ax1.legend(
-            handles = list_of_patches,
+            handles = patches,
             fontsize = "small",
             bbox_to_anchor = (0.7, 1),
             loc = "upper left",

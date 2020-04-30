@@ -10,12 +10,47 @@ from neware_parser.Pickle import Pickle
 class DataEngine:
 
     @staticmethod
-    def compute_shift(
+    def resistance(
+        degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
+        svit_and_count, filename,
+    ):
+        typ, off, mode = "dchg", 4, "cc"
+
+        keys = make_keys(cyc_grp_dict, typ)
+        resistances = []
+
+        cycles = [x for x in np.arange(0., 6000., 20.)]
+        my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycles]
+
+        for k_count, k in enumerate(keys):
+            target_voltage = cyc_grp_dict[k]["avg_last_cc_voltage"]
+            target_currents = [cyc_grp_dict[k][Key.I_CC_AVG]]
+
+            test_results = test_single_voltage(
+                my_cycle,
+                target_voltage,
+                cyc_grp_dict[k][Key.I_CC_AVG],
+                cyc_grp_dict[k][Key.I_PREV_END_AVG],
+                cyc_grp_dict[k][Key.V_PREV_END_AVG],
+                cyc_grp_dict[k][Key.V_END_AVG],
+                target_currents,
+                barcode_count, degradation_model,
+                svit_and_count[Key.SVIT_GRID],
+                svit_and_count[Key.COUNT_MATRIX]
+            )
+
+            resistances.append(
+                tf.reshape(test_results["pred_R"], shape = [-1]))
+
+        Pickle.dump(filename, (keys, resistances, cycles))
+
+    @staticmethod
+    def shift(
         degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
         svit_and_count, filename,
     ) -> None:
 
-        typ, off, mode = ("dchg", 5, "cc")
+        typ, off, mode = "dchg", 5, "cc"
 
         keys = make_keys(cyc_grp_dict, typ)
         shifts = []
@@ -43,7 +78,7 @@ class DataEngine:
         Pickle.dump(filename, (keys, shifts, cycles))
 
     @staticmethod
-    def compute_scale(
+    def scale(
         degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
         svit_and_count, filename,
     ) -> None:

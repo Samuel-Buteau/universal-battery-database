@@ -28,7 +28,31 @@ COLORS = [
 class PlotEngine:
 
     @staticmethod
-    def plot_shift(filename: str, fig, offset: int) -> None:
+    def quantity_vs_capacity(
+        filename: str,
+        fig,
+        subplot_count = 1,
+        offset = 0,
+        name = "some quantity",
+    ) -> None:
+
+        protocols, quantities, cycles = Pickle.load(filename, 3)
+        ax1 = fig.add_subplot(subplot_count, 1, 1 + offset)
+        ax1.set_ylabel(name)
+        for count, quantity in enumerate(quantities):
+            ax1.plot(cycles, quantity, c = COLORS[count])
+
+    @staticmethod
+    def resistance(filename: str, fig, offset: int) -> None:
+
+        keys, resistances, cycles = Pickle.load(filename, 3)
+        ax1 = fig.add_subplot(6, 1, 1 + offset)
+        ax1.set_ylabel("resistance")
+        for count, (k, resistance) in enumerate(zip(keys, resistances)):
+            ax1.plot(cycles, resistance, c = COLORS[count])
+
+    @staticmethod
+    def shift(filename: str, fig, offset: int) -> None:
 
         keys, shifts, cycles = Pickle.load(filename, 3)
         ax1 = fig.add_subplot(6, 1, 1 + offset)
@@ -37,7 +61,7 @@ class PlotEngine:
             ax1.plot(cycles, shift, c = COLORS[count])
 
     @staticmethod
-    def plot_scale(filename: str, fig, offset: int) -> None:
+    def scale(filename: str, fig, offset: int) -> None:
         """ Plot scale from the given pickle
 
         Args:

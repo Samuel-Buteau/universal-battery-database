@@ -419,43 +419,6 @@ def plot_capacities(
         )
 
 
-def plot_resistance(
-    cyc_grp_dict, cycle_m, cycle_v, barcode_count,
-    degradation_model, svit_and_count, fig,
-):
-    for typ, off, mode in [("dchg", 4, "cc")]:
-
-        keys = make_keys(cyc_grp_dict, typ)
-        resistances = []
-
-        cycles = [x for x in np.arange(0., 6000., 20.)]
-        my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycles]
-
-        for k_count, k in enumerate(keys):
-            target_voltage = cyc_grp_dict[k]["avg_last_cc_voltage"]
-            target_currents = [cyc_grp_dict[k][Key.I_CC_AVG]]
-
-            test_results = test_single_voltage(
-                my_cycle,
-                target_voltage,
-                cyc_grp_dict[k][Key.I_CC_AVG],
-                cyc_grp_dict[k][Key.I_PREV_END_AVG],
-                cyc_grp_dict[k][Key.V_PREV_END_AVG],
-                cyc_grp_dict[k][Key.V_END_AVG],
-                target_currents,
-                barcode_count, degradation_model,
-                svit_and_count[Key.SVIT_GRID],
-                svit_and_count[Key.COUNT_MATRIX]
-            )
-
-            resistances.append(tf.reshape(test_results["pred_R"], shape = [-1]))
-
-        ax1 = fig.add_subplot(6, 1, 1 + off)
-        ax1.set_ylabel("resistance")
-        for count, (k, resistance) in enumerate(zip(keys, resistances)):
-            ax1.plot(cycles, resistance, c = COLORS[count])
-
-
 def plot_things_vs_cycle_number(plot_params, init_returns):
     barcodes\
         = plot_params["barcodes"][:plot_params[Key.FIT_ARGS]["barcode_show"]]
@@ -483,28 +446,31 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
             fit_args[Key.PATH_PLOTS],
             "scale_{}_count_{}.pickle".format(barcode, count),
         )
-        DataEngine.compute_scale(
+        DataEngine.scale(
             degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
             svit_and_count, scale_pickle_file,
         )
-        PlotEngine.plot_scale(
-            filename = scale_pickle_file, fig = fig, offset = 3,
-        )
+        PlotEngine.scale(scale_pickle_file, fig, offset = 3)
 
-        plot_resistance(
-            cyc_grp_dict, cycle_m, cycle_v, barcode_count,
-            degradation_model, svit_and_count,
-            fig,
-        )
-        scale_pickle_file = os.path.join(
+        resistance_pickle_file = os.path.join(
             fit_args[Key.PATH_PLOTS],
             "scale_{}_count_{}.pickle".format(barcode, count),
         )
-        DataEngine.compute_shift(
+        DataEngine.resistance(
             degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
-            svit_and_count, scale_pickle_file,
+            svit_and_count, resistance_pickle_file,
         )
-        PlotEngine.plot_shift(scale_pickle_file, fig, 5)
+        PlotEngine.shift(resistance_pickle_file, fig, offset = 4)
+
+        shift_pickle_file = os.path.join(
+            fit_args[Key.PATH_PLOTS],
+            "scale_{}_count_{}.pickle".format(barcode, count),
+        )
+        DataEngine.shift(
+            degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
+            svit_and_count, shift_pickle_file,
+        )
+        PlotEngine.shift(shift_pickle_file, fig, offset = 5)
 
         savefig("Cap_{}_Count_{}.png".format(barcode, count), fit_args)
         plt.close(fig)

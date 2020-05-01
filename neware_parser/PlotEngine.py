@@ -1,5 +1,3 @@
-import pickle
-
 import matplotlib.patches as mpatches
 
 # TODO(harvey) duplicate in plot.py
@@ -21,13 +19,6 @@ COLORS = [
     (1., .5, 0.),
     (.5, 1., 0.),
 ]
-
-
-def pickle_load(filename: str) -> dict:
-    f = open(filename, "rb")
-    data = pickle.load(f)
-    f.close()
-    return data
 
 
 class PlotEngine:

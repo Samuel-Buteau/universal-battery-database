@@ -1,15 +1,8 @@
-import pickle
-
 import numpy as np
 import tensorflow as tf
 
 from neware_parser.Key import Key
-
-
-def pickle_dump(filename: str, data: dict) -> None:
-    f = open(filename, "wb+")
-    pickle.dump(data, f)
-    f.close()
+from neware_parser.Pickle import Pickle
 
 
 class DataEngine:
@@ -48,7 +41,7 @@ class DataEngine:
                 tf.reshape(test_results["pred_R"], shape = [-1])
             )
 
-        pickle_dump(
+        Pickle.dump(
             filename,
             {
                 "protocols": protocols,
@@ -89,7 +82,7 @@ class DataEngine:
             )
 
         """ save computed data into a pickle file """
-        pickle_dump(
+        Pickle.dump(
             filename,
             {
                 "protocols": protocols,
@@ -140,7 +133,7 @@ class DataEngine:
             scales.append(tf.reshape(test_results["pred_scale"], shape = [-1]))
 
         """ save computed data into a pickle file """
-        pickle_dump(
+        Pickle.dump(
             filename,
             {
                 "protocols": protocols,

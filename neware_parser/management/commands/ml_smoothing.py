@@ -575,7 +575,6 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
     count = 0
 
     end = time.time()
-    now_ker = None
 
     train_step_params = {
         Key.TENSORS: init_returns[Key.TENSORS],
@@ -631,29 +630,6 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                         # plot_v_curves(plot_params, init_returns)
                         end = time.time()
                         print("time to plot: ", end - start)
-                        ker = init_returns[
-                            Key.MODEL
-                        ].cell_direct.kernel.numpy()
-                        prev_ker = now_ker
-                        now_ker = ker
-
-                        # TODO(sam):
-                        # this analysis should be more thorough, but how to
-                        # generalize to
-                        # more than two barcodes? for now, there is very
-                        # little use for that.
-                        if now_ker is not None:
-                            delta_cell_ker = numpy.abs(now_ker[0] - now_ker[1])
-                            print(
-                                "average difference between cells: ",
-                                numpy.average(delta_cell_ker)
-                            )
-                        if prev_ker is not None:
-                            delta_time_ker = numpy.abs(now_ker - prev_ker)
-                            print(
-                                "average difference between prev and now: ",
-                                numpy.average(delta_time_ker)
-                            )
                         print()
 
                 if count >= fit_args[Key.STOP]:
@@ -981,7 +957,7 @@ class Command(BaseCommand):
             "--coeff_scale": 5.,
             "--coeff_scale_geq": 5.,
             "--coeff_scale_leq": 5.,
-            "--coeff_scale_eq": 5.,
+            "--coeff_scale_eq": .01,
             "--coeff_scale_mono": 1.,
             "--coeff_scale_d3_cycle": .02,
 

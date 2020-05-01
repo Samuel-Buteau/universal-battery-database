@@ -317,19 +317,12 @@ def initial_processing(
             - to a first approximation, we want a delta_cyc = 300, but we have
               to vary this near the beginning of data and near the end.
             """
+            number_of_centers = 10
 
-            # gives an absolute scale
-            total_delta = max_cyc - min_cyc
-
-            # the baseline, at least 200, but up to total_delta/5
-            delta_cyc = max(200, int(float(total_delta) / 5.))
 
             # the centers of neighborhoods we will try to create
-            all_neigh_center_cycles = list(filter(
-                lambda x: x > min_cyc - 100,
-                range(20, int(max_cyc + 50), 40))
-            )
-
+            all_neigh_center_cycles = numpy.linspace(min_cyc, max_cyc, number_of_centers)
+            delta = 1.2*(all_neigh_center_cycles[1] - all_neigh_center_cycles[0]) + 10
             # check all tentative neighborhood centers and
             # commit the ones that contain good data to the dataset
             neighborhood_data = []
@@ -338,25 +331,11 @@ def initial_processing(
             for cyc in all_neigh_center_cycles:
                 # max_cyc and min_cyc are the limits of existing cycles.
 
-                # at least 200, but can extend up to the limit
-                # starting from the current neighborhood center
-                delta_up = max(max_cyc - cyc, 200)
 
-                # same thing going down
-                delta_down = max(cyc - min_cyc, 200)
 
-                # the max symetric interval that fits into the
-                # [cyc - delta_down, cyc + delta_up] interval is
-                # [cyc - delta_actual, cyc + delta_actual]
-                delta_actual = min(delta_up, delta_down)
 
-                # choose the largest interval that fits both
-                # [cyc - delta_actual, cyc + delta_actual] and
-                # [cyc - delta_cyc, cyc + delta_cyc]
-                combined_delta = min(delta_actual, delta_cyc)
-
-                below_cyc = cyc - combined_delta
-                above_cyc = cyc + combined_delta
+                below_cyc = cyc - delta
+                above_cyc = cyc + delta
 
                 # numpy array of True and False; same length as cyc_grp_dict[k]
                 # False when cycle_number falls outside out of
@@ -370,8 +349,8 @@ def initial_processing(
                 # to a True mask
                 all_valid_indices = numpy.arange(len(mask))[mask]
 
-                # if there are less than 2 valid cycles, skip that neighborhood
-                if len(all_valid_indices) < 2:
+                # if there are less than 1 valid cycles, skip that neighborhood
+                if len(all_valid_indices) == 0:
                     continue
 
                 """
@@ -399,8 +378,7 @@ def initial_processing(
 
                 """
 
-                # TODO(sam): here, figure out where the reference cycle is,
-                #            and note the index
+
 
                 neighborhood_data_i = numpy.zeros(
                     NEIGH_TOTAL, dtype = numpy.int32
@@ -998,7 +976,7 @@ class Command(BaseCommand):
             "--coeff_out_of_bounds_leq": 1.,
         }
 
-        vis = 10000
+        vis = 20000
         int_args = {
             "--n_sample": 8 * 16,
 
@@ -1011,7 +989,7 @@ class Command(BaseCommand):
             "--visualize_vq_every": vis,
 
             "--stop_count": 1000004,
-            "--barcode_show": 10,
+            "--barcode_show": 30,
         }
 
         for arg in required_args:

@@ -248,7 +248,7 @@ def calculate_q_loss(q, q_der, incentive_coeffs):
         (
             incentive_coeffs["coeff_q_v_mono"],
             incentive_inequality(
-                q_der["d_v"], Inequality.GreaterThan, 0.01,
+                q_der["d_v"], Inequality.GreaterThan, 0,
                 Level.Strong
             )
         ),

@@ -445,6 +445,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
 
         """ Computing """
 
+        # TODO(harvey): add args for path_to_pickles
         scale_pickle_file = os.path.join(
             fit_args[Key.PATH_PLOTS],
             "scale_{}_count_{}.pickle".format(barcode, count),
@@ -474,6 +475,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
             cyc_grp_dict, cycle_m, cycle_v, svit_and_count
         )
         Pickle.dump(shift_pickle_file, shift_data)
+
         """ Plot Data """
 
         fig = plt.figure(figsize = [11, 10])

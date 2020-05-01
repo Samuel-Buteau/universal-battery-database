@@ -1919,8 +1919,6 @@ class DegradationModel(Model):
                 params, training = training
             )
             pred_cv_voltage = tf.reshape(cv_voltage, [-1, current_count])
-            anode_v_curve = x[12]
-            cathode_v_curve = x[13]
             (
                 sampled_vs,
                 sampled_qs,
@@ -1938,12 +1936,8 @@ class DegradationModel(Model):
                 sampled_cell_features,
                 sampled_encoded_stress,
                 sampled_norm_cycle,
-                sampled_anode_qs,
-                sampled_anode_vs,
-                sampled_cathode_qs,
-                sampled_cathode_vs,
             ) = self.sample(
-                svit_grid, batch_count, count_matrix, anode_v_curve,cathode_v_curve, n_sample = self.n_sample
+                svit_grid, batch_count, count_matrix, n_sample = self.n_sample
             )
 
             predicted_pos = self.pos_projection_direct(
@@ -2008,32 +2002,7 @@ class DegradationModel(Model):
                 der_params = {"q": 1, "current": 3, "cycle": 3}
             )
 
-            v_minus_anode_match, _ = self.v_minus_direct(
-                encoded_stress = sampled_encoded_stress,
-                norm_cycle = sampled_norm_cycle,
-                q = sampled_anode_qs,
-                cell_features = sampled_cell_features,
-                current = sampled_constant_current
-            )
 
-            anode_match_loss = calculate_anode_match_loss(
-                sampled_anode_vs,
-                v_minus_anode_match,
-                incentive_coeffs = self.incentive_coeffs
-            )
-
-            v_plus_cathode_match, _ = self.v_plus_direct(
-                encoded_stress=sampled_encoded_stress,
-                norm_cycle=sampled_norm_cycle,
-                q=sampled_cathode_qs,
-                cell_features=sampled_cell_features,
-                current=sampled_constant_current
-            )
-            cathode_match_loss = calculate_cathode_match_loss(
-                sampled_cathode_vs,
-                v_plus_cathode_match,
-                incentive_coeffs=self.incentive_coeffs
-            )
 
             out_of_bounds_loss_3 = calculate_out_of_bounds_loss(q = reciprocal_q,
                                                                 incentive_coeffs = self.incentive_coeffs)
@@ -2043,7 +2012,7 @@ class DegradationModel(Model):
                 v_plus, v_minus, v_plus_der, v_minus_der,
                 reciprocal_v, reciprocal_q,
                 incentive_coeffs = self.incentive_coeffs
-            ) + anode_match_loss + cathode_match_loss
+            )
 
             q, q_der = create_derivatives(
                 self.q_for_derivative,

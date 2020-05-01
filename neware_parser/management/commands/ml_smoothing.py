@@ -77,23 +77,14 @@ def ml_smoothing(fit_args):
         "dataset_ver_{}_names.file".format(fit_args[Key.DATA_VERSION])
     )
 
-    v_curves_path = os.path.join(
-        fit_args[Key.PATH_V_CURVES],
-        "v_curves.file"
-    )
+
 
     if not os.path.exists(dataset_path):
         print("Path \"" + dataset_path + "\" does not exist.")
         return
 
-    if not os.path.exists(v_curves_path):
-        print("Path \"" + v_curves_path + "\" does not exist.")
-        return
 
-    with open(v_curves_path, "rb") as f:
-        my_v_curves = pickle.load(f)
-        my_anode_v_curves = my_v_curves["anode"]
-        my_cathode_v_curves = my_v_curves["cathode"]
+
 
     with open(dataset_path, "rb") as f:
         my_data = pickle.load(f)
@@ -115,7 +106,7 @@ def ml_smoothing(fit_args):
 
     train_and_evaluate(
         initial_processing(
-            my_data, my_names, barcodes, my_anode_v_curves, my_cathode_v_curves,
+            my_data, my_names, barcodes,
             fit_args, strategy = strategy,
         ),
         barcodes,
@@ -146,7 +137,7 @@ def three_level_flatten(iterables):
 
 
 def initial_processing(
-    my_data: dict, my_names, barcodes, anode_v_curves, cathode_v_curves,
+    my_data: dict, my_names, barcodes,
     fit_args, strategy
 ) -> dict:
     """ Handle the initial data processing
@@ -155,8 +146,6 @@ def initial_processing(
         my_data (dictionary).
         my_names: TODO(harvey)
         barcodes: TODO(harvey)
-        anode_v_curves: TODO(harvey)
-        cathode_v_curves: TODO(harvey)
         fit_args: TODO(harvey)
         strategy: TODO(harvey)
 
@@ -458,12 +447,6 @@ def initial_processing(
     cycle_tensor = (cycle_tensor - cycle_m) / tf.sqrt(cycle_v)
     compiled_tensors["cycle"] = cycle_tensor
 
-    compiled_tensors["anode_v_curve"] = tf.constant(
-        list(anode_v_curves.values())[0]
-    )
-    compiled_tensors["cathode_v_curve"] = tf.constant(
-        list(cathode_v_curves.values())[0]
-    )
     labels = [
         Key.V_CC_VEC, Key.Q_CC_VEC, Key.MASK_CC_VEC, Key.Q_CV_VEC, Key.I_CV_VEC,
         Key.MASK_CV_VEC, Key.I_CC, Key.I_PREV, Key.V_PREV_END, Key.V_END,
@@ -637,8 +620,6 @@ def train_step(neighborhood, params, fit_args):
     cv_capacity_tensor = params[Key.TENSORS][Key.Q_CV_VEC]
     cv_current_tensor = params[Key.TENSORS][Key.I_CV_VEC]
     cv_mask_tensor = params[Key.TENSORS][Key.MASK_CV_VEC]
-    anode_v_curve = params[Key.TENSORS]["anode_v_curve"]
-    cathode_v_curve = params[Key.TENSORS]["cathode_v_curve"]
     # need to split the range
     batch_size2 = neighborhood.shape[0]
 
@@ -787,8 +768,6 @@ def train_step(neighborhood, params, fit_args):
                 count_matrix,
                 cc_capacity,
                 cv_capacity,
-                anode_v_curve,
-                cathode_v_curve
             ),
             training = True
         )
@@ -891,7 +870,7 @@ class Command(BaseCommand):
             "--path_to_dataset",
             "--dataset_version",
             "--path_to_plots",
-            "--" + Key.PATH_V_CURVES,
+
         ]
 
         float_args = {
@@ -963,8 +942,6 @@ class Command(BaseCommand):
             "--coeff_reciprocal_d_current_plus": 2.,
             "--coeff_reciprocal_d3_cycle": 10.,
             "--coeff_reciprocal_d_cycle": 1.,
-            "--coeff_anode_match": 5.,
-            "--coeff_cathode_match": 1.,
 
             "--coeff_projection": 1.,
             "--coeff_projection_pos": 1.,

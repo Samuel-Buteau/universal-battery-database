@@ -2,14 +2,15 @@ import numpy as np
 import tensorflow as tf
 
 from neware_parser.Key import Key
+from neware_parser.DegradationModel import DegradationModel
 
 
 class DataEngine:
 
     @staticmethod
     def resistance(
-        degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
-        svit_and_count, filename,
+        degradation_model: DegradationModel, barcode_count: int,
+        cyc_grp_dict: dict, cycle_m, cycle_v, svit_and_count,
     ) -> dict:
         typ, off, mode = "dchg", 4, "cc"
 
@@ -47,8 +48,8 @@ class DataEngine:
 
     @staticmethod
     def shift(
-        degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
-        svit_and_count, filename,
+        degradation_model: DegradationModel, barcode_count: int,
+        cyc_grp_dict: dict, cycle_m, cycle_v, svit_and_count,
     ) -> dict:
 
         typ, off, mode = "dchg", 5, "cc"
@@ -83,8 +84,8 @@ class DataEngine:
 
     @staticmethod
     def scale(
-        degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
-        svit_and_count, filename,
+        degradation_model: DegradationModel, barcode_count: int,
+        cyc_grp_dict: dict, cycle_m, cycle_v, svit_and_count,
     ) -> dict:
         """ Compute the predicted scale and save it in a pickle file
 

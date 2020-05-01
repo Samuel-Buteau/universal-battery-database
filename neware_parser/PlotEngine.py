@@ -2,8 +2,6 @@ import pickle
 
 import matplotlib.patches as mpatches
 
-from neware_parser.Pickle import Pickle
-
 # TODO(harvey) duplicate in plot.py
 COLORS = [
     (.4, .4, .4),
@@ -25,38 +23,53 @@ COLORS = [
 ]
 
 
+def pickle_load(filename: str) -> dict:
+    f = open(filename, "rb")
+    data = pickle.load(f)
+    f.close()
+    return data
+
+
 class PlotEngine:
 
+    # TODO(harvey): receive ax1 rather than fig
     @staticmethod
     def quantity_vs_capacity(
-        filename: str, fig,
-        name = "some quantity", subplot_count = 1, offset = 0,
+        quantities, cycles,
+        fig, name = "some quantity", subplot_count = 1, offset = 0,
     ) -> None:
-
-        protocols, quantities, cycles = Pickle.load(filename, 3)
         ax1 = fig.add_subplot(subplot_count, 1, 1 + offset)
         ax1.set_ylabel(name)
         for count, quantity in enumerate(quantities):
             ax1.plot(cycles, quantity, c = COLORS[count])
 
+    # TODO(harvey): receive ax1 rather than fig
     @staticmethod
-    def scale(filename: str, fig, offset: int) -> None:
+    def scale(
+        cycles, scales, protocols, patches,
+        fig, offset: int
+    ) -> None:
         """ Plot scale from the given pickle
 
         Args:
+            cycles
+            scales
+            protocols
+            patches
             filename (str): Filename (including path) to the pickle file
             fig: The figure on which to plot scale
             offset (int): The offset on the figure for the scale plot
         """
 
-        patches, keys, scales, cycles = Pickle.load(filename, 4)
         ax1 = fig.add_subplot(6, 1, 1 + offset)
 
-        for k_count, (k, scale) in enumerate(zip(keys, scales)):
+        for count, (protocol, scale) in enumerate(zip(protocols, scales)):
             patches.append(
-                mpatches.Patch(color = COLORS[k_count], label = make_legend(k))
+                mpatches.Patch(
+                    color = COLORS[count], label = make_legend(protocol)
+                )
             )
-            ax1.plot(cycles, scale, c = COLORS[k_count])
+            ax1.plot(cycles, scale, c = COLORS[count])
 
         ax1.set_ylabel("scale")
         ax1.legend(

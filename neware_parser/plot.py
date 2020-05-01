@@ -1,4 +1,5 @@
 import os
+import pickle
 import sys
 
 import numpy as np
@@ -457,7 +458,12 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
             degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
             svit_and_count, scale_pickle_file,
         )
-        PlotEngine.scale(scale_pickle_file, fig, offset = 3)
+        scale_data = pickle_load(scale_pickle_file)
+        PlotEngine.scale(
+            scale_data["cycles"], scale_data["scales"],
+            scale_data["protocols"], scale_data["patches"],
+            fig, offset = 3
+        )
 
         resistance_pickle_file = os.path.join(
             fit_args[Key.PATH_PLOTS],
@@ -467,9 +473,10 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
             degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
             svit_and_count, resistance_pickle_file,
         )
+        resistance_data = pickle_load(resistance_pickle_file)
         PlotEngine.quantity_vs_capacity(
-            resistance_pickle_file, fig,
-            name = "resistance", subplot_count = 6, offset = 4,
+            resistance_data["resistances"], resistance_data["cycles"],
+            fig, name = "resistance", subplot_count = 6, offset = 4,
         )
 
         shift_pickle_file = os.path.join(
@@ -480,13 +487,21 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
             degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
             svit_and_count, shift_pickle_file,
         )
+        shift_data = pickle_load(shift_pickle_file)
         PlotEngine.quantity_vs_capacity(
-            shift_pickle_file, fig,
-            name = "shift", subplot_count = 6, offset = 5,
+            shift_data["shifts"], shift_data["cycles"],
+            fig, name = "shift", subplot_count = 6, offset = 5,
         )
 
         savefig("Cap_{}_Count_{}.png".format(barcode, count), fit_args)
         plt.close(fig)
+
+
+def pickle_load(filename: str) -> dict:
+    f = open(filename, "rb")
+    data = pickle.load(f)
+    f.close()
+    return data
 
 
 def test_all_voltages(

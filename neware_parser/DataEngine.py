@@ -4,7 +4,12 @@ import numpy as np
 import tensorflow as tf
 
 from neware_parser.Key import Key
-from neware_parser.Pickle import Pickle
+
+
+def pickle_dump(filename: str, data: dict) -> None:
+    f = open(filename, "wb+")
+    pickle.dump(data, f)
+    f.close()
 
 
 class DataEngine:
@@ -16,23 +21,23 @@ class DataEngine:
     ):
         typ, off, mode = "dchg", 4, "cc"
 
-        keys = make_keys(cyc_grp_dict, typ)
+        protocols = get_protocols(cyc_grp_dict, typ)
         resistances = []
 
         cycles = [x for x in np.arange(0., 6000., 20.)]
         my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycles]
 
-        for k_count, k in enumerate(keys):
-            target_voltage = cyc_grp_dict[k]["avg_last_cc_voltage"]
-            target_currents = [cyc_grp_dict[k][Key.I_CC_AVG]]
+        for count, protocol in enumerate(protocols):
+            target_voltage = cyc_grp_dict[protocol]["avg_last_cc_voltage"]
+            target_currents = [cyc_grp_dict[protocol][Key.I_CC_AVG]]
 
             test_results = test_single_voltage(
                 my_cycle,
                 target_voltage,
-                cyc_grp_dict[k][Key.I_CC_AVG],
-                cyc_grp_dict[k][Key.I_PREV_END_AVG],
-                cyc_grp_dict[k][Key.V_PREV_END_AVG],
-                cyc_grp_dict[k][Key.V_END_AVG],
+                cyc_grp_dict[protocol][Key.I_CC_AVG],
+                cyc_grp_dict[protocol][Key.I_PREV_END_AVG],
+                cyc_grp_dict[protocol][Key.V_PREV_END_AVG],
+                cyc_grp_dict[protocol][Key.V_END_AVG],
                 target_currents,
                 barcode_count, degradation_model,
                 svit_and_count[Key.SVIT_GRID],
@@ -43,7 +48,14 @@ class DataEngine:
                 tf.reshape(test_results["pred_R"], shape = [-1])
             )
 
-        Pickle.dump(filename, (keys, resistances, cycles))
+        pickle_dump(
+            filename,
+            {
+                "protocols": protocols,
+                "resistances": resistances,
+                "cycles": cycles
+            },
+        )
 
     @staticmethod
     def shift(
@@ -53,21 +65,21 @@ class DataEngine:
 
         typ, off, mode = "dchg", 5, "cc"
 
-        keys = make_keys(cyc_grp_dict, typ)
+        protocols = get_protocols(cyc_grp_dict, typ)
         shifts = []
         # TODO(harvey): Why not use np array instead of casting to list?
         cycles = [x for x in np.arange(0., 6000., 20.)]
         my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycles]
 
-        for k_count, k in enumerate(keys):
+        for count, protocol in enumerate(protocols):
             test_results = test_single_voltage(
                 my_cycle,
-                cyc_grp_dict[k]["avg_last_cc_voltage"],  # target voltage
-                cyc_grp_dict[k][Key.I_CC_AVG],
-                cyc_grp_dict[k][Key.I_PREV_END_AVG],
-                cyc_grp_dict[k][Key.V_PREV_END_AVG],
-                cyc_grp_dict[k][Key.V_END_AVG],
-                [cyc_grp_dict[k][Key.I_CC_AVG]],  # target currents
+                cyc_grp_dict[protocol]["avg_last_cc_voltage"],  # target voltage
+                cyc_grp_dict[protocol][Key.I_CC_AVG],
+                cyc_grp_dict[protocol][Key.I_PREV_END_AVG],
+                cyc_grp_dict[protocol][Key.V_PREV_END_AVG],
+                cyc_grp_dict[protocol][Key.V_END_AVG],
+                [cyc_grp_dict[protocol][Key.I_CC_AVG]],  # target currents
                 barcode_count, degradation_model,
                 svit_and_count[Key.SVIT_GRID],
                 svit_and_count[Key.COUNT_MATRIX],
@@ -76,7 +88,15 @@ class DataEngine:
                 tf.reshape(test_results["pred_shift"], shape = [-1]),
             )
 
-        Pickle.dump(filename, (keys, shifts, cycles))
+        """ save computed data into a pickle file """
+        pickle_dump(
+            filename,
+            {
+                "protocols": protocols,
+                "shifts": shifts,
+                "cycles": cycles
+            },
+        )
 
     @staticmethod
     def scale(
@@ -99,27 +119,36 @@ class DataEngine:
         step, mode = "dchg", "cc"
 
         patches = []
-        keys = make_keys(cyc_grp_dict, step)
+        protocols = get_protocols(cyc_grp_dict, step)
         scales = []
         cycles = [x for x in np.arange(0., 6000., 20.)]
         my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycles]
 
-        for k_count, k in enumerate(keys):
+        for count, protocol in enumerate(protocols):
             test_results = test_single_voltage(
                 my_cycle,
-                cyc_grp_dict[k]["avg_last_cc_voltage"],
-                cyc_grp_dict[k][Key.I_CC_AVG],
-                cyc_grp_dict[k][Key.I_PREV_END_AVG],
-                cyc_grp_dict[k][Key.V_PREV_END_AVG],
-                cyc_grp_dict[k][Key.V_END_AVG],
-                [cyc_grp_dict[k][Key.I_CC_AVG]],
+                cyc_grp_dict[protocol]["avg_last_cc_voltage"],
+                cyc_grp_dict[protocol][Key.I_CC_AVG],
+                cyc_grp_dict[protocol][Key.I_PREV_END_AVG],
+                cyc_grp_dict[protocol][Key.V_PREV_END_AVG],
+                cyc_grp_dict[protocol][Key.V_END_AVG],
+                [cyc_grp_dict[protocol][Key.I_CC_AVG]],
                 barcode_count, degradation_model,
                 svit_and_count[Key.SVIT_GRID],
                 svit_and_count[Key.COUNT_MATRIX],
             )
             scales.append(tf.reshape(test_results["pred_scale"], shape = [-1]))
 
-        Pickle.dump(filename, (patches, keys, scales, cycles))
+        """ save computed data into a pickle file """
+        pickle_dump(
+            filename,
+            {
+                "protocols": protocols,
+                "scales": scales,
+                "cycles": cycles,
+                "patches": patches,
+            },
+        )
 
 
 # TODO(harvey): duplicate function in plot.py
@@ -170,7 +199,7 @@ def test_single_voltage(
 
 
 # TODO(harvey): duplicate function in plot.py
-def make_keys(cyc_grp_dict: dict, step: str) -> list:
+def get_protocols(cyc_grp_dict: dict, step: str) -> list:
     """
     Args:
         cyc_grp_dict (dict)

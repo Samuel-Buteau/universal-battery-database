@@ -188,37 +188,6 @@ def calculate_reciprocal_loss(
         ),
     ])
 
-def calculate_anode_match_loss(
-                sampled_anode_vs,
-                v_minus_anode_match,
-                incentive_coeffs
-            ):
-    return incentive_combine(
-        [
-            (incentive_coeffs["coeff_anode_match"],
-             incentive_inequality(
-                 sampled_anode_vs, Inequality.Equals, v_minus_anode_match,
-                 Level.Proportional
-             ))
-        ]
-    )
-
-
-def calculate_cathode_match_loss(
-                sampled_cathode_vs,
-                v_plus_cathode_match,
-                incentive_coeffs
-            ):
-    return incentive_combine(
-        [
-            (incentive_coeffs["coeff_cathode_match"],
-             incentive_inequality(
-                 sampled_cathode_vs, Inequality.Equals, v_plus_cathode_match,
-                 Level.Proportional
-             ))
-        ]
-    )
-
 def calculate_q_loss(q, q_der, incentive_coeffs):
     return incentive_combine([
         (

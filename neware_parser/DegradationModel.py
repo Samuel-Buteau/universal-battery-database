@@ -409,8 +409,7 @@ class DegradationModel(Model):
 
         for cell_id in self.cell_direct.id_dict.keys():
             if cell_id in cell_latent_flags.keys():
-                latent_flags[self.cell_direct.id_dict[cell_id], 0]\
-                    = cell_latent_flags[cell_id]
+                latent_flags[self.cell_direct.id_dict[cell_id], 0]= cell_latent_flags[cell_id]
 
         self.cell_latent_flags = tf.constant(latent_flags)
 
@@ -421,17 +420,13 @@ class DegradationModel(Model):
         # TODO(sam): dry_cell
         for cell_id in self.cell_direct.id_dict.keys():
             if cell_id in cell_to_pos.keys():
-                cell_pointers[self.cell_direct.id_dict[cell_id], 0]\
-                    = pos_dict[cell_to_pos[cell_id]]
+                cell_pointers[self.cell_direct.id_dict[cell_id], 0]= pos_dict[cell_to_pos[cell_id]]
             if cell_id in cell_to_neg.keys():
-                cell_pointers[self.cell_direct.id_dict[cell_id], 1]\
-                    = neg_dict[cell_to_neg[cell_id]]
+                cell_pointers[self.cell_direct.id_dict[cell_id], 1] = neg_dict[cell_to_neg[cell_id]]
             if cell_id in cell_to_electrolyte.keys():
-                cell_pointers[self.cell_direct.id_dict[cell_id], 2]\
-                    = electrolyte_dict[cell_to_electrolyte[cell_id]]
+                cell_pointers[self.cell_direct.id_dict[cell_id], 2] = electrolyte_dict[cell_to_electrolyte[cell_id]]
             if cell_id in cell_to_dry_cell.keys():
-                cell_pointers[self.cell_direct.id_dict[cell_id], 3]\
-                    = dry_cell_dict[cell_to_dry_cell[cell_id]]
+                cell_pointers[self.cell_direct.id_dict[cell_id], 3] = dry_cell_dict[cell_to_dry_cell[cell_id]]
 
 
         self.cell_pointers = tf.constant(cell_pointers)
@@ -530,8 +525,7 @@ class DegradationModel(Model):
             axis = 0
         )
 
-        fetched_latent_cell\
-            = self.min_latent + (1 - self.min_latent) * fetched_latent_cell
+        fetched_latent_cell= self.min_latent + (1 - self.min_latent) * fetched_latent_cell
         fetched_pointers_cell = tf.gather(
             self.cell_pointers,
             indices,
@@ -949,8 +943,10 @@ class DegradationModel(Model):
                 )
                 mult = (1. - tf.reshape(fetched_latent_cell, [-1, 1]))
                 loss_derivative_cell_indirect = (
-                    mult * tf.reduce_mean(l_pos, axis=2) + mult * tf.reduce_mean(l_neg, axis=2) \
-                    + mult *tf.reduce_mean(l_electrolyte, axis=2) + mult * tf.reduce_mean(l_dry_cell, axis=2)
+                    mult * tf.reduce_mean(l_pos, axis=2) +
+                    mult * tf.reduce_mean(l_neg, axis=2) +
+                    mult *tf.reduce_mean(l_electrolyte, axis=2) +
+                    mult * tf.reduce_mean(l_dry_cell, axis=2)
                 )
             else:
                 loss_derivative_cell_indirect = 0.
@@ -986,7 +982,7 @@ class DegradationModel(Model):
             features_neg, features_dry_cell, fetched_latent_cell,
         )
 
-    def sample(self, svit_grid, batch_count, count_matrix, anode_v_curve,cathode_v_curve, n_sample = 4 * 32):
+    def sample(self, svit_grid, batch_count, count_matrix, n_sample = 4 * 32):
 
         # NOTE(sam): this is an example of a forall.
         # (for all voltages, and all cell features)
@@ -1023,8 +1019,7 @@ class DegradationModel(Model):
 
         sampled_constant_current = sampled_constant_current_sign * sampled_constant_current
 
-        sampled_features, _, sampled_pos, sampled_neg, sampled_dry_cell, sampled_latent\
-            = self.cell_from_indices(
+        sampled_features, _, sampled_pos, sampled_neg, sampled_dry_cell, sampled_latent = self.cell_from_indices(
             indices = tf.random.uniform(
                 maxval = self.cell_direct.num_keys,
                 shape = [n_sample],
@@ -1072,49 +1067,6 @@ class DegradationModel(Model):
         sampled_norm_constant = get_norm_constant(sampled_features)
         sampled_norm_cycle = get_norm_cycle_direct(sampled_cycles, norm_constant=sampled_norm_constant)
 
-        sampled_anode_qs = tf.gather(
-            anode_v_curve[:,0:1],
-            indices = tf.random.uniform(
-                minval = 0,
-                maxval = anode_v_curve.shape[0],
-                shape = [n_sample],
-                dtype = tf.int32,
-            ),
-            axis = 0
-        )
-
-        sampled_anode_vs = tf.gather(
-            anode_v_curve[:, 1:],
-            indices=tf.random.uniform(
-                minval=0,
-                maxval=anode_v_curve.shape[0],
-                shape=[n_sample],
-                dtype=tf.int32,
-            ),
-            axis=0
-        )
-        sampled_cathode_qs = tf.gather(
-            cathode_v_curve[:, 0:1],
-            indices=tf.random.uniform(
-                minval=0,
-                maxval=cathode_v_curve.shape[0],
-                shape=[n_sample],
-                dtype=tf.int32,
-            ),
-            axis=0
-        )
-
-        sampled_cathode_vs = tf.gather(
-            cathode_v_curve[:, 1:],
-            indices=tf.random.uniform(
-                minval=0,
-                maxval=cathode_v_curve.shape[0],
-                shape=[n_sample],
-                dtype=tf.int32,
-            ),
-            axis=0
-        )
-
         return (
             sampled_vs,
             sampled_qs,
@@ -1132,10 +1084,6 @@ class DegradationModel(Model):
             sampled_cell_features,
             sampled_encoded_stress,
             sampled_norm_cycle,
-            sampled_anode_qs,
-            sampled_anode_vs,
-            sampled_cathode_qs,
-            sampled_cathode_vs,
         )
 
     # TODO(Harvey): Group general/direct/derivative functions sensibly

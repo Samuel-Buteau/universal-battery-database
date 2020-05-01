@@ -23,6 +23,12 @@ COLORS = [
 
 class PlotEngine:
 
+    # TODO(harvey):
+    #   We have now smaller plot functions. Need to make a generic plot function
+    #   that calls all of these smaller plot functions
+    #   (that are not yet complete). Make generic plot function when all smaller
+    #   plot functions are done.
+
     @staticmethod
     def quantity_vs_capacity(
         quantities, cycles, ax1, name = "some quantity",

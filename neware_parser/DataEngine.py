@@ -2,7 +2,6 @@ import numpy as np
 import tensorflow as tf
 
 from neware_parser.Key import Key
-from neware_parser.Pickle import Pickle
 
 
 class DataEngine:
@@ -11,7 +10,7 @@ class DataEngine:
     def resistance(
         degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
         svit_and_count, filename,
-    ):
+    ) -> dict:
         typ, off, mode = "dchg", 4, "cc"
 
         protocols = get_protocols(cyc_grp_dict, typ)
@@ -40,21 +39,17 @@ class DataEngine:
             resistances.append(
                 tf.reshape(test_results["pred_R"], shape = [-1])
             )
-
-        Pickle.dump(
-            filename,
-            {
-                "protocols": protocols,
-                "resistances": resistances,
-                "cycles": cycles
-            },
-        )
+        return {
+            "protocols": protocols,
+            "resistances": resistances,
+            "cycles": cycles
+        }
 
     @staticmethod
     def shift(
         degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
         svit_and_count, filename,
-    ) -> None:
+    ) -> dict:
 
         typ, off, mode = "dchg", 5, "cc"
 
@@ -80,22 +75,17 @@ class DataEngine:
             shifts.append(
                 tf.reshape(test_results["pred_shift"], shape = [-1]),
             )
-
-        """ save computed data into a pickle file """
-        Pickle.dump(
-            filename,
-            {
-                "protocols": protocols,
-                "shifts": shifts,
-                "cycles": cycles
-            },
-        )
+        return {
+            "protocols": protocols,
+            "shifts": shifts,
+            "cycles": cycles
+        }
 
     @staticmethod
     def scale(
         degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
         svit_and_count, filename,
-    ) -> None:
+    ) -> dict:
         """ Compute the predicted scale and save it in a pickle file
 
         Args:
@@ -131,17 +121,12 @@ class DataEngine:
                 svit_and_count[Key.COUNT_MATRIX],
             )
             scales.append(tf.reshape(test_results["pred_scale"], shape = [-1]))
-
-        """ save computed data into a pickle file """
-        Pickle.dump(
-            filename,
-            {
-                "protocols": protocols,
-                "scales": scales,
-                "cycles": cycles,
-                "patches": patches,
-            },
-        )
+        return {
+            "protocols": protocols,
+            "scales": scales,
+            "cycles": cycles,
+            "patches": patches,
+        }
 
 
 # TODO(harvey): duplicate function in plot.py

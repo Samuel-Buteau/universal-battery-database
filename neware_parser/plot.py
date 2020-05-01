@@ -454,10 +454,11 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
             fit_args[Key.PATH_PLOTS],
             "scale_{}_count_{}.pickle".format(barcode, count),
         )
-        DataEngine.scale(
+        scale_data = DataEngine.scale(
             degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
             svit_and_count, scale_pickle_file,
         )
+        Pickle.dump(scale_pickle_file, scale_data)
         scale_data = Pickle.load(scale_pickle_file)
         PlotEngine.scale(
             scale_data["cycles"], scale_data["scales"],
@@ -469,10 +470,11 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
             fit_args[Key.PATH_PLOTS],
             "resistance_{}_count_{}.pickle".format(barcode, count),
         )
-        DataEngine.resistance(
+        resistance_data = DataEngine.resistance(
             degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
             svit_and_count, resistance_pickle_file,
         )
+        Pickle.dump(resistance_pickle_file, resistance_data)
         resistance_data = Pickle.load(resistance_pickle_file)
         PlotEngine.quantity_vs_capacity(
             resistance_data["resistances"], resistance_data["cycles"],
@@ -483,10 +485,11 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
             fit_args[Key.PATH_PLOTS],
             "shift_{}_count_{}.pickle".format(barcode, count),
         )
-        DataEngine.shift(
+        shift_data = DataEngine.shift(
             degradation_model, barcode_count, cyc_grp_dict, cycle_m, cycle_v,
             svit_and_count, shift_pickle_file,
         )
+        Pickle.dump(shift_pickle_file, shift_data)
         shift_data = Pickle.load(shift_pickle_file)
         PlotEngine.quantity_vs_capacity(
             shift_data["shifts"], shift_data["cycles"],

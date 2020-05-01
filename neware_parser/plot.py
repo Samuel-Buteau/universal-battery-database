@@ -462,7 +462,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
         PlotEngine.scale(
             scale_data["cycles"], scale_data["scales"],
             scale_data["protocols"], scale_data["patches"],
-            fig, offset = 3
+            fig.add_subplot(6, 1, 4),
         )
 
         resistance_pickle_file = os.path.join(
@@ -476,7 +476,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
         resistance_data = Pickle.load(resistance_pickle_file)
         PlotEngine.quantity_vs_capacity(
             resistance_data["resistances"], resistance_data["cycles"],
-            fig, name = "resistance", subplot_count = 6, offset = 4,
+            fig.add_subplot(6, 1, 5), name = "resistance",
         )
 
         shift_pickle_file = os.path.join(
@@ -490,7 +490,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
         shift_data = Pickle.load(shift_pickle_file)
         PlotEngine.quantity_vs_capacity(
             shift_data["shifts"], shift_data["cycles"],
-            fig, name = "shift", subplot_count = 6, offset = 5,
+            fig.add_subplot(6, 1, 6), name = "shift",
         )
 
         savefig("Cap_{}_Count_{}.png".format(barcode, count), fit_args)

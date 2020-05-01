@@ -23,22 +23,17 @@ COLORS = [
 
 class PlotEngine:
 
-    # TODO(harvey): receive ax1 rather than fig
     @staticmethod
     def quantity_vs_capacity(
-        quantities, cycles,
-        fig, name = "some quantity", subplot_count = 1, offset = 0,
+        quantities, cycles, ax1, name = "some quantity",
     ) -> None:
-        ax1 = fig.add_subplot(subplot_count, 1, 1 + offset)
         ax1.set_ylabel(name)
         for count, quantity in enumerate(quantities):
             ax1.plot(cycles, quantity, c = COLORS[count])
 
-    # TODO(harvey): receive ax1 rather than fig
     @staticmethod
     def scale(
-        cycles, scales, protocols, patches,
-        fig, offset: int
+        cycles, scales, protocols, patches, ax1,
     ) -> None:
         """ Plot scale from the given pickle
 
@@ -51,8 +46,6 @@ class PlotEngine:
             fig: The figure on which to plot scale
             offset (int): The offset on the figure for the scale plot
         """
-
-        ax1 = fig.add_subplot(6, 1, 1 + offset)
 
         for count, (protocol, scale) in enumerate(zip(protocols, scales)):
             patches.append(

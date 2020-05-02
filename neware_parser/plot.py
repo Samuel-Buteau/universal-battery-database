@@ -450,31 +450,16 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
             fit_args[Key.PATH_PLOTS],
             "scale_{}_count_{}.pickle".format(barcode, count),
         )
-        scale_data = DataEngine.scale(
-            degradation_model, barcode_count,
-            cyc_grp_dict, cycle_m, cycle_v, svit_and_count
-        )
-        Pickle.dump(scale_pickle_file, scale_data)
 
-        resistance_pickle_file = os.path.join(
+        protocol_independent_pickle_file = os.path.join(
             fit_args[Key.PATH_PLOTS],
-            "resistance_{}_count_{}.pickle".format(barcode, count),
+            "protocol_independent_{}_count_{}.pickle".format(barcode, count),
         )
-        resistance_data = DataEngine.protocol_independent(
+        protocol_independent_data = DataEngine.protocol_independent(
             degradation_model, barcode_count,
             cyc_grp_dict, cycle_m, cycle_v, svit_and_count
         )
-        Pickle.dump(resistance_pickle_file, resistance_data)
-
-        shift_pickle_file = os.path.join(
-            fit_args[Key.PATH_PLOTS],
-            "shift_{}_count_{}.pickle".format(barcode, count),
-        )
-        shift_data = DataEngine.shift(
-            degradation_model, barcode_count,
-            cyc_grp_dict, cycle_m, cycle_v, svit_and_count
-        )
-        Pickle.dump(shift_pickle_file, shift_data)
+        Pickle.dump(protocol_independent_pickle_file, protocol_independent_data)
 
         """ Plot Data """
 
@@ -487,22 +472,22 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
             fig,
         )
 
-        scale_data = Pickle.load(scale_pickle_file)
-        PlotEngine.scale(
-            scale_data["cycles"], scale_data["scales"],
-            scale_data["protocols"], scale_data["patches"],
-            fig.add_subplot(6, 1, 4),
+        protocol_independent_data = Pickle.load(
+            protocol_independent_pickle_file
         )
-
-        resistance_data = Pickle.load(resistance_pickle_file)
-        PlotEngine.quantity_vs_capacity(
-            resistance_data["resistances"], resistance_data["cycles"],
+        PlotEngine.protocol_independent_vs_capacity(
+            protocol_independent_data[Key.SCALE],
+            protocol_independent_data[Key.N],
+            fig.add_subplot(6, 1, 4), name = "scale",
+        )
+        PlotEngine.protocol_independent_vs_capacity(
+            protocol_independent_data[Key.R],
+            protocol_independent_data[Key.N],
             fig.add_subplot(6, 1, 5), name = "resistance",
         )
-
-        shift_data = Pickle.load(shift_pickle_file)
-        PlotEngine.quantity_vs_capacity(
-            shift_data["shifts"], shift_data["cycles"],
+        PlotEngine.protocol_independent_vs_capacity(
+            protocol_independent_data[Key.SHIFT],
+            protocol_independent_data[Key.N],
             fig.add_subplot(6, 1, 6), name = "shift",
         )
 

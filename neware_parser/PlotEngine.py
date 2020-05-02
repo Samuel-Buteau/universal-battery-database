@@ -41,12 +41,11 @@ class PlotEngine:
         """
 
     @staticmethod
-    def quantity_vs_capacity(
-        quantities, cycles, ax1, name = "some quantity",
+    def protocol_independent_vs_capacity(
+        quantity, cycles, ax1, name = "some quantity",
     ) -> None:
         ax1.set_ylabel(name)
-        for count, quantity in enumerate(quantities):
-            ax1.plot(cycles, quantity, c = COLORS[count])
+        ax1.plot(cycles, quantity, c = "k")
 
     @staticmethod
     def scale(

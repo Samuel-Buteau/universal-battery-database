@@ -301,16 +301,15 @@ def plot_vq(plot_params, init_returns):
         plt.close(fig)
 
 
-def compute_measured(cyc_grp_dict, mode, protocols):
+def compute_measured(cyc_grp_dict, mode, protocols) -> dict:
     """
-    Return (dict):
+    Return:
         "caps": A list of structured arrays. One structured array consists of
         the cycle and capacity for one protocol. There the length of the list is
         the number of protocols.
     """
 
     caps = []
-
     for count, protocol in enumerate(protocols):
 
         if protocol[-1] == "dchg":
@@ -367,10 +366,19 @@ def plot_measured(caps, protocols, mode, patches, ax1):
         )
 
 
-def plot_predicted(
+def compute_predicted(
     cyc_grp_dict, mode, protocols, cycle_m, cycle_v, barcode_count,
     degradation_model, svit_and_count, ax1,
-):
+) -> dict:
+    """
+    Return:
+        dict: With the following keys:
+
+            "caps" - A list of structured arrays. One structured array consists
+                of the cycle and capacity for one protocol. There the length of
+                the list is the number of protocols.
+    """
+
     cycles = [x for x in np.arange(0., 6000., 20.)]
     my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycles]
     caps = []
@@ -426,7 +434,15 @@ def plot_predicted(
             sys.exit("Unknown mode in predicted.")
 
         caps.append(sign_change * pred_cap)
+    return {
+        "mode": mode,
+        "protocols": protocols,
+        "caps": caps,
+        "cycles": cycles,
+    }
 
+
+def plot_predicted(caps, cycles, ax1):
     for count, pred_cap in enumerate(caps):
         ax1.plot(cycles, pred_cap, c = COLORS[count])
 
@@ -452,10 +468,13 @@ def plot_capacities(
             measured_data["mode"], patches, ax1
         )
 
-        plot_predicted(
+        predicted_data = compute_predicted(
             cyc_grp_dict, mode, protocols, cycle_m, cycle_v,
             barcode_count, degradation_model, svit_and_count,
             ax1,
+        )
+        plot_predicted(
+            predicted_data["caps"], predicted_data["cycles"], ax1,
         )
 
         ax1.legend(

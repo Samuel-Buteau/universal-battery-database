@@ -3,48 +3,54 @@ import tensorflow as tf
 
 from neware_parser.Key import Key
 from neware_parser.DegradationModel import DegradationModel
+from neware_parser.Print import Print
 
 
 class DataEngine:
 
     @staticmethod
-    def resistance(
+    def protocol_independent(
         degradation_model: DegradationModel, barcode_count: int,
         cyc_grp_dict: dict, cycle_m, cycle_v, svit_and_count,
     ) -> dict:
-        typ, off, mode = "dchg", 4, "cc"
+        typ, mode = "dchg", "cc"
 
-        protocols = get_protocols(cyc_grp_dict, typ)
-        resistances = []
+        protocol = get_protocols(cyc_grp_dict, typ)[0]
 
         cycles = [x for x in np.arange(0., 6000., 20.)]
         my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycles]
 
-        for count, protocol in enumerate(protocols):
-            target_voltage = cyc_grp_dict[protocol]["avg_last_cc_voltage"]
-            target_currents = [cyc_grp_dict[protocol][Key.I_CC_AVG]]
+        target_voltage = cyc_grp_dict[protocol]["avg_last_cc_voltage"]
+        target_currents = [cyc_grp_dict[protocol][Key.I_CC_AVG]]
 
-            test_results = test_single_voltage(
-                my_cycle,
-                target_voltage,
-                cyc_grp_dict[protocol][Key.I_CC_AVG],
-                cyc_grp_dict[protocol][Key.I_PREV_END_AVG],
-                cyc_grp_dict[protocol][Key.V_PREV_END_AVG],
-                cyc_grp_dict[protocol][Key.V_END_AVG],
-                target_currents,
-                barcode_count, degradation_model,
-                svit_and_count[Key.SVIT_GRID],
-                svit_and_count[Key.COUNT_MATRIX]
-            )
+        model_predictions = test_single_voltage(
+            my_cycle,
+            target_voltage,
+            cyc_grp_dict[protocol][Key.I_CC_AVG],
+            cyc_grp_dict[protocol][Key.I_PREV_END_AVG],
+            cyc_grp_dict[protocol][Key.V_PREV_END_AVG],
+            cyc_grp_dict[protocol][Key.V_END_AVG],
+            target_currents,
+            barcode_count, degradation_model,
+            svit_and_count[Key.SVIT_GRID],
+            svit_and_count[Key.COUNT_MATRIX]
+        )
 
-            resistances.append(
-                tf.reshape(test_results["pred_R"], shape = [-1])
-            )
-        return {
-            "protocols": protocols,
-            "resistances": resistances,
-            "cycles": cycles
-        }
+        return np.array(
+            list(zip(
+                cycles,
+                tf.reshape(model_predictions["pred_R"], shape = [-1]),
+                tf.reshape(model_predictions["pred_scale"], shape = [-1]),
+                tf.reshape(model_predictions["pred_shift"], shape = [-1]),
+            )),
+            dtype = [
+                (Key.N, "f4"),
+                (Key.R, "f4"),
+                (Key.SCALE, "f4"),
+                (Key.SHIFT, "f4"),
+            ]
+        )
+
 
     @staticmethod
     def shift(
@@ -52,7 +58,7 @@ class DataEngine:
         cyc_grp_dict: dict, cycle_m, cycle_v, svit_and_count,
     ) -> dict:
 
-        typ, off, mode = "dchg", 5, "cc"
+        typ, mode = "dchg", "cc"
 
         protocols = get_protocols(cyc_grp_dict, typ)
         shifts = []
@@ -87,18 +93,6 @@ class DataEngine:
         degradation_model: DegradationModel, barcode_count: int,
         cyc_grp_dict: dict, cycle_m, cycle_v, svit_and_count,
     ) -> dict:
-        """ Compute the predicted scale and save it in a pickle file
-
-        Args:
-            cyc_grp_dict (dict)
-            cycle_m: Cycle mean.
-            cycle_v: Cycle variance.
-            barcode_count: Number of barcodes.
-            degradation_model
-            svit_and_count: TODO(harvey)
-            filename: Filename (including path) to save the generated pickle
-                file
-        """
 
         step, mode = "dchg", "cc"
 

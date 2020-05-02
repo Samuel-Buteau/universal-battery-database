@@ -49,6 +49,10 @@ class Key:
     I_MAX_GRID = "current_grid_max_v"
     I_N_GRID = "current_grid_n_samples"
 
+    R = "resistance"
+    SCALE = "scale"
+    SHIFT = "shift"
+
     TEMP = "temperature"
     TEMP_GRID_MIN_V = "temperature_grid_min_v"
     TEMP_GRID_MAX_V = "temperature_grid_max_v"

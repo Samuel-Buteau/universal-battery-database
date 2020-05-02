@@ -460,7 +460,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
             fit_args[Key.PATH_PLOTS],
             "resistance_{}_count_{}.pickle".format(barcode, count),
         )
-        resistance_data = DataEngine.resistance(
+        resistance_data = DataEngine.protocol_independent(
             degradation_model, barcode_count,
             cyc_grp_dict, cycle_m, cycle_v, svit_and_count
         )

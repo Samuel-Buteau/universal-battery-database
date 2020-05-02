@@ -30,6 +30,17 @@ class PlotEngine:
     #   plot functions are done.
 
     @staticmethod
+    def quantities_vs_capacity(
+        barcode, barcode_count, cyc_grp_dict, svit_and_count,
+        quantities, cycles, quantities_names,
+    ):
+        """ Generic plot for cycle number on the x-axis.
+
+        Given a dictionaries of dictionaries, where each dictionary specifies a
+        quantity to plot vs cycle.
+        """
+
+    @staticmethod
     def quantity_vs_capacity(
         quantities, cycles, ax1, name = "some quantity",
     ) -> None:
@@ -41,17 +52,6 @@ class PlotEngine:
     def scale(
         cycles, scales, protocols, patches, ax1,
     ) -> None:
-        """ Plot scale from the given pickle
-
-        Args:
-            cycles
-            scales
-            protocols
-            patches
-            filename (str): Filename (including path) to the pickle file
-            fig: The figure on which to plot scale
-            offset (int): The offset on the figure for the scale plot
-        """
 
         for count, (protocol, scale) in enumerate(zip(protocols, scales)):
             patches.append(

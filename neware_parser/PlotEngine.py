@@ -1,6 +1,10 @@
+import sys
+
 import matplotlib.patches as mpatches
 
 # TODO(harvey) duplicate in plot.py
+from neware_parser.Key import Key
+
 COLORS = [
     (.4, .4, .4),
 
@@ -48,9 +52,7 @@ class PlotEngine:
         ax1.plot(cycles, quantity, c = "k")
 
     @staticmethod
-    def scale(
-        cycles, scales, protocols, patches, ax1,
-    ) -> None:
+    def scale(cycles, scales, protocols, patches, ax1) -> None:
 
         for count, (protocol, scale) in enumerate(zip(protocols, scales)):
             patches.append(
@@ -65,6 +67,29 @@ class PlotEngine:
             handles = patches, fontsize = "small",
             bbox_to_anchor = (0.7, 1), loc = "upper left"
         )
+
+    @staticmethod
+    def measured_capacity(caps, protocols, mode, ax1) -> None:
+        for count, (protocol, cap) in enumerate(zip(protocols, caps)):
+            if mode == "cc":
+                cap_type = Key.Q_CC
+            elif mode == "cv":
+                cap_type = Key.Q_CV
+            else:
+                sys.exit("Unknown mode in measured.")
+
+            ax1.scatter(
+                cap[Key.N],
+                cap[cap_type],
+                c = COLORS[count],
+                s = 5,
+                label = make_legend(protocol)
+            )
+
+    @staticmethod
+    def predicted_capacity(caps, cycles, ax1) -> None:
+        for count, pred_cap in enumerate(caps):
+            ax1.plot(cycles, pred_cap, c = COLORS[count])
 
 
 # TODO(harvey) duplicate in plot.py

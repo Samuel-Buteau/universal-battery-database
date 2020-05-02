@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 import tensorflow as tf
 
@@ -13,6 +15,12 @@ class DataEngine:
         degradation_model: DegradationModel, barcode_count: int,
         cyc_grp_dict: dict, cycle_m, cycle_v, svit_and_count,
     ) -> dict:
+        """
+        Computes protocol-independent quantities vs capacity:
+            - resistance
+            - scale
+            - shift
+        """
         typ, mode = "dchg", "cc"
 
         protocol = get_protocols(cyc_grp_dict, typ)[0]
@@ -50,6 +58,50 @@ class DataEngine:
                 (Key.SHIFT, "f4"),
             ]
         )
+
+    @staticmethod
+    def measured_capacity(cyc_grp_dict, mode, protocols) -> dict:
+        """
+        Return:
+            "caps": A list of structured arrays. One structured array consists of
+            the cycle and capacity for one protocol. There the length of the list is
+            the number of protocols.
+        """
+
+        caps = []
+        for count, protocol in enumerate(protocols):
+
+            if protocol[-1] == "dchg":
+                sign_change = -1.
+            else:
+                sign_change = +1.
+
+            if mode == "cc":
+                cap = cyc_grp_dict[protocol][Key.MAIN]["last_cc_capacity"]
+                cap_mode = Key.Q_CC
+            elif mode == "cv":
+                cap = cyc_grp_dict[protocol][Key.MAIN]["last_cv_capacity"]
+                cap_mode = Key.Q_CV
+            else:
+                sys.exit("Unknown mode in measured.")
+
+            caps.append(
+                np.array(
+                    list(zip(
+                        cyc_grp_dict[protocol][Key.MAIN][Key.N],
+                        sign_change * cap,
+                    )),
+                    dtype = [
+                        (Key.N, "f4"),
+                        (cap_mode, "f4"),
+                    ]
+                )
+            )
+        return {
+            "mode": mode,
+            "protocols": protocols,
+            "caps": caps,
+        }
 
 
 # TODO(harvey): duplicate function in plot.py

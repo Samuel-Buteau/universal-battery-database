@@ -301,50 +301,6 @@ def plot_vq(plot_params, init_returns):
         plt.close(fig)
 
 
-def compute_measured(cyc_grp_dict, mode, protocols) -> dict:
-    """
-    Return:
-        "caps": A list of structured arrays. One structured array consists of
-        the cycle and capacity for one protocol. There the length of the list is
-        the number of protocols.
-    """
-
-    caps = []
-    for count, protocol in enumerate(protocols):
-
-        if protocol[-1] == "dchg":
-            sign_change = -1.
-        else:
-            sign_change = +1.
-
-        if mode == "cc":
-            cap = cyc_grp_dict[protocol][Key.MAIN]["last_cc_capacity"]
-            cap_mode = Key.Q_CC
-        elif mode == "cv":
-            cap = cyc_grp_dict[protocol][Key.MAIN]["last_cv_capacity"]
-            cap_mode = Key.Q_CV
-        else:
-            sys.exit("Unknown mode in measured.")
-
-        caps.append(
-            np.array(
-                list(zip(
-                    cyc_grp_dict[protocol][Key.MAIN][Key.N],
-                    sign_change * cap,
-                )),
-                dtype = [
-                    (Key.N, "f4"),
-                    (cap_mode, "f4"),
-                ]
-            )
-        )
-    return {
-        "mode": mode,
-        "protocols": protocols,
-        "caps": caps,
-    }
-
-
 def plot_measured(caps, protocols, mode, ax1):
     for count, (protocol, cap) in enumerate(zip(protocols, caps)):
         if mode == "cc":
@@ -457,7 +413,9 @@ def plot_capacities(
 
         protocols = get_protocols(cyc_grp_dict, typ)
 
-        measured_data = compute_measured(cyc_grp_dict, mode, protocols)
+        measured_data = DataEngine.measured_capacity(
+            cyc_grp_dict, mode, protocols,
+        )
         predicted_data = compute_predicted(
             cyc_grp_dict, mode, protocols, cycle_m, cycle_v,
             barcode_count, degradation_model, svit_and_count,

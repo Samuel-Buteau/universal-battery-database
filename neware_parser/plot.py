@@ -301,12 +301,12 @@ def plot_vq(plot_params, init_returns):
         plt.close(fig)
 
 
-def plot_measured(cyc_grp_dict, mode, protocols, patches, ax1):
+def compute_measured(cyc_grp_dict, mode, protocols):
     """
-    Return:
-        A list of structured arrays. One structured array consists of the cycle
-        and capacity for one protocol. There the length of the list is the
-        number of protocols.
+    Return (dict):
+        "caps": A list of structured arrays. One structured array consists of
+        the cycle and capacity for one protocol. There the length of the list is
+        the number of protocols.
     """
 
     caps = []
@@ -320,10 +320,10 @@ def plot_measured(cyc_grp_dict, mode, protocols, patches, ax1):
 
         if mode == "cc":
             cap = cyc_grp_dict[protocol][Key.MAIN]["last_cc_capacity"]
-            cap_type = Key.Q_CC
+            cap_mode = Key.Q_CC
         elif mode == "cv":
             cap = cyc_grp_dict[protocol][Key.MAIN]["last_cv_capacity"]
-            cap_type = Key.Q_CV
+            cap_mode = Key.Q_CV
         else:
             sys.exit("Unknown mode in measured.")
 
@@ -335,11 +335,18 @@ def plot_measured(cyc_grp_dict, mode, protocols, patches, ax1):
                 )),
                 dtype = [
                     (Key.N, "f4"),
-                    (cap_type, "f4"),
+                    (cap_mode, "f4"),
                 ]
             )
         )
+    return {
+        "mode": mode,
+        "protocols": protocols,
+        "caps": caps,
+    }
 
+
+def plot_measured(caps, protocols, mode, patches, ax1):
     for count, (protocol, cap) in enumerate(zip(protocols, caps)):
         patches.append(
             mpatches.Patch(color = COLORS[count], label = make_legend(protocol))
@@ -434,17 +441,19 @@ def plot_capacities(
         ("dchg", 0, "cc"), ("chg", 1, "cc"), ("chg", 2, "cv")
     ]:
         patches = []
-        keys = get_protocols(cyc_grp_dict, typ)
+        protocols = get_protocols(cyc_grp_dict, typ)
 
         ax1 = fig.add_subplot(6, 1, 1 + off)
         ax1.set_ylabel(mode + "-" + typ + "-capacity")
 
+        measured_data = compute_measured(cyc_grp_dict, mode, protocols)
         plot_measured(
-            cyc_grp_dict, mode, keys, patches, ax1,
+            measured_data["caps"], measured_data["protocols"],
+            measured_data["mode"], patches, ax1
         )
 
         plot_predicted(
-            cyc_grp_dict, mode, keys, cycle_m, cycle_v,
+            cyc_grp_dict, mode, protocols, cycle_m, cycle_v,
             barcode_count, degradation_model, svit_and_count,
             ax1,
         )

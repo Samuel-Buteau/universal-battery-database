@@ -400,6 +400,8 @@ def plot_capacities(
     cyc_grp_dict, cycle_m, cycle_v, barcode_count,
     degradation_model, svit_and_count, fig,
 ):
+    # TODO(harvey): [(measured cycle, measured cap)] and
+    #               [(predected cycle, predicted cap)]
     for typ, off, mode in [
         ("dchg", 0, "cc"), ("chg", 1, "cc"), ("chg", 2, "cv")
     ]:
@@ -446,12 +448,8 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
         """ Computing """
 
         # TODO(harvey): add args for path_to_pickles
-        scale_pickle_file = os.path.join(
-            fit_args[Key.PATH_PLOTS],
-            "scale_{}_count_{}.pickle".format(barcode, count),
-        )
 
-        protocol_independent_pickle_file = os.path.join(
+        protocol_independent_pickle = os.path.join(
             fit_args[Key.PATH_PLOTS],
             "protocol_independent_{}_count_{}.pickle".format(barcode, count),
         )
@@ -459,22 +457,21 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
             degradation_model, barcode_count,
             cyc_grp_dict, cycle_m, cycle_v, svit_and_count
         )
-        Pickle.dump(protocol_independent_pickle_file, protocol_independent_data)
-
-        """ Plot Data """
-
-        fig = plt.figure(figsize = [11, 10])
+        Pickle.dump(protocol_independent_pickle, protocol_independent_data)
 
         # TODO(harvey) separate into DataEngine and PlotEngine
+       
+        fig = plt.figure(figsize = [11, 10])
+
         plot_capacities(
             cyc_grp_dict, cycle_m, cycle_v, barcode_count,
             degradation_model, svit_and_count,
             fig,
         )
 
-        protocol_independent_data = Pickle.load(
-            protocol_independent_pickle_file
-        )
+        """ Plot Data """
+
+        protocol_independent_data = Pickle.load(protocol_independent_pickle)
         PlotEngine.protocol_independent_vs_capacity(
             protocol_independent_data[Key.SCALE],
             protocol_independent_data[Key.N],

@@ -14,7 +14,7 @@ class DataEngine:
     def protocol_independent(
         degradation_model: DegradationModel, barcode_count: int,
         cyc_grp_dict: dict, cycle_m, cycle_v, svit_and_count,
-    ) -> dict:
+    ):
         """
         Computes protocol-independent quantities vs capacity:
             - resistance

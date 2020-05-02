@@ -302,7 +302,15 @@ def plot_vq(plot_params, init_returns):
 
 
 def plot_measured(cyc_grp_dict, mode, protocols, patches, ax1):
+    """
+    Return:
+        A list of structured arrays. One structured array consists of the cycle
+        and capacity for one protocol. There the length of the list is the
+        number of protocols.
+    """
+
     caps = []
+
     for count, protocol in enumerate(protocols):
 
         if protocol[-1] == "dchg":
@@ -312,20 +320,40 @@ def plot_measured(cyc_grp_dict, mode, protocols, patches, ax1):
 
         if mode == "cc":
             cap = cyc_grp_dict[protocol][Key.MAIN]["last_cc_capacity"]
+            cap_type = Key.Q_CC
         elif mode == "cv":
             cap = cyc_grp_dict[protocol][Key.MAIN]["last_cv_capacity"]
+            cap_type = Key.Q_CV
         else:
             sys.exit("Unknown mode in measured.")
 
-        caps.append(sign_change * cap)
+        caps.append(
+            np.array(
+                list(zip(
+                    cyc_grp_dict[protocol][Key.MAIN][Key.N],
+                    sign_change * cap,
+                )),
+                dtype = [
+                    (Key.N, "f4"),
+                    (cap_type, "f4"),
+                ]
+            )
+        )
 
     for count, (protocol, cap) in enumerate(zip(protocols, caps)):
         patches.append(
             mpatches.Patch(color = COLORS[count], label = make_legend(protocol))
         )
+        if mode == "cc":
+            cap_type = Key.Q_CC
+        elif mode == "cv":
+            cap_type = Key.Q_CV
+        else:
+            sys.exit("Unknown mode in measured.")
+
         ax1.scatter(
-            cyc_grp_dict[protocol][Key.MAIN][Key.N],
-            cap,
+            cap[Key.N],
+            cap[cap_type],
             c = COLORS[count],
             s = 5,
             label = make_legend(protocol)
@@ -460,7 +488,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
         Pickle.dump(protocol_independent_pickle, protocol_independent_data)
 
         # TODO(harvey) separate into DataEngine and PlotEngine
-       
+
         fig = plt.figure(figsize = [11, 10])
 
         plot_capacities(

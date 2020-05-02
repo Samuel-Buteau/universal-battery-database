@@ -345,11 +345,8 @@ def compute_measured(cyc_grp_dict, mode, protocols) -> dict:
     }
 
 
-def plot_measured(caps, protocols, mode, patches, ax1):
+def plot_measured(caps, protocols, mode, ax1):
     for count, (protocol, cap) in enumerate(zip(protocols, caps)):
-        patches.append(
-            mpatches.Patch(color = COLORS[count], label = make_legend(protocol))
-        )
         if mode == "cc":
             cap_type = Key.Q_CC
         elif mode == "cv":
@@ -368,7 +365,7 @@ def plot_measured(caps, protocols, mode, patches, ax1):
 
 def compute_predicted(
     cyc_grp_dict, mode, protocols, cycle_m, cycle_v, barcode_count,
-    degradation_model, svit_and_count, ax1,
+    degradation_model, svit_and_count,
 ) -> dict:
     """
     Return:
@@ -456,33 +453,42 @@ def plot_capacities(
     for typ, off, mode in [
         ("dchg", 0, "cc"), ("chg", 1, "cc"), ("chg", 2, "cv")
     ]:
-        patches = []
+        """ Computation """
+
         protocols = get_protocols(cyc_grp_dict, typ)
 
-        ax1 = fig.add_subplot(6, 1, 1 + off)
-        ax1.set_ylabel(mode + "-" + typ + "-capacity")
-
         measured_data = compute_measured(cyc_grp_dict, mode, protocols)
-        plot_measured(
-            measured_data["caps"], measured_data["protocols"],
-            measured_data["mode"], patches, ax1
-        )
-
         predicted_data = compute_predicted(
             cyc_grp_dict, mode, protocols, cycle_m, cycle_v,
             barcode_count, degradation_model, svit_and_count,
-            ax1,
+        )
+
+        """ Plot """
+
+        ax1 = fig.add_subplot(6, 1, 1 + off)
+
+        plot_measured(
+            measured_data["caps"], measured_data["protocols"],
+            measured_data["mode"], ax1
         )
         plot_predicted(
             predicted_data["caps"], predicted_data["cycles"], ax1,
         )
 
+        patches = []
+        for count, protocol in enumerate(protocols):
+            patches.append(
+                mpatches.Patch(
+                    color = COLORS[count], label = make_legend(protocol),
+                )
+            )
         ax1.legend(
             handles = patches,
             fontsize = "small",
             bbox_to_anchor = (0.7, 1),
             loc = "upper left",
         )
+        ax1.set_ylabel(mode + "-" + typ + "-capacity")
 
 
 def plot_things_vs_cycle_number(plot_params, init_returns):

@@ -5,7 +5,7 @@ import tensorflow as tf
 from django.core.management.base import BaseCommand
 
 from neware_parser.DegradationModelBlackbox import DegradationModel
-from neware_parser.LossRecord import LossRecord
+from neware_parser.LossRecordBlackbox import LossRecord
 from neware_parser.models import *
 from neware_parser.plot import *
 from neware_parser.Key import Key
@@ -588,7 +588,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                         loss_record.plot(count, fit_args)
                         plot_things_vs_cycle_number(plot_params, init_returns)
                         plot_vq(plot_params, init_returns)
-                        # plot_v_curves(plot_params, init_returns)
+
                         end = time.time()
                         print("time to plot: ", end - start)
                         print()
@@ -766,20 +766,12 @@ def train_step(neighborhood, params, fit_args):
                 cv_current,
                 svit_grid,
                 count_matrix,
-                cc_capacity,
-                cv_capacity,
             ),
             training = True
         )
 
         pred_cc_capacity = train_results["pred_cc_capacity"]
         pred_cv_capacity = train_results["pred_cv_capacity"]
-        pred_cc_voltage = train_results["pred_cc_voltage"]
-        pred_cv_voltage = train_results["pred_cv_voltage"]
-        cv_voltage = tf.tile(
-            tf.expand_dims(end_voltage, axis = 1),
-            [1, cv_current.shape[1]],
-        )
 
         cc_capacity_loss = get_loss(
             cc_capacity, pred_cc_capacity, cc_mask, cc_mask_2,
@@ -787,31 +779,16 @@ def train_step(neighborhood, params, fit_args):
         cv_capacity_loss = get_loss(
             cv_capacity, pred_cv_capacity, cv_mask, cv_mask_2,
         )
-        cc_voltage_loss = get_loss(
-            cc_voltage, pred_cc_voltage, cc_mask, cc_mask_2,
-        )
-        cv_voltage_loss = get_loss(
-            cv_voltage, pred_cv_voltage, cv_mask, cv_mask_2,
-        )
 
-        loss = (
-            tf.stop_gradient(
+        main_losses = (
                 fit_args[Key.Coeff.Q_CV] * cv_capacity_loss
-                + fit_args[Key.Coeff.V_CC] * cc_voltage_loss
                 + fit_args[Key.Coeff.Q_CC] * cc_capacity_loss
-            )
-            + fit_args[Key.Coeff.Q_CV] * cv_capacity_loss
-            + fit_args[Key.Coeff.V_CC] * cc_voltage_loss
-            + fit_args[Key.Coeff.Q_CC] * cc_capacity_loss
-            * (
+        )
+        loss = (
+            main_losses
+            + tf.stop_gradient(main_losses)* (
                 fit_args[Key.Coeff.Q] * train_results[Key.Loss.Q]
-                + fit_args[Key.Coeff.SCALE] * train_results[Key.Loss.SCALE]
-                + fit_args[Key.Coeff.R] * train_results[Key.Loss.R]
-                + fit_args[Key.Coeff.SHIFT] * train_results[Key.Loss.SHIFT]
                 + fit_args[Key.Coeff.CELL] * train_results[Key.Loss.CELL]
-                + fit_args[Key.Coeff.RECIP] * train_results[Key.Loss.RECIP]
-                + fit_args[Key.Coeff.PROJ] * train_results[Key.Loss.PROJ]
-                + fit_args[Key.Coeff.OOB] * train_results[Key.Loss.OOB]
             )
         )
 
@@ -841,17 +818,8 @@ def train_step(neighborhood, params, fit_args):
         [
             cc_capacity_loss,
             cv_capacity_loss,
-            cc_voltage_loss,
-            cv_voltage_loss,
             train_results[Key.Loss.Q],
-            train_results[Key.Loss.SCALE],
-            train_results[Key.Loss.R],
-            train_results[Key.Loss.SHIFT],
             train_results[Key.Loss.CELL],
-            train_results[Key.Loss.RECIP],
-
-            train_results[Key.Loss.PROJ],
-            train_results[Key.Loss.OOB],
         ],
     )
 
@@ -895,65 +863,21 @@ class Command(BaseCommand):
             "--coeff_electrolyte_eq": 10.,
 
             "--coeff_cv_capacity": 1.,
-            "--coeff_cv_voltage": 1.,
-            "--coeff_cc_voltage": 1.,
             "--coeff_cc_capacity": 1.,
 
             "--coeff_q": 1.,
-            "--coeff_q_small": .001,
             "--coeff_q_geq": 1.,
             "--coeff_q_leq": 1.,
             "--coeff_q_v_mono": .1,
             "--coeff_q_d3_v": 1.,
-            "--coeff_q_d3_shift": .01,
             "--coeff_q_d3_current": 1.,
             "--coeff_q_d3_cycle": 1.,
             "--coeff_q_d_current": 1.,
             "--coeff_q_d_cycle": 10.,
 
-            "--coeff_scale": 5.,
-            "--coeff_scale_geq": 5.,
-            "--coeff_scale_leq": 5.,
-            "--coeff_scale_eq": .01,
-            "--coeff_scale_mono": 1.,
-            "--coeff_scale_d3_cycle": .02,
-
-            "--coeff_r": 5.,
-            "--coeff_r_geq": 100.,
-            "--coeff_r_big": .0,
-            "--coeff_r_d3_cycle": .02,
-
-            "--coeff_shift": 1.,
-            "--coeff_shift_geq": .5,
-            "--coeff_shift_leq": .5,
-            "--coeff_shift_small": .01,
-            "--coeff_shift_d3_cycle": .02,
-            "--coeff_shift_mono": .0,
-
-            "--coeff_reciprocal": 10.,
-            "--coeff_reciprocal_v": 10.,
-            "--coeff_reciprocal_q": 10.,
-            "--coeff_reciprocal_v_small": .001,
-            "--coeff_reciprocal_v_geq": 1.,
-            "--coeff_reciprocal_v_leq": .5,
-            "--coeff_reciprocal_v_mono": 10.,
-            "--coeff_reciprocal_d3_current": 10.,
-            "--coeff_reciprocal_d_current_minus": 10.,
-            "--coeff_reciprocal_d_current_plus": 2.,
-            "--coeff_reciprocal_d3_cycle": 10.,
-            "--coeff_reciprocal_d_cycle": 1.,
-
-            "--coeff_projection": 1.,
-            "--coeff_projection_pos": 1.,
-            "--coeff_projection_neg": 1.,
-            "--coeff_projection_dry_cell": 1.,
-
-            "--coeff_out_of_bounds": 10.,
-            "--coeff_out_of_bounds_geq": 1.,
-            "--coeff_out_of_bounds_leq": 1.,
         }
 
-        vis = 20000
+        vis = 10000
         int_args = {
             "--n_sample": 8 * 16,
 
@@ -966,7 +890,7 @@ class Command(BaseCommand):
             "--visualize_vq_every": vis,
 
             "--stop_count": 1000004,
-            "--barcode_show": 30,
+            "--barcode_show": 10,
         }
 
         for arg in required_args:

@@ -511,212 +511,41 @@ def plot_predicted(
 
 def plot_capacities(
     cyc_grp_dict, cycle_m, cycle_v, barcode_count,
-    degradation_model, svit_and_count, fig,
+    degradation_model, svit_and_count, axs, typs, modes
 ):
-    """
-
-    Args:
-        cyc_grp_dict:
-        cycle_m:
-        cycle_v:
-        barcode_count:
-        degradation_model:
-        svit_and_count:
-        fig:
-
-    Returns:
-
-    """
-    for typ, off, mode in [
-        ("dchg", 0, "cc"), ("chg", 1, "cc"), ("chg", 2, "cv")
-    ]:
-        list_of_patches = []
-        list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
-
-        ax1 = fig.add_subplot(6, 1, 1 + off)
-        ax1.set_ylabel(mode + "-" + typ + "-capacity")
-
-        plot_measured(
-            cyc_grp_dict, mode, list_of_keys, list_of_patches, ax1,
-        )
-
-        plot_predicted(
-            cyc_grp_dict, mode, list_of_keys, cycle_m, cycle_v,
-            barcode_count, degradation_model, svit_and_count,
-            ax1,
-        )
-
-        ax1.legend(
-            handles = list_of_patches,
-            fontsize = "small",
-            bbox_to_anchor = (0.7, 1),
-            loc = "upper left",
+    for ax, typ, mode in zip(axs, typs, modes):
+        plot_capacity(
+            cyc_grp_dict, cycle_m, cycle_v, barcode_count,
+            degradation_model, svit_and_count, ax, typ, mode
         )
 
 
-def plot_scale(
+def plot_capacity(
     cyc_grp_dict, cycle_m, cycle_v, barcode_count,
-    degradation_model, svit_and_count, fig,
+    degradation_model, svit_and_count, ax, typ, mode
 ):
-    """
-
-    Args:
-        cyc_grp_dict:
-        cycle_m:
-        cycle_v:
-        barcode_count:
-        degradation_model:
-        svit_and_count:
-        fig:
-
-    Returns:
-
-    """
-    for typ, off, mode in [("dchg", 3, "cc")]:
-
-        list_of_patches = []
-        list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
-
-        ax1 = fig.add_subplot(6, 1, 1 + off)
-        ax1.set_ylabel("scale")
-
-        for k_count, k in enumerate(list_of_keys):
-            list_of_patches.append(mpatches.Patch(
-                color = COLORS[k_count], label = make_legend(k),
-            ))
-
-            cycle = [x for x in np.arange(0., 6000., 20.)]
-
-            my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
-
-            target_voltage = cyc_grp_dict[k]["avg_last_cc_voltage"]
-            target_currents = [cyc_grp_dict[k][Key.I_CC_AVG]]
-
-            test_results = test_single_voltage(
-                my_cycle,
-                target_voltage,
-                cyc_grp_dict[k][Key.I_CC_AVG],
-                cyc_grp_dict[k][Key.I_PREV_END_AVG],
-                cyc_grp_dict[k][Key.V_PREV_END_AVG],
-                cyc_grp_dict[k][Key.V_END_AVG],
-                target_currents,
-                barcode_count, degradation_model,
-                svit_and_count[Key.SVIT_GRID],
-                svit_and_count[Key.COUNT_MATRIX],
-            )
-
-            pred_cap = tf.reshape(
-                test_results["pred_scale"], shape = [-1],
-            )
-
-            ax1.plot(cycle, pred_cap, c = COLORS[k_count])
-
-        ax1.legend(
-            handles = list_of_patches, fontsize = "small",
-            bbox_to_anchor = (0.7, 1), loc = "upper left"
-        )
+    list_of_patches = []
+    list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
 
 
-def plot_resistance(
-    cyc_grp_dict, cycle_m, cycle_v, barcode_count,
-    degradation_model, svit_and_count, fig,
-):
-    """
+    ax.set_ylabel(mode + "-" + typ + "-capacity")
 
-    Args:
-        cyc_grp_dict:
-        cycle_m:
-        cycle_v:
-        barcode_count:
-        degradation_model:
-        svit_and_count:
-        fig:
+    plot_measured(
+        cyc_grp_dict, mode, list_of_keys, list_of_patches, ax,
+    )
 
-    Returns:
+    plot_predicted(
+        cyc_grp_dict, mode, list_of_keys, cycle_m, cycle_v,
+        barcode_count, degradation_model, svit_and_count,
+        ax,
+    )
 
-    """
-    for typ, off, mode in [("dchg", 4, "cc")]:
-
-        list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
-
-        ax1 = fig.add_subplot(6, 1, 1 + off)
-        ax1.set_ylabel("resistance")
-
-        for k_count, k in enumerate(list_of_keys):
-            cycle = [x for x in np.arange(0., 6000., 20.)]
-
-            my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
-
-            target_voltage = cyc_grp_dict[k]["avg_last_cc_voltage"]
-            target_currents = [cyc_grp_dict[k][Key.I_CC_AVG]]
-
-            test_results = test_single_voltage(
-                my_cycle,
-                target_voltage,
-                cyc_grp_dict[k][Key.I_CC_AVG],
-                cyc_grp_dict[k][Key.I_PREV_END_AVG],
-                cyc_grp_dict[k][Key.V_PREV_END_AVG],
-                cyc_grp_dict[k][Key.V_END_AVG],
-                target_currents,
-                barcode_count, degradation_model,
-                svit_and_count[Key.SVIT_GRID],
-                svit_and_count[Key.COUNT_MATRIX]
-            )
-
-            pred_cap = tf.reshape(test_results["pred_R"], shape = [-1])
-
-            ax1.plot(cycle, pred_cap, c = COLORS[k_count])
-
-
-def plot_shift(
-    cyc_grp_dict, cycle_m, cycle_v, barcode_count,
-    degradation_model, svit_and_count,
-    fig,
-):
-    """
-
-    Args:
-        cyc_grp_dict:
-        cycle_m:
-        cycle_v:
-        barcode_count:
-        degradation_model:
-        svit_and_count:
-        fig:
-
-    Returns:
-
-    """
-    for typ, off, mode in [("dchg", 5, "cc")]:
-
-        list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
-
-        ax1 = fig.add_subplot(6, 1, 1 + off)
-        ax1.set_ylabel("shift")
-
-        for k_count, k in enumerate(list_of_keys):
-            cycle = [x for x in np.arange(0., 6000., 20.)]
-
-            my_cycle = [(cyc - cycle_m) / tf.sqrt(cycle_v) for cyc in cycle]
-
-            target_voltage = cyc_grp_dict[k]["avg_last_cc_voltage"]
-            target_currents = [cyc_grp_dict[k][Key.I_CC_AVG]]
-
-            test_results = test_single_voltage(
-                my_cycle,
-                target_voltage,
-                cyc_grp_dict[k][Key.I_CC_AVG],
-                cyc_grp_dict[k][Key.I_PREV_END_AVG],
-                cyc_grp_dict[k][Key.V_PREV_END_AVG],
-                cyc_grp_dict[k][Key.V_END_AVG],
-                target_currents,
-                barcode_count, degradation_model,
-                svit_and_count[Key.SVIT_GRID],
-                svit_and_count[Key.COUNT_MATRIX],
-            )
-            pred_cap = tf.reshape(test_results["pred_shift"], shape = [-1])
-
-            ax1.plot(cycle, pred_cap, c = COLORS[k_count])
+    ax.legend(
+        handles = list_of_patches,
+        fontsize = "small",
+        bbox_to_anchor = (0.7, 1),
+        loc = "upper left",
+    )
 
 
 def plot_things_vs_cycle_number(plot_params, init_returns):
@@ -734,27 +563,17 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
     for barcode_count, barcode in enumerate(barcodes):
         svit_and_count = get_svit_and_count(my_data, barcode)
         fig = plt.figure(figsize = [11, 10])
+        tot = 3
+        typs =["dchg", "chg", "chg"]
+        modes = ["cc", "cc", "cv"]
+        #TODO: use the grid to directly get axs.
+        axs = [fig.add_subplot(tot, 1, 1 + off) for off in range(tot)]
         cyc_grp_dict = my_data[Key.ALL_DATA][barcode][Key.CYC_GRP_DICT]
 
         plot_capacities(
             cyc_grp_dict, cycle_m, cycle_v, barcode_count,
             degradation_model, svit_and_count,
-            fig,
-        )
-        plot_scale(
-            cyc_grp_dict, cycle_m, cycle_v, barcode_count,
-            degradation_model, svit_and_count,
-            fig,
-        )
-        plot_resistance(
-            cyc_grp_dict, cycle_m, cycle_v, barcode_count,
-            degradation_model, svit_and_count,
-            fig,
-        )
-        plot_shift(
-            cyc_grp_dict, cycle_m, cycle_v, barcode_count,
-            degradation_model, svit_and_count,
-            fig,
+            axs, typs, modes
         )
 
         savefig("Cap_{}_Count_{}.png".format(barcode, count), fit_args)

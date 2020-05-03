@@ -32,6 +32,7 @@ Shortened Variable Names:
 #  cycle scaled by cycle number, the cell features, pasted together and ran
 #  through a neural net.
 
+# TODO(harvey): Can these be stored somewhere more logical?
 NEIGH_MIN_CYC = 0
 NEIGH_MAX_CYC = 1
 NEIGH_RATE = 2
@@ -44,11 +45,21 @@ NEIGH_CURRENT_GRID = 8
 NEIGH_TEMPERATURE_GRID = 9
 NEIGH_ABSOLUTE_REFERENCE = 10
 NEIGH_REFERENCE = 11
-
 NEIGH_TOTAL = 12
 
 
-def ml_smoothing(fit_args):
+def ml_smoothing(fit_args: dict) -> None:
+    """
+    The main function to carry out the machine learning training and evaluation
+    procedure.
+
+    Todo(harvey): Add more description about what this does.
+
+    Args:
+        fit_args: Dictionary defining various fitting-related arguments.
+
+    Returns: None
+    """
     if len(tf.config.experimental.list_physical_devices("GPU")) == 1:
         strategy = tf.distribute.OneDeviceStrategy(device = "/gpu:0")
     elif len(tf.config.experimental.list_physical_devices("GPU")) > 1:
@@ -69,12 +80,12 @@ def ml_smoothing(fit_args):
 
     dataset_path = os.path.join(
         fit_args[Key.PATH_DATASET],
-        "dataset_ver_{}.file".format(fit_args[Key.DATA_VERSION])
+        "dataset_ver_{}.file".format(fit_args[Key.DATA_VERSION]),
     )
 
     dataset_names_path = os.path.join(
         fit_args[Key.PATH_DATASET],
-        "dataset_ver_{}_names.file".format(fit_args[Key.DATA_VERSION])
+        "dataset_ver_{}_names.file".format(fit_args[Key.DATA_VERSION]),
     )
 
     if not os.path.exists(dataset_path):
@@ -82,18 +93,19 @@ def ml_smoothing(fit_args):
         return
 
     with open(dataset_path, "rb") as f:
-        my_data = pickle.load(f)
+        dataset = pickle.load(f)
 
-    my_names = None
+    dataset_names = None
     if os.path.exists(dataset_names_path):
         with open(dataset_names_path, "rb") as f:
-            my_names = pickle.load(f)
+            dataset_names = pickle.load(f)
 
-    barcodes = list(my_data[Key.ALL_DATA].keys())
+    barcodes = list(dataset[Key.ALL_DATA].keys())
 
     if len(fit_args[Key.BARCODES]) != 0:
         barcodes = list(
-            set(barcodes).intersection(set(fit_args[Key.BARCODES])))
+            set(barcodes).intersection(set(fit_args[Key.BARCODES]))
+        )
 
     if len(barcodes) == 0:
         print("no barcodes")
@@ -101,7 +113,7 @@ def ml_smoothing(fit_args):
 
     train_and_evaluate(
         initial_processing(
-            my_data, my_names, barcodes,
+            dataset, dataset_names, barcodes,
             fit_args, strategy = strategy,
         ),
         barcodes,
@@ -109,10 +121,8 @@ def ml_smoothing(fit_args):
     )
 
 
-# TODO(sam): these huge tensors would be much easier to understand with
-#  ragged tensors.
-# right now, I am just flattening everything.
-
+# TODO(sam): These huge tensors would be much easier to understand with
+#   ragged tensors. Right now, I am just flattening everything.
 def numpy_acc(my_dict, my_key, my_dat):
     if my_key in my_dict.keys():
         my_dict[my_key] = numpy.concatenate(
@@ -132,46 +142,42 @@ def three_level_flatten(iterables):
 
 
 def initial_processing(
-    my_data: dict, my_names, barcodes,
+    dataset: dict, dataset_names, barcodes,
     fit_args, strategy
 ) -> dict:
     """ Handle the initial data processing
 
     Args:
-        my_data (dictionary).
-        my_names: TODO(harvey)
+        dataset: Dictionary that stores the quantities given in the dataset.
+        dataset_names: TODO(harvey)
         barcodes: TODO(harvey)
         fit_args: TODO(harvey)
         strategy: TODO(harvey)
 
-    Returns:
-        {
-           Key.STRAT, Key.MODEL, Key.TENSORS, Key.TRAIN_DS, Key.CYC_M,
-           Key.CYC_V, Key.OPT, Key.MY_DATA
-        }
-
+    Returns: { Key.STRAT, Key.MODEL, Key.TENSORS, Key.TRAIN_DS, Key.CYC_M,
+               Key.CYC_V, Key.OPT, Key.MY_DATA }
     """
     # TODO (harvey): Cleanup Docstring, maybe put detailed description elsewhere
-    #                An appropriate place might be in the docstring for
-    #                classes inside neware_parser.Key
+    #   An appropriate place might be in the docstring for
+    #   classes inside neware_parser.Key
 
     compiled_data = {}
     number_of_compiled_cycles = 0
     number_of_reference_cycles = 0
 
-    my_data[Key.Q_MAX] = 250
-    max_cap = my_data[Key.Q_MAX]
+    dataset[Key.Q_MAX] = 250
+    max_cap = dataset[Key.Q_MAX]
 
     keys = [Key.V_GRID, Key.TEMP_GRID, Key.SIGN_GRID]
     for key in keys:
-        numpy_acc(compiled_data, key, numpy.array([my_data[key]]))
+        numpy_acc(compiled_data, key, numpy.array([dataset[key]]))
 
-    my_data[Key.I_GRID] = my_data[Key.I_GRID] - numpy.log(max_cap)
+    dataset[Key.I_GRID] = dataset[Key.I_GRID] - numpy.log(max_cap)
     # the current grid is adjusted by the max capacity of the barcode. It is
     # in log space, so I/q becomes log(I) - log(q)
     numpy_acc(
         compiled_data, Key.I_GRID,
-        numpy.array([my_data[Key.I_GRID]])
+        numpy.array([dataset[Key.I_GRID]])
     )
 
     # TODO (harvey): simplify the following using loops
@@ -189,42 +195,42 @@ def initial_processing(
     electrolyte_id_to_additive_id_weight = {}
 
     for cell_id in cell_id_list:
-        if cell_id in my_data[Key.CELL_TO_POS].keys():
+        if cell_id in dataset[Key.CELL_TO_POS].keys():
             cell_id_to_pos_id[cell_id]\
-                = my_data[Key.CELL_TO_POS][cell_id]
-        if cell_id in my_data[Key.CELL_TO_NEG].keys():
+                = dataset[Key.CELL_TO_POS][cell_id]
+        if cell_id in dataset[Key.CELL_TO_NEG].keys():
             cell_id_to_neg_id[cell_id]\
-                = my_data[Key.CELL_TO_NEG][cell_id]
-        if cell_id in my_data[Key.CELL_TO_ELE].keys():
+                = dataset[Key.CELL_TO_NEG][cell_id]
+        if cell_id in dataset[Key.CELL_TO_ELE].keys():
             cell_id_to_electrolyte_id[cell_id]\
-                = my_data[Key.CELL_TO_ELE][cell_id]
-        if cell_id in my_data["cell_to_dry"].keys():
-            dry_cell_id = my_data["cell_to_dry"][cell_id]
+                = dataset[Key.CELL_TO_ELE][cell_id]
+        if cell_id in dataset["cell_to_dry"].keys():
+            dry_cell_id = dataset["cell_to_dry"][cell_id]
             cell_id_to_dry_cell_id[cell_id] = dry_cell_id
 
-            if dry_cell_id in my_data["dry_to_meta"].keys():
+            if dry_cell_id in dataset["dry_to_meta"].keys():
                 dry_cell_id_to_meta[dry_cell_id]\
-                    = my_data["dry_to_meta"][dry_cell_id]
+                    = dataset["dry_to_meta"][dry_cell_id]
 
-        if cell_id in my_data[Key.CELL_TO_LAT].keys():
+        if cell_id in dataset[Key.CELL_TO_LAT].keys():
             cell_id_to_latent[cell_id]\
-                = my_data[Key.CELL_TO_LAT][cell_id]
+                = dataset[Key.CELL_TO_LAT][cell_id]
 
         if cell_id_to_latent[cell_id] < 0.5:
             electrolyte_id = cell_id_to_electrolyte_id[cell_id]
-            if electrolyte_id in my_data[Key.ELE_TO_SOL].keys():
+            if electrolyte_id in dataset[Key.ELE_TO_SOL].keys():
                 electrolyte_id_to_solvent_id_weight[electrolyte_id]\
-                    = my_data[Key.ELE_TO_SOL][electrolyte_id]
-            if electrolyte_id in my_data[Key.ELE_TO_SALT].keys():
+                    = dataset[Key.ELE_TO_SOL][electrolyte_id]
+            if electrolyte_id in dataset[Key.ELE_TO_SALT].keys():
                 electrolyte_id_to_salt_id_weight[electrolyte_id]\
-                    = my_data[Key.ELE_TO_SALT][electrolyte_id]
-            if electrolyte_id in my_data[Key.ELE_TO_ADD].keys():
+                    = dataset[Key.ELE_TO_SALT][electrolyte_id]
+            if electrolyte_id in dataset[Key.ELE_TO_ADD].keys():
                 electrolyte_id_to_additive_id_weight[electrolyte_id]\
-                    = my_data[Key.ELE_TO_ADD][electrolyte_id]
+                    = dataset[Key.ELE_TO_ADD][electrolyte_id]
 
-            if electrolyte_id in my_data[Key.ELE_TO_LAT].keys():
+            if electrolyte_id in dataset[Key.ELE_TO_LAT].keys():
                 electrolyte_id_to_latent[electrolyte_id]\
-                    = my_data[Key.ELE_TO_LAT][electrolyte_id]
+                    = dataset[Key.ELE_TO_LAT][electrolyte_id]
 
     mess = [
         [
@@ -257,7 +263,7 @@ def initial_processing(
 
     for barcode_count, barcode in enumerate(barcodes):
 
-        all_data = my_data[Key.ALL_DATA][barcode]
+        all_data = dataset[Key.ALL_DATA][barcode]
         cyc_grp_dict = all_data[Key.CYC_GRP_DICT]
 
         for k_count, k in enumerate(cyc_grp_dict.keys()):
@@ -464,13 +470,13 @@ def initial_processing(
         electrolyte_to_electrolyte_name = {}
         molecule_to_molecule_name = {}
 
-        if my_names is not None:
-            pos_to_pos_name = my_names[Key.POS_TO_POS]
-            neg_to_neg_name = my_names[Key.NEG_TO_NEG]
+        if dataset_names is not None:
+            pos_to_pos_name = dataset_names[Key.POS_TO_POS]
+            neg_to_neg_name = dataset_names[Key.NEG_TO_NEG]
             electrolyte_to_electrolyte_name\
-                = my_names[Key.ELE_TO_ELE]
-            molecule_to_molecule_name = my_names[Key.MOL_TO_MOL]
-            dry_cell_to_dry_cell_name = my_names["dry_to_dry_name"]
+                = dataset_names[Key.ELE_TO_ELE]
+            molecule_to_molecule_name = dataset_names[Key.MOL_TO_MOL]
+            dry_cell_to_dry_cell_name = dataset_names["dry_to_dry_name"]
 
         degradation_model = DegradationModel(
             width = fit_args[Key.WIDTH],
@@ -519,11 +525,21 @@ def initial_processing(
         Key.CYC_M: cycle_m,
         Key.CYC_V: cycle_v,
         Key.OPT: optimizer,
-        Key.MY_DATA: my_data
+        Key.DATASET: dataset,
     }
 
 
 def train_and_evaluate(init_returns, barcodes, fit_args):
+    """
+
+    Args:
+        init_returns:
+        barcodes:
+        fit_args:
+
+    Returns:
+
+    """
     strategy = init_returns[Key.STRAT]
 
     epochs = 100000
@@ -625,7 +641,8 @@ def train_step(neighborhood, params, fit_args):
     """
 
     cycle_indices_lerp = tf.random.uniform(
-        [batch_size2], minval = 0., maxval = 1., dtype = tf.float32)
+        [batch_size2], minval = 0., maxval = 1., dtype = tf.float32,
+    )
     cycle_indices = tf.cast(
         (1. - cycle_indices_lerp) * tf.cast(
             neighborhood[:, NEIGH_MIN_CYC]
@@ -680,8 +697,7 @@ def train_step(neighborhood, params, fit_args):
         ),
         tf.tile(
             tf.reshape(
-                current_grid,
-                [batch_size2, 1, 1, current_grid_dim, 1, 1]
+                current_grid, [batch_size2, 1, 1, current_grid_dim, 1, 1]
             ),
             [1, sign_grid_dim, voltage_grid_dim, 1, temperature_grid_dim, 1],
         ),
@@ -770,8 +786,7 @@ def train_step(neighborhood, params, fit_args):
         pred_cc_voltage = train_results["pred_cc_voltage"]
         pred_cv_voltage = train_results["pred_cv_voltage"]
         cv_voltage = tf.tile(
-            tf.expand_dims(end_voltage, axis = 1),
-            [1, cv_current.shape[1]],
+            tf.expand_dims(end_voltage, axis = 1), [1, cv_current.shape[1]],
         )
 
         cc_capacity_loss = get_loss(
@@ -809,25 +824,19 @@ def train_step(neighborhood, params, fit_args):
         )
 
     gradients = tape.gradient(
-        loss,
-        degradation_model.trainable_variables,
+        loss, degradation_model.trainable_variables,
     )
 
     gradients_no_nans = [
-        tf.where(tf.math.is_nan(x), tf.zeros_like(x), x)
-        for x in gradients
+        tf.where(tf.math.is_nan(x), tf.zeros_like(x), x) for x in gradients
     ]
 
     gradients_norm_clipped, _ = tf.clip_by_global_norm(
-        gradients_no_nans,
-        fit_args[Key.GLB_NORM_CLIP],
+        gradients_no_nans, fit_args[Key.GLB_NORM_CLIP],
     )
 
     optimizer.apply_gradients(
-        zip(
-            gradients_norm_clipped,
-            degradation_model.trainable_variables,
-        )
+        zip(gradients_norm_clipped, degradation_model.trainable_variables)
     )
 
     return tf.stack(
@@ -842,7 +851,6 @@ def train_step(neighborhood, params, fit_args):
             train_results[Key.Loss.SHIFT],
             train_results[Key.Loss.CELL],
             train_results[Key.Loss.RECIP],
-
             train_results[Key.Loss.PROJ],
             train_results[Key.Loss.OOB],
         ],

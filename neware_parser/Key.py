@@ -83,7 +83,7 @@ class Key:
 
     FIT_ARGS = "fit_args"
     MAIN = "main_data"
-    MY_DATA = "my_data"
+    DATASET = "my_data"
     # Dictionary indexed by barcode.
     ALL_DATA = "all_data"
     CYC_GRP_DICT = "cyc_grp_dict"

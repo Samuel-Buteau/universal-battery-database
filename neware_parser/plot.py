@@ -243,7 +243,7 @@ def plot_vq(plot_params, init_returns):
     fit_args = plot_params[Key.FIT_ARGS]
 
     degradation_model = init_returns[Key.MODEL]
-    my_data = init_returns[Key.MY_DATA]
+    my_data = init_returns[Key.DATASET]
     cycle_m = init_returns[Key.CYC_M]
     cycle_v = init_returns[Key.CYC_V]
     x_lim = [-0.01, 1.01]
@@ -726,7 +726,7 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
     fit_args = plot_params[Key.FIT_ARGS]
 
     degradation_model = init_returns[Key.MODEL]
-    my_data = init_returns[Key.MY_DATA]
+    my_data = init_returns[Key.DATASET]
     cycle_m = init_returns[Key.CYC_M]
     cycle_v = init_returns[Key.CYC_V]
 

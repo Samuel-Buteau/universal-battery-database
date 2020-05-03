@@ -31,9 +31,9 @@ COLORS = [
     (1., .5, 0.),
     (.5, 1., 0.),
 ]
-#TODO(sam): keep track of these in the database and allow users to modify.
+# TODO(sam): keep track of these in the database and allow users to modify.
 Preferred_Legends = {
-    ("C/20", "C/20", "C/20", None, None):0,
+    ("C/20", "C/20", "C/20", None, None): 0,
     ("C/20", "C/2", "C/2", None, None): 1,
     ("C/20", "1C", "1C", None, None): 2,
     ("C/20", "2C", "2C", None, None): 3,
@@ -47,6 +47,7 @@ Preferred_Legends = {
     ("3C", "1C", "C/20", None, None): 4,
 
 }
+
 
 def bake_rate(rate_in):
     rate = round(40. * rate_in) / 40.
@@ -103,6 +104,7 @@ def make_legend_key(key):
         end_rate_prev, constant_rate, end_rate, end_voltage_prev, end_voltage
     )
 
+
 def match_legend_key(legend_key, rule):
     match = True
     for i in range(len(legend_key)):
@@ -115,8 +117,11 @@ def match_legend_key(legend_key, rule):
             break
     return match
 
+
 def make_legend(key):
-    end_rate_prev, constant_rate, end_rate, end_voltage_prev, end_voltage = make_legend_key(key)
+    (
+        end_rate_prev, constant_rate, end_rate, end_voltage_prev, end_voltage
+    ) = make_legend_key(key)
     template = "I {}:{}:{:5}   V {}:{}"
     return template.format(
         end_rate_prev, constant_rate, end_rate, end_voltage_prev, end_voltage

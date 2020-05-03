@@ -74,17 +74,17 @@ def calculate_q_loss(q, q_der, incentive_coeffs):
         ),
 
         (
-            incentive_coeffs["coeff_d_features"],
+            incentive_coeffs["coeff_d_features_cell"],
             incentive_magnitude(
-                q_der["d_features"],
+                q_der["d_features_cell"],
                 Target.Small,
                 Level.Proportional
             )
         ),
         (
-            incentive_coeffs["coeff_d2_features"],
+            incentive_coeffs["coeff_d2_features_cell"],
             incentive_magnitude(
-                q_der["d2_features"],
+                q_der["d2_features_cell"],
                 Target.Small,
                 Level.Strong
             )

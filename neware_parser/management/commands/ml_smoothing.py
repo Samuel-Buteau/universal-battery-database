@@ -77,14 +77,9 @@ def ml_smoothing(fit_args):
         "dataset_ver_{}_names.file".format(fit_args[Key.DATA_VERSION])
     )
 
-
-
     if not os.path.exists(dataset_path):
         print("Path \"" + dataset_path + "\" does not exist.")
         return
-
-
-
 
     with open(dataset_path, "rb") as f:
         my_data = pickle.load(f)
@@ -308,10 +303,14 @@ def initial_processing(
             """
             number_of_centers = 10
 
-
             # the centers of neighborhoods we will try to create
-            all_neigh_center_cycles = numpy.linspace(min_cyc, max_cyc, number_of_centers)
-            delta = 1.2*(all_neigh_center_cycles[1] - all_neigh_center_cycles[0]) + 10
+            all_neigh_center_cycles = numpy.linspace(
+                min_cyc, max_cyc, number_of_centers,
+            )
+            delta = (
+                1.2 * (all_neigh_center_cycles[1] - all_neigh_center_cycles[0])
+                + 10
+            )
             # check all tentative neighborhood centers and
             # commit the ones that contain good data to the dataset
             neighborhood_data = []
@@ -319,9 +318,6 @@ def initial_processing(
             valid_cycles = 0
             for cyc in all_neigh_center_cycles:
                 # max_cyc and min_cyc are the limits of existing cycles.
-
-
-
 
                 below_cyc = cyc - delta
                 above_cyc = cyc + delta
@@ -366,8 +362,6 @@ def initial_processing(
                 - keep a slot empty for later
 
                 """
-
-
 
                 neighborhood_data_i = numpy.zeros(
                     NEIGH_TOTAL, dtype = numpy.int32
@@ -582,7 +576,6 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                     }
 
                     if (count % fit_args[Key.VIS]) == 0:
-
                         start = time.time()
                         print("time to simulate: ", start - end)
                         loss_record.plot(count, fit_args)
@@ -987,11 +980,10 @@ class Command(BaseCommand):
             83225, 83226, 83227, 83228, 83229, 83230, 83231, 83232, 83233,
             83234, 83235, 83236, 83237, 83239, 83240, 83241, 83242, 83243,
             83310, 83311, 83312, 83317, 83318, 83593, 83594, 83595, 83596,
-            83741, 83742, 83743, 83744, 83745, 83746, 83747, 83748,
-            57706, 57707, 57710, 57711, 57714, 57715,64260,64268,83010, 83011,
+            83741, 83742, 83743, 83744, 83745, 83746, 83747, 83748, 57706,
+            57707, 57710, 57711, 57714, 57715, 64260, 64268, 83010, 83011,
             83012, 83013, 83014, 83015, 83016
         ]
-
 
         parser.add_argument(
             "--wanted_barcodes", type = int, nargs = "+", default = barcodes,

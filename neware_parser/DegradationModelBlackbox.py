@@ -191,29 +191,6 @@ def add_current_dep(thing, params, dim = 1):
     )
 
 
-def get_norm_constant(features):
-    return features[:, 0:1]
-
-
-def get_cell_features(features):
-    return features[:, :]
-
-
-def get_norm_cycle_direct(cycle, norm_constant):
-    return cycle  # * (1e-10 + tf.exp(-norm_constant))
-
-
-def calculate_equilibrium_voltage(v, current, resistance):
-    return v - current * resistance
-
-
-def get_norm_cycle(params):
-    return get_norm_cycle_direct(
-        norm_constant = get_norm_constant(params["features"]),
-        cycle = params["cycle"]
-    )
-
-
 def create_derivatives(nn, params, der_params, internal_loss = False):
     """
     Derivatives will only be taken inside forall statements.
@@ -262,7 +239,7 @@ def create_derivatives(nn, params, der_params, internal_loss = False):
                     source = params[k],
                     target = derivatives["d_" + k]
                 )
-                if not k in ["features", "encoded_stress"]:
+                if not k in ["features_cell", "encoded_stress"]:
                     derivatives["d2_" + k] = derivatives["d2_" + k][:, 0, :]
 
         del tape_d2
@@ -273,7 +250,7 @@ def create_derivatives(nn, params, der_params, internal_loss = False):
                 source = params[k],
                 target = derivatives["d2_" + k]
             )
-            if not k in ["features", "encoded_stress"]:
+            if not k in ["features_cell", "encoded_stress"]:
                 derivatives["d3_" + k] = derivatives["d3_" + k][:, 0, :]
 
     del tape_d3
@@ -490,7 +467,6 @@ class DegradationModel(Model):
         indices, training = True, sample = False, compute_derivatives = False,
     ):
         """ Cell from indices """
-        # TODO(sam): dry_cell
         features_cell_direct, loss_cell = self.cell_direct(
             indices,
             training = training,
@@ -996,7 +972,7 @@ class DegradationModel(Model):
 
         sampled_constant_current = sampled_constant_current_sign * sampled_constant_current
 
-        sampled_features, _, sampled_latent = self.cell_from_indices(
+        sampled_features_cell, _, sampled_latent = self.cell_from_indices(
             indices = tf.random.uniform(
                 maxval = self.cell_direct.num_keys,
                 shape = [n_sample],
@@ -1005,7 +981,7 @@ class DegradationModel(Model):
             training = False,
             sample = True
         )
-        sampled_features = tf.stop_gradient(sampled_features)
+        sampled_features_cell = tf.stop_gradient(sampled_features_cell)
 
         sampled_svit_grid = tf.gather(
             svit_grid,
@@ -1028,30 +1004,23 @@ class DegradationModel(Model):
             axis = 0
         )
 
-        sampled_cell_features = get_cell_features(
-            features = sampled_features
-        )
 
         sampled_encoded_stress = self.stress_to_encoded_direct(
                 svit_grid = sampled_svit_grid,
                 count_matrix = sampled_count_matrix,
             )
-        sampled_norm_constant = get_norm_constant(sampled_features)
-        sampled_norm_cycle = get_norm_cycle_direct(sampled_cycles, norm_constant=sampled_norm_constant)
+
 
         return (
             sampled_vs,
             sampled_qs,
             sampled_cycles,
             sampled_constant_current,
-            sampled_features,
+            sampled_features_cell,
             sampled_latent,
-            sampled_features,
             sampled_svit_grid,
             sampled_count_matrix,
-            sampled_cell_features,
             sampled_encoded_stress,
-            sampled_norm_cycle,
         )
 
     # TODO(Harvey): Group general/direct/derivative functions sensibly
@@ -1061,12 +1030,7 @@ class DegradationModel(Model):
 
     def cc_capacity(self, params, training = True):
 
-        norm_cycle = get_norm_cycle_direct(
-            cycle = params["cycle"],
-            norm_constant = get_norm_constant(features = params["features"])
-        )
 
-        cell_features = get_cell_features(features = params["features"])
         encoded_stress = self.stress_to_encoded_direct(
             svit_grid = params[Key.SVIT_GRID],
             count_matrix = params[Key.COUNT_MATRIX],
@@ -1074,9 +1038,9 @@ class DegradationModel(Model):
 
         q_0 = self.q_direct(
             encoded_stress = encoded_stress,
-            norm_cycle = norm_cycle,
+            cycle = params["cycle"],
             v = params[Key.V_PREV_END],
-            cell_features = cell_features,
+            features_cell = params["features_cell"],
             current = params[Key.I_PREV],
             training = training
         )
@@ -1087,11 +1051,11 @@ class DegradationModel(Model):
                 params,
                 encoded_stress.shape[1]
             ),
-            norm_cycle=add_v_dep(norm_cycle, params),
+            cycle=add_v_dep(params["cycle"], params),
             v = params["v"],
-            cell_features = add_v_dep(
-                cell_features, params,
-                cell_features.shape[1]
+            features_cell = add_v_dep(
+                params["features_cell"], params,
+                params["features_cell"].shape[1]
             ),
             current = add_v_dep(
                 params[Key.I_CC],
@@ -1104,12 +1068,7 @@ class DegradationModel(Model):
 
 
     def cv_capacity(self, params, training = True):
-        norm_constant = get_norm_constant(features = params["features"])
-        norm_cycle = get_norm_cycle_direct(
-            cycle = params["cycle"], norm_constant = norm_constant
-        )
 
-        cell_features = get_cell_features(features = params["features"])
 
         encoded_stress = self.stress_to_encoded_direct(
             svit_grid = params[Key.SVIT_GRID],
@@ -1120,9 +1079,9 @@ class DegradationModel(Model):
 
         q_0 = self.q_direct(
             encoded_stress = encoded_stress,
-            norm_cycle = norm_cycle,
+            cycle = params["cycle"],
             v = params[Key.V_PREV_END],
-            cell_features = cell_features,
+            features_cell = params["features_cell"],
             current = params[Key.I_PREV],
             training = training
         )
@@ -1134,10 +1093,10 @@ class DegradationModel(Model):
 
         q_1 = self.q_direct(
             encoded_stress=add_current_dep(encoded_stress, params, encoded_stress.shape[1]),
-            norm_cycle=add_current_dep(norm_cycle, params),
+            cycle=add_current_dep(params["cycle"], params),
             v = add_current_dep(params[Key.V_END], params),
-            cell_features = add_current_dep(
-                cell_features, params, cell_features.shape[1]
+            features_cell = add_current_dep(
+                params["features_cell"], params, params["features_cell"].shape[1]
             ),
             current = params["cv_current"],
             training = training
@@ -1162,12 +1121,12 @@ class DegradationModel(Model):
     """ Direct variable methods """
 
 
-    def q_direct(self, encoded_stress, norm_cycle, v, cell_features, current, training = True):
+    def q_direct(self, encoded_stress, cycle, v, features_cell, current, training = True):
         dependencies = (
             encoded_stress,
-            norm_cycle,
+            cycle,
             v,
-            cell_features,
+            features_cell,
             current
         )
         return tf.nn.elu(nn_call(self.nn_q, dependencies, training = training))
@@ -1175,13 +1134,11 @@ class DegradationModel(Model):
     """ For derivative variable methods """
 
     def q_for_derivative(self, params, training = True):
-        norm_cycle = get_norm_cycle(
-            params={"cycle": params["cycle"], "features": params["features"]}
-        )
+
         return self.q_direct(
             encoded_stress=params["encoded_stress"],
-            norm_cycle=norm_cycle,
-            cell_features = get_cell_features(features = params["features"]),
+            cycle=params["cycle"],
+            features_cell =  params["features_cell"],
             v = params["v"],
             current = params["current"],
             training = training,
@@ -1201,14 +1158,14 @@ class DegradationModel(Model):
         svit_grid = x[8]
         count_matrix = x[9]
 
-        features, _, _ = self.cell_from_indices(
+        features_cell, _, _ = self.cell_from_indices(
             indices = indices,
             training = training,
             sample = False
         )
 
         # duplicate cycles and others for all the voltages
-        # dimensions are now [batch, voltages, features]
+        # dimensions are now [batch, voltages, features_cell]
         batch_count = cycle.shape[0]
         voltage_count = voltage_tensor.shape[1]
         current_count = current_tensor.shape[1]
@@ -1225,7 +1182,7 @@ class DegradationModel(Model):
             Key.I_CC: constant_current,
             Key.I_PREV: end_current_prev,
             Key.V_PREV_END: end_voltage_prev,
-            "features": features,
+            "features_cell": features_cell,
             Key.V_END: end_voltage,
 
             Key.SVIT_GRID: svit_grid,
@@ -1248,14 +1205,11 @@ class DegradationModel(Model):
                 sampled_qs,
                 sampled_cycles,
                 sampled_constant_current,
-                sampled_features,
+                sampled_features_cell,
                 sampled_latent,
-                sampled_features,
                 sampled_svit_grid,
                 sampled_count_matrix,
-                sampled_cell_features,
                 sampled_encoded_stress,
-                sampled_norm_cycle,
             ) = self.sample(
                 svit_grid, batch_count, count_matrix, n_sample = self.n_sample
             )
@@ -1272,10 +1226,10 @@ class DegradationModel(Model):
                     "cycle": sampled_cycles,
                     "encoded_stress": sampled_encoded_stress,
                     "v": sampled_vs,
-                    "features": sampled_features,
+                    "features_cell": sampled_features_cell,
                     "current": sampled_constant_current
                 },
-                der_params = {"v": 3, "features": 2, "current": 3, "cycle": 3}
+                der_params = {"v": 3, "features_cell": 2, "current": 3, "cycle": 3}
             )
 
             q_loss = calculate_q_loss(q, q_der,

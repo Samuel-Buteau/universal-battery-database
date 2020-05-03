@@ -45,11 +45,19 @@ Preferred_Legends = {
     ("1C", "1C", "C/20", None, None): 2,
     ("2C", "1C", "C/20", None, None): 3,
     ("3C", "1C", "C/20", None, None): 4,
-
 }
 
 
 def bake_rate(rate_in):
+    """
+    Todo(question): What does this function do?
+
+    Args:
+        rate_in:
+
+    Returns:
+
+    """
     rate = round(40. * rate_in) / 40.
     if rate == .025:
         rate = "C/40"
@@ -78,6 +86,16 @@ def bake_rate(rate_in):
 
 
 def bake_voltage(vol_in):
+    """
+
+    Todo(question): What does this function do?
+
+    Args:
+        vol_in:
+
+    Returns:
+
+    """
     vol = round(10. * vol_in) / 10.
     if vol == 1. or vol == 2. or vol == 3. or vol == 4. or vol == 5.:
         vol = "{}".format(int(vol))
@@ -87,6 +105,16 @@ def bake_voltage(vol_in):
 
 
 def make_legend_key(key):
+    """
+
+    Todo(question): What does this function do?
+
+    Args:
+        key:
+
+    Returns:
+
+    """
     constant_rate = key[0]
     constant_rate = bake_rate(constant_rate)
     end_rate_prev = key[1]
@@ -106,6 +134,17 @@ def make_legend_key(key):
 
 
 def match_legend_key(legend_key, rule):
+    """
+
+    Todo(question): What does this function do?
+
+    Args:
+        legend_key:
+        rule:
+
+    Returns:
+
+    """
     match = True
     for i in range(len(legend_key)):
         if rule[i] is None:
@@ -119,6 +158,16 @@ def match_legend_key(legend_key, rule):
 
 
 def make_legend(key):
+    """
+
+    Todo(question): What does this function do?
+
+    Args:
+        key:
+
+    Returns:
+
+    """
     (
         end_rate_prev, constant_rate, end_rate, end_voltage_prev, end_voltage
     ) = make_legend_key(key)
@@ -129,6 +178,17 @@ def make_legend(key):
 
 
 def get_svit_and_count(my_data, barcode):
+    """
+
+    Todo(question): What is "svit"?
+
+    Args:
+        my_data:
+        barcode:
+
+    Returns:
+
+    """
     n_sign = len(my_data["sign_grid"])
     n_voltage = len(my_data["voltage_grid"])
     n_current = len(my_data["current_grid"])
@@ -168,6 +228,15 @@ def get_svit_and_count(my_data, barcode):
 
 
 def plot_vq(plot_params, init_returns):
+    """
+
+    Args:
+        plot_params:
+        init_returns:
+
+    Returns:
+
+    """
     barcodes\
         = plot_params["barcodes"][:plot_params[Key.FIT_ARGS]["barcode_show"]]
     count = plot_params["count"]
@@ -326,6 +395,18 @@ def plot_vq(plot_params, init_returns):
 
 
 def plot_measured(cyc_grp_dict, mode, list_of_keys, list_of_patches, ax1):
+    """
+
+    Args:
+        cyc_grp_dict:
+        mode:
+        list_of_keys:
+        list_of_patches:
+        ax1:
+
+    Returns:
+
+    """
     for k_count, k in enumerate(list_of_keys):
         list_of_patches.append(
             mpatches.Patch(
@@ -358,6 +439,22 @@ def plot_predicted(
     cyc_grp_dict, mode, list_of_keys, cycle_m, cycle_v, barcode_count,
     degradation_model, svit_and_count, ax1,
 ):
+    """
+
+    Args:
+        cyc_grp_dict:
+        mode:
+        list_of_keys:
+        cycle_m:
+        cycle_v:
+        barcode_count:
+        degradation_model:
+        svit_and_count:
+        ax1:
+
+    Returns:
+
+    """
     for k_count, k in enumerate(list_of_keys):
 
         if k[-1] == "dchg":
@@ -416,6 +513,20 @@ def plot_capacities(
     cyc_grp_dict, cycle_m, cycle_v, barcode_count,
     degradation_model, svit_and_count, fig,
 ):
+    """
+
+    Args:
+        cyc_grp_dict:
+        cycle_m:
+        cycle_v:
+        barcode_count:
+        degradation_model:
+        svit_and_count:
+        fig:
+
+    Returns:
+
+    """
     for typ, off, mode in [
         ("dchg", 0, "cc"), ("chg", 1, "cc"), ("chg", 2, "cv")
     ]:
@@ -447,6 +558,20 @@ def plot_scale(
     cyc_grp_dict, cycle_m, cycle_v, barcode_count,
     degradation_model, svit_and_count, fig,
 ):
+    """
+
+    Args:
+        cyc_grp_dict:
+        cycle_m:
+        cycle_v:
+        barcode_count:
+        degradation_model:
+        svit_and_count:
+        fig:
+
+    Returns:
+
+    """
     for typ, off, mode in [("dchg", 3, "cc")]:
 
         list_of_patches = []
@@ -496,6 +621,20 @@ def plot_resistance(
     cyc_grp_dict, cycle_m, cycle_v, barcode_count,
     degradation_model, svit_and_count, fig,
 ):
+    """
+
+    Args:
+        cyc_grp_dict:
+        cycle_m:
+        cycle_v:
+        barcode_count:
+        degradation_model:
+        svit_and_count:
+        fig:
+
+    Returns:
+
+    """
     for typ, off, mode in [("dchg", 4, "cc")]:
 
         list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
@@ -534,6 +673,20 @@ def plot_shift(
     degradation_model, svit_and_count,
     fig,
 ):
+    """
+
+    Args:
+        cyc_grp_dict:
+        cycle_m:
+        cycle_v:
+        barcode_count:
+        degradation_model:
+        svit_and_count:
+        fig:
+
+    Returns:
+
+    """
     for typ, off, mode in [("dchg", 5, "cc")]:
 
         list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
@@ -613,6 +766,24 @@ def test_all_voltages(
     barcode_count, degradation_model,
     voltages, currents, svit_grid, count_matrix,
 ):
+    """
+
+    Args:
+        cycle:
+        constant_current:
+        end_current_prev:
+        end_voltage_prev:
+        end_voltage:
+        barcode_count:
+        degradation_model:
+        voltages:
+        currents:
+        svit_grid:
+        count_matrix:
+
+    Returns:
+
+    """
     expanded_cycle = tf.constant(cycle, shape = [1, 1])
     expanded_constant_current = tf.constant(constant_current, shape = [1, 1])
     expanded_end_current_prev = tf.constant(end_current_prev, shape = [1, 1])
@@ -645,6 +816,24 @@ def test_single_voltage(
     cycle, v, constant_current, end_current_prev, end_voltage_prev, end_voltage,
     currents, barcode_count, degradation_model, svit_grid, count_matrix
 ):
+    """
+
+    Args:
+        cycle:
+        v:
+        constant_current:
+        end_current_prev:
+        end_voltage_prev:
+        end_voltage:
+        currents:
+        barcode_count:
+        degradation_model:
+        svit_grid:
+        count_matrix:
+
+    Returns:
+
+    """
     expanded_cycle = tf.expand_dims(cycle, axis = 1)
     expanded_constant_current = tf.constant(
         constant_current, shape = [len(cycle), 1],
@@ -687,12 +876,29 @@ def test_single_voltage(
 
 
 def savefig(figname, fit_args):
+    """
+
+    Args:
+        figname:
+        fit_args:
+
+    Returns:
+
+    """
     plt.savefig(
         os.path.join(fit_args[Key.PATH_PLOTS], figname), dpi = 300
     )
 
 
 def set_tick_params(ax):
+    """
+
+    Args:
+        ax:
+
+    Returns:
+
+    """
     ax.tick_params(
         direction = "in",
         length = 3,
@@ -706,6 +912,15 @@ def set_tick_params(ax):
 
 
 def get_nearest_point(xys, y):
+    """
+
+    Args:
+        xys:
+        y:
+
+    Returns:
+
+    """
     best = xys[0, :]
     best_distance = (best[1] - y) ** 2.
     for i in range(len(xys)):
@@ -718,6 +933,15 @@ def get_nearest_point(xys, y):
 
 
 def plot_v_curves(plot_params, init_returns):
+    """
+
+    Args:
+        plot_params:
+        init_returns:
+
+    Returns:
+
+    """
     # for now, this is a 2 by 2 plot.
     barcodes\
         = plot_params["barcodes"][:plot_params[Key.FIT_ARGS]["barcode_show"]]
@@ -767,6 +991,15 @@ def plot_v_curves(plot_params, init_returns):
 
 
 def get_list_of_keys(cyc_grp_dict, typ):
+    """
+
+    Args:
+        cyc_grp_dict:
+        typ:
+
+    Returns:
+
+    """
     list_of_keys = [
         key for key in cyc_grp_dict.keys() if key[-1] == typ
     ]

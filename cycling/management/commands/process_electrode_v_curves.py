@@ -1,21 +1,12 @@
-import time
-
 import matplotlib.pyplot as plt
 
 import numpy
-import tensorflow as tf
 from django.core.management.base import BaseCommand
 
-from cycling.DegradationModel import DegradationModel
 from cycling.models import *
 from cycling.plot import *
 from cycling.Key import *
 import csv
-from scipy.interpolate import InterpolatedUnivariateSpline
-
-
-
-
 
 
 def v_curves_harvest(fit_args):

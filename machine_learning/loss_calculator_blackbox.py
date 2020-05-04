@@ -1,4 +1,4 @@
-from cycling.incentives import *
+from machine_learning.incentives import *
 
 
 

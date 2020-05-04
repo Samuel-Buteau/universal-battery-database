@@ -87,7 +87,7 @@ def initial_processing(
 
     errors = []
 
-    max_cap = my_data[Key.Q_MAX]
+    max_cap = my_data[Key.MAX_Q]
 
 
     for barcode_count, barcode in enumerate(barcodes):

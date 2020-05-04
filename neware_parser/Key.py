@@ -29,8 +29,6 @@ class Key:
     Q_CV_VEC = "cv_capacity_vector"
     Q_CC_LAST = "last_cc_capacity"
     Q_CV_LAST = "last_cv_capacity"
-    # (number) The maximum capacity across the dataset.
-    Q_MAX = "max_cap"
 
     I_CC = "constant_current"
     I_CC_AVG = "avg_constant_current"
@@ -40,7 +38,6 @@ class Key:
     I_END_AVG = "avg_end_current"
     I_PREV = "end_current_prev"
     I_PREV_END_AVG = "avg_end_current_prev"
-    I_GRID = "current_grid"
     I_MAX = "current_max_n"
     I_MIN_GRID = "current_grid_min_v"
     I_MAX_GRID = "current_grid_max_v"
@@ -130,14 +127,16 @@ class Key:
     """
     ALL_DATA = "all_data"
 
-    """ (1d array) Measured voltages """
-    V_GRID = "voltage_grid"
-    """ (1d array) Signs """
-    SIGN_GRID = "sign_grid"
-    """ (1d array) Temperatures """
-    TEMP_GRID = "temperature_grid"
+    # (number) The maximum capacity across the dataset.
+    MAX_Q = "max_cap"
 
-    """ Cell ID """
+    """ (1d array) Measured voltages """
+    GRID_V = "voltage_grid"
+    GRID_I = "current_grid"
+    """ (1d array) Temperatures """
+    GRID_T = "temperature_grid"
+    """ (1d array) Signs """
+    GRID_SIGN = "sign_grid"
 
     # (dict) Indexed by barcode; yields a positive electrode id.
     CELL_TO_POS = "cell_id_to_pos_id"
@@ -150,20 +149,22 @@ class Key:
     CELL_TO_LAT = "cell_id_to_latent"
     CELL_TO_DRY = "cell_to_dry"
 
-    """ Electrolyte ID """
+    DRY_TO_META = "dry_to_meta"
 
     LYTE_TO_SOL = "electrolyte_id_to_solvent_id_weight"
     LYTE_TO_SALT = "electrolyte_id_to_salt_id_weight"
     LYTE_TO_ADD = "electrolyte_id_to_additive_id_weight"
     LYTE_TO_LAT = "electrolyte_id_to_latent"
-    LYTE_TO_ELE = "electrolyte_to_electrolyte_name"
 
-    DRY_TO_META = "dry_to_meta"
-    DRY_TO_NAME = "dry_to_dry_name"
+    # Begin: keys for dataset names ============================================
 
-    POS_TO_POS = "pos_to_pos_name"
-    NEG_TO_NEG = "neg_to_neg_name"
-    MOL_TO_MOL = "molecule_to_molecule_name"
+    NAME_DRY = "dry_to_dry_name"
+    NAME_POS = "pos_to_pos_name"
+    NAME_LYTE = "electrolyte_to_electrolyte_name"
+    NAME_NEG = "neg_to_neg_name"
+    NAME_MOL = "molecule_to_molecule_name"
+
+    # End: keys for dataset names ==============================================
 
     STRAT = "strategy"
     TENSORS = "compiled_tensors"

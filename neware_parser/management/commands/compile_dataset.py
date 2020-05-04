@@ -202,14 +202,14 @@ def initial_processing(my_barcodes, fit_args, flags):
     """
 
     Returns:
-        Two dictionaries.
-        The first dictionary contains the following keys:
-            [ Key.V_GRID, Key.TEMP_GRID, Key.SIGN_GRID,
-              Key.CELL_TO_POS, Key.CELL_TO_NEG, Key.CELL_TO_LYTE,
-              Key.CELL_TO_LAT,
-            Key.ALL_DATA (dict): Indexed by barcode. Each barcode yields:
-
-                Key.CYC_GRP_DICT:
+        Two dictionaries with following sets of keys
+        [ Key.ALL_DATA, Key.MAX_Q, Key.GRID_V, Key.GRID_I, Key.GRID_T,
+          Key.GRID_SIGN, Key.CELL_TO_POS, Key.CELL_TO_NEG, Key.CELL_TO_LYTE,
+          Key.CELL_TO_DRY, Key.CELL_TO_LAT, Key.DRY_TO_META, Key.LYTE_TO_LAT,
+          Key.LYTE_TO_SOL, Key.LYTE_TO_SALT, Key.LYTE_TO_ADD ]
+        [ Key.NAME_POS, Key.NAME_NEG, Key.NAME_LYTE,
+          Key.NAME_MOL, Key.NAME_DRY ]
+    """
     """
 
     all_data = {}
@@ -575,28 +575,28 @@ def initial_processing(my_barcodes, fit_args, flags):
                 )
 
     return {
-               Key.Q_MAX: max_cap,
                Key.ALL_DATA: all_data,
-               Key.V_GRID: voltage_grid_degradation,
-               Key.I_GRID: current_grid,
-               Key.TEMP_GRID: temperature_grid,
-               Key.SIGN_GRID: sign_grid,
+               Key.MAX_Q: max_cap,
+               Key.GRID_V: voltage_grid_degradation,
+               Key.GRID_I: current_grid,
+               Key.GRID_T: temperature_grid,
+               Key.GRID_SIGN: sign_grid,
                Key.CELL_TO_POS: cell_id_to_pos_id,
                Key.CELL_TO_NEG: cell_id_to_neg_id,
                Key.CELL_TO_LYTE: cell_id_to_electrolyte_id,
                Key.CELL_TO_DRY: cell_id_to_dry_cell_id,
-               Key.DRY_TO_META: dry_cell_id_to_meta,
                Key.CELL_TO_LAT: cell_id_to_latent,
+               Key.DRY_TO_META: dry_cell_id_to_meta,
                Key.LYTE_TO_LAT: electrolyte_id_to_latent,
                Key.LYTE_TO_SOL: electrolyte_id_to_solvent_id_weight,
                Key.LYTE_TO_SALT: electrolyte_id_to_salt_id_weight,
                Key.LYTE_TO_ADD: electrolyte_id_to_additive_id_weight,
            }, {
-               Key.POS_TO_POS: pos_to_pos_name,
-               Key.NEG_TO_NEG: neg_to_neg_name,
-               Key.LYTE_TO_ELE: electrolyte_to_electrolyte_name,
-               Key.MOL_TO_MOL: molecule_to_molecule_name,
-               Key.DRY_TO_NAME: dry_cell_to_dry_cell_name,
+               Key.NAME_POS: pos_to_pos_name,
+               Key.NAME_NEG: neg_to_neg_name,
+               Key.NAME_LYTE: electrolyte_to_electrolyte_name,
+               Key.NAME_MOL: molecule_to_molecule_name,
+               Key.NAME_DRY: dry_cell_to_dry_cell_name,
            }
 
 

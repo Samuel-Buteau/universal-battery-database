@@ -162,17 +162,17 @@ def initial_processing(
     number_of_compiled_cycles = 0
     number_of_reference_cycles = 0
 
-    dataset[Key.Q_MAX] = 250
-    max_cap = dataset[Key.Q_MAX]
+    dataset[Key.MAX_Q] = 250
+    max_cap = dataset[Key.MAX_Q]
 
-    keys = [Key.V_GRID, Key.TEMP_GRID, Key.SIGN_GRID]
+    keys = [Key.GRID_V, Key.GRID_T, Key.GRID_SIGN]
     for key in keys:
         numpy_acc(compiled_data, key, numpy.array([dataset[key]]))
 
-    dataset[Key.I_GRID] = dataset[Key.I_GRID] - numpy.log(max_cap)
+    dataset[Key.GRID_I] = dataset[Key.GRID_I] - numpy.log(max_cap)
     # the current grid is adjusted by the max capacity of the barcode. It is
     # in log space, so I/q becomes log(I) - log(q)
-    numpy_acc(compiled_data, Key.I_GRID, numpy.array([dataset[Key.I_GRID]]))
+    numpy_acc(compiled_data, Key.GRID_I, numpy.array([dataset[Key.GRID_I]]))
 
     # TODO (harvey): simplify the following using loops
     cell_id_list = numpy.array(barcodes)
@@ -431,7 +431,7 @@ def initial_processing(
     labels = [
         Key.V_CC_VEC, Key.Q_CC_VEC, Key.MASK_CC_VEC, Key.Q_CV_VEC, Key.I_CV_VEC,
         Key.MASK_CV_VEC, Key.I_CC, Key.I_PREV, Key.V_PREV_END, Key.V_END,
-        Key.COUNT_MATRIX, Key.SIGN_GRID, Key.V_GRID, Key.I_GRID, Key.TEMP_GRID,
+        Key.COUNT_MATRIX, Key.GRID_SIGN, Key.GRID_V, Key.GRID_I, Key.GRID_T,
     ]
     for label in labels:
         compiled_tensors[label] = tf.constant(compiled_data[label])
@@ -452,12 +452,12 @@ def initial_processing(
         molecule_to_molecule_name = {}
 
         if dataset_names is not None:
-            pos_to_pos_name = dataset_names[Key.POS_TO_POS]
-            neg_to_neg_name = dataset_names[Key.NEG_TO_NEG]
+            pos_to_pos_name = dataset_names[Key.NAME_POS]
+            neg_to_neg_name = dataset_names[Key.NAME_NEG]
             electrolyte_to_electrolyte_name\
-                = dataset_names[Key.LYTE_TO_ELE]
-            molecule_to_molecule_name = dataset_names[Key.MOL_TO_MOL]
-            dry_cell_to_dry_cell_name = dataset_names[Key.DRY_TO_NAME]
+                = dataset_names[Key.NAME_LYTE]
+            molecule_to_molecule_name = dataset_names[Key.NAME_MOL]
+            dry_cell_to_dry_cell_name = dataset_names[Key.NAME_DRY]
 
         degradation_model = DegradationModel(
             width = fit_args[Key.WIDTH],
@@ -588,10 +588,10 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
 
 
 def train_step(neighborhood, params, fit_args):
-    sign_grid_tensor = params[Key.TENSORS][Key.SIGN_GRID]
-    voltage_grid_tensor = params[Key.TENSORS][Key.V_GRID]
-    current_grid_tensor = params[Key.TENSORS][Key.I_GRID]
-    temperature_grid_tensor = params[Key.TENSORS][Key.TEMP_GRID]
+    sign_grid_tensor = params[Key.TENSORS][Key.GRID_SIGN]
+    voltage_grid_tensor = params[Key.TENSORS][Key.GRID_V]
+    current_grid_tensor = params[Key.TENSORS][Key.GRID_I]
+    temperature_grid_tensor = params[Key.TENSORS][Key.GRID_T]
 
     count_matrix_tensor = params[Key.TENSORS][Key.COUNT_MATRIX]
 

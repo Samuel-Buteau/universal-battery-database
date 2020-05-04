@@ -45,7 +45,7 @@ Structured array with `dtype`:
 
 Dictionary with the following keys:
 ```python
-Key.MAX_CAP, Key.GRID_V, Key.Q_GRID, Key.TEMP_GRID, Key.GRID_SIGN,
+Key.MAX_CAP, Key.GRID_V, Key.Q_GRID, Key.GRID_T, Key.GRID_SIGN,
 Key.CELL_TO_POS, Key.CELL_TO_NEG, Key.CELL_TO_LYTE, Key.CELL_TO_LAT, Key.ALL_DATA
 ```
 

@@ -195,13 +195,13 @@ def initial_processing(
             cell_id_to_neg_id[cell_id] = dataset[Key.CELL_TO_NEG][cell_id]
         if cell_id in dataset[Key.CELL_TO_LYTE].keys():
             cell_id_to_lyte_id[cell_id] = dataset[Key.CELL_TO_LYTE][cell_id]
-        if cell_id in dataset["cell_to_dry"].keys():
-            dry_cell_id = dataset["cell_to_dry"][cell_id]
+        if cell_id in dataset[Key.CELL_TO_DRY].keys():
+            dry_cell_id = dataset[Key.CELL_TO_DRY][cell_id]
             cell_id_to_dry_cell_id[cell_id] = dry_cell_id
 
-            if dry_cell_id in dataset["dry_to_meta"].keys():
+            if dry_cell_id in dataset[Key.DRY_TO_META].keys():
                 dry_cell_id_to_meta[dry_cell_id]\
-                    = dataset["dry_to_meta"][dry_cell_id]
+                    = dataset[Key.DRY_TO_META][dry_cell_id]
 
         if cell_id in dataset[Key.CELL_TO_LAT].keys():
             cell_id_to_lat[cell_id] = dataset[Key.CELL_TO_LAT][cell_id]
@@ -223,18 +223,9 @@ def initial_processing(
                     = dataset[Key.LYTE_TO_LAT][lyte_id]
 
     mess = [
-        [
-            [s[0] for s in siw] for siw in
-            lyte_id_to_sol_id_weight.values()
-        ],
-        [
-            [s[0] for s in siw] for siw in
-            lyte_id_to_salt_id_weight.values()
-        ],
-        [
-            [s[0] for s in siw] for siw in
-            lyte_id_to_add_id_weight.values()
-        ],
+        [[s[0] for s in siw] for siw in lyte_id_to_sol_id_weight.values()],
+        [[s[0] for s in siw] for siw in lyte_id_to_salt_id_weight.values()],
+        [[s[0] for s in siw] for siw in lyte_id_to_add_id_weight.values()],
     ]
 
     molecule_id_list = numpy.array(
@@ -466,7 +457,7 @@ def initial_processing(
             electrolyte_to_electrolyte_name\
                 = dataset_names[Key.LYTE_TO_ELE]
             molecule_to_molecule_name = dataset_names[Key.MOL_TO_MOL]
-            dry_cell_to_dry_cell_name = dataset_names["dry_to_dry_name"]
+            dry_cell_to_dry_cell_name = dataset_names[Key.DRY_TO_NAME]
 
         degradation_model = DegradationModel(
             width = fit_args[Key.WIDTH],

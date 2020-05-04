@@ -19,8 +19,6 @@ class Key:
     V_PREV_END = "end_voltage_prev"
     V_PREV_END_AVG = "avg_end_voltage_prev"
     V_END_AVG = "avg_end_voltage"
-    # 1D array of voltages,
-    V_GRID = "voltage_grid"
     V_MIN_GRID = "voltage_grid_min_v"
     V_MAX_GRID = "voltage_grid_max_v"
     V_N_GRID = "voltage_grid_n_samples"
@@ -31,9 +29,8 @@ class Key:
     Q_CV_VEC = "cv_capacity_vector"
     Q_CC_LAST = "last_cc_capacity"
     Q_CV_LAST = "last_cv_capacity"
-    # A single number. The maximum capacity across the dataset.
+    # (number) The maximum capacity across the dataset.
     Q_MAX = "max_cap"
-    # Q_GRID: 1D array of log currents
 
     I_CC = "constant_current"
     I_CC_AVG = "avg_constant_current"
@@ -59,10 +56,6 @@ class Key:
     MASK_CV = "cv_masks"
     MASK_CV_VEC = "cv_mask_vector"
     COUNT_MATRIX = "count_matrix"
-    # 1D array of signs
-    SIGN_GRID = "sign_grid"
-    # 1D array of temperatures
-    TEMP_GRID = "temperature_grid"
     SVIT_GRID = "svit_grid"
 
     WIDTH = "width"
@@ -82,46 +75,91 @@ class Key:
     GLB_NORM_CLIP = "global_norm_clip"
 
     FIT_ARGS = "fit_args"
+    """ Structured array with dtype:
+        [
+            (Key.N, "f4"),
+            (Key.V_CC, "f4", len(voltage_grid)),
+            (Key.Q_CC, "f4", len(voltage_grid)),
+            (Key.MASK_CC, "f4", len(voltage_grid)),
+            (Key.I_CV, "f4", fit_args[Key.I_MAX]),
+            (Key.Q_CV, "f4", fit_args[Key.I_MAX]),
+            (Key.MASK_CV, "f4", fit_args[Key.I_MAX]),
+            (Key.I_CC, "f4"),
+            (Key.I_PREV, "f4"),
+            (Key.I_END, "f4"),
+            (Key.V_PREV_END, "f4"),
+            (Key.V_END, "f4"),
+            (Key.V_CC_LAST, "f4"),
+            (Key.Q_CC_LAST, "f4"),
+            (Key.Q_CV_LAST, "f4"),
+            (Key.TEMP, "f4"),
+        ]
+    """
     MAIN = "main_data"
     DATASET = "my_data"
-    # Dictionary indexed by barcode.
-    ALL_DATA = "all_data"
+
+    """
+    Groups of steps indexed by group averages of
+        ( end_current_prev, constant_current, end_current,
+          end_voltage_prev, end_voltage, sign )
+        Each group is a dictionary indexed by:
+        [ Key.MAIN, Key.I_CC_AVG, Key.I_PREV_END_AVG, Key.Q_END_AVG,
+          Key.V_PREV_END_AVG, Key.V_END_AVG, Key.V_CC_LAST_AVG ]
+    """
     CYC_GRP_DICT = "cyc_grp_dict"
 
-    # Structured array with dtype:
-    # [
-    #     (N, "f4"),
-    #     (
-    #         COUNT_MATRIX, "f4",
-    #         (
-    #             len(sign_grid), len(voltage_grid_degradation),
-    #             len(current_grid), len(temperature_grid),
-    #         )
-    #     ),
-    # ]
+    """ Structured array with dtype:
+        [
+            (N, "f4"),
+            (
+                COUNT_MATRIX, "f4",
+                (
+                    len(sign_grid), len(voltage_grid_degradation),
+                    len(current_grid), len(temperature_grid),
+                )
+            ),
+        ]
+    """
     REF_ALL_MATS = "all_reference_mats"
     REF_CYC = "reference_cycles_n"
 
-    # Begin: keys inside dataset
+    # Begin: keys inside dataset ===============================================
+
+    """ (dict) Indexed by barcode, each yields a dictionary with keys:
+        [ Key.ALL_REF_MATS, Key.CYC_GRP_DICT ]
+    """
+    ALL_DATA = "all_data"
+
+    """ (1d array) Measured voltages """
+    V_GRID = "voltage_grid"
+    """ (1d array) Signs """
+    SIGN_GRID = "sign_grid"
+    """ (1d array) Temperatures """
+    TEMP_GRID = "temperature_grid"
 
     """ Cell ID """
-    # Dictionary indexed by barcode yielding a positive electrode id.
+
+    # (dict) Indexed by barcode; yields a positive electrode id.
     CELL_TO_POS = "cell_id_to_pos_id"
-    # Dictionary indexed by barcode yielding a positive electrode id.
+    # (dic) Indexed by barcode; yields a negative electrode id.
     CELL_TO_NEG = "cell_id_to_neg_id"
-    # Dictionary indexed by barcode yielding a positive electrode id.
+    # (dic) Indexed by barcode; yields an electrolyte id.
     CELL_TO_LYTE = "cell_id_to_electrolyte_id"
-    # Dictionary indexed by barcode yielding
-    #     1 if the cell is latent,
-    #     0 if made of known pos, neg, electrolyte
+    # (dic) Indexed by barcode; yields
+    #   1 if the cell is latent, 0 if made of known pos, neg, electrolyte.
     CELL_TO_LAT = "cell_id_to_latent"
+    CELL_TO_DRY = "cell_to_dry"
 
     """ Electrolyte ID """
+
     LYTE_TO_SOL = "electrolyte_id_to_solvent_id_weight"
     LYTE_TO_SALT = "electrolyte_id_to_salt_id_weight"
     LYTE_TO_ADD = "electrolyte_id_to_additive_id_weight"
     LYTE_TO_LAT = "electrolyte_id_to_latent"
     LYTE_TO_ELE = "electrolyte_to_electrolyte_name"
+
+    DRY_TO_META = "dry_to_meta"
+    DRY_TO_NAME = "dry_to_dry_name"
 
     POS_TO_POS = "pos_to_pos_name"
     NEG_TO_NEG = "neg_to_neg_name"

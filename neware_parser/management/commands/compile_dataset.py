@@ -203,65 +203,13 @@ def initial_processing(my_barcodes, fit_args, flags):
 
     Returns:
         Two dictionaries.
-        The first dictionary contains
-            Key.V_GRID (1D array): voltages
-            Key.Q_GRID (1D array): log currents
-            Key.TEMP_GRID (1D array): temperatures
-            Key.SIGN_GRID (1D array): signs
-            Key.CELL_TO_POS (dict):
-                Indexed by barcode yielding a positive electrode id.
-            Key.CELL_TO_NEG (dict):
-                Indexed by barcode yielding a positive electrode id.
-            Key.CELL_TO_ELE (dic):
-                Indexed by barcode yielding a positive electrode id.
-            Key.CELL_TO_LAT (dict):
-                Indexed by barcode yielding
-                    1 if the cell is latent,
-                    0 if made of known pos, neg, electrolyte
+        The first dictionary contains the following keys:
+            [ Key.V_GRID, Key.TEMP_GRID, Key.SIGN_GRID,
+              Key.CELL_TO_POS, Key.CELL_TO_NEG, Key.CELL_TO_LYTE,
+              Key.CELL_TO_LAT,
             Key.ALL_DATA (dict): Indexed by barcode. Each barcode yields:
-                Key.ALL_REF_MATS (structured array):
-                    dtype = [
-                        (Key.N, "f4"),
-                        (
-                            Key.COUNT_MATRIX, "f4",
-                            (
-                                len(sign_grid), len(voltage_grid_degradation),
-                                len(current_grid), len(temperature_grid),
-                            )
-                        ),
-                    ]
 
-                Key.CYC_GRP_DICT: Groups of steps indexed by group averages of
-                    (
-                        end_current_prev, constant_current, end_current,
-                        end_voltage_prev, end_voltage, sign,
-                    )
-                    Each group is a dictionary indexed by various quantities:
-                        Key.MAIN:  a numpy structured array with dtype:
-                            [
-                                (Key.N, "f4"),
-                                (Key.V_CC, "f4", len(voltage_grid)),
-                                (Key.Q_CC, "f4", len(voltage_grid)),
-                                (Key.MASK_CC, "f4", len(voltage_grid)),
-                                (Key.I_CV, "f4", fit_args[Key.I_MAX]),
-                                (Key.Q_CV, "f4", fit_args[Key.I_MAX]),
-                                (Key.MASK_CV, "f4", fit_args[Key.I_MAX]),
-                                (Key.I_CC, "f4"),
-                                (Key.I_PREV, "f4"),
-                                (Key.I_END, "f4"),
-                                (Key.V_PREV_END, "f4"),
-                                (Key.V_END, "f4"),
-                                (Key.V_CC_LAST, "f4"),
-                                (Key.Q_CC_LAST, "f4"),
-                                (Key.Q_CV_LAST, "f4"),
-                                (Key.TEMP, "f4"),
-                            ]
-                        Key.I_CC_AVG
-                        Key.I_PREV_END_AVG
-                        Key.Q_END_AVG
-                        Key.V_PREV_END_AVG
-                        Key.V_END_AVG
-                        Key.V_CC_LAST_AVG
+                Key.CYC_GRP_DICT:
     """
 
     all_data = {}
@@ -636,8 +584,8 @@ def initial_processing(my_barcodes, fit_args, flags):
                Key.CELL_TO_POS: cell_id_to_pos_id,
                Key.CELL_TO_NEG: cell_id_to_neg_id,
                Key.CELL_TO_LYTE: cell_id_to_electrolyte_id,
-               "cell_to_dry": cell_id_to_dry_cell_id,
-               "dry_to_meta": dry_cell_id_to_meta,
+               Key.CELL_TO_DRY: cell_id_to_dry_cell_id,
+               Key.DRY_TO_META: dry_cell_id_to_meta,
                Key.CELL_TO_LAT: cell_id_to_latent,
                Key.LYTE_TO_LAT: electrolyte_id_to_latent,
                Key.LYTE_TO_SOL: electrolyte_id_to_solvent_id_weight,
@@ -648,7 +596,7 @@ def initial_processing(my_barcodes, fit_args, flags):
                Key.NEG_TO_NEG: neg_to_neg_name,
                Key.LYTE_TO_ELE: electrolyte_to_electrolyte_name,
                Key.MOL_TO_MOL: molecule_to_molecule_name,
-               "dry_to_dry_name": dry_cell_to_dry_cell_name,
+               Key.DRY_TO_NAME: dry_cell_to_dry_cell_name,
            }
 
 

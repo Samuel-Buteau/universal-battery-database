@@ -41,8 +41,9 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "filename_database",
-    "cycling",
     "cell_database",
+    "cycling",
+    "machine_learning",
     "background_task",
 ]
 

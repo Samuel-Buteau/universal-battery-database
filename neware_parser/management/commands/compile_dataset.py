@@ -210,7 +210,6 @@ def initial_processing(my_barcodes, fit_args, flags):
         [ Key.NAME_POS, Key.NAME_NEG, Key.NAME_LYTE,
           Key.NAME_MOL, Key.NAME_DRY ]
     """
-    """
 
     all_data = {}
 
@@ -235,6 +234,7 @@ def initial_processing(my_barcodes, fit_args, flags):
         my_barcodes
     )
     sign_grid = make_sign_grid()
+
     """
     - cycles are grouped by their charge rates and discharge rates.
     - a cycle group contains many cycles
@@ -260,15 +260,19 @@ def initial_processing(my_barcodes, fit_args, flags):
         files = get_files_for_barcode(barcode)
 
         all_mats = []
-        for cyc in Cycle.objects.filter(cycling_file__in = files).order_by(
-            Key.N):
+        for cyc in Cycle.objects.filter(
+            cycling_file__in = files
+        ).order_by(Key.N):
             count_matrix = get_count_matrix(
                 cyc, voltage_grid_degradation, current_grid, temperature_grid,
                 sign_grid,
             )
             true_cycle = cyc.get_offset_cycle()
-            # for each cycle, call COUNT_MATRIX,
-            # and get (true_cyc, COUNT_MATRIX) list
+
+            """
+            For each cycle, call COUNT_MATRIX,
+            and get (true_cyc, COUNT_MATRIX) list
+            """
             if count_matrix is None:
                 continue
             all_mats.append((true_cycle, count_matrix))

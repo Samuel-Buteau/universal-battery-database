@@ -74,10 +74,13 @@ class Key:
     # Begin: fit_args-related keys =============================================
 
     FIT_ARGS = "fit_args"
+
+    # Begin: keys from complie_dataset.Command.add_arguments ===================
+
     MIN_V_GRID = "voltage_grid_min_v"
     MAX_V_GRID = "voltage_grid_max_v"
 
-    # End: fit_args-related keys ===============================================
+    # End: keys from complie_dataset.Command.add_arguments =====================
 
     """ Structured array with dtype:
         [

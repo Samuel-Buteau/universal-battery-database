@@ -640,31 +640,33 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         required_args = [
-            "--path_to_dataset",
-            "--dataset_version",
+            "path_to_dataset",
+            "dataset_version",
         ]
         float_args = {
-            "--voltage_grid_min_v": 2.5,
-            "--voltage_grid_max_v": 5.0,
-            "--current_grid_min_v": 1.,
-            "--current_grid_max_v": 1000.,
-            "--temperature_grid_min_v": 20.,
-            "--temperature_grid_max_v": 60.,
+            "voltage_grid_min_v": 2.5,
+            "voltage_grid_max_v": 5.0,
+            "current_grid_min_v": 1.,
+            "current_grid_max_v": 1000.,
+            "temperature_grid_min_v": 20.,
+            "temperature_grid_max_v": 60.,
         }
         int_args = {
-            "--reference_cycles_n": 10,
-            "--voltage_grid_n_samples": 32,
-            "--current_grid_n_samples": 8,
-            "--current_max_n": 8,
-            "--temperature_grid_n_samples": 3,
+            "reference_cycles_n": 10,
+            "voltage_grid_n_samples": 32,
+            "current_grid_n_samples": 8,
+            "current_max_n": 8,
+            "temperature_grid_n_samples": 3,
         }
 
         for arg in required_args:
-            parser.add_argument(arg, required = True)
+            parser.add_argument("--" + arg, required = True)
         for arg in float_args:
-            parser.add_argument(arg, type = float, default = float_args[arg])
+            parser.add_argument(
+                "--" + arg, type = float, default = float_args[arg],
+            )
         for arg in int_args:
-            parser.add_argument(arg, type = int, default = int_args[arg])
+            parser.add_argument("--" + arg, type = int, default = int_args[arg])
 
         # default_barcodes = [
         #     57706, 57707, 57710, 57711, 57714, 57715, 64260, 64268, 81602,

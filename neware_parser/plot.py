@@ -484,6 +484,8 @@ def plot_predicted(
                         .05 * (np.log(curr_max) - np.log(curr_min))
                     )
                 )
+        else:
+            sys.exit
 
         test_results = test_single_voltage(
             my_cycle,
@@ -527,7 +529,6 @@ def plot_capacity(
     list_of_patches = []
     list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
 
-
     ax.set_ylabel(mode + "-" + typ + "-capacity")
 
     plot_measured(
@@ -564,9 +565,9 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
         svit_and_count = get_svit_and_count(my_data, barcode)
         fig = plt.figure(figsize = [11, 10])
         tot = 3
-        typs =["dchg", "chg", "chg"]
+        typs = ["dchg", "chg", "chg"]
         modes = ["cc", "cc", "cv"]
-        #TODO: use the grid to directly get axs.
+        # TODO: use the grid to directly get axs.
         axs = [fig.add_subplot(tot, 1, 1 + off) for off in range(tot)]
         cyc_grp_dict = my_data[Key.ALL_DATA][barcode][Key.CYC_GRP_DICT]
 

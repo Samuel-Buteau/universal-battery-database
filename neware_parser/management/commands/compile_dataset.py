@@ -354,10 +354,10 @@ def initial_processing(my_barcodes, fit_args, flags):
                     abs(cyc_group.end_rate_prev) < 1e-5,
                     abs(cyc_group.constant_rate) < 1e-5,
                     abs(cyc_group.end_rate) < 1e-5,
-                    fit_args["voltage_grid_min_v"] > cyc_group.end_voltage,
-                    fit_args["voltage_grid_max_v"] < cyc_group.end_voltage,
-                    fit_args["voltage_grid_min_v"] > cyc_group.end_voltage_prev,
-                    fit_args["voltage_grid_max_v"] < cyc_group.end_voltage_prev,
+                    fit_args[Key.MIN_V_GRID] > cyc_group.end_voltage,
+                    fit_args[Key.MAX_V_GRID] < cyc_group.end_voltage,
+                    fit_args[Key.MIN_V_GRID] > cyc_group.end_voltage_prev,
+                    fit_args[Key.MAX_V_GRID] < cyc_group.end_voltage_prev,
 
                 ]):
                     continue
@@ -399,8 +399,8 @@ def initial_processing(my_barcodes, fit_args, flags):
                         post_process_results = ml_post_process_cycle(
                             cyc, fit_args[Key.V_N_GRID], typ,
                             current_max_n = fit_args[Key.I_MAX],
-                            voltage_grid_min_v = fit_args["voltage_grid_min_v"],
-                            voltage_grid_max_v = fit_args["voltage_grid_max_v"],
+                            voltage_grid_min_v = fit_args[Key.MIN_V_GRID],
+                            voltage_grid_max_v = fit_args[Key.MAX_V_GRID],
                             flagged = flagged
                         )
 
@@ -644,8 +644,8 @@ class Command(BaseCommand):
             "dataset_version",
         ]
         float_args = {
-            "voltage_grid_min_v": 2.5,
-            "voltage_grid_max_v": 5.0,
+            Key.MIN_V_GRID: 2.5,
+            Key.MAX_V_GRID: 5.0,
             "current_grid_min_v": 1.,
             "current_grid_max_v": 1000.,
             "temperature_grid_min_v": 20.,

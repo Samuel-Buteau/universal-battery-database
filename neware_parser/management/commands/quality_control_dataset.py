@@ -127,10 +127,10 @@ def initial_processing(
                 abs(cyc_grp_dict[k][Key.I_PREV_END_AVG]) < 1e-5,
                 abs(cyc_grp_dict[k][Key.I_CC_AVG]) < 1e-5,
                 abs(cyc_grp_dict[k][Key.I_END_AVG]) < 1e-5,
-                fit_args["voltage_grid_min_v"] > cyc_grp_dict[k][Key.V_PREV_END_AVG],
-                fit_args["voltage_grid_max_v"] < cyc_grp_dict[k][Key.V_PREV_END_AVG],
-                fit_args["voltage_grid_min_v"] > cyc_grp_dict[k][Key.V_END_AVG],
-                fit_args["voltage_grid_max_v"] < cyc_grp_dict[k][Key.V_END_AVG],
+                fit_args[Key.MIN_V_GRID] > cyc_grp_dict[k][Key.V_PREV_END_AVG],
+                fit_args[Key.MAX_V_GRID] < cyc_grp_dict[k][Key.V_PREV_END_AVG],
+                fit_args[Key.MIN_V_GRID] > cyc_grp_dict[k][Key.V_END_AVG],
+                fit_args[Key.MAX_V_GRID] < cyc_grp_dict[k][Key.V_END_AVG],
 
             ]):
                 for i in range(len(cycs)):

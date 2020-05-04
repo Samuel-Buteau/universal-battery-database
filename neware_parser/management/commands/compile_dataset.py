@@ -7,6 +7,12 @@ from neware_parser.Key import Key
 
 
 def get_dry_cell_meta_from_cell_id(cell_id):
+    """
+    Args:
+        cell_id:
+
+    Returns:
+    """
     wet_cells = WetCell.objects.filter(cell_id = cell_id)
     if wet_cells.exists():
         wet_cell = wet_cells[0]
@@ -48,8 +54,15 @@ def get_dry_cell_meta_from_cell_id(cell_id):
     return None, None, None
 
 
-# TODO (harvey): add docstring
 def get_pos_id_from_cell_id(cell_id):
+    """
+
+    Args:
+        cell_id:
+
+    Returns:
+
+    """
     wet_cells = WetCell.objects.filter(cell_id = cell_id)
     if wet_cells.exists():
         wet_cell = wet_cells[0]
@@ -68,8 +81,15 @@ def get_pos_id_from_cell_id(cell_id):
     return None, None
 
 
-# TODO (harvey): add docstring
 def get_neg_id_from_cell_id(cell_id):
+    """
+
+    Args:
+        cell_id:
+
+    Returns:
+
+    """
     wet_cells = WetCell.objects.filter(cell_id = cell_id)
     if wet_cells.exists():
         wet_cell = wet_cells[0]
@@ -88,8 +108,15 @@ def get_neg_id_from_cell_id(cell_id):
     return None, None
 
 
-# TODO (harvey): add docstring
 def get_electrolyte_id_from_cell_id(cell_id):
+    """
+
+    Args:
+        cell_id:
+
+    Returns:
+
+    """
     wet_cells = WetCell.objects.filter(cell_id = cell_id)
     if wet_cells.exists():
         wet_cell = wet_cells[0]
@@ -102,8 +129,15 @@ def get_electrolyte_id_from_cell_id(cell_id):
     return None, None
 
 
-# TODO (harvey): add docstring
 def get_component_from_electrolyte(electrolyte):
+    """
+
+    Args:
+        electrolyte:
+
+    Returns:
+
+    """
     weight_dict = {"solvent": {}, "salt": {}, "additive": {}}
     name_dict = {"solvent": {}, "salt": {}, "additive": {}}
     electrolyte_lots = CompositeLot.objects.filter(id = electrolyte)
@@ -126,8 +160,15 @@ def get_component_from_electrolyte(electrolyte):
     return weight_dict, name_dict
 
 
-# TODO (harvey): add docstring
 def make_my_barcodes(fit_args):
+    """
+
+    Args:
+        fit_args:
+
+    Returns:
+
+    """
     my_barcodes = CyclingFile.objects.filter(
         database_file__deprecated = False,
         database_file__is_valid = True

@@ -261,7 +261,7 @@ def create_derivatives(nn, params, der_params, internal_loss = False):
 
 
 class DegradationModel(Model):
-    """ Something
+    """
 
     Attributes:
         nn_r (dict): Neural network for R.

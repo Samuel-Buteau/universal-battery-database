@@ -207,20 +207,20 @@ def initial_processing(
             cell_id_to_lat[cell_id] = dataset[Key.CELL_TO_LAT][cell_id]
 
         if cell_id_to_lat[cell_id] < 0.5:
-            electrolyte_id = cell_id_to_lyte_id[cell_id]
-            if electrolyte_id in dataset[Key.LYTE_TO_SOL].keys():
-                lyte_id_to_sol_id_weight[electrolyte_id]\
-                    = dataset[Key.LYTE_TO_SOL][electrolyte_id]
-            if electrolyte_id in dataset[Key.LYTE_TO_SALT].keys():
-                lyte_id_to_salt_id_weight[electrolyte_id]\
-                    = dataset[Key.LYTE_TO_SALT][electrolyte_id]
-            if electrolyte_id in dataset[Key.LYTE_TO_ADD].keys():
-                lyte_id_to_add_id_weight[electrolyte_id]\
-                    = dataset[Key.LYTE_TO_ADD][electrolyte_id]
+            lyte_id = cell_id_to_lyte_id[cell_id]
+            if lyte_id in dataset[Key.LYTE_TO_SOL].keys():
+                lyte_id_to_sol_id_weight[lyte_id]\
+                    = dataset[Key.LYTE_TO_SOL][lyte_id]
+            if lyte_id in dataset[Key.LYTE_TO_SALT].keys():
+                lyte_id_to_salt_id_weight[lyte_id]\
+                    = dataset[Key.LYTE_TO_SALT][lyte_id]
+            if lyte_id in dataset[Key.LYTE_TO_ADD].keys():
+                lyte_id_to_add_id_weight[lyte_id]\
+                    = dataset[Key.LYTE_TO_ADD][lyte_id]
 
-            if electrolyte_id in dataset[Key.LYTE_TO_LAT].keys():
-                lyte_id_to_lat[electrolyte_id]\
-                    = dataset[Key.LYTE_TO_LAT][electrolyte_id]
+            if lyte_id in dataset[Key.LYTE_TO_LAT].keys():
+                lyte_id_to_lat[lyte_id]\
+                    = dataset[Key.LYTE_TO_LAT][lyte_id]
 
     mess = [
         [

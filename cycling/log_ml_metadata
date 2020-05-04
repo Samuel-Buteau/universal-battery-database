@@ -1,0 +1,1467 @@
+cell_id: Known Components (Y/N):
+
+82992           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(20%MA+2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+                20.0 MA
+
+82993           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(20%MA+2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+                20.0 MA
+
+83010           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+83011           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+83012           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+83013           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+83014           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+83015           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+83016           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+83593           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(1%LFO+1%ODTO+1%EPFP)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 LFO
+                1.0 ODTO
+                1.0 EPFP
+
+83594           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%FEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 FEC
+                1.0 LFO
+
+83083           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(1%LFO+1%ODTO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 LFO
+                1.0 ODTO
+
+83595           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%FEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 FEC
+                1.0 LFO
+
+83596           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%FEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 FEC
+                1.0 LFO
+
+83092           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%FEC+1%ODTO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 FEC
+                1.0 ODTO
+
+83101           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(1%LFO+1%ODTO+1%TTSPi)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 LFO
+                1.0 ODTO
+                1.0 TTSPi
+
+83106           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(1%LFO+1%DiFEC)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 LFO
+                1.0 DiFEC
+
+83107           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%DiFEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 LFO
+                2.0 DiFEC
+
+81602           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+81603           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+81604           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+81605           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+81606           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+81607           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.5mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.5 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+81608           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.5mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.5 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+81609           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(1%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 DTD
+                1.0 VC
+
+81610           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(1%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 DTD
+                1.0 VC
+
+81611           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(1%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 DTD
+                1.0 VC
+
+81612           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD+1%ES)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+                1.0 ES
+
+81613           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD+1%ES)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+                1.0 ES
+
+81614           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%FEC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 DTD
+                2.0 FEC
+
+81615           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%FEC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 DTD
+                2.0 FEC
+
+81616           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%FEC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 DTD
+                2.0 FEC
+
+81617           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.5mLiPF6 + ADDITIVES:(2%FEC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.5 LiPF6
+        additive:
+                1.0 DTD
+                2.0 FEC
+
+81618           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.5mLiPF6 + ADDITIVES:(2%FEC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.5 LiPF6
+        additive:
+                1.0 DTD
+                2.0 FEC
+
+81619           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%FEC+1%DTD+1%ES)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 DTD
+                1.0 ES
+                2.0 FEC
+
+81620           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%FEC+1%DTD+1%ES)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 DTD
+                1.0 ES
+                2.0 FEC
+
+81621           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%FEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 FEC
+                1.0 LFO
+
+81622           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%FEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 FEC
+                1.0 LFO
+
+81623           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 LFO
+
+81624           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 LFO
+
+81625           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 LFO
+
+81626           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(1%ES+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 ES
+                1.0 LFO
+
+81627           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(1%ES+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 ES
+                1.0 LFO
+
+64260           N
+
+64268           N
+
+83220           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.5mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.5 LiPF6
+        additive:
+                1.0 LFO
+
+83221           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.5mLiPF6 + ADDITIVES:(2%FEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.5 LiPF6
+        additive:
+                2.0 FEC
+                1.0 LFO
+
+83222           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.8mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.8 LiPF6
+        additive:
+                1.0 LFO
+
+83223           N
+
+83224           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.5mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.5 LiPF6
+        additive:
+                1.0 LFO
+
+83225           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.5mLiPF6 + ADDITIVES:(2%FEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.5 LiPF6
+        additive:
+                2.0 FEC
+                1.0 LFO
+
+83226           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.8mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.8 LiPF6
+        additive:
+                1.0 LFO
+
+83227           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.8mLiPF6 + ADDITIVES:(2%FEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.8 LiPF6
+        additive:
+                2.0 FEC
+                1.0 LFO
+
+83228           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.8mLiPF6 + ADDITIVES:(20%MA+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.8 LiPF6
+        additive:
+                20.0 MA
+                1.0 LFO
+
+83229           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.8mLiPF6 + ADDITIVES:(20%MA+2%FEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.8 LiPF6
+        additive:
+                20.0 MA
+                2.0 FEC
+                1.0 LFO
+
+83230           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.5mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.5 LiPF6
+        additive:
+                1.0 LFO
+
+83231           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.5mLiPF6 + ADDITIVES:(2%FEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.5 LiPF6
+        additive:
+                2.0 FEC
+                1.0 LFO
+
+83232           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.8mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.8 LiPF6
+        additive:
+                1.0 LFO
+
+83233           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.8mLiPF6 + ADDITIVES:(2%FEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.8 LiPF6
+        additive:
+                2.0 FEC
+                1.0 LFO
+
+83234           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.8mLiPF6 + ADDITIVES:(20%MA+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.8 LiPF6
+        additive:
+                20.0 MA
+                1.0 LFO
+
+83235           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.8mLiPF6 + ADDITIVES:(20%MA+2%FEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.8 LiPF6
+        additive:
+                20.0 MA
+                2.0 FEC
+                1.0 LFO
+
+83236           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.5mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.5 LiPF6
+        additive:
+                1.0 LFO
+
+83237           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.5mLiPF6 + ADDITIVES:(2%FEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.5 LiPF6
+        additive:
+                2.0 FEC
+                1.0 LFO
+
+83741           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 2.1mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                2.1 LiPF6
+        additive:
+                1.0 LFO
+
+83239           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.8mLiPF6 + ADDITIVES:(2%FEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.8 LiPF6
+        additive:
+                2.0 FEC
+                1.0 LFO
+
+83240           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(20%MA+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                20.0 MA
+                1.0 LFO
+
+83241           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(20%MA+2%FEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                20.0 MA
+                2.0 FEC
+                1.0 LFO
+
+83242           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(20%MA+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                20.0 MA
+                1.0 LFO
+
+83243           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(20%MA+2%FEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                20.0 MA
+                2.0 FEC
+                1.0 LFO
+
+83747           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 2.4mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                2.4 LiPF6
+        additive:
+                1.0 LFO
+
+83748           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 2.4mLiPF6 + ADDITIVES:(2%FEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                2.4 LiPF6
+        additive:
+                2.0 FEC
+                1.0 LFO
+
+81712           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single,COAT=No Coat]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+81713           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single,COAT=No Coat]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+82769           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 LFO
+
+82770           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 LFO
+
+82771           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 LFO
+
+82775           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 LFO
+
+82776           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 LFO
+
+82777           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 LFO
+
+82779           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 LFO
+
+57706           N
+
+57707           N
+
+57710           N
+
+57711           N
+
+83310           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+83311           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+57714           N
+
+57715           N
+
+83312           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+83317           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+83318           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+82300           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 LFO
+
+82301           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 LFO
+
+82302           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 LFO
+
+82303           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%FEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 FEC
+                1.0 LFO
+
+82304           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%FEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 FEC
+                1.0 LFO
+
+82305           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%FEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 FEC
+                1.0 LFO
+
+82306           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+82307           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+82308           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%VC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                1.0 DTD
+
+82309           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%FEC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 DTD
+                2.0 FEC
+
+82310           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%FEC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 DTD
+                2.0 FEC
+
+82311           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(2%FEC+1%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 DTD
+                2.0 FEC
+
+83742           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 2.1mLiPF6 + ADDITIVES:(2%FEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                2.1 LiPF6
+        additive:
+                2.0 FEC
+                1.0 LFO
+
+83743           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 2.4mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                2.4 LiPF6
+        additive:
+                1.0 LFO
+
+83744           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 2.4mLiPF6 + ADDITIVES:(2%FEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                2.4 LiPF6
+        additive:
+                2.0 FEC
+                1.0 LFO
+
+83745           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 2.1mLiPF6 + ADDITIVES:(1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                2.1 LiPF6
+        additive:
+                1.0 LFO
+
+83746           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 2.1mLiPF6 + ADDITIVES:(2%FEC+1%LFO)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                2.1 LiPF6
+        additive:
+                2.0 FEC
+                1.0 LFO
+
+82406           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(20%MA+2%VC+2%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                2.0 DTD
+                20.0 MA
+
+82407           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(20%MA+2%VC+2%DTD)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                2.0 VC
+                2.0 DTD
+                20.0 MA
+
+82410           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(20%MA+2%DTD+1%VC)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 VC
+                2.0 DTD
+                20.0 MA
+
+82411           Y
+        cathode:                        Ni5 Mn3 Co2[CRYSTAL=Single]
+        anode:                          Graphite[ART]
+        electrolyte:                    70%EMC+30%EC + 1.2mLiPF6 + ADDITIVES:(20%MA+2%DTD+1%VC)
+        Known Electrolyte Components:   Y
+        solvents:
+                30.0 EC
+                70.0 EMC
+        salts:
+                1.2 LiPF6
+        additive:
+                1.0 VC
+                2.0 DTD
+                20.0 MA

@@ -4,8 +4,8 @@ import numpy
 import tensorflow as tf
 from django.core.management.base import BaseCommand
 
-from cycling.DegradationModelBlackbox import DegradationModel
-from cycling.LossRecordBlackbox import LossRecord
+from machine_learning.DegradationModelBlackbox import DegradationModel
+from machine_learning.LossRecordBlackbox import LossRecord
 from cycling.models import *
 from cycling.plot import *
 from cycling.Key import Key

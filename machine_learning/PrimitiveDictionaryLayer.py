@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
-from cycling.incentives import *
+from machine_learning.incentives import *
 
 
 # stores cell features

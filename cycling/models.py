@@ -135,17 +135,13 @@ def make_temperature_grid(min_t, max_t, n_samples, my_barcodes):
 
 
 def plot_barcode(barcode, path_to_plots = None, lower_cycle=None, upper_cycle=None, show_invalid=False, vertical_barriers=None, list_all_options=None, figsize = None):
-    if path_to_plots is None and vertical_barriers is None:
-        bc, _ = BarcodeNode.objects.get_or_create(barcode=barcode)
-        #if bc.valid_cache:
-        #    return bc
     files_barcode = CyclingFile.objects.filter(
         database_file__deprecated=False,
         database_file__valid_metadata__barcode=barcode).order_by("database_file__last_modified")
     if figsize is None:
         figsize = [5., 5.]
 
-    colors = ["k", "r", "b", "g", "c", "m", "o"]
+    colors = ["k", "r", "b", "g", "c", "m", "y"]
     rates = {0.05:"C/20", 0.5:"C/2", 1.:"1C", 2.:"2C", 3.:"3C"}
 
     fig = plt.figure(figsize=figsize)
@@ -153,7 +149,7 @@ def plot_barcode(barcode, path_to_plots = None, lower_cycle=None, upper_cycle=No
     for axis in ["top", "bottom", "left", "right"]:
         ax.spines[axis].set_linewidth(3.)
     #TODO: unify this with the overview plot
-    for counter, cycle_group in enumerate(get_cycle_groups_from_barcode(barcode)):
+    for counter, cycle_group in enumerate(get_discharge_groups_from_barcode(barcode)):
         if show_invalid:
             dat = [[True, ".", 100],
                    [False, "x", 5]]
@@ -181,7 +177,7 @@ def plot_barcode(barcode, path_to_plots = None, lower_cycle=None, upper_cycle=No
             q_curve = numpy.concatenate(q_curves, axis=0)
 
             if d[0]:
-                chg = cycle_group.charging_rate
+                chg = cycle_group.end_rate_prev
                 found = False
                 for k in rates.keys():
                     if abs(k - chg)/k < 0.2:
@@ -190,7 +186,7 @@ def plot_barcode(barcode, path_to_plots = None, lower_cycle=None, upper_cycle=No
                         break
                 if not found:
                     chg = "{:1.2f}".format(chg)
-                dchg= cycle_group.discharging_rate
+                dchg= cycle_group.constant_rate
                 found = False
                 for k in rates.keys():
                     if abs(k - dchg)/k < 0.2:
@@ -290,37 +286,28 @@ def plot_barcode(barcode, path_to_plots = None, lower_cycle=None, upper_cycle=No
             os.path.join(path_to_plots, "Initial_{}.png".format(barcode)))
         plt.close(fig)
         return None
-    elif vertical_barriers is None:
-        buf = BytesIO()
-        plt.savefig(buf, format="png", dpi=50)
-        bc.set_image(buf.getvalue())
-        bc.save()
-        buf.close()
-        plt.close()
-        return bc
     else:
+        if vertical_barriers is None:
+            dpi = 50
+        else:
+            dpi = 300
         buf = BytesIO()
-        plt.savefig(buf, format="png", dpi=300)
+        plt.savefig(buf, format="png", dpi=dpi)
         image_base64 = base64.b64encode(buf.getvalue()).decode("utf-8").replace("\n", "")
         buf.close()
         return image_base64
 
-def get_cycle_groups_from_barcode(barcode):
-    return sorted(list(CycleGroup.objects.filter(barcode=barcode).order_by("discharging_rate")),
-           key=lambda t: (t.get_approx_discharging_rate, t.get_approx_charging_rate))
+
+#TODO(sam): use common mechanism as in compile_dataset/ml_smoothing for ordering
+#TODO(sam): set default color rules in the UI.
+def get_discharge_groups_from_barcode(barcode):
+    return list(DischargeCycleGroup.objects.filter(barcode=barcode).order_by("constant_rate"))
+
 
 
 class BarcodeNode(models.Model):
     barcode = models.IntegerField(primary_key=True)
-    valid_cache = models.BooleanField(default=False)
-    image = models.BinaryField(blank=True)
-    def get_image(self):
-        return base64.b64encode(self.image).decode("utf-8").replace("\n", "")
-        #return self.image
-    def set_image(self, img):
-        #self.image = base64.b64encode(img)
-        self.image = img
-        self.valid_cache = True
+
 
 
 

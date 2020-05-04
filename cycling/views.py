@@ -84,8 +84,8 @@ def view_barcode(request, barcode, cursor):
         for f in files_barcode:
             offset_cycle = f.database_file.valid_metadata.start_cycle
             c_curves.update(set([offset_cycle + cyc
-             for cyc in Cycle.objects.filter(cycling_file=f).order_by("cycle").values_list(
-            "cycle", flat=True)]))
+             for cyc in Cycle.objects.filter(cycling_file=f).order_by("cycle_number").values_list(
+            "cycle_number", flat=True)]))
 
 
 
@@ -158,10 +158,6 @@ def view_barcode(request, barcode, cursor):
                     cycle_number__range=(lowest_cycle-offset_cycle, largest_cycle-offset_cycle),
                     valid_cycle=doing[0]).update(valid_cycle=doing[1])
 
-
-
-            if BarcodeNode.objects.filter(barcode=barcode).exists():
-                BarcodeNode.objects.filter(barcode=barcode).update(valid_cache=False)
 
             return HttpResponseRedirect(
                 reverse("view_barcode", args=(barcode,cursor)))
@@ -423,10 +419,9 @@ def main_page(request):
                 if search_form.cleaned_data["show_visuals"]:
                     datas = []
                     for barcode in total_query[(pn - 1) * number_per_page:min(n, (pn) * number_per_page)]:
-                        bc = plot_barcode(barcode, path_to_plots=None, figsize=[5., 4.])
-                        image_base64 = bc.get_image()
+                        image_base64 = plot_barcode(barcode, path_to_plots=None, figsize=[5., 4.])
                         print(image_base64)
-                        datas.append((bc, bc.barcode, image_base64))
+                        datas.append((barcode, image_base64))
 
                     n = 5
 

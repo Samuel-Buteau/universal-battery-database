@@ -1,0 +1,32 @@
+{% extends "base_generic.html" %}
+
+{% load static %}
+{% block content %}
+
+
+<style>
+table {
+    border-collapse:collapse;
+
+}
+table, th, td {
+    border:1px solid black;}
+
+
+</style>
+
+
+<form action="{% url 'cell_database:delete_page' %}" method="post">
+    {% csrf_token %}
+
+
+    {% if form %}
+        {{ form.as_p }}
+        <input type='submit' name = 'delete_all_selected' value="Delete All Selected">
+    {% endif %}
+
+</form>
+
+
+
+{% endblock %}

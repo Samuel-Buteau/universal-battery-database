@@ -1,0 +1,184 @@
+{% extends "base_generic.html" %}
+
+{% load static %}
+{% block content %}
+
+
+<style>
+table {
+    border-collapse:collapse;
+
+}
+table, th, td {
+    border:1px solid black;}
+
+
+</style>
+
+
+<h1>All Files</h1>
+
+
+<!-- First step: Selecting drive profile and experiment type-->
+
+
+
+<form action="{% url 'filename_database:main_page' %}" method="post">
+    {% csrf_token %}
+
+
+
+{% if search_form %}
+<table>
+
+    <table>
+    <tr>
+        <th> </th> <th>Use in search?</th> <th>Value to search</th>
+    <tr>
+        <th>Keyword in Filename</th> <td>{{search_form.filename1_search}}</td> <td>{{search_form.filename1}}</td>
+    </tr>
+    <tr>
+        <th>Keyword in Filename</th> <td>{{search_form.filename2_search}}</td> <td>{{search_form.filename2}}</td>
+    </tr>
+    <tr>
+        <th>Keyword in Filename</th> <td>{{search_form.filename3_search}}</td> <td>{{search_form.filename3}}</td>
+    </tr>
+
+
+    <tr>
+        <th>Keyword in Root</th> <td>{{ search_form.root1_search }}</td><td>{{ search_form.root1 }}</td>
+    </tr>
+    <tr>
+        <th>Keyword in Root</th> <td>{{ search_form.root2_search }}</td><td>{{ search_form.root2 }}</td>
+    </tr>
+    <tr>
+        <th>Keyword in Root</th> <td>{{ search_form.root3_search }}</td><td>{{ search_form.root3 }}</td>
+    </tr>
+
+
+    </table>
+
+    <table>
+    <tr>
+        <th>only valid files</th> <td>{{search_form.show_valid}}</td>
+    </tr>
+    <tr>
+        <th>only invalid files</th> <td>{{search_form.show_invalid}}</td>
+    </tr>
+
+    <tr>
+        <th>only deprecated files</th> <td>{{search_form.show_deprecated}}</td>
+    </tr>
+
+    <tr>
+        <th>only non-deprecated files</th> <td>{{search_form.show_nondeprecated}}</td>
+    </tr>
+
+    <tr>
+        <th>Select Experiment Type</th> <td>{{search_form.experiment_type}}</td>
+    </tr>
+    <tr>
+        <th>Display files with a different experiment type</th> <td>{{search_form.show_wrong_experiment_type}}</td>
+    </tr>
+
+
+    </table>
+<br>
+
+ <tr>
+    <th>Display Page: </th> <td>{{search_form.page_number}}</td>
+</tr>
+<input type="submit" name = 'search_and_fix_metadata' value="Search database and fix errors">
+<input type="submit" name = 'change_exp_type' value="Get Filename with Selected Experiment Type">
+
+</table>
+
+
+
+{% endif %}
+
+
+
+
+
+
+
+
+
+{% if metadata_edit_formset%}
+{% csrf_token %}
+{{ metadata_edit_formset.management_form }}
+{% if make_changes != 'show_filename' %}
+    Showing page {{page_number}}/{{max_page_number}}.
+{% endif %}
+    <table>
+    <col width = "200">
+    <col width = "5">
+
+            <tr>
+                {% if make_changes != 'show_filename' %}
+                    <th>Filename</th>
+
+                    <th>Exclude</th>
+
+                    <th>Deprecate</th>
+                {% endif %}
+
+                {% for heading in headings %}
+                    {% if heading == "charID" %}
+                        <th> CharID </th>
+                    {% elif heading == "filesize" %}
+                        <th>File Size (KB)</th>
+                    {%else%}
+                        <th> {{ heading | title }} </th>
+                    {%endif%}
+                {% endfor %}
+            </tr>
+
+        {% for form in metadata_edit_formset %}
+
+            {% for hidden in form.hidden_fields %}
+            {{ hidden }}
+            {% endfor %}
+
+            <tr>
+                {% if make_changes != 'show_filename' %}
+
+                    <td>{{ form.filename }}</td>
+                    <td>{{ form.exclude }}</td>
+                    <td>{{ form.deprecate }}</td>
+                {% endif %}
+
+                {% for field in form.visible_fields %}
+                    {% if field.name == "id" or field.name == 'filename' or field.name == 'exclude' or field.name == 'deprecate'%}
+                    {% else %}
+                        <td> {{ field }}  </td>
+                    {% endif %}
+                {% endfor %}
+
+            </tr>
+
+
+        {% endfor %}
+
+    </table>
+
+
+
+
+    <input type="submit" name = {{make_changes}} value = "Make Changes">
+
+</form>
+
+{% endif %}
+
+
+{% if filename_to_show %}
+<h3>Valid Files</h3>
+    {% for f in filename_to_show %}
+        {{f}} <br>
+    {% endfor %}
+{% endif %}
+
+{% endblock %}
+

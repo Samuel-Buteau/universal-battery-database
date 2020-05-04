@@ -113,8 +113,7 @@ def ml_smoothing(fit_args: dict) -> None:
 
     train_and_evaluate(
         initial_processing(
-            dataset, dataset_names, barcodes,
-            fit_args, strategy = strategy,
+            dataset, dataset_names, barcodes, fit_args, strategy = strategy,
         ),
         barcodes,
         fit_args
@@ -125,9 +124,7 @@ def ml_smoothing(fit_args: dict) -> None:
 #   ragged tensors. Right now, I am just flattening everything.
 def numpy_acc(my_dict, my_key, my_dat):
     if my_key in my_dict.keys():
-        my_dict[my_key] = numpy.concatenate(
-            (my_dict[my_key], my_dat)
-        )
+        my_dict[my_key] = numpy.concatenate((my_dict[my_key], my_dat))
     else:
         my_dict[my_key] = my_dat
 
@@ -175,35 +172,29 @@ def initial_processing(
     dataset[Key.I_GRID] = dataset[Key.I_GRID] - numpy.log(max_cap)
     # the current grid is adjusted by the max capacity of the barcode. It is
     # in log space, so I/q becomes log(I) - log(q)
-    numpy_acc(
-        compiled_data, Key.I_GRID,
-        numpy.array([dataset[Key.I_GRID]])
-    )
+    numpy_acc(compiled_data, Key.I_GRID, numpy.array([dataset[Key.I_GRID]]))
 
     # TODO (harvey): simplify the following using loops
     cell_id_list = numpy.array(barcodes)
-    cell_id_to_pos_id = {}
-    cell_id_to_neg_id = {}
-    cell_id_to_electrolyte_id = {}
+    cell_id_to_pos_id = {}  # pos: positive
+    cell_id_to_neg_id = {}  # neg: negative
+    cell_id_to_lyte_id = {}  # lyte: electrolyte
     cell_id_to_dry_cell_id = {}
     dry_cell_id_to_meta = {}
-    cell_id_to_latent = {}
+    cell_id_to_lat = {}  # lat: latent
 
-    electrolyte_id_to_latent = {}
-    electrolyte_id_to_solvent_id_weight = {}
-    electrolyte_id_to_salt_id_weight = {}
-    electrolyte_id_to_additive_id_weight = {}
+    lyte_id_to_lat = {}
+    lyte_id_to_sol_id_weight = {}  # sol: solvent
+    lyte_id_to_salt_id_weight = {}
+    lyte_id_to_add_id_weight = {}  # add: additive
 
     for cell_id in cell_id_list:
         if cell_id in dataset[Key.CELL_TO_POS].keys():
-            cell_id_to_pos_id[cell_id]\
-                = dataset[Key.CELL_TO_POS][cell_id]
+            cell_id_to_pos_id[cell_id] = dataset[Key.CELL_TO_POS][cell_id]
         if cell_id in dataset[Key.CELL_TO_NEG].keys():
-            cell_id_to_neg_id[cell_id]\
-                = dataset[Key.CELL_TO_NEG][cell_id]
-        if cell_id in dataset[Key.CELL_TO_ELE].keys():
-            cell_id_to_electrolyte_id[cell_id]\
-                = dataset[Key.CELL_TO_ELE][cell_id]
+            cell_id_to_neg_id[cell_id] = dataset[Key.CELL_TO_NEG][cell_id]
+        if cell_id in dataset[Key.CELL_TO_LYTE].keys():
+            cell_id_to_lyte_id[cell_id] = dataset[Key.CELL_TO_LYTE][cell_id]
         if cell_id in dataset["cell_to_dry"].keys():
             dry_cell_id = dataset["cell_to_dry"][cell_id]
             cell_id_to_dry_cell_id[cell_id] = dry_cell_id
@@ -213,37 +204,36 @@ def initial_processing(
                     = dataset["dry_to_meta"][dry_cell_id]
 
         if cell_id in dataset[Key.CELL_TO_LAT].keys():
-            cell_id_to_latent[cell_id]\
-                = dataset[Key.CELL_TO_LAT][cell_id]
+            cell_id_to_lat[cell_id] = dataset[Key.CELL_TO_LAT][cell_id]
 
-        if cell_id_to_latent[cell_id] < 0.5:
-            electrolyte_id = cell_id_to_electrolyte_id[cell_id]
-            if electrolyte_id in dataset[Key.ELE_TO_SOL].keys():
-                electrolyte_id_to_solvent_id_weight[electrolyte_id]\
-                    = dataset[Key.ELE_TO_SOL][electrolyte_id]
-            if electrolyte_id in dataset[Key.ELE_TO_SALT].keys():
-                electrolyte_id_to_salt_id_weight[electrolyte_id]\
-                    = dataset[Key.ELE_TO_SALT][electrolyte_id]
-            if electrolyte_id in dataset[Key.ELE_TO_ADD].keys():
-                electrolyte_id_to_additive_id_weight[electrolyte_id]\
-                    = dataset[Key.ELE_TO_ADD][electrolyte_id]
+        if cell_id_to_lat[cell_id] < 0.5:
+            electrolyte_id = cell_id_to_lyte_id[cell_id]
+            if electrolyte_id in dataset[Key.LYTE_TO_SOL].keys():
+                lyte_id_to_sol_id_weight[electrolyte_id]\
+                    = dataset[Key.LYTE_TO_SOL][electrolyte_id]
+            if electrolyte_id in dataset[Key.LYTE_TO_SALT].keys():
+                lyte_id_to_salt_id_weight[electrolyte_id]\
+                    = dataset[Key.LYTE_TO_SALT][electrolyte_id]
+            if electrolyte_id in dataset[Key.LYTE_TO_ADD].keys():
+                lyte_id_to_add_id_weight[electrolyte_id]\
+                    = dataset[Key.LYTE_TO_ADD][electrolyte_id]
 
-            if electrolyte_id in dataset[Key.ELE_TO_LAT].keys():
-                electrolyte_id_to_latent[electrolyte_id]\
-                    = dataset[Key.ELE_TO_LAT][electrolyte_id]
+            if electrolyte_id in dataset[Key.LYTE_TO_LAT].keys():
+                lyte_id_to_lat[electrolyte_id]\
+                    = dataset[Key.LYTE_TO_LAT][electrolyte_id]
 
     mess = [
         [
             [s[0] for s in siw] for siw in
-            electrolyte_id_to_solvent_id_weight.values()
+            lyte_id_to_sol_id_weight.values()
         ],
         [
             [s[0] for s in siw] for siw in
-            electrolyte_id_to_salt_id_weight.values()
+            lyte_id_to_salt_id_weight.values()
         ],
         [
             [s[0] for s in siw] for siw in
-            electrolyte_id_to_additive_id_weight.values()
+            lyte_id_to_add_id_weight.values()
         ],
     ]
 
@@ -258,7 +248,7 @@ def initial_processing(
     pos_id_list = numpy.array(sorted(list(set(cell_id_to_pos_id.values()))))
     neg_id_list = numpy.array(sorted(list(set(cell_id_to_neg_id.values()))))
     electrolyte_id_list = numpy.array(
-        sorted(list(set(cell_id_to_electrolyte_id.values())))
+        sorted(list(set(cell_id_to_lyte_id.values())))
     )
 
     for barcode_count, barcode in enumerate(barcodes):
@@ -474,7 +464,7 @@ def initial_processing(
             pos_to_pos_name = dataset_names[Key.POS_TO_POS]
             neg_to_neg_name = dataset_names[Key.NEG_TO_NEG]
             electrolyte_to_electrolyte_name\
-                = dataset_names[Key.ELE_TO_ELE]
+                = dataset_names[Key.LYTE_TO_ELE]
             molecule_to_molecule_name = dataset_names[Key.MOL_TO_MOL]
             dry_cell_to_dry_cell_name = dataset_names["dry_to_dry_name"]
 
@@ -490,16 +480,16 @@ def initial_processing(
 
             cell_to_pos = cell_id_to_pos_id,
             cell_to_neg = cell_id_to_neg_id,
-            cell_to_electrolyte = cell_id_to_electrolyte_id,
+            cell_to_electrolyte = cell_id_to_lyte_id,
             cell_to_dry_cell = cell_id_to_dry_cell_id,
             dry_cell_to_meta = dry_cell_id_to_meta,
 
-            cell_latent_flags = cell_id_to_latent,
+            cell_latent_flags = cell_id_to_lat,
 
-            electrolyte_to_solvent = electrolyte_id_to_solvent_id_weight,
-            electrolyte_to_salt = electrolyte_id_to_salt_id_weight,
-            electrolyte_to_additive = electrolyte_id_to_additive_id_weight,
-            electrolyte_latent_flags = electrolyte_id_to_latent,
+            electrolyte_to_solvent = lyte_id_to_sol_id_weight,
+            electrolyte_to_salt = lyte_id_to_salt_id_weight,
+            electrolyte_to_additive = lyte_id_to_add_id_weight,
+            electrolyte_latent_flags = lyte_id_to_lat,
 
             names = (
                 pos_to_pos_name,

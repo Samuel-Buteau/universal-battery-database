@@ -102,24 +102,29 @@ class Key:
     REF_ALL_MATS = "all_reference_mats"
     REF_CYC = "reference_cycles_n"
 
+    # Begin: keys inside dataset
+
+    """ Cell ID """
     # Dictionary indexed by barcode yielding a positive electrode id.
     CELL_TO_POS = "cell_id_to_pos_id"
     # Dictionary indexed by barcode yielding a positive electrode id.
     CELL_TO_NEG = "cell_id_to_neg_id"
     # Dictionary indexed by barcode yielding a positive electrode id.
-    CELL_TO_ELE = "cell_id_to_electrolyte_id"
+    CELL_TO_LYTE = "cell_id_to_electrolyte_id"
     # Dictionary indexed by barcode yielding
     #     1 if the cell is latent,
     #     0 if made of known pos, neg, electrolyte
     CELL_TO_LAT = "cell_id_to_latent"
-    ELE_TO_SOL = "electrolyte_id_to_solvent_id_weight"
-    ELE_TO_SALT = "electrolyte_id_to_salt_id_weight"
-    ELE_TO_ADD = "electrolyte_id_to_additive_id_weight"
-    ELE_TO_LAT = "electrolyte_id_to_latent"
+
+    """ Electrolyte ID """
+    LYTE_TO_SOL = "electrolyte_id_to_solvent_id_weight"
+    LYTE_TO_SALT = "electrolyte_id_to_salt_id_weight"
+    LYTE_TO_ADD = "electrolyte_id_to_additive_id_weight"
+    LYTE_TO_LAT = "electrolyte_id_to_latent"
+    LYTE_TO_ELE = "electrolyte_to_electrolyte_name"
 
     POS_TO_POS = "pos_to_pos_name"
     NEG_TO_NEG = "neg_to_neg_name"
-    ELE_TO_ELE = "electrolyte_to_electrolyte_name"
     MOL_TO_MOL = "molecule_to_molecule_name"
 
     STRAT = "strategy"

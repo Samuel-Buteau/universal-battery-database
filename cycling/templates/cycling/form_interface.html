@@ -142,10 +142,10 @@ Showing page {{page_number}}/{{max_page_number}}.
         <table border="1">
             {% for zd in visual_data %}
                 <tr valign="top">
-                    {% for bc, barcode, image64 in zd %}
+                    {% for barcode, image64 in zd %}
                         <td valign="top">
 
-                            <a href="{% url 'view_barcode'  bc.barcode  '' %}">
+                            <a href="{% url 'view_barcode'  barcode  '' %}">
                                 <img src="data:image/png;base64,{{image64}}" alt="If you see this, there was an error. Send email to Samuel.Buteau@dal.ca" width=200 height=auto />
                             </a>
 

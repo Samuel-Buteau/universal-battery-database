@@ -71,7 +71,14 @@ class Key:
     MIN_LAT = "min_latent"
     GLB_NORM_CLIP = "global_norm_clip"
 
+    # Begin: fit_args-related keys =============================================
+
     FIT_ARGS = "fit_args"
+    MIN_V_GRID = "voltage_grid_min_v"
+    MAX_V_GRID = "voltage_grid_max_v"
+
+    # End: fit_args-related keys ===============================================
+
     """ Structured array with dtype:
         [
             (Key.N, "f4"),

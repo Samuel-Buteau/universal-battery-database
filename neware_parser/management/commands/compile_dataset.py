@@ -29,7 +29,9 @@ def get_dry_cell_meta_from_cell_id(cell_id):
             if dry_cell.cathode_geometry.density is not None:
                 meta["cathode_density"] = dry_cell.cathode_geometry.density
             if dry_cell.cathode_geometry.thickness is not None:
-                meta["cathode_thickness"] = dry_cell.cathode_geometry.thickness /1000.
+                meta["cathode_thickness"] = (
+                    dry_cell.cathode_geometry.thickness / 1000.
+                )
 
         if dry_cell.anode_geometry is not None:
             if dry_cell.anode_geometry.loading is not None:
@@ -37,11 +39,14 @@ def get_dry_cell_meta_from_cell_id(cell_id):
             if dry_cell.anode_geometry.density is not None:
                 meta["anode_density"] = dry_cell.anode_geometry.density
             if dry_cell.anode_geometry.thickness is not None:
-                meta["anode_thickness"] = dry_cell.anode_geometry.thickness /1000.
+                meta["anode_thickness"] = (
+                    dry_cell.anode_geometry.thickness / 1000.
+                )
 
         return dry_cell_id, meta, dry_cell_str
 
     return None, None, None
+
 
 # TODO (harvey): add docstring
 def get_pos_id_from_cell_id(cell_id):
@@ -220,7 +225,6 @@ def initial_processing(my_barcodes, fit_args, flags):
 
     all_data = {}
 
-
     voltage_grid_degradation = make_voltage_grid(
         fit_args[Key.V_MIN_GRID],
         fit_args[Key.V_MAX_GRID],
@@ -374,14 +378,23 @@ def initial_processing(my_barcodes, fit_args, flags):
                             list_of_flags = flags[flag_type]
                             if len(list_of_flags) == 0:
                                 continue
-                            list_of_flags = [fs for fs in list_of_flags if fs["barcode"] == barcode]
+                            list_of_flags = [
+                                fs for fs in list_of_flags
+                                if fs["barcode"] == barcode
+                            ]
                             if len(list_of_flags) == 0:
                                 continue
 
-                            list_of_flags = [fs for fs in list_of_flags if fs["cycle"] == offset_cycle]
+                            list_of_flags = [
+                                fs for fs in list_of_flags
+                                if fs["cycle"] == offset_cycle
+                            ]
                             if len(list_of_flags) == 0:
                                 continue
-                            list_of_flags= [fs for fs in list_of_flags if fs["group"] == future_key]
+                            list_of_flags = [
+                                fs for fs in list_of_flags
+                                if fs["group"] == future_key
+                            ]
                             if len(list_of_flags) == 0:
                                 continue
 
@@ -393,8 +406,8 @@ def initial_processing(my_barcodes, fit_args, flags):
                         post_process_results = ml_post_process_cycle(
                             cyc, fit_args[Key.V_N_GRID], typ,
                             current_max_n = fit_args[Key.I_MAX],
-                            voltage_grid_min_v=fit_args["voltage_grid_min_v"],
-                            voltage_grid_max_v=fit_args["voltage_grid_max_v"],
+                            voltage_grid_min_v = fit_args["voltage_grid_min_v"],
+                            voltage_grid_max_v = fit_args["voltage_grid_max_v"],
                             flagged = flagged
                         )
 
@@ -500,9 +513,14 @@ def initial_processing(my_barcodes, fit_args, flags):
         pos, pos_name = get_pos_id_from_cell_id(cell_id)
         neg, neg_name = get_neg_id_from_cell_id(cell_id)
         electrolyte, electrolyte_name = get_electrolyte_id_from_cell_id(cell_id)
-        dry_cell_id, dry_cell_meta, dry_cell_name = get_dry_cell_meta_from_cell_id(cell_id)
+        (
+            dry_cell_id, dry_cell_meta, dry_cell_name
+        ) = get_dry_cell_meta_from_cell_id(cell_id)
 
-        if pos is None or neg is None or electrolyte is None or dry_cell_id is None:
+        if (
+            pos is None or neg is None
+            or electrolyte is None or dry_cell_id is None
+        ):
             cell_id_to_latent[cell_id] = 1.
         else:
             pos_to_pos_name[pos] = pos_name
@@ -678,7 +696,7 @@ class Command(BaseCommand):
 
         )
         parser.add_argument(
-            "--path_to_flags", default=""
+            "--path_to_flags", default = ""
         )
 
     def handle(self, *args, **options):

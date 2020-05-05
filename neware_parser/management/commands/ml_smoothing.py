@@ -479,7 +479,7 @@ def initial_processing(
 
             lyte_to_solvent = lyte_id_to_sol_id_weight,
             lyte_to_salt = lyte_id_to_salt_id_weight,
-            lyte_to_add = lyte_id_to_add_id_weight,
+            lyte_to_additive = lyte_id_to_add_id_weight,
             lyte_lat_flags = lyte_id_to_lat,
 
             names = (

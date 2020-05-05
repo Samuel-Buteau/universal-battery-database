@@ -11,11 +11,11 @@ class PrimitiveDictionaryLayer(Layer):
 
     def __init__(self, num_features, id_dict):
         super(PrimitiveDictionaryLayer, self).__init__()
-        self.num_features = num_features
+        self.num_feats = num_features
         self.num_keys = 1 + max(id_dict.values())
         self.id_dict = id_dict
         self.kernel = self.add_weight(
-            "kernel", shape = [self.num_keys, self.num_features]
+            "kernel", shape = [self.num_keys, self.num_feats]
         )
         self.sample_epsilon = 0.05
 
@@ -41,7 +41,7 @@ class PrimitiveDictionaryLayer(Layer):
 
         if sample:
             eps = tf.random.normal(
-                shape = [input.shape[0], self.num_features]
+                shape = [input.shape[0], self.num_feats]
             )
             fetched_features = fetched_features + self.sample_epsilon * eps
 

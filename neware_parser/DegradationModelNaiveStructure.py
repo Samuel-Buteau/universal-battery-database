@@ -594,7 +594,7 @@ class DegradationModelNaiveStructure(Model):
             [
                 -1,
                 self.n_sol_max + self.n_salt_max + self.n_additive_max,
-                self.mol_direct.num_features,
+                self.mol_direct.num_feats,
             ]
         )
 

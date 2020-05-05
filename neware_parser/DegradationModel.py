@@ -59,7 +59,20 @@ def feedforward_nn_parameters(
     return {"initial": initial, "bulk": bulk, "final": final}
 
 
-def nn_call(nn_func, dependencies, training = True):
+def nn_call(nn_func: dict, dependencies: tuple, training = True):
+    """ Call a feedforward neural network
+
+    Examples:
+        nn_call(self.lyte_indirect, lyte_dependencies, training = training)
+
+    Args:
+        nn_func: The neural network to call.
+        dependencies: The dependencies of the neural network.
+        training: Flag for training or evaluation.
+
+    Returns:
+        The output of the neural network.
+    """
     centers = nn_func["initial"](
         tf.concat(dependencies, axis = 1),
         training = training,
@@ -126,7 +139,6 @@ def print_cell_info(
                 ("anode_loading", "anode_loading",),
                 ("anode_density", "anode_density",),
                 ("anode_thickness", "anode_thickness",),
-
             ]
 
             for label, key in todo:
@@ -166,22 +178,35 @@ def print_cell_info(
         print()
 
 
-def add_v_dep(thing, params, dim = 1):
-    """ Add voltage dependence: [cyc] -> [cyc, vol] """
+def add_v_dep(voltage_independent, params, dim = 1):
+    """ Add voltage dependence: [cyc] -> [cyc, vol]
+
+    Args:
+        voltage_independent: Some voltage-independent quantity.
+        params: Dictionary containing all parameters.
+        dim: Dimension.
+    """
 
     return tf.reshape(
         tf.tile(
-            tf.expand_dims(thing, axis = 1),
+            tf.expand_dims(voltage_independent, axis = 1),
             [1, params[Key.COUNT_V], 1]
         ),
         [params[Key.COUNT_BATCH] * params[Key.COUNT_V], dim]
     )
 
 
-def add_current_dep(thing, params, dim = 1):
+def add_current_dep(current_independent, params, dim = 1):
+    """ Add current dependence: [vol] -> [cyc, vol]
+
+    Args:
+        current_independent:
+        params:
+        dim:
+    """
     return tf.reshape(
         tf.tile(
-            tf.expand_dims(thing, axis = 1),
+            tf.expand_dims(current_independent, axis = 1),
             [1, params[Key.COUNT_I], 1]
         ),
         [params[Key.COUNT_BATCH] * params[Key.COUNT_I], dim]
@@ -196,7 +221,6 @@ def create_derivatives(nn, params, der_params, internal_loss = False):
     Args:
         nn: The neural network for which to compute derivatives.
         params: The network"s parameters
-
     """
     derivatives = {}
 
@@ -224,8 +248,7 @@ def create_derivatives(nn, params, der_params, internal_loss = False):
             for k in der_params.keys():
                 if der_params[k] >= 1:
                     derivatives["d_" + k] = tape_d1.batch_jacobian(
-                        source = params[k],
-                        target = res
+                        source = params[k], target = res,
                     )[:, 0, :]
 
             del tape_d1
@@ -233,8 +256,7 @@ def create_derivatives(nn, params, der_params, internal_loss = False):
         for k in der_params.keys():
             if der_params[k] >= 2:
                 derivatives["d2_" + k] = tape_d2.batch_jacobian(
-                    source = params[k],
-                    target = derivatives["d_" + k]
+                    source = params[k], target = derivatives["d_" + k],
                 )
                 if not k in [Key.CELL_FEAT, Key.STRESS]:
                     derivatives["d2_" + k] = derivatives["d2_" + k][:, 0, :]
@@ -244,8 +266,7 @@ def create_derivatives(nn, params, der_params, internal_loss = False):
     for k in der_params.keys():
         if der_params[k] >= 3:
             derivatives["d3_" + k] = tape_d3.batch_jacobian(
-                source = params[k],
-                target = derivatives["d2_" + k]
+                source = params[k], target = derivatives["d2_" + k],
             )
             if not k in [Key.CELL_FEAT, Key.STRESS]:
                 derivatives["d3_" + k] = derivatives["d3_" + k][:, 0, :]
@@ -261,6 +282,9 @@ class DegradationModel(Model):
     """
     The model responsible for the machine learning modelling aspect of the
     project. This version of Degradation Model has almost no internal structure.
+
+    Methods:
+
     """
 
     def __init__(

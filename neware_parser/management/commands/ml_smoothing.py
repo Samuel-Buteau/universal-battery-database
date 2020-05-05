@@ -400,7 +400,7 @@ def initial_processing(
                 "reference_cycle": all_data[Key.REF_ALL_MATS][Key.N],
                 Key.COUNT_MATRIX:
                     all_data[Key.REF_ALL_MATS][Key.COUNT_MATRIX],
-                "cycle": main_data[Key.N],
+                Key.CYC: main_data[Key.N],
                 Key.V_CC_VEC: main_data[Key.V_CC_VEC],
                 Key.Q_CC_VEC: main_data[Key.Q_CC_VEC],
                 Key.MASK_CC_VEC: main_data[Key.MASK_CC_VEC],
@@ -421,12 +421,12 @@ def initial_processing(
     compiled_tensors = {}
     # cycles go from 0 to 6000, but nn prefers normally distributed variables
     # so cycle numbers is normalized with mean and variance
-    cycle_tensor = tf.constant(compiled_data["cycle"])
+    cycle_tensor = tf.constant(compiled_data[Key.CYC])
     cycle_m, cycle_v = tf.nn.moments(cycle_tensor, axes = [0])
     cycle_m = 0.  # we shall leave the cycle 0 at 0
     cycle_v = cycle_v.numpy()
     cycle_tensor = (cycle_tensor - cycle_m) / tf.sqrt(cycle_v)
-    compiled_tensors["cycle"] = cycle_tensor
+    compiled_tensors[Key.CYC] = cycle_tensor
 
     labels = [
         Key.V_CC_VEC, Key.Q_CC_VEC, Key.MASK_CC_VEC, Key.Q_CV_VEC, Key.I_CV_VEC,
@@ -595,7 +595,7 @@ def train_step(neighborhood, params, fit_args):
 
     count_matrix_tensor = params[Key.TENSORS][Key.COUNT_MATRIX]
 
-    cycle_tensor = params[Key.TENSORS]["cycle"]
+    cycle_tensor = params[Key.TENSORS][Key.CYC]
     constant_current_tensor = params[Key.TENSORS][Key.I_CC]
     end_current_prev_tensor = params[Key.TENSORS][Key.I_PREV]
     end_voltage_prev_tensor = params[Key.TENSORS][Key.V_PREV_END]

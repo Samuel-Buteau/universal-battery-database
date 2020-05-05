@@ -47,7 +47,7 @@ number_of_options = 26
 
 def view_barcode(request, barcode, cursor):
     list_all_options = ["A","B","C","D", "E", "F", "G", "H", "I", "J", "K","L",
-               "M","N", "O", "P", "Q","R","S","T", "U", "V", "W", "X", "Y", "Z"]
+               "M","N", "O", "P", "Q","R","S","T", "U", Key.V, "W", "X", "Y", "Z"]
 
     barcode = int(barcode)
     ar = {

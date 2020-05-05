@@ -382,7 +382,7 @@ def initial_processing(barcodes, fit_args, flags):
 
                             list_of_flags = [
                                 fs for fs in list_of_flags
-                                if fs["cycle"] == offset_cycle
+                                if fs[Key.CYC] == offset_cycle
                             ]
                             if len(list_of_flags) == 0:
                                 continue

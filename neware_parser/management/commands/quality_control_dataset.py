@@ -140,7 +140,7 @@ def initial_processing(
                             "flag": {
                                 "barcode": barcode,
                                 "group": k,
-                                "cycle": cycs[i],
+                                Key.CYC: cycs[i],
                             },
                             "caps": caps[i],
                             "vols": vols[i],
@@ -164,7 +164,7 @@ def initial_processing(
                             "flag":{
                                 "barcode": barcode,
                                 "group": k,
-                                "cycle": cycs[i],
+                                Key.CYC: cycs[i],
                             },
                             "caps": caps[i],
                             "vols": vols[i],

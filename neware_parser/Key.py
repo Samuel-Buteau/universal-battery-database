@@ -131,8 +131,7 @@ class Key:
     # TODO(harvey): change the key
     DATASET = "my_data"
 
-    """
-    Groups of steps indexed by group averages of
+    """ Groups of steps indexed by group averages of
         ( end_current_prev, constant_current, end_current,
           end_voltage_prev, end_voltage, sign )
         Each group is a dictionary indexed by:
@@ -174,14 +173,15 @@ class Key:
     """ (1d array) Signs """
     GRID_SIGN = "sign_grid"
 
-    # (dict) Indexed by barcode; yields a positive electrode id.
+    """ (dict) Indexed by barcode; yields a positive electrode id """
     CELL_TO_POS = "cell_id_to_pos_id"
-    # (dic) Indexed by barcode; yields a negative electrode id.
+    """ (dic) Indexed by barcode; yields a negative electrode id """
     CELL_TO_NEG = "cell_id_to_neg_id"
-    # (dic) Indexed by barcode; yields an electrolyte id.
+    """ (dic) Indexed by barcode; yields an electrolyte id """
     CELL_TO_LYTE = "cell_id_to_electrolyte_id"
-    # (dic) Indexed by barcode; yields
-    #   1 if the cell is latent, 0 if made of known pos, neg, electrolyte.
+    """ (dic) Indexed by barcode; yields
+        1 if the cell is latent, 0 if made of known pos, neg, electrolyte.
+    """
     CELL_TO_LAT = "cell_id_to_latent"
     CELL_TO_DRY = "cell_to_dry"
 

@@ -601,8 +601,8 @@ def compile_dataset(options):
     Args:
         options: A dictionary of arguments for compiling and fitting datasets.
     """
-    if not os.path.exists(options[Key.PATH_DATASET]):
-        os.mkdir(options[Key.PATH_DATASET])
+    if not os.path.exists(options[Key.PATH_DATA]):
+        os.mkdir(options[Key.PATH_DATA])
     barcodes = get_barcodes(options)
 
     flags = {}
@@ -615,8 +615,8 @@ def compile_dataset(options):
     pick, pick_names = initial_processing(barcodes, options, flags)
     with open(
         os.path.join(
-            options[Key.PATH_DATASET],
-            "dataset_ver_{}.file".format(options[Key.DATA_VERSION])
+            options[Key.PATH_DATA],
+            "dataset_ver_{}.file".format(options[Key.DATA_VER])
         ),
         "wb"
     ) as f:
@@ -624,8 +624,8 @@ def compile_dataset(options):
 
     with open(
         os.path.join(
-            options[Key.PATH_DATASET],
-            "dataset_ver_{}_names.file".format(options[Key.DATA_VERSION])
+            options[Key.PATH_DATA],
+            "dataset_ver_{}_names.file".format(options[Key.DATA_VER])
         ),
         "wb"
     ) as f:
@@ -636,8 +636,8 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         required_args = [
-            "path_to_dataset",
-            "dataset_version",
+            Key.PATH_DATA,
+            Key.DATA_VER,
         ]
         float_args = {
             Key.MIN_V_GRID: 2.5,

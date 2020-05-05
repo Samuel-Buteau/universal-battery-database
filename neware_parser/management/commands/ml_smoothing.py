@@ -79,13 +79,13 @@ def ml_smoothing(fit_args: dict) -> None:
         f.write(my_str)
 
     dataset_path = os.path.join(
-        fit_args[Key.PATH_DATASET],
-        "dataset_ver_{}.file".format(fit_args[Key.DATA_VERSION]),
+        fit_args[Key.PATH_DATA],
+        "dataset_ver_{}.file".format(fit_args[Key.DATA_VER]),
     )
 
     dataset_names_path = os.path.join(
-        fit_args[Key.PATH_DATASET],
-        "dataset_ver_{}_names.file".format(fit_args[Key.DATA_VERSION]),
+        fit_args[Key.PATH_DATA],
+        "dataset_ver_{}_names.file".format(fit_args[Key.DATA_VER]),
     )
 
     if not os.path.exists(dataset_path):
@@ -572,7 +572,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                         Key.OPTIONS: fit_args,
                     }
 
-                    if (count % fit_args[Key.VIS]) == 0:
+                    if (count % fit_args[Key.VIS_FIT]) == 0:
                         start = time.time()
                         print("time to simulate: ", start - end)
                         loss_record.plot(count, fit_args)
@@ -819,56 +819,56 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
 
         required_args = [
-            "path_to_dataset",
-            "dataset_version",
-            "path_to_plots",
+            Key.PATH_DATA,
+            Key.DATA_VER,
+            Key.PATH_PLOTS,
         ]
 
         float_args = {
-            "global_norm_clip": 10.,
+            Key.GLB_NORM_CLIP: 10.,
 
-            "learning_rate": 5e-4,
-            "min_latent": .05,
+            Key.LRN_RATE: 5e-4,
+            Key.MIN_LAT: .05,
 
-            "coeff_d_features_cell": .001,
-            "coeff_d2_features_cell": .01,
+            Key.COEFF_FEAT_CELL_DER: .001,
+            Key.COEFF_FEAT_CELL_DER2: .01,
 
-            "coeff_cell": 1.,
-            "coeff_cell_output": .1,
-            "coeff_cell_input": .1,
-            "coeff_cell_derivative": .1,
-            "coeff_cell_eq": 10.,
+            Key.COEFF_CELL: 1.,
+            Key.COEFF_CELL_OUT: .1,
+            Key.COEFF_CELL_IN: .1,
+            Key.COEFF_CELL_DER: .1,
+            Key.COEFF_CELL_EQ: 10.,
 
-            "coeff_electrolyte": 1.,
-            "coeff_electrolyte_output": .1,
-            "coeff_electrolyte_input": .1,
-            "coeff_electrolyte_derivative": .1,
-            "coeff_electrolyte_eq": 10.,
+            Key.COEFF_LYTE: 1.,
+            Key.COEFF_LYTE_OUT: .1,
+            Key.COEFF_LYTE_IN: .1,
+            Key.COEFF_LYTE_DER: .1,
+            Key.COEFF_LYTE_EQ: 10.,
 
-            "coeff_cv_capacity": 1.,
-            "coeff_cc_capacity": 1.,
+            Key.COEFF_Q_CV: 1.,
+            Key.COEFF_Q_CC: 1.,
 
-            "coeff_q": 1.,
-            "coeff_q_geq": 1.,
-            "coeff_q_leq": 1.,
-            "coeff_q_v_mono": .1,
-            "coeff_q_d3_v": 1.,
-            "coeff_q_d3_current": 1.,
-            "coeff_q_d3_cycle": 1.,
-            "coeff_q_d_current": 1.,
-            "coeff_q_d_cycle": 10.,
+            Key.COEFF_Q: 1.,
+            Key.COEFF_Q_GEQ: 1.,
+            Key.COEFF_Q_LEQ: 1.,
+            Key.COEFF_Q_V_MONO: .1,
+            Key.COEFF_Q_DER3_V: 1.,
+            Key.COEFF_Q_DER3_I: 1.,
+            Key.COEFF_Q_DER3_N: 1.,
+            Key.COEFF_Q_DER_I: 1.,
+            Key.COEFF_Q_DER_N: 10.,
         }
 
         vis = 10000
         int_args = {
             "n_sample": 8 * 16,
 
-            "depth": 3,
-            "width": 50,
-            "batch_size": 4 * 16,
+            Key.DEPTH: 3,
+            Key.WIDTH: 50,
+            Key.BATCH: 4 * 16,
 
             "print_loss_every": 500,
-            "visualize_fit_every": vis,
+            Key.VIS_FIT: vis,
             "visualize_vq_every": vis,
 
             "stop_count": 1000004,

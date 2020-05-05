@@ -55,8 +55,8 @@ def quality_control(fit_args):
         os.makedirs(fit_args["path_to_flags"])
 
     dataset_path = os.path.join(
-        fit_args[Key.PATH_DATASET],
-        "dataset_ver_{}.file".format(fit_args[Key.DATA_VERSION])
+        fit_args[Key.PATH_DATA],
+        "dataset_ver_{}.file".format(fit_args[Key.DATA_VER])
     )
 
 

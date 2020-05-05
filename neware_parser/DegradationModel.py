@@ -843,13 +843,13 @@ class DegradationModel(Model):
                 loss_derivative_electrolyte_indirect = 0.
 
             loss_electrolyte = (
-                self.incentive_coeffs["coeff_electrolyte_output"]
+                self.incentive_coeffs[Key.COEFF_LYTE_OUT]
                 * loss_output_electrolyte +
-                self.incentive_coeffs["coeff_electrolyte_input"]
+                self.incentive_coeffs[Key.COEFF_LYTE_IN]
                 * loss_input_electrolyte_indirect +
-                self.incentive_coeffs["coeff_electrolyte_derivative"]
+                self.incentive_coeffs[Key.COEFF_LYTE_DER]
                 * loss_derivative_electrolyte_indirect +
-                self.incentive_coeffs["coeff_electrolyte_eq"]
+                self.incentive_coeffs[Key.COEFF_LYTE_EQ]
                 * loss_electrolyte_eq
             )
 
@@ -858,7 +858,7 @@ class DegradationModel(Model):
                 (1. - fetched_latent_cell) * loss_neg +
                 (1. - fetched_latent_cell) * loss_dry_cell +
                 (1. - fetched_latent_cell) *
-                self.incentive_coeffs["coeff_electrolyte"] * loss_electrolyte
+                self.incentive_coeffs[Key.COEFF_LYTE] * loss_electrolyte
             )
 
             if compute_derivatives:
@@ -895,19 +895,19 @@ class DegradationModel(Model):
         if training:
             loss = incentive_combine([
                 (
-                    self.incentive_coeffs["coeff_cell_output"],
+                    self.incentive_coeffs[Key.COEFF_CELL_OUT],
                     loss_output_cell,
                 ),
                 (
-                    self.incentive_coeffs["coeff_cell_input"],
+                    self.incentive_coeffs[Key.COEFF_CELL_IN],
                     loss_input_cell_indirect,
                 ),
                 (
-                    self.incentive_coeffs["coeff_cell_derivative"],
+                    self.incentive_coeffs[Key.COEFF_CELL_DER],
                     loss_derivative_cell_indirect,
                 ),
                 (
-                    self.incentive_coeffs["coeff_cell_eq"],
+                    self.incentive_coeffs[Key.COEFF_CELL_EQ],
                     loss_cell_eq,
                 ),
             ])

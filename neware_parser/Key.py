@@ -2,7 +2,6 @@ class Key:
     """ Define dictionary keys """
 
     N = "cycle_number"
-    N_SAMPLE = "n_sample"
 
     # TODO: Why are there keys with the same values except "_vector"?
     #       Are they the same values just different types?
@@ -56,8 +55,6 @@ class Key:
     PATH_V_CURVES = "path_v_curves"
     PATH_V_CURVES_META = "path_v_curves_meta"
     BARCODES = "wanted_barcodes"
-    STOP = "stop_count"
-    PRINT_LOSS = "print_loss_every"
 
     # Begin: options-related keys ==============================================
 
@@ -97,10 +94,16 @@ class Key:
     MIN_V_GRID = "voltage_grid_min_v"
     MAX_V_GRID = "voltage_grid_max_v"
 
+    N_SAMPLE = "n_sample"
     WIDTH = "width"
     DEPTH = "depth"
     BATCH = "batch_size"
+
+    PRINT_LOSS = "print_loss_every"
     VIS_FIT = "visualize_fit_every"
+    VIS_VQ = "visualize_vq_every"
+    STOP = "stop_count"
+    BAR_SHOW = "barcode_show"
 
     # End: options-related keys ================================================
 

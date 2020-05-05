@@ -223,16 +223,6 @@ class Key:
     OPT = "optimizer"
 
     # TODO (harvey): replace the following class of keys
-    class Coeff:
-        V_CC = "coeff_cc_voltage"
-        SCALE = "coeff_scale"
-        R = "coeff_r"
-        SHIFT = "coeff_shift"
-        RECIP = "coeff_reciprocal"
-        PROJ = "coeff_projection"
-        OOB = "coeff_out_of_bounds"
-
-    # TODO (harvey): replace the following class of keys
     class Loss:
         Q = "q_loss"
         Q_CC = "cc_capacity_loss"

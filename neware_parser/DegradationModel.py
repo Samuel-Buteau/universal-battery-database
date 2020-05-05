@@ -76,16 +76,16 @@ def nn_call(nn_func, dependencies, training = True):
 
 
 def print_cell_info(
-    cell_latent_flags, cell_to_pos, cell_to_neg, cell_to_electrolyte,
+    cell_latent_flags, cell_to_pos, cell_to_neg, cell_to_lyte,
     cell_to_dry_cell, dry_cell_to_meta,
-    electrolyte_to_solvent, electrolyte_to_salt, electrolyte_to_additive,
-    electrolyte_latent_flags, names,
+    lyte_to_solvent, lyte_to_salt, lyte_to_additive,
+    lyte_latent_flags, names,
 ):
     """ Print cell information upon the initialization of the Model """
 
     # TODO: names being a tuple is really dumb. use some less error prone way.
     pos_to_pos_name, neg_to_neg_name = names[0], names[1]
-    electrolyte_to_electrolyte_name = names[2]
+    lyte_to_lyte_name = names[2]
     molecule_to_molecule_name = names[3]
     dry_cell_to_dry_cell_name = names[4]
 
@@ -136,26 +136,26 @@ def print_cell_info(
 
                 print("\t\t{}:\t\t\t{}".format(label, val))
 
-            electrolyte_id = cell_to_electrolyte[k]
-            if electrolyte_id in electrolyte_to_electrolyte_name.keys():
+            lyte_id = cell_to_lyte[k]
+            if lyte_id in lyte_to_lyte_name.keys():
                 print("\telectrolyte:\t\t\t{}".format(
-                    electrolyte_to_electrolyte_name[electrolyte_id]))
+                    lyte_to_lyte_name[lyte_id]))
             else:
-                print("\telectrolyte id:\t\t\t{}".format(electrolyte_id))
+                print("\telectrolyte id:\t\t\t{}".format(lyte_id))
 
-            electrolyte_known = "Y"
-            if electrolyte_latent_flags[electrolyte_id] > .5:
-                electrolyte_known = "N"
+            lyte_known = "Y"
+            if lyte_latent_flags[lyte_id] > .5:
+                lyte_known = "N"
             print("\tKnown Electrolyte Components:\t{}".format(
-                electrolyte_known))
-            if electrolyte_known == "Y":
-                for st, electrolyte_to in [
-                    ("solvents", electrolyte_to_solvent),
-                    ("salts", electrolyte_to_salt),
-                    ("additive", electrolyte_to_additive),
+                lyte_known))
+            if lyte_known == "Y":
+                for st, lyte_to in [
+                    ("solvents", lyte_to_solvent),
+                    ("salts", lyte_to_salt),
+                    ("additive", lyte_to_additive),
                 ]:
                     print("\t{}:".format(st))
-                    components = electrolyte_to[electrolyte_id]
+                    components = lyte_to[lyte_id]
                     for s, w in components:
                         if s in molecule_to_molecule_name.keys():
                             print("\t\t{} {}".format(
@@ -414,13 +414,13 @@ class DegradationModel(Model):
             (self.lyte_direct.num_keys, 1), dtype = numpy.float32,
         )
 
-        for electrolyte_id in self.lyte_direct.id_dict.keys():
-            if electrolyte_id in lyte_lat_flags.keys():
+        for lyte_id in self.lyte_direct.id_dict.keys():
+            if lyte_id in lyte_lat_flags.keys():
                 latent_flags[
-                    self.lyte_direct.id_dict[electrolyte_id], 0,
-                ] = lyte_lat_flags[electrolyte_id]
+                    self.lyte_direct.id_dict[lyte_id], 0,
+                ] = lyte_lat_flags[lyte_id]
 
-        self.electrolyte_latent_flags = tf.constant(latent_flags)
+        self.lyte_lat_flags = tf.constant(latent_flags)
 
         # electrolyte pointers and weights
 
@@ -439,29 +439,29 @@ class DegradationModel(Model):
             dtype = numpy.float32,
         )
 
-        for electrolyte_id in self.lyte_direct.id_dict.keys():
-            for reference_index, electrolyte_to in [
+        for lyte_id in self.lyte_direct.id_dict.keys():
+            for reference_index, lyte_to in [
                 (0, lyte_to_solvent),
                 (self.n_sol_max, lyte_to_salt),
                 (self.n_sol_max + self.n_salt_max, lyte_to_add),
             ]:
-                if electrolyte_id in electrolyte_to.keys():
-                    my_components = electrolyte_to[electrolyte_id]
+                if lyte_id in lyte_to.keys():
+                    my_components = lyte_to[lyte_id]
                     for i in range(len(my_components)):
                         molecule_id, weight = my_components[i]
                         pointers[
-                            self.lyte_direct.id_dict[electrolyte_id],
+                            self.lyte_direct.id_dict[lyte_id],
                             i + reference_index,
                         ] = mol_dict[molecule_id]
                         weights[
-                            self.lyte_direct.id_dict[electrolyte_id],
+                            self.lyte_direct.id_dict[lyte_id],
                             i + reference_index,
                         ] = weight
 
-        self.electrolyte_pointers = tf.constant(pointers)
-        self.electrolyte_weights = tf.constant(weights)
+        self.lyte_pointers = tf.constant(pointers)
+        self.lyte_weights = tf.constant(weights)
 
-        self.electrolyte_indirect = feedforward_nn_parameters(
+        self.lyte_indirect = feedforward_nn_parameters(
             depth, width, last = self.num_features,
         )
 
@@ -494,7 +494,7 @@ class DegradationModel(Model):
 
         pos_indices = fetched_pointers_cell[:, 0]
         neg_indices = fetched_pointers_cell[:, 1]
-        electrolyte_indices = fetched_pointers_cell[:, 2]
+        lyte_indices = fetched_pointers_cell[:, 2]
         dry_cell_indices = fetched_pointers_cell[:, 3]
 
         feats_pos, loss_pos = self.pos_direct(
@@ -525,34 +525,34 @@ class DegradationModel(Model):
         loss_dry_cell = loss_dry_cell_unknown
 
         (
-            features_electrolyte_direct, loss_electrolyte_direct
+            feats_lyte_direct, loss_lyte_direct
         ) = self.lyte_direct(
-            electrolyte_indices,
+            lyte_indices,
             training = training,
             sample = sample
         )
 
         fetched_lat_lyte = tf.gather(
-            self.electrolyte_latent_flags,
-            electrolyte_indices,
+            self.lyte_lat_flags,
+            lyte_indices,
             axis = 0
         )
         fetched_lat_lyte = (
             self.min_lat + (1 - self.min_lat) * fetched_lat_lyte
         )
 
-        fetched_pointers_electrolyte = tf.gather(
-            self.electrolyte_pointers, electrolyte_indices, axis = 0,
+        fetched_pointers_lyte = tf.gather(
+            self.lyte_pointers, lyte_indices, axis = 0,
         )
-        fetched_weights_electrolyte = tf.gather(
-            self.electrolyte_weights, electrolyte_indices, axis = 0,
+        fetched_weights_lyte = tf.gather(
+            self.lyte_weights, lyte_indices, axis = 0,
         )
-        fetched_pointers_electrolyte_reshaped = tf.reshape(
-            fetched_pointers_electrolyte, [-1],
+        fetched_pointers_lyte_reshaped = tf.reshape(
+            fetched_pointers_lyte, [-1],
         )
 
         features_molecule, loss_molecule = self.mol_direct(
-            fetched_pointers_electrolyte_reshaped,
+            fetched_pointers_lyte_reshaped,
             training = training, sample = sample,
         )
         features_molecule_reshaped = tf.reshape(
@@ -575,12 +575,12 @@ class DegradationModel(Model):
             )
 
         fetched_molecule_weights = tf.reshape(
-            fetched_weights_electrolyte,
+            fetched_weights_lyte,
             [-1, self.n_sol_max + self.n_salt_max + self.n_additive_max, 1],
         ) * features_molecule_reshaped
 
         total_solvent = 1. / (1e-10 + tf.reduce_sum(
-            fetched_weights_electrolyte[:, 0:self.n_sol_max],
+            fetched_weights_lyte[:, 0:self.n_sol_max],
             axis = 1,
         ))
 
@@ -606,7 +606,7 @@ class DegradationModel(Model):
 
         if training:
             fetched_molecule_loss_weights = tf.reshape(
-                fetched_weights_electrolyte,
+                fetched_weights_lyte,
                 [
                     -1,
                     self.n_sol_max + self.n_salt_max + self.n_additive_max,
@@ -642,54 +642,54 @@ class DegradationModel(Model):
                 tape_d1.watch(features_salt)
                 tape_d1.watch(features_additive)
 
-                electrolyte_dependencies = (
+                lyte_dependencies = (
                     features_solvent,
                     features_salt,
                     features_additive,
                 )
 
-                features_electrolyte_indirect = nn_call(
-                    self.electrolyte_indirect,
-                    electrolyte_dependencies,
+                features_lyte_indirect = nn_call(
+                    self.lyte_indirect,
+                    lyte_dependencies,
                     training = training,
                 )
 
             derivatives["d_features_solvent"] = tape_d1.batch_jacobian(
                 source = features_solvent,
-                target = features_electrolyte_indirect,
+                target = features_lyte_indirect,
             )
             derivatives["d_features_salt"] = tape_d1.batch_jacobian(
                 source = features_salt,
-                target = features_electrolyte_indirect,
+                target = features_lyte_indirect,
             )
             derivatives["d_features_additive"] = tape_d1.batch_jacobian(
                 source = features_additive,
-                target = features_electrolyte_indirect,
+                target = features_lyte_indirect,
             )
 
             del tape_d1
         else:
-            electrolyte_dependencies = (
+            lyte_dependencies = (
                 features_solvent,
                 features_salt,
                 features_additive,
             )
 
-            features_electrolyte_indirect = nn_call(
-                self.electrolyte_indirect,
-                electrolyte_dependencies,
+            features_lyte_indirect = nn_call(
+                self.lyte_indirect,
+                lyte_dependencies,
                 training = training,
             )
 
         feats_lyte = (
-            (fetched_lat_lyte * features_electrolyte_direct)
-            + ((1. - fetched_lat_lyte) * features_electrolyte_indirect)
+            (fetched_lat_lyte * feats_lyte_direct)
+            + ((1. - fetched_lat_lyte) * features_lyte_indirect)
         )
 
-        loss_electrolyte_eq = tf.reduce_mean(
+        loss_lyte_eq = tf.reduce_mean(
             (1. - fetched_lat_lyte) * incentive_inequality(
-                features_electrolyte_direct, Inequality.Equals,
-                features_electrolyte_indirect, Level.Proportional,
+                feats_lyte_direct, Inequality.Equals,
+                features_lyte_indirect, Level.Proportional,
             )
         )
 
@@ -755,16 +755,16 @@ class DegradationModel(Model):
                 loss_output_cell, axis = 1, keepdims = True,
             )
 
-            loss_output_electrolyte = incentive_magnitude(
+            loss_output_lyte = incentive_magnitude(
                 feats_lyte, Target.Small, Level.Proportional,
             )
-            loss_output_electrolyte = tf.reduce_mean(
-                loss_output_electrolyte, axis = 1, keepdims = True,
+            loss_output_lyte = tf.reduce_mean(
+                loss_output_lyte, axis = 1, keepdims = True,
             )
 
         else:
             loss_output_cell = None
-            loss_output_electrolyte = None
+            loss_output_lyte = None
 
         if sample:
             eps = tf.random.normal(
@@ -773,7 +773,7 @@ class DegradationModel(Model):
             features_cell += self.cell_direct.sample_epsilon * eps
 
         if training:
-            loss_input_electrolyte_indirect = (
+            loss_input_lyte_indirect = (
                 (1. - fetched_lat_lyte) * loss_solvent
                 + (1. - fetched_lat_lyte) * loss_salt
                 + (1. - fetched_lat_lyte) * loss_additive
@@ -802,22 +802,22 @@ class DegradationModel(Model):
                 )
 
                 mult = (1. - tf.reshape(fetched_lat_lyte, [-1]))
-                loss_derivative_electrolyte_indirect = tf.reshape(
+                loss_derivative_lyte_indirect = tf.reshape(
                     mult * l_sol + mult * l_salt + mult * l_add,
                     [-1, 1],
                 )
             else:
-                loss_derivative_electrolyte_indirect = 0.
+                loss_derivative_lyte_indirect = 0.
 
-            loss_electrolyte = (
+            loss_lyte = (
                 self.incentive_coeffs[Key.COEFF_LYTE_OUT]
-                * loss_output_electrolyte
+                * loss_output_lyte
                 + self.incentive_coeffs[Key.COEFF_LYTE_IN]
-                * loss_input_electrolyte_indirect
+                * loss_input_lyte_indirect
                 + self.incentive_coeffs[Key.COEFF_LYTE_DER]
-                * loss_derivative_electrolyte_indirect
+                * loss_derivative_lyte_indirect
                 + self.incentive_coeffs[Key.COEFF_LYTE_EQ]
-                * loss_electrolyte_eq
+                * loss_lyte_eq
             )
 
             loss_input_cell_indirect = (
@@ -825,7 +825,7 @@ class DegradationModel(Model):
                 + (1. - fetched_latent_cell) * loss_neg
                 + (1. - fetched_latent_cell) * loss_dry_cell
                 + (1. - fetched_latent_cell)
-                * self.incentive_coeffs[Key.COEFF_LYTE] * loss_electrolyte
+                * self.incentive_coeffs[Key.COEFF_LYTE] * loss_lyte
             )
 
             if compute_derivatives:
@@ -837,7 +837,7 @@ class DegradationModel(Model):
                     derivatives["d_features_neg"], Target.Small,
                     Level.Proportional,
                 )
-                l_electrolyte = incentive_magnitude(
+                l_lyte = incentive_magnitude(
                     derivatives["d_features_electrolyte"], Target.Small,
                     Level.Proportional,
                 )
@@ -849,7 +849,7 @@ class DegradationModel(Model):
                 loss_derivative_cell_indirect = (
                     mult * tf.reduce_mean(l_pos, axis = 2) +
                     mult * tf.reduce_mean(l_neg, axis = 2) +
-                    mult * tf.reduce_mean(l_electrolyte, axis = 2) +
+                    mult * tf.reduce_mean(l_lyte, axis = 2) +
                     mult * tf.reduce_mean(l_dry_cell, axis = 2)
                 )
             else:

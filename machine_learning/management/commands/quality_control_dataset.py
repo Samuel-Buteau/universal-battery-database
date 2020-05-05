@@ -186,70 +186,115 @@ def initial_processing(
         with open(os.path.join(fit_args["path_to_flags"], "FLAGS.file"), 'wb') as file:
             pickle.dump(flags, file, pickle.HIGHEST_PROTOCOL)
 
-
-        #open plot
-        fig, axs = plt.subplots(nrows=3, figsize=[5, 10], sharex=True)
-
-        typs = ["dchg", "chg", "chg"]
-        modes = ["cc", "cc", "cv"]
-        x_legs = [0.5, 0.5, 0.]
-        y_legs = [1., 0.5, 0.5]
-        for typ, ax, mode, x_leg, y_leg in zip(typs, axs, modes, x_legs, y_legs):
-            # options
-            y_quantity = ""
-            if mode == 'cc':
-                y_quantity = 'Voltage'
-            elif mode == 'cv':
-                y_quantity = 'Current'
-            ylabel = typ + "-" + mode + "\n" + y_quantity
-            xlabel = "Capacity"
-
-            # sign_change
-            if typ == "dchg":
-                sign_change = -1.
-            else:
-                sign_change = +1.
+        plot_engine_direct(
+            data_streams = [('compiled', cyc_grp_dict, 'scatter')],
+            target = 'generic_vs_capacity',
+            todos = [
+                ("dchg", "cc"),
+                ("chg", "cc"),
+                ("chg", "cv"),
+            ],
+            barcode= barcode,
+            fit_args = fit_args,
+        )
 
 
-            # data engine from compiled to generic_y_vs_capacity
-            generic_y_vs_capacity, list_of_keys, generic_map = data_engine(
-                'compiled',
-                'generic_y_vs_capacity',
-                cyc_grp_dict,
-                typ,
-                mode
-            )
-            #plot
-            plot_generic_y_vs_capacity(
-                generic_y_vs_capacity, list_of_keys, generic_map , ax,
-                options = {
-                   "sign_change":sign_change,
-                   "x_leg":x_leg,
-                   "y_leg":y_leg,
-                   "xlabel":xlabel,
-                   "ylabel":ylabel
-                }
+
+#TODO(sam): make the interface more general
+#TODO(sam): how to separate measured from predicted?
+def plot_engine_direct(data_streams, target, todos, barcode, fit_args):
+    # open plot
+    fig, axs = plt.subplots(nrows=len(todos), figsize=[5, 10], sharex=True)
+
+    for i, todo in enumerate(todos):
+        typ, mode = todo
+        ax = axs[i]
+
+        # options
+        options = generate_options(mode, typ)
+
+        list_of_target_data = []
+
+        for source, data, _ in data_streams:
+            # data engine from compiled to generic_vs_capacity
+            list_of_target_data.append(
+                data_engine(
+                    source,
+                    target,
+                    data,
+                    typ,
+                    mode
+                )
             )
 
-        #export
-        fig.tight_layout()
-        fig.subplots_adjust(hspace = 0)
-        savefig("voltage_dependence_{}.png".format(barcode), fit_args)
-        plt.close(fig)
+        _, list_of_keys, _ = list_of_target_data[0]
+        custom_colors = map_legend_to_color(list_of_keys)
+
+        for j, target_data in enumerate(list_of_target_data):
+            generic_vs_capacity, _, generic_map = target_data
+            # plot
+            plot_generic_vs_capacity(
+                generic_vs_capacity, list_of_keys, custom_colors,
+                generic_map, ax,
+                channel=data_streams[j][2],
+                options=options,
+            )
+
+        produce_annotations(ax, get_list_of_patches(list_of_keys, custom_colors), options)
+
+    # export
+    fig.tight_layout()
+    fig.subplots_adjust(hspace=0)
+    savefig("voltage_dependence_{}.png".format(barcode), fit_args)
+    plt.close(fig)
+
+
+def generate_options(mode, typ):
+    #label
+    y_quantity = ""
+    if mode == 'cc':
+        y_quantity = 'Voltage'
+    elif mode == 'cv':
+        y_quantity = 'Current'
+    ylabel = typ + "-" + mode + "\n" + y_quantity
+    xlabel = "Capacity"
+
+    # sign_change
+    if typ == "dchg":
+        sign_change = -1.
+    else:
+        sign_change = +1.
+
+    #leg
+    leg = {
+        ("dchg", "cc"): (.5, 1.),
+        ("chg", "cc"): (.5, .5),
+        ("chg", "cv"): (0., .5),
+    }
+
+    x_leg, y_leg = leg[(typ,mode)]
+
+    return {
+        "sign_change": sign_change,
+        "x_leg": x_leg,
+        "y_leg": y_leg,
+        "xlabel": xlabel,
+        "ylabel": ylabel
+    }
 
 
 
 def data_engine(
         source,
         target,
-        compiled,
+        data,
         typ,
         mode,
     ):
-    if not (source == 'compiled' and target == 'generic_y_vs_capacity'):
+    if not (source == 'compiled' and target == 'generic_vs_capacity'):
         return None, None, None, None
 
-    list_of_keys = get_list_of_keys(compiled, typ)
+    list_of_keys = get_list_of_keys(data, typ)
     needed_fields = []
     generic_map = {}
     if mode == 'cc':
@@ -267,11 +312,11 @@ def data_engine(
             'mask': "cv_mask_vector"
         }
 
-    generic_y_vs_capacity = {}
+    generic_vs_capacity = {}
     for k in list_of_keys:
-        generic_y_vs_capacity[k] = compiled[k][Key.MAIN][needed_fields]
+        generic_vs_capacity[k] = data[k][Key.MAIN][needed_fields]
 
-    return generic_y_vs_capacity, list_of_keys, generic_map
+    return generic_vs_capacity, list_of_keys, generic_map
 
 
 def map_legend_to_color(list_of_keys):
@@ -320,9 +365,18 @@ def map_legend_to_color(list_of_keys):
 
     return custom_colors
 
+def get_list_of_patches(list_of_keys, custom_colors):
+    list_of_patches = []
+    for k in list_of_keys:
+        color = custom_colors[k]
+        list_of_patches.append(mpatches.Patch(
+            color=color, label=make_legend(k)
+        ))
+    return list_of_patches
 
-def adjust_color(cyc, color, ):
-    mult = 1. - (.5 * float(cyc) / 6000.)
+
+def adjust_color(cyc, color, target_cycle=6000., target_ratio=.5):
+    mult = 1. + (target_ratio-1.)*(float(cyc) / target_cycle)
     return [[
             mult * color[0],
             mult * color[1],
@@ -338,28 +392,30 @@ def produce_annotations(ax, list_of_patches, options):
     ax.set_ylabel(options["ylabel"])
     ax.set_xlabel(options["xlabel"])
 
-def plot_generic_y_vs_capacity(
-        groups,list_of_keys, generic_map,
-        ax, options
-    ):
 
-    custom_colors = map_legend_to_color(list_of_keys)
-    list_of_patches = []
+
+def plot_generic_vs_capacity(
+        groups,list_of_keys, custom_colors, generic_map,
+        ax,
+        channel,
+        options
+    ):
+    if channel == 'scatter':
+        plotter = ax.scatter
+    else:
+        raise Exception("not yet implemented. channel = {}".format(channel))
+
     for k in list_of_keys:
-        color = custom_colors[k]
-        list_of_patches.append(mpatches.Patch(
-            color=color, label=make_legend(k)
-        ))
         group = groups[k]
         for i in range(len(group)):
             valids = group[generic_map['mask']][i] > .5
-            ax.scatter(
+            plotter(
                 options["sign_change"] * group[generic_map['x']][i][valids],
                 group[generic_map['y']][i][valids],
-                c = adjust_color(group[Key.N][i], color),
+                c = adjust_color(group[Key.N][i], custom_colors[k]),
                 s = 3
             )
-    produce_annotations(ax, list_of_patches, options)
+
 
 
 class Command(BaseCommand):

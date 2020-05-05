@@ -1,3 +1,4 @@
+from neware_parser.Key import Key
 from neware_parser.incentives import *
 
 

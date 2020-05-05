@@ -18,7 +18,6 @@ class Key:
     V_PREV_END = "end_voltage_prev"
     V_PREV_END_AVG = "avg_end_voltage_prev"
     V_END_AVG = "avg_end_voltage"
-    V_N_GRID = "voltage_grid_n_samples"
 
     Q_CC = "cc_capacities"
     Q_CC_VEC = "cc_capacity_vector"
@@ -35,15 +34,8 @@ class Key:
     I_END_AVG = "avg_end_current"
     I_PREV = "end_current_prev"
     I_PREV_END_AVG = "avg_end_current_prev"
-    I_MAX = "current_max_n"
-    I_MIN_GRID = "current_grid_min_v"
-    I_MAX_GRID = "current_grid_max_v"
-    I_N_GRID = "current_grid_n_samples"
 
     TEMP = "temperature"
-    TEMP_GRID_MIN_V = "temperature_grid_min_v"
-    TEMP_GRID_MAX_V = "temperature_grid_max_v"
-    TEMP_GRID_N = "temperature_grid_n_samples"
 
     MASK_CC = "cc_masks"
     MASK_CC_VEC = "cc_mask_vector"
@@ -56,7 +48,7 @@ class Key:
     PATH_V_CURVES_META = "path_v_curves_meta"
     BARCODES = "wanted_barcodes"
 
-    # Begin: options-related keys ==============================================
+    # Begin: Keys in options (ml_smoothing and compile_dataset =================
 
     OPTIONS = "options"
 
@@ -93,6 +85,10 @@ class Key:
 
     MIN_V_GRID = "voltage_grid_min_v"
     MAX_V_GRID = "voltage_grid_max_v"
+    I_MIN_V_GRID = "current_grid_min_v"
+    I_MAX_V_GRID = "current_grid_max_v"
+    T_MIN_V_GRID = "temperature_grid_min_v"
+    T_MAX_V_GRID = "temperature_grid_max_v"
 
     N_SAMPLE = "n_sample"
     WIDTH = "width"
@@ -105,7 +101,13 @@ class Key:
     STOP = "stop_count"
     BAR_SHOW = "barcode_show"
 
-    # End: options-related keys ================================================
+    REF_CYC = "reference_cycles_n"
+    V_N_GRID = "voltage_grid_n_samples"
+    I_N_GRID = "current_grid_n_samples"
+    I_MAX = "current_max_n"
+    TEMP_GRID_N = "temperature_grid_n_samples"
+
+    # Begin: Keys in options (ml_smoothing and compile_dataset =================
 
     """ Structured array with dtype:
         [
@@ -153,7 +155,6 @@ class Key:
         ]
     """
     REF_ALL_MATS = "all_reference_mats"
-    REF_CYC = "reference_cycles_n"
 
     # Begin: keys inside dataset ===============================================
 

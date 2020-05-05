@@ -221,15 +221,15 @@ def initial_processing(barcodes, fit_args, flags):
     )
 
     current_grid = make_current_grid(
-        fit_args[Key.I_MIN_GRID],
-        fit_args[Key.I_MAX_GRID],
+        fit_args[Key.I_MIN_V_GRID],
+        fit_args[Key.I_MAX_V_GRID],
         fit_args[Key.I_N_GRID],
         barcodes,
     )
 
     temperature_grid = make_temperature_grid(
-        fit_args[Key.TEMP_GRID_MIN_V],
-        fit_args[Key.TEMP_GRID_MAX_V],
+        fit_args[Key.T_MIN_V_GRID],
+        fit_args[Key.T_MAX_V_GRID],
         fit_args[Key.TEMP_GRID_N],
         barcodes,
     )

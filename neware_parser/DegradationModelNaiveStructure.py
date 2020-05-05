@@ -257,7 +257,7 @@ def create_derivatives(nn, params, der_params, internal_loss = False):
                 derivatives["d2_" + k] = tape_d2.batch_jacobian(
                     source = params[k], target = derivatives["d_" + k],
                 )
-                if k not in ["features", "encoded_stress"]:
+                if k not in ["features", Key.STRESS]:
                     derivatives["d2_" + k] = derivatives["d2_" + k][:, 0, :]
 
         del tape_d2
@@ -267,7 +267,7 @@ def create_derivatives(nn, params, der_params, internal_loss = False):
             derivatives["d3_" + k] = tape_d3.batch_jacobian(
                 source = params[k], target = derivatives["d2_" + k],
             )
-            if not k in ["features", "encoded_stress"]:
+            if not k in ["features", Key.STRESS]:
                 derivatives["d3_" + k] = derivatives["d3_" + k][:, 0, :]
 
     del tape_d3
@@ -1494,11 +1494,11 @@ class DegradationModelNaiveStructure(Model):
         )
 
         v_plus, loss = self.v_plus_direct(
-            encoded_stress = params["encoded_stress"],
+            encoded_stress = params[Key.STRESS],
             norm_cycle = norm_cycle,
             cell_features = get_cell_features(features = params["features"]),
             q = params["q"],
-            current = params["current"],
+            current = params[Key.I],
             training = training
         )
         return v_plus
@@ -1509,11 +1509,11 @@ class DegradationModelNaiveStructure(Model):
         )
 
         v_m, loss = self.v_minus_direct(
-            encoded_stress = params["encoded_stress"],
+            encoded_stress = params[Key.STRESS],
             norm_cycle = norm_cycle,
             cell_features = get_cell_features(features = params["features"]),
             q = params["q"],
-            current = params["current"],
+            current = params[Key.I],
             training = training
         )
         return v_m
@@ -1523,12 +1523,12 @@ class DegradationModelNaiveStructure(Model):
             params = {Key.CYC: params[Key.CYC], "features": params["features"]}
         )
         return self.q_direct(
-            encoded_stress = params["encoded_stress"],
+            encoded_stress = params[Key.STRESS],
             norm_cycle = norm_cycle,
             cell_features = get_cell_features(features = params["features"]),
             v = params[Key.V],
             shift = params["shift"],
-            current = params["current"],
+            current = params[Key.I],
             training = training,
         )
 
@@ -1716,23 +1716,23 @@ class DegradationModelNaiveStructure(Model):
                 self.v_plus_for_derivative,
                 params = {
                     Key.CYC: sampled_cycles,
-                    "encoded_stress": sampled_encoded_stress,
+                    Key.STRESS: sampled_encoded_stress,
                     "q": sampled_qs,
                     "features": sampled_features,
-                    "current": sampled_constant_current
+                    Key.I: sampled_constant_current
                 },
-                der_params = {"q": 1, "current": 3, Key.CYC: 3},
+                der_params = {"q": 1, Key.I: 3, Key.CYC: 3},
             )
             v_minus, v_minus_der = create_derivatives(
                 self.v_minus_for_derivative,
                 params = {
                     Key.CYC: sampled_cycles,
-                    "encoded_stress": sampled_encoded_stress,
+                    Key.STRESS: sampled_encoded_stress,
                     "q": sampled_qs,
                     "features": sampled_features,
-                    "current": sampled_constant_current
+                    Key.I: sampled_constant_current
                 },
-                der_params = {"q": 1, "current": 3, Key.CYC: 3},
+                der_params = {"q": 1, Key.I: 3, Key.CYC: 3},
             )
 
             out_of_bounds_loss_3 = calculate_out_of_bounds_loss(
@@ -1750,14 +1750,14 @@ class DegradationModelNaiveStructure(Model):
                 self.q_for_derivative,
                 params = {
                     Key.CYC: sampled_cycles,
-                    "encoded_stress": sampled_encoded_stress,
+                    Key.STRESS: sampled_encoded_stress,
                     Key.V: sampled_vs,
                     "features": sampled_features,
                     "shift": sampled_shift,
-                    "current": sampled_constant_current,
+                    Key.I: sampled_constant_current,
                 },
                 der_params = {
-                    Key.V: 3, "features": 2, "shift": 3, "current": 3, Key.CYC: 3
+                    Key.V: 3, "features": 2, "shift": 3, Key.I: 3, Key.CYC: 3
                 }
             )
 

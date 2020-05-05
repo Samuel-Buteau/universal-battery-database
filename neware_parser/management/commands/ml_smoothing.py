@@ -4,7 +4,7 @@ import numpy
 import tensorflow as tf
 from django.core.management.base import BaseCommand
 
-from neware_parser.DegradationModelBlackbox import DegradationModel
+from neware_parser.DegradationModel import DegradationModel
 from neware_parser.LossRecordBlackbox import LossRecord
 from neware_parser.models import *
 from neware_parser.plot import *
@@ -465,22 +465,22 @@ def initial_processing(
             cell_dict = id_dict_from_id_list(cell_id_list),
             pos_dict = id_dict_from_id_list(pos_id_list),
             neg_dict = id_dict_from_id_list(neg_id_list),
-            electrolyte_dict = id_dict_from_id_list(electrolyte_id_list),
-            molecule_dict = id_dict_from_id_list(molecule_id_list),
+            lyte_dict = id_dict_from_id_list(electrolyte_id_list),
+            mol_dict = id_dict_from_id_list(molecule_id_list),
             dry_cell_dict = id_dict_from_id_list(dry_cell_id_list),
 
             cell_to_pos = cell_id_to_pos_id,
             cell_to_neg = cell_id_to_neg_id,
-            cell_to_electrolyte = cell_id_to_lyte_id,
+            cell_to_lyte = cell_id_to_lyte_id,
             cell_to_dry_cell = cell_id_to_dry_cell_id,
             dry_cell_to_meta = dry_cell_id_to_meta,
 
-            cell_latent_flags = cell_id_to_lat,
+            cell_lat_flags = cell_id_to_lat,
 
-            electrolyte_to_solvent = lyte_id_to_sol_id_weight,
-            electrolyte_to_salt = lyte_id_to_salt_id_weight,
-            electrolyte_to_additive = lyte_id_to_add_id_weight,
-            electrolyte_latent_flags = lyte_id_to_lat,
+            lyte_to_solvent = lyte_id_to_sol_id_weight,
+            lyte_to_salt = lyte_id_to_salt_id_weight,
+            lyte_to_add = lyte_id_to_add_id_weight,
+            lyte_lat_flags = lyte_id_to_lat,
 
             names = (
                 pos_to_pos_name,
@@ -491,7 +491,7 @@ def initial_processing(
             ),
             n_sample = fit_args[Key.N_SAMPLE],
             incentive_coeffs = fit_args,
-            min_latent = fit_args[Key.MIN_LAT]
+            min_lat = fit_args[Key.MIN_LAT]
         )
 
         optimizer = tf.keras.optimizers.Adam(

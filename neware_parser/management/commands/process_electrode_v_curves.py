@@ -6,7 +6,7 @@ import numpy
 import tensorflow as tf
 from django.core.management.base import BaseCommand
 
-from neware_parser.DegradationModel import DegradationModel
+from neware_parser.DegradationModelNaiveStructure import DegradationModelNaiveStructure
 from neware_parser.models import *
 from neware_parser.plot import *
 from neware_parser.Key import *

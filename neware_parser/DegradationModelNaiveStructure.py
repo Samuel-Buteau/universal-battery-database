@@ -5,7 +5,7 @@ from tensorflow.keras.layers import Dense
 
 from neware_parser.PrimitiveDictionaryLayer import PrimitiveDictionaryLayer
 from neware_parser.StressToEncodedLayer import StressToEncodedLayer
-from neware_parser.loss_calculator_blackbox import *
+from neware_parser.loss_calculator import *
 from neware_parser.Key import Key
 
 main_activation = tf.keras.activations.relu
@@ -36,7 +36,7 @@ def feedforward_nn_parameters(
                 width,
                 activation = activation,
                 use_bias = True,
-                bias_initializer = "zeros",
+                bias_initializer = "zeros"
             ) for activation in ["relu", None]
         ] for _ in range(depth)
     ]
@@ -47,7 +47,7 @@ def feedforward_nn_parameters(
             activation = None,
             use_bias = True,
             bias_initializer = "zeros",
-            kernel_initializer = "zeros",
+            kernel_initializer = "zeros"
         )
     else:
         final = Dense(
@@ -126,7 +126,6 @@ def print_cell_info(
                 ("anode_loading", "anode_loading",),
                 ("anode_density", "anode_density",),
                 ("anode_thickness", "anode_thickness",),
-
             ]
 
             for label, key in todo:
@@ -182,9 +181,32 @@ def add_current_dep(thing, params, dim = 1):
     return tf.reshape(
         tf.tile(
             tf.expand_dims(thing, axis = 1),
-            [1, params["current_count"], 1]
+            [1, params["current_count"], 1],
         ),
-        [params["batch_count"] * params["current_count"], dim]
+        [params["batch_count"] * params["current_count"], dim],
+    )
+
+
+def get_norm_constant(features):
+    return features[:, 0:1]
+
+
+def get_cell_features(features):
+    return features[:, :]
+
+
+def get_norm_cycle_direct(cycle, norm_constant):
+    return cycle  # * (1e-10 + tf.exp(-norm_constant))
+
+
+def calculate_equilibrium_voltage(v, current, resistance):
+    return v - current * resistance
+
+
+def get_norm_cycle(params):
+    return get_norm_cycle_direct(
+        norm_constant = get_norm_constant(params["features"]),
+        cycle = params["cycle"],
     )
 
 
@@ -196,7 +218,8 @@ def create_derivatives(nn, params, der_params, internal_loss = False):
     Args:
         nn: The neural network for which to compute derivatives.
         params: The network"s parameters
-
+        der_params:
+        internal_loss:
     """
     derivatives = {}
 
@@ -224,8 +247,7 @@ def create_derivatives(nn, params, der_params, internal_loss = False):
             for k in der_params.keys():
                 if der_params[k] >= 1:
                     derivatives["d_" + k] = tape_d1.batch_jacobian(
-                        source = params[k],
-                        target = res
+                        source = params[k], target = res,
                     )[:, 0, :]
 
             del tape_d1
@@ -233,10 +255,9 @@ def create_derivatives(nn, params, der_params, internal_loss = False):
         for k in der_params.keys():
             if der_params[k] >= 2:
                 derivatives["d2_" + k] = tape_d2.batch_jacobian(
-                    source = params[k],
-                    target = derivatives["d_" + k]
+                    source = params[k], target = derivatives["d_" + k],
                 )
-                if not k in ["features_cell", "encoded_stress"]:
+                if k not in ["features", "encoded_stress"]:
                     derivatives["d2_" + k] = derivatives["d2_" + k][:, 0, :]
 
         del tape_d2
@@ -244,10 +265,9 @@ def create_derivatives(nn, params, der_params, internal_loss = False):
     for k in der_params.keys():
         if der_params[k] >= 3:
             derivatives["d3_" + k] = tape_d3.batch_jacobian(
-                source = params[k],
-                target = derivatives["d2_" + k]
+                source = params[k], target = derivatives["d2_" + k],
             )
-            if not k in ["features_cell", "encoded_stress"]:
+            if not k in ["features", "encoded_stress"]:
                 derivatives["d3_" + k] = derivatives["d3_" + k][:, 0, :]
 
     del tape_d3
@@ -257,15 +277,8 @@ def create_derivatives(nn, params, der_params, internal_loss = False):
         return res, derivatives
 
 
-class DegradationModel(Model):
+class DegradationModelNaiveStructure(Model):
     """
-    The Model responsible for the machine learning modelling aspect of the
-    project.
-    This version of Degradation Model has almost no internal structure.
-    We shall have multiple DegradationModels based on their level of internal
-    structure this is a deliberate choice allowing quick comparison but also
-    keeping each independent as they might become pretty different and there
-    are things I want to try that don't fit within the existing model.
 
     Attributes:
         nn_r (dict): Neural network for R.
@@ -278,43 +291,58 @@ class DegradationModel(Model):
         cell_to_lyte, cell_to_dry_cell, dry_cell_to_meta,
         lyte_to_solvent, lyte_to_salt, lyte_to_add, lyte_lat_flags,
         names, n_sample, incentive_coeffs,
-        n_channels = 16, min_lat = 0.1,
+        n_channels = 16, min_latent = 0.1,
     ):
-        super(DegradationModel, self).__init__()
+        super(DegradationModelNaiveStructure, self).__init__()
 
         print_cell_info(
             cell_lat_flags, cell_to_pos, cell_to_neg, cell_to_lyte,
             cell_to_dry_cell, dry_cell_to_meta,
-            lyte_to_solvent, lyte_to_salt, lyte_to_add, lyte_lat_flags,
-            names,
+            lyte_to_solvent, lyte_to_salt,
+            lyte_to_add, lyte_lat_flags, names,
         )
 
-        # minimum latent
-        self.min_lat = min_lat
+        self.min_latent = min_latent
 
-        # number of samples
         self.n_sample = n_sample
-
-        # incentive coefficients
         self.incentive_coeffs = incentive_coeffs
-
-        # number of features
         self.num_features = width
 
-        # feedforward neural network for capacity
-        self.nn_q = feedforward_nn_parameters(depth, width, finalize = True)
+        """ feedforward neural networks """
 
+        self.nn_r = feedforward_nn_parameters(depth, width)
+        self.nn_scale = feedforward_nn_parameters(depth, width)
+        self.nn_q = feedforward_nn_parameters(depth, width, finalize = True)
+        self.nn_shift = feedforward_nn_parameters(depth, width)
+
+        self.nn_v_plus = feedforward_nn_parameters(
+            depth, width, finalize = True,
+        )
+        self.nn_v_minus = feedforward_nn_parameters(
+            depth, width, finalize = True,
+        )
+
+        self.nn_pos_projection = feedforward_nn_parameters(
+            depth, width, last = self.num_features,
+        )
+        self.nn_neg_projection = feedforward_nn_parameters(
+            depth, width, last = self.num_features,
+        )
+
+        self.nn_dry_cell_projection = feedforward_nn_parameters(
+            depth, width, last = 6,
+        )
+
+        """ Primitive Dictionary Layer variables """
         self.dry_cell_direct = PrimitiveDictionaryLayer(
             num_features = 6, id_dict = dry_cell_dict,
         )
 
         self.dry_cell_latent_flags = numpy.ones(
-            (self.dry_cell_direct.num_keys, 6),
-            dtype = numpy.float32
+            (self.dry_cell_direct.num_keys, 6), dtype = numpy.float32,
         )
         self.dry_cell_given = numpy.zeros(
-            (self.dry_cell_direct.num_keys, 6),
-            dtype = numpy.float32
+            (self.dry_cell_direct.num_keys, 6), dtype = numpy.float32,
         )
 
         for dry_cell_id in self.dry_cell_direct.id_dict.keys():
@@ -349,9 +377,11 @@ class DegradationModel(Model):
         self.neg_direct = PrimitiveDictionaryLayer(
             num_features = self.num_features, id_dict = neg_dict,
         )
+        # lyte: electrolyte
         self.lyte_direct = PrimitiveDictionaryLayer(
             num_features = self.num_features, id_dict = lyte_dict,
         )
+        # mol: molecule
         self.mol_direct = PrimitiveDictionaryLayer(
             num_features = self.num_features, id_dict = mol_dict,
         )
@@ -367,7 +397,7 @@ class DegradationModel(Model):
         for cell_id in self.cell_direct.id_dict.keys():
             if cell_id in cell_lat_flags.keys():
                 latent_flags[
-                    self.cell_direct.id_dict[cell_id], 0,
+                    self.cell_direct.id_dict[cell_id], 0
                 ] = cell_lat_flags[cell_id]
 
         self.cell_latent_flags = tf.constant(latent_flags)
@@ -376,6 +406,7 @@ class DegradationModel(Model):
             shape = (self.cell_direct.num_keys, 4), dtype = numpy.int32,
         )
 
+        # TODO(sam): dry_cell
         for cell_id in self.cell_direct.id_dict.keys():
             if cell_id in cell_to_pos.keys():
                 cell_pointers[
@@ -396,9 +427,10 @@ class DegradationModel(Model):
 
         self.cell_pointers = tf.constant(cell_pointers)
         self.cell_indirect = feedforward_nn_parameters(
-            depth, width, last = self.num_features,
+            depth, width, last = self.num_features
         )
 
+        # sol: solvent
         self.n_sol_max = numpy.max(
             [len(v) for v in lyte_to_solvent.values()]
         )
@@ -417,7 +449,7 @@ class DegradationModel(Model):
         for electrolyte_id in self.lyte_direct.id_dict.keys():
             if electrolyte_id in lyte_lat_flags.keys():
                 latent_flags[
-                    self.lyte_direct.id_dict[electrolyte_id], 0,
+                    self.lyte_direct.id_dict[electrolyte_id], 0
                 ] = lyte_lat_flags[electrolyte_id]
 
         self.electrolyte_latent_flags = tf.constant(latent_flags)
@@ -451,11 +483,11 @@ class DegradationModel(Model):
                         molecule_id, weight = my_components[i]
                         pointers[
                             self.lyte_direct.id_dict[electrolyte_id],
-                            i + reference_index,
+                            i + reference_index
                         ] = mol_dict[molecule_id]
                         weights[
                             self.lyte_direct.id_dict[electrolyte_id],
-                            i + reference_index,
+                            i + reference_index
                         ] = weight
 
         self.electrolyte_pointers = tf.constant(pointers)
@@ -477,6 +509,7 @@ class DegradationModel(Model):
         training = True, sample = False, compute_derivatives = False,
     ):
         """ Cell from indices """
+        # TODO(sam): dry_cell
         features_cell_direct, loss_cell = self.cell_direct(
             indices, training = training, sample = False,
         )
@@ -486,7 +519,7 @@ class DegradationModel(Model):
         )
 
         fetched_latent_cell = (
-            self.min_lat + (1 - self.min_lat) * fetched_latent_cell
+            self.min_latent + (1 - self.min_latent) * fetched_latent_cell
         )
         fetched_pointers_cell = tf.gather(
             self.cell_pointers, indices, axis = 0,
@@ -505,11 +538,11 @@ class DegradationModel(Model):
             neg_indices, training = training, sample = sample,
         )
 
-        feats_dry_cell_unknown, loss_dry_cell_unknown = self.dry_cell_direct(
+        features_dry_cell_unknown, loss_dry_cell_unknown = self.dry_cell_direct(
             dry_cell_indices, training = training, sample = sample,
         )
 
-        lat_dry_cell = tf.gather(
+        latent_dry_cell = tf.gather(
             self.dry_cell_latent_flags, dry_cell_indices, axis = 0,
         )
 
@@ -518,8 +551,8 @@ class DegradationModel(Model):
         )
 
         feats_dry_cell = (
-            lat_dry_cell * feats_dry_cell_unknown
-            + (1. - lat_dry_cell) * features_dry_cell_given
+            latent_dry_cell * features_dry_cell_unknown
+            + (1. - latent_dry_cell) * features_dry_cell_given
         )
         # TODO(sam): this is not quite right
         loss_dry_cell = loss_dry_cell_unknown
@@ -532,13 +565,14 @@ class DegradationModel(Model):
             sample = sample
         )
 
-        fetched_lat_lyte = tf.gather(
+        fetched_latent_electrolyte = tf.gather(
             self.electrolyte_latent_flags,
             electrolyte_indices,
             axis = 0
         )
-        fetched_lat_lyte = (
-            self.min_lat + (1 - self.min_lat) * fetched_lat_lyte
+        fetched_latent_electrolyte = (
+            self.min_latent
+            + (1 - self.min_latent) * fetched_latent_electrolyte
         )
 
         fetched_pointers_electrolyte = tf.gather(
@@ -590,7 +624,7 @@ class DegradationModel(Model):
         )
         features_salt = tf.reduce_sum(
             fetched_molecule_weights[
-            :, self.n_sol_max:self.n_sol_max + self.n_salt_max, :,
+            :, self.n_sol_max:self.n_sol_max + self.n_salt_max, :
             ],
             axis = 1,
         )
@@ -619,7 +653,9 @@ class DegradationModel(Model):
             )
             loss_salt = tf.reduce_sum(
                 fetched_molecule_loss_weights[
-                :, self.n_sol_max:self.n_sol_max + self.n_salt_max, :,
+                :,
+                self.n_sol_max:self.n_sol_max + self.n_salt_max,
+                :,
                 ],
                 axis = 1,
             )
@@ -651,20 +687,20 @@ class DegradationModel(Model):
                 features_electrolyte_indirect = nn_call(
                     self.electrolyte_indirect,
                     electrolyte_dependencies,
-                    training = training,
+                    training = training
                 )
 
             derivatives["d_features_solvent"] = tape_d1.batch_jacobian(
                 source = features_solvent,
-                target = features_electrolyte_indirect,
+                target = features_electrolyte_indirect
             )
             derivatives["d_features_salt"] = tape_d1.batch_jacobian(
                 source = features_salt,
-                target = features_electrolyte_indirect,
+                target = features_electrolyte_indirect
             )
             derivatives["d_features_additive"] = tape_d1.batch_jacobian(
                 source = features_additive,
-                target = features_electrolyte_indirect,
+                target = features_electrolyte_indirect
             )
 
             del tape_d1
@@ -678,16 +714,16 @@ class DegradationModel(Model):
             features_electrolyte_indirect = nn_call(
                 self.electrolyte_indirect,
                 electrolyte_dependencies,
-                training = training,
+                training = training
             )
 
         feats_lyte = (
-            (fetched_lat_lyte * features_electrolyte_direct)
-            + ((1. - fetched_lat_lyte) * features_electrolyte_indirect)
+            (fetched_latent_electrolyte * features_electrolyte_direct) +
+            ((1. - fetched_latent_electrolyte) * features_electrolyte_indirect)
         )
 
         loss_electrolyte_eq = tf.reduce_mean(
-            (1. - fetched_lat_lyte) * incentive_inequality(
+            (1. - fetched_latent_electrolyte) * incentive_inequality(
                 features_electrolyte_direct, Inequality.Equals,
                 features_electrolyte_indirect, Level.Proportional,
             )
@@ -726,10 +762,7 @@ class DegradationModel(Model):
             del tape_d1
         else:
             cell_dependencies = (
-                feats_pos,
-                feats_neg,
-                feats_lyte,
-                feats_dry_cell,
+                feats_pos, feats_neg, feats_lyte, feats_dry_cell,
             )
 
             features_cell_indirect = nn_call(
@@ -774,9 +807,9 @@ class DegradationModel(Model):
 
         if training:
             loss_input_electrolyte_indirect = (
-                (1. - fetched_lat_lyte) * loss_solvent
-                + (1. - fetched_lat_lyte) * loss_salt
-                + (1. - fetched_lat_lyte) * loss_additive
+                (1. - fetched_latent_electrolyte) * loss_solvent +
+                (1. - fetched_latent_electrolyte) * loss_salt +
+                (1. - fetched_latent_electrolyte) * loss_additive
             )
             if compute_derivatives:
                 l_sol = tf.reduce_mean(
@@ -784,7 +817,7 @@ class DegradationModel(Model):
                         derivatives["d_features_solvent"], Target.Small,
                         Level.Proportional,
                     ),
-                    axis = [1, 2],
+                    axis = [1, 2]
                 )
                 l_salt = tf.reduce_mean(
                     incentive_magnitude(
@@ -801,7 +834,7 @@ class DegradationModel(Model):
                     axis = [1, 2],
                 )
 
-                mult = (1. - tf.reshape(fetched_lat_lyte, [-1]))
+                mult = (1. - tf.reshape(fetched_latent_electrolyte, [-1]))
                 loss_derivative_electrolyte_indirect = tf.reshape(
                     mult * l_sol + mult * l_salt + mult * l_add,
                     [-1, 1],
@@ -811,21 +844,21 @@ class DegradationModel(Model):
 
             loss_electrolyte = (
                 self.incentive_coeffs[Key.COEFF_LYTE_OUT]
-                * loss_output_electrolyte
-                + self.incentive_coeffs[Key.COEFF_LYTE_IN]
-                * loss_input_electrolyte_indirect
-                + self.incentive_coeffs[Key.COEFF_LYTE_DER]
-                * loss_derivative_electrolyte_indirect
-                + self.incentive_coeffs[Key.COEFF_LYTE_EQ]
+                * loss_output_electrolyte +
+                self.incentive_coeffs[Key.COEFF_LYTE_IN]
+                * loss_input_electrolyte_indirect +
+                self.incentive_coeffs[Key.COEFF_LYTE_DER]
+                * loss_derivative_electrolyte_indirect +
+                self.incentive_coeffs[Key.COEFF_LYTE_EQ]
                 * loss_electrolyte_eq
             )
 
             loss_input_cell_indirect = (
-                (1. - fetched_latent_cell) * loss_pos
-                + (1. - fetched_latent_cell) * loss_neg
-                + (1. - fetched_latent_cell) * loss_dry_cell
-                + (1. - fetched_latent_cell)
-                * self.incentive_coeffs[Key.COEFF_LYTE] * loss_electrolyte
+                (1. - fetched_latent_cell) * loss_pos +
+                (1. - fetched_latent_cell) * loss_neg +
+                (1. - fetched_latent_cell) * loss_dry_cell +
+                (1. - fetched_latent_cell) *
+                self.incentive_coeffs[Key.COEFF_LYTE] * loss_electrolyte
             )
 
             if compute_derivatives:
@@ -839,11 +872,11 @@ class DegradationModel(Model):
                 )
                 l_electrolyte = incentive_magnitude(
                     derivatives["d_features_electrolyte"], Target.Small,
-                    Level.Proportional,
+                    Level.Proportional
                 )
                 l_dry_cell = incentive_magnitude(
                     derivatives["d_features_dry_cell"], Target.Small,
-                    Level.Proportional,
+                    Level.Proportional
                 )
                 mult = (1. - tf.reshape(fetched_latent_cell, [-1, 1]))
                 loss_derivative_cell_indirect = (
@@ -864,43 +897,48 @@ class DegradationModel(Model):
                 (
                     self.incentive_coeffs[Key.COEFF_CELL_OUT],
                     loss_output_cell,
-                ), (
+                ),
+                (
                     self.incentive_coeffs[Key.COEFF_CELL_IN],
                     loss_input_cell_indirect,
-                ), (
+                ),
+                (
                     self.incentive_coeffs[Key.COEFF_CELL_DER],
                     loss_derivative_cell_indirect,
-                ), (
+                ),
+                (
                     self.incentive_coeffs[Key.COEFF_CELL_EQ],
                     loss_cell_eq,
-                )
+                ),
             ])
         else:
             loss = 0.
 
-        return features_cell, loss, fetched_latent_cell
+        return (
+            features_cell, loss, feats_pos,
+            feats_neg, feats_dry_cell, fetched_latent_cell,
+        )
 
     def sample(self, svit_grid, batch_count, count_matrix, n_sample = 4 * 32):
 
         # NOTE(sam): this is an example of a forall.
         # (for all voltages, and all cell features)
         sampled_vs = tf.random.uniform(
-            minval = 2.5, maxval = 5., shape = [n_sample, 1]
+            minval = 2.5, maxval = 5., shape = [n_sample, 1],
         )
         sampled_qs = tf.random.uniform(
-            minval = -.25, maxval = 1.25, shape = [n_sample, 1]
+            minval = -.25, maxval = 1.25, shape = [n_sample, 1],
         )
         sampled_cycles = tf.random.uniform(
-            minval = -.1, maxval = 5., shape = [n_sample, 1]
+            minval = -.1, maxval = 5., shape = [n_sample, 1],
         )
         sampled_constant_current = tf.random.uniform(
             minval = tf.math.log(0.001), maxval = tf.math.log(5.),
-            shape = [n_sample, 1]
+            shape = [n_sample, 1],
         )
         sampled_constant_current = tf.exp(sampled_constant_current)
         sampled_constant_current_sign = tf.random.uniform(
-            minval = 0, maxval = 1,
-            shape = [n_sample, 1], dtype = tf.int32,
+            minval = 0, maxval = 1, shape = [n_sample, 1], dtype = tf.int32,
 
         )
         sampled_constant_current_sign = tf.cast(
@@ -914,23 +952,28 @@ class DegradationModel(Model):
             sampled_constant_current_sign * sampled_constant_current
         )
 
-        sampled_features_cell, _, sampled_latent = self.cell_from_indices(
+        (
+            sampled_features, _, sampled_pos, sampled_neg,
+            sampled_dry_cell, sampled_latent,
+        ) = self.cell_from_indices(
             indices = tf.random.uniform(
                 maxval = self.cell_direct.num_keys,
                 shape = [n_sample], dtype = tf.int32,
             ),
-            training = False,
-            sample = True
+            training = False, sample = True,
         )
-        sampled_features_cell = tf.stop_gradient(sampled_features_cell)
+        sampled_features = tf.stop_gradient(sampled_features)
 
+        sampled_shift = tf.random.uniform(
+            minval = -.5, maxval = .5, shape = [n_sample, 1],
+        )
         sampled_svit_grid = tf.gather(
             svit_grid,
             indices = tf.random.uniform(
                 minval = 0, maxval = batch_count,
                 shape = [n_sample], dtype = tf.int32,
             ),
-            axis = 0
+            axis = 0,
         )
         sampled_count_matrix = tf.gather(
             count_matrix,
@@ -941,65 +984,255 @@ class DegradationModel(Model):
             axis = 0,
         )
 
+        sampled_cell_features = get_cell_features(features = sampled_features)
+
         sampled_encoded_stress = self.stress_to_encoded_direct(
             svit_grid = sampled_svit_grid,
             count_matrix = sampled_count_matrix,
         )
+        sampled_norm_constant = get_norm_constant(sampled_features)
+        sampled_norm_cycle = get_norm_cycle_direct(
+            sampled_cycles, norm_constant = sampled_norm_constant,
+        )
 
         return (
             sampled_vs, sampled_qs, sampled_cycles, sampled_constant_current,
-            sampled_features_cell, sampled_latent, sampled_svit_grid,
-            sampled_count_matrix, sampled_encoded_stress,
+            sampled_features, sampled_pos, sampled_neg, sampled_dry_cell,
+            sampled_latent, sampled_features, sampled_shift, sampled_svit_grid,
+            sampled_count_matrix, sampled_cell_features, sampled_encoded_stress,
+            sampled_norm_cycle,
         )
 
     """ General variable methods """
 
     def cc_capacity(self, params, training = True):
 
+        norm_cycle = get_norm_cycle_direct(
+            cycle = params["cycle"],
+            norm_constant = get_norm_constant(features = params["features"]),
+        )
+
+        cell_features = get_cell_features(features = params["features"])
         encoded_stress = self.stress_to_encoded_direct(
             svit_grid = params[Key.SVIT_GRID],
             count_matrix = params[Key.COUNT_MATRIX],
         )
 
-        q_0 = self.q_direct(
-            encoded_stress = encoded_stress,
-            cycle = params["cycle"],
+        scale = self.scale_direct(
+            cell_features = cell_features, encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle, training = training,
+        )
+
+        shift, _ = self.shift_direct(
+            cell_features = cell_features, encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle, training = training
+        )
+
+        resistance = self.r_direct(
+            cell_features = cell_features, encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle, training = training
+        )
+
+        v_eq_0 = calculate_equilibrium_voltage(
             v = params[Key.V_PREV_END],
-            features_cell = params["features_cell"],
             current = params[Key.I_PREV],
-            training = training
+            resistance = resistance
+        )
+
+        q_0 = self.q_direct(
+            encoded_stress = encoded_stress, norm_cycle = norm_cycle,
+            v = v_eq_0, shift = shift, cell_features = cell_features,
+            current = params[Key.I_PREV], training = training
+        )
+
+        v_eq_1 = calculate_equilibrium_voltage(
+            v = params["v"], current = add_v_dep(params[Key.I_CC], params),
+            resistance = add_v_dep(resistance, params)
         )
 
         q_1 = self.q_direct(
             encoded_stress = add_v_dep(
-                encoded_stress,
-                params,
-                encoded_stress.shape[1]
+                encoded_stress, params, encoded_stress.shape[1],
             ),
-            cycle = add_v_dep(params["cycle"], params),
-            v = params["v"],
-            features_cell = add_v_dep(
-                params["features_cell"], params,
-                params["features_cell"].shape[1]
+            norm_cycle = add_v_dep(norm_cycle, params),
+            v = v_eq_1,
+            shift = add_v_dep(shift, params),
+            cell_features = add_v_dep(
+                cell_features, params, cell_features.shape[1],
             ),
             current = add_v_dep(params[Key.I_CC], params),
             training = training
         )
 
-        return q_1 - add_v_dep(q_0, params)
+        return add_v_dep(scale, params) * (q_1 - add_v_dep(q_0, params))
+
+    # NOTE: Only used during training right now
+    def cc_voltage(self, params, training = True):
+        norm_constant = get_norm_constant(features = params["features"])
+        norm_cycle = get_norm_cycle_direct(
+            cycle = params["cycle"], norm_constant = norm_constant,
+        )
+
+        cell_features = get_cell_features(features = params["features"])
+        encoded_stress = self.stress_to_encoded_direct(
+            svit_grid = params[Key.SVIT_GRID],
+            count_matrix = params[Key.COUNT_MATRIX],
+        )
+        scale = self.scale_direct(
+            cell_features = cell_features, encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle, training = training,
+        )
+        shift, _ = self.shift_direct(
+            cell_features = cell_features, encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle, training = training,
+        )
+        resistance = self.r_direct(
+            cell_features = cell_features, encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle, training = training
+        )
+        v_eq_0 = calculate_equilibrium_voltage(
+            v = params[Key.V_PREV_END],
+            current = params[Key.I_PREV],
+            resistance = resistance,
+        )
+        q_0 = self.q_direct(
+            encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle,
+            v = v_eq_0,
+            shift = shift,
+            cell_features = cell_features,
+            current = params[Key.I_PREV],
+            training = training
+        )
+        q_over_q = (
+            tf.reshape(params["cc_capacity"], [-1, 1])
+            / (1e-5 + tf.abs(add_v_dep(scale, params)))
+        )
+
+        v, out_of_bounds_loss = self.v_direct(
+            encoded_stress = add_v_dep(
+                encoded_stress, params, encoded_stress.shape[1],
+            ),
+            norm_cycle = add_v_dep(norm_cycle, params),
+            q = q_over_q + add_v_dep(q_0, params),
+            shift = add_v_dep(shift, params),
+            cell_features = add_v_dep(
+                cell_features, params, cell_features.shape[1],
+            ),
+            current = add_v_dep(params[Key.I_CC], params),
+            training = training,
+        )
+
+        cc_v = v + add_v_dep(resistance * params[Key.I_CC], params)
+
+        return cc_v, out_of_bounds_loss
+
+    def cv_voltage(self, params, training = True):
+        norm_constant = get_norm_constant(features = params["features"])
+        norm_cycle = get_norm_cycle_direct(
+            cycle = params["cycle"], norm_constant = norm_constant,
+        )
+
+        cell_features = get_cell_features(features = params["features"])
+        encoded_stress = self.stress_to_encoded_direct(
+            svit_grid = params[Key.SVIT_GRID],
+            count_matrix = params[Key.COUNT_MATRIX],
+        )
+        scale = self.scale_direct(
+            cell_features = cell_features, encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle, training = training,
+        )
+        shift, _ = self.shift_direct(
+            cell_features = cell_features,
+            encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle,
+            training = training
+        )
+        resistance = self.r_direct(
+            cell_features = cell_features,
+            encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle,
+            training = training
+        )
+        v_eq_0 = calculate_equilibrium_voltage(
+            v = params[Key.V_PREV_END],
+            current = params[Key.I_PREV],
+            resistance = resistance,
+        )
+        q_0 = self.q_direct(
+            encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle,
+            v = v_eq_0,
+            shift = shift,
+            cell_features = cell_features,
+            current = params[Key.I_PREV],
+            training = training
+        )
+        q_over_q = tf.reshape(params["cv_capacity"], [-1, 1]) / (
+            1e-5 + tf.abs(add_current_dep(scale, params))
+        )
+
+        v, out_of_bounds_loss = self.v_direct(
+            encoded_stress = add_current_dep(
+                encoded_stress,
+                params,
+                encoded_stress.shape[1]
+            ),
+            norm_cycle = add_current_dep(norm_cycle, params),
+            q = q_over_q + add_current_dep(q_0, params),
+            shift = add_current_dep(shift, params),
+            cell_features = add_current_dep(
+                cell_features, params, cell_features.shape[1]
+            ),
+            current = params["cv_current"],
+            training = training
+        )
+
+        cv_v = (
+            v + (params["cv_current"] * add_current_dep(resistance, params))
+        )
+
+        return cv_v, out_of_bounds_loss
 
     def cv_capacity(self, params, training = True):
+        norm_constant = get_norm_constant(features = params["features"])
+        norm_cycle = get_norm_cycle_direct(
+            cycle = params["cycle"], norm_constant = norm_constant,
+        )
+
+        cell_features = get_cell_features(features = params["features"])
 
         encoded_stress = self.stress_to_encoded_direct(
             svit_grid = params[Key.SVIT_GRID],
             count_matrix = params[Key.COUNT_MATRIX],
         )
 
+        shift, _ = self.shift_direct(
+            cell_features = cell_features,
+            encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle,
+            training = training
+        )
+
+        resistance = self.r_direct(
+            cell_features = cell_features,
+            encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle,
+            training = training
+        )
+
+        v_eq_0 = calculate_equilibrium_voltage(
+            v = params[Key.V_PREV_END],
+            current = params[Key.I_PREV],
+            resistance = resistance,
+        )
+
         q_0 = self.q_direct(
             encoded_stress = encoded_stress,
-            cycle = params["cycle"],
-            v = params[Key.V_PREV_END],
-            features_cell = params["features_cell"],
+            norm_cycle = norm_cycle,
+            v = v_eq_0,
+            shift = shift,
+            cell_features = cell_features,
             current = params[Key.I_PREV],
             training = training
         )
@@ -1007,57 +1240,353 @@ class DegradationModel(Model):
         # NOTE (sam): if there truly is no dependency on current for scale,
         # then we can restructure the code below.
 
-        q_1 = self.q_direct(
-            encoded_stress = add_current_dep(
-                encoded_stress, params, encoded_stress.shape[1],
-            ),
-            cycle = add_current_dep(params["cycle"], params),
-            v = add_current_dep(params[Key.V_END], params),
-            features_cell = add_current_dep(
-                params["features_cell"], params,
-                params["features_cell"].shape[1],
-            ),
-            current = params["cv_current"],
-            training = training,
+        scale = self.scale_direct(
+            cell_features = cell_features,
+            encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle,
+            training = training
         )
 
-        return q_1 - add_current_dep(q_0, params)
+        v_eq_1 = calculate_equilibrium_voltage(
+            v = add_current_dep(params[Key.V_END], params),
+            current = params["cv_current"],
+            resistance = add_current_dep(resistance, params),
+        )
+
+        q_1 = self.q_direct(
+            encoded_stress = add_current_dep(encoded_stress, params,
+                                             encoded_stress.shape[1]),
+            norm_cycle = add_current_dep(norm_cycle, params),
+            v = v_eq_1,
+            shift = add_current_dep(shift, params),
+            cell_features = add_current_dep(
+                cell_features, params, cell_features.shape[1]
+            ),
+            current = params["cv_current"],
+            training = training
+        )
+
+        return (add_current_dep(scale, params)
+                * (q_1 - add_current_dep(q_0, params)))
+
+    def reciprocal_q(self, encoded_stress, cycle, features, q, shift, current,
+                     training = True):
+        norm_constant = get_norm_constant(features = features)
+        norm_cycle = get_norm_cycle_direct(
+            cycle = cycle, norm_constant = norm_constant
+        )
+        cell_features = get_cell_features(features = features)
+        v, out_of_bounds_loss = self.v_direct(
+            encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle,
+            q = q,
+            shift = shift,
+            cell_features = cell_features,
+            training = training,
+            current = current
+        )
+        return self.q_direct(
+            encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle,
+            v = v,
+            shift = shift,
+            cell_features = cell_features,
+            training = training,
+            current = current
+        ), out_of_bounds_loss
+
+    def reciprocal_v(self, encoded_stress, cycle, features, v, shift, current,
+                     training = True):
+        norm_constant = get_norm_constant(features = features)
+        norm_cycle = get_norm_cycle_direct(
+            cycle = cycle, norm_constant = norm_constant
+        )
+        cell_features = get_cell_features(features = features)
+        q = self.q_direct(
+            encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle,
+            v = v, shift = shift,
+            cell_features = cell_features,
+            current = current,
+            training = training
+        )
+        return self.v_direct(
+            encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle,
+            q = q, shift = shift,
+            cell_features = cell_features,
+            current = current,
+            training = training
+        )
 
     """ Stress variable methods """
 
     def stress_to_encoded_direct(
-        self, svit_grid, count_matrix, training = True,
+        self, svit_grid, count_matrix, training = True
     ):
         return self.stress_to_encoded_layer(
-            (svit_grid, count_matrix),
-            training = training
+            (svit_grid, count_matrix), training = training,
         )
 
     """ Direct variable methods """
 
-    def q_direct(
-        self, encoded_stress, cycle, v, features_cell, current, training = True,
+    def pos_projection_direct(self, cell_features, training = True):
+        dependencies = cell_features
+        return nn_call(
+            self.nn_pos_projection, dependencies, training = training,
+        )
+
+    def neg_projection_direct(self, cell_features, training = True):
+        dependencies = cell_features
+        return nn_call(
+            self.nn_neg_projection, dependencies, training = training,
+        )
+
+    def dry_cell_projection_direct(self, cell_features, training = True):
+        dependencies = (
+            cell_features
+        )
+        return nn_call(
+            self.nn_dry_cell_projection, dependencies, training = training
+        )
+
+    def r_direct(
+        self, cell_features, encoded_stress, norm_cycle, training = True
     ):
         dependencies = (
+            cell_features,
             encoded_stress,
-            cycle,
+            norm_cycle,
+        )
+        return tf.nn.elu(nn_call(self.nn_r, dependencies, training = training))
+
+    # TODO(sam): not sure if this is needed
+    def scale_direct(
+        self, cell_features, encoded_stress, norm_cycle, training = True
+    ):
+        dependencies = (
+            cell_features,
+            encoded_stress,
+            norm_cycle,
+        )
+        return 1. + tf.nn.tanh(
+            nn_call(self.nn_scale, dependencies, training = training)
+        )
+
+    def q_direct(self, encoded_stress, norm_cycle, v, shift, cell_features,
+                 current, training = True):
+        pos_cell_features = self.pos_projection_direct(
+            cell_features = cell_features,
+            training = training
+        )
+        neg_cell_features = self.neg_projection_direct(
+            cell_features = cell_features,
+            training = training
+        )
+        dependencies = (
+            encoded_stress,
+            norm_cycle,
             v,
-            features_cell,
+            shift,
+            pos_cell_features,
+            neg_cell_features,
             current
         )
         return tf.nn.elu(nn_call(self.nn_q, dependencies, training = training))
 
+    def shift_direct(
+        self, cell_features, encoded_stress, norm_cycle, training = True
+    ):
+
+        dependencies = (
+            cell_features,
+            encoded_stress,
+            norm_cycle
+        )
+        shift = tf.exp(
+            nn_call(self.nn_shift, dependencies, training = training)
+        )
+
+        # Compute Loss
+        loss = 0.
+
+        return shift, loss
+
+    def v_plus_direct(self, encoded_stress, norm_cycle, q, cell_features,
+                      current, training = True):
+        pos_features = self.pos_projection_direct(
+            cell_features = cell_features,
+            training = training
+        )
+
+        dry_cell_features = self.dry_cell_projection_direct(
+            cell_features = cell_features,
+            training = training
+        )
+        dependencies = (
+            encoded_stress,
+            norm_cycle,
+            q,
+            pos_features,
+            dry_cell_features,
+            current
+        )
+
+        out_of_bounds_loss = calculate_out_of_bounds_loss(q = q,
+                                                          incentive_coeffs = self.incentive_coeffs)
+
+        return nn_call(
+            self.nn_v_plus, dependencies, training = training
+        ), out_of_bounds_loss
+
+    def v_minus_direct(self, encoded_stress, norm_cycle, q, cell_features,
+                       current, training = True):
+        neg_features = self.neg_projection_direct(
+            cell_features = cell_features,
+            training = training
+        )
+        dry_cell_features = self.dry_cell_projection_direct(
+            cell_features = cell_features,
+            training = training
+        )
+        out_of_bounds_loss = calculate_out_of_bounds_loss(q = q,
+                                                          incentive_coeffs = self.incentive_coeffs)
+
+        dependencies = (
+            encoded_stress,
+            norm_cycle,
+            q,
+            neg_features,
+            dry_cell_features,
+            current
+        )
+
+        return nn_call(
+            self.nn_v_minus, dependencies, training = training
+        ), out_of_bounds_loss
+
+    def v_direct(self, encoded_stress, norm_cycle, q, shift, cell_features,
+                 current, training = True):
+        v_plus, loss_plus = self.v_plus_direct(
+            encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle,
+            q = q,
+            cell_features = cell_features,
+            current = current,
+            training = training
+        )
+        v_minus, loss_minus = self.v_minus_direct(
+            encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle,
+            q = (q - shift),
+            cell_features = cell_features,
+            current = current,
+            training = training
+        )
+
+        return v_plus - v_minus, loss_minus + loss_plus
+
     """ For derivative variable methods """
 
-    def q_for_derivative(self, params, training = True):
+    def v_plus_for_derivative(self, params, training = True):
+        norm_cycle = get_norm_cycle(
+            params = {"cycle": params["cycle"], "features": params["features"]}
+        )
 
+        v_plus, loss = self.v_plus_direct(
+            encoded_stress = params["encoded_stress"],
+            norm_cycle = norm_cycle,
+            cell_features = get_cell_features(features = params["features"]),
+            q = params["q"],
+            current = params["current"],
+            training = training
+        )
+        return v_plus
+
+    def v_minus_for_derivative(self, params, training = True):
+        norm_cycle = get_norm_cycle(
+            params = {"cycle": params["cycle"], "features": params["features"]}
+        )
+
+        v_m, loss = self.v_minus_direct(
+            encoded_stress = params["encoded_stress"],
+            norm_cycle = norm_cycle,
+            cell_features = get_cell_features(features = params["features"]),
+            q = params["q"],
+            current = params["current"],
+            training = training
+        )
+        return v_m
+
+    def q_for_derivative(self, params, training = True):
+        norm_cycle = get_norm_cycle(
+            params = {"cycle": params["cycle"], "features": params["features"]}
+        )
         return self.q_direct(
             encoded_stress = params["encoded_stress"],
-            cycle = params["cycle"],
-            features_cell = params["features_cell"],
+            norm_cycle = norm_cycle,
+            cell_features = get_cell_features(features = params["features"]),
             v = params["v"],
+            shift = params["shift"],
             current = params["current"],
             training = training,
+        )
+
+    def r_for_derivative(self, params, training = True):
+        norm_cycle = get_norm_cycle(
+            params = {"cycle": params["cycle"], "features": params["features"]}
+        )
+        cell_features = get_cell_features(features = params["features"])
+
+        encoded_stress = self.stress_to_encoded_direct(
+            svit_grid = params[Key.SVIT_GRID],
+            count_matrix = params[Key.COUNT_MATRIX],
+        )
+
+        return self.r_direct(
+            cell_features = cell_features,
+            encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle,
+            training = training
+        )
+
+    def scale_for_derivative(self, params, training = True):
+        norm_cycle = get_norm_cycle(
+            params = {"cycle": params["cycle"], "features": params["features"]}
+        )
+        cell_features = get_cell_features(features = params["features"])
+
+        encoded_stress = self.stress_to_encoded_direct(
+            svit_grid = params[Key.SVIT_GRID],
+            count_matrix = params[Key.COUNT_MATRIX],
+        )
+
+        return self.scale_direct(
+            cell_features = cell_features,
+            encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle,
+            training = training
+        )
+
+    def shift_for_derivative(self, params, training = True):
+        norm_cycle = get_norm_cycle(
+            params = {
+                "cycle": params["cycle"],
+                "features": params["features"]
+            }
+        )
+        cell_features = get_cell_features(features = params["features"])
+
+        encoded_stress = self.stress_to_encoded_direct(
+            svit_grid = params[Key.SVIT_GRID],
+            count_matrix = params[Key.COUNT_MATRIX],
+        )
+
+        return self.shift_direct(
+            cell_features = cell_features,
+            encoded_stress = encoded_stress,
+            norm_cycle = norm_cycle,
+            training = training
         )
 
     def call(self, x, training = False):
@@ -1073,14 +1602,14 @@ class DegradationModel(Model):
         svit_grid = x[8]
         count_matrix = x[9]
 
-        features_cell, _, _ = self.cell_from_indices(
+        features, _, _, _, _, _ = self.cell_from_indices(
             indices = indices,
             training = training,
-            sample = False
+            sample = False,
         )
 
         # duplicate cycles and others for all the voltages
-        # dimensions are now [batch, voltages, features_cell]
+        # dimensions are now [batch, voltages, features]
         batch_count = cycle.shape[0]
         voltage_count = voltage_tensor.shape[1]
         current_count = current_tensor.shape[1]
@@ -1097,7 +1626,7 @@ class DegradationModel(Model):
             Key.I_CC: constant_current,
             Key.I_PREV: end_current_prev,
             Key.V_PREV_END: end_voltage_prev,
-            "features_cell": features_cell,
+            "features": features,
             Key.V_END: end_voltage,
 
             Key.SVIT_GRID: svit_grid,
@@ -1109,24 +1638,112 @@ class DegradationModel(Model):
         cv_capacity = self.cv_capacity(params, training = training)
         pred_cv_capacity = tf.reshape(cv_capacity, [-1, current_count])
 
-        returns = {
-            "pred_cc_capacity": pred_cc_capacity,
-            "pred_cv_capacity": pred_cv_capacity,
-        }
-
         if training:
+            cc_capacity = x[10]
+            params["cc_capacity"] = cc_capacity
+            cc_voltage, out_of_bounds_loss = self.cc_voltage(
+                params, training = training,
+            )
+            pred_cc_voltage = tf.reshape(cc_voltage, [-1, voltage_count])
+
+            cv_capacity = x[11]
+            params["cv_capacity"] = cv_capacity
+            cv_voltage, out_of_bounds_loss = self.cv_voltage(
+                params, training = training,
+            )
+            pred_cv_voltage = tf.reshape(cv_voltage, [-1, current_count])
             (
                 sampled_vs,
                 sampled_qs,
                 sampled_cycles,
                 sampled_constant_current,
-                sampled_features_cell,
+                sampled_features,
+                sampled_pos,
+                sampled_neg,
+                sampled_dry_cell,
                 sampled_latent,
+                sampled_features,
+                sampled_shift,
                 sampled_svit_grid,
                 sampled_count_matrix,
+                sampled_cell_features,
                 sampled_encoded_stress,
+                sampled_norm_cycle,
             ) = self.sample(
-                svit_grid, batch_count, count_matrix, n_sample = self.n_sample
+                svit_grid, batch_count, count_matrix, n_sample = self.n_sample,
+            )
+
+            predicted_pos = self.pos_projection_direct(
+                cell_features = sampled_cell_features, training = training,
+            )
+
+            predicted_neg = self.neg_projection_direct(
+                cell_features = sampled_cell_features, training = training,
+            )
+
+            predicted_dry_cell = self.dry_cell_projection_direct(
+                cell_features = sampled_cell_features, training = training,
+            )
+
+            projection_loss = calculate_projection_loss(
+                sampled_latent, sampled_pos, sampled_neg, sampled_dry_cell,
+                predicted_pos, predicted_neg,
+                predicted_dry_cell,
+                incentive_coeffs = self.incentive_coeffs,
+            )
+
+            reciprocal_q, out_of_bounds_loss_1 = self.reciprocal_q(
+                encoded_stress = sampled_encoded_stress,
+                cycle = sampled_cycles,
+                q = sampled_qs,
+                features = sampled_features,
+                shift = sampled_shift,
+                current = sampled_constant_current,
+                training = training,
+            )
+
+            reciprocal_v, out_of_bounds_loss_2 = self.reciprocal_v(
+                encoded_stress = sampled_encoded_stress,
+                cycle = sampled_cycles,
+                v = sampled_vs,
+                features = sampled_features,
+                shift = sampled_shift,
+                current = sampled_constant_current,
+                training = training,
+            )
+
+            v_plus, v_plus_der = create_derivatives(
+                self.v_plus_for_derivative,
+                params = {
+                    "cycle": sampled_cycles,
+                    "encoded_stress": sampled_encoded_stress,
+                    "q": sampled_qs,
+                    "features": sampled_features,
+                    "current": sampled_constant_current
+                },
+                der_params = {"q": 1, "current": 3, "cycle": 3},
+            )
+            v_minus, v_minus_der = create_derivatives(
+                self.v_minus_for_derivative,
+                params = {
+                    "cycle": sampled_cycles,
+                    "encoded_stress": sampled_encoded_stress,
+                    "q": sampled_qs,
+                    "features": sampled_features,
+                    "current": sampled_constant_current
+                },
+                der_params = {"q": 1, "current": 3, "cycle": 3},
+            )
+
+            out_of_bounds_loss_3 = calculate_out_of_bounds_loss(
+                q = reciprocal_q, incentive_coeffs = self.incentive_coeffs
+            )
+
+            reciprocal_loss = calculate_reciprocal_loss(
+                sampled_vs, sampled_qs,
+                v_plus, v_minus, v_plus_der, v_minus_der,
+                reciprocal_v, reciprocal_q,
+                incentive_coeffs = self.incentive_coeffs,
             )
 
             q, q_der = create_derivatives(
@@ -1135,11 +1752,12 @@ class DegradationModel(Model):
                     "cycle": sampled_cycles,
                     "encoded_stress": sampled_encoded_stress,
                     "v": sampled_vs,
-                    "features_cell": sampled_features_cell,
-                    "current": sampled_constant_current
+                    "features": sampled_features,
+                    "shift": sampled_shift,
+                    "current": sampled_constant_current,
                 },
                 der_params = {
-                    "v": 3, "features_cell": 2, "current": 3, "cycle": 3,
+                    "v": 3, "features": 2, "shift": 3, "current": 3, "cycle": 3
                 }
             )
 
@@ -1147,7 +1765,52 @@ class DegradationModel(Model):
                 q, q_der, incentive_coeffs = self.incentive_coeffs,
             )
 
-            _, cell_loss, _ = self.cell_from_indices(
+            scale, scale_der = create_derivatives(
+                self.scale_for_derivative,
+                params = {
+                    "cycle": sampled_cycles,
+                    "features": sampled_features,
+                    Key.SVIT_GRID: sampled_svit_grid,
+                    Key.COUNT_MATRIX: sampled_count_matrix
+                },
+                der_params = {"cycle": 3, "features": 2}
+            )
+
+            scale_loss = calculate_scale_loss(
+                scale, scale_der, incentive_coeffs = self.incentive_coeffs,
+            )
+
+            shift, shift_der, shift_internal_loss = create_derivatives(
+                self.shift_for_derivative,
+                params = {
+                    "cycle": sampled_cycles,
+                    "features": sampled_features,
+                    Key.SVIT_GRID: sampled_svit_grid,
+                    Key.COUNT_MATRIX: sampled_count_matrix,
+                },
+                der_params = {"features": 2, "cycle": 3},
+                internal_loss = True,
+            )
+            shift_loss = calculate_shift_loss(
+                shift, shift_der,
+                incentive_coeffs = self.incentive_coeffs,
+            ) + shift_internal_loss
+
+            r, r_der = create_derivatives(
+                self.r_for_derivative,
+                params = {
+                    "cycle": sampled_cycles,
+                    "features": sampled_features,
+                    Key.SVIT_GRID: sampled_svit_grid,
+                    Key.COUNT_MATRIX: sampled_count_matrix,
+                },
+                der_params = {"cycle": 3, "features": 2}
+            )
+            r_loss = calculate_r_loss(
+                r, r_der, incentive_coeffs = self.incentive_coeffs,
+            )
+
+            _, cell_loss, _, _, _, _ = self.cell_from_indices(
                 indices = tf.range(
                     self.cell_direct.num_keys,
                     dtype = tf.int32,
@@ -1157,7 +1820,65 @@ class DegradationModel(Model):
                 compute_derivatives = True,
             )
 
-            returns["q_loss"] = q_loss
-            returns["cell_loss"] = cell_loss
+            return {
+                "pred_cc_capacity": pred_cc_capacity,
+                "pred_cv_capacity": pred_cv_capacity,
+                "pred_cc_voltage": pred_cc_voltage,
+                "pred_cv_voltage": pred_cv_voltage,
 
-        return returns
+                "q_loss": q_loss,
+                "scale_loss": scale_loss,
+                "r_loss": r_loss,
+                "shift_loss": shift_loss,
+                "cell_loss": cell_loss,
+                "reciprocal_loss": reciprocal_loss,
+                "projection_loss": projection_loss,
+                "out_of_bounds_loss": (
+                    out_of_bounds_loss + out_of_bounds_loss_1
+                    + out_of_bounds_loss_2 + out_of_bounds_loss_3
+                ),
+            }
+
+        else:
+
+            norm_constant = get_norm_constant(features = params["features"])
+
+            norm_cycle = get_norm_cycle_direct(
+                cycle = params["cycle"], norm_constant = norm_constant,
+            )
+
+            cell_features = get_cell_features(features = params["features"])
+
+            encoded_stress = self.stress_to_encoded_direct(
+                svit_grid = params[Key.SVIT_GRID],
+                count_matrix = params[Key.COUNT_MATRIX],
+            )
+
+            scale = self.scale_direct(
+                cell_features = cell_features,
+                encoded_stress = encoded_stress,
+                norm_cycle = norm_cycle,
+                training = training
+            )
+
+            shift, _ = self.shift_direct(
+                cell_features = cell_features,
+                encoded_stress = encoded_stress,
+                norm_cycle = norm_cycle,
+                training = training
+            )
+
+            resistance = self.r_direct(
+                cell_features = cell_features,
+                encoded_stress = encoded_stress,
+                norm_cycle = norm_cycle,
+                training = training
+            )
+
+            return {
+                "pred_cc_capacity": pred_cc_capacity,
+                "pred_cv_capacity": pred_cv_capacity,
+                "pred_R": resistance,
+                "pred_scale": scale,
+                "pred_shift": shift,
+            }

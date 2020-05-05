@@ -53,30 +53,56 @@ class Key:
     COUNT_MATRIX = "count_matrix"
     SVIT_GRID = "svit_grid"
 
-    WIDTH = "width"
-    DEPTH = "depth"
-    LRN_RATE = "learning_rate"
-    BATCH = "batch_size"
-    PATH_DATASET = "path_to_dataset"
-    PATH_PLOTS = "path_to_plots"
     PATH_V_CURVES = "path_v_curves"
     PATH_V_CURVES_META = "path_v_curves_meta"
-    DATA_VERSION = "dataset_version"
     BARCODES = "wanted_barcodes"
     STOP = "stop_count"
-    VIS = "visualize_fit_every"
     PRINT_LOSS = "print_loss_every"
-    MIN_LAT = "min_latent"
-    GLB_NORM_CLIP = "global_norm_clip"
 
-    # Begin: fit_args-related keys =============================================
+    # Begin: options-related keys ==============================================
 
     OPTIONS = "options"
+
+    PATH_DATA = "path_to_dataset"
+    PATH_PLOTS = "path_to_plots"
+    DATA_VER = "dataset_version"
+
+    GLB_NORM_CLIP = "global_norm_clip"
+    LRN_RATE = "learning_rate"
+    MIN_LAT = "min_latent"
+    COEFF_FEAT_CELL_DER_ = "coeff_d_features_cell"
+    COEFF_FEAT_CELL_DER2 = "coeff_d2_features_cell"
+    COEFF_CELL = "coeff_cell"
+    COEFF_CELL_OUT = "coeff_cell_output"
+    COEFF_CELL_IN = "coeff_cell_input"
+    COEFF_CELL_DER = "coeff_cell_derivative"
+    COEFF_CELL_EQ = "coeff_cell_eq"
+    COEFF_LYTE = "coeff_electrolyte"
+    COEFF_LYTE_OUT = "coeff_electrolyte_output"
+    COEFF_LYTE_IN = "coeff_electrolyte_input"
+    COEFF_LYTE_DER = "coeff_electrolyte_derivative"
+    COEFF_LYTE_EQ = "coeff_electrolyte_eq"
+    COEFF_Q_CV = "coeff_cv_capacity"
+    COEFF_Q_CC = "coeff_cc_capacity"
+    COEFF_Q = "coeff_q"
+    COEFF_Q_GEQ = "coeff_q_geq"
+    COEFF_Q_LEQ = "coeff_q_leq"
+    COEFF_Q_V_MONO = "coeff_q_v_mono"
+    COEFF_Q_DER3_V = "coeff_q_d3_v"
+    COEFF_Q_DER3_I = "coeff_q_d3_current"
+    COEFF_Q_DER3_N = "coeff_q_d3_cycle"
+    COEFF_Q_DER_I = "coeff_q_d_current"
+    COEFF_Q_DER_N = "coeff_q_d_cycle"
 
     MIN_V_GRID = "voltage_grid_min_v"
     MAX_V_GRID = "voltage_grid_max_v"
 
-    # End: keys from complie_dataset.Command.add_arguments =====================
+    WIDTH = "width"
+    DEPTH = "depth"
+    BATCH = "batch_size"
+    VIS_FIT = "visualize_fit_every"
+
+    # End: options-related keys ================================================
 
     """ Structured array with dtype:
         [

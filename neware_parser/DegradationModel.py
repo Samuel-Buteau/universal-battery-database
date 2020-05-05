@@ -86,7 +86,7 @@ def print_cell_info(
     # TODO: names being a tuple is really dumb. use some less error prone way.
     pos_to_pos_name, neg_to_neg_name = names[0], names[1]
     lyte_to_lyte_name = names[2]
-    molecule_to_molecule_name = names[3]
+    mol_to_mol_name = names[3]
     dry_cell_to_dry_cell_name = names[4]
 
     print("\ncell_id: Known Components (Y/N):\n")
@@ -157,9 +157,9 @@ def print_cell_info(
                     print("\t{}:".format(st))
                     components = lyte_to[lyte_id]
                     for s, w in components:
-                        if s in molecule_to_molecule_name.keys():
+                        if s in mol_to_mol_name.keys():
                             print("\t\t{} {}".format(
-                                w, molecule_to_molecule_name[s])
+                                w, mol_to_mol_name[s])
                             )
                         else:
                             print("\t\t{} id {}".format(w, s))
@@ -448,11 +448,11 @@ class DegradationModel(Model):
                 if lyte_id in lyte_to.keys():
                     my_components = lyte_to[lyte_id]
                     for i in range(len(my_components)):
-                        molecule_id, weight = my_components[i]
+                        mol_id, weight = my_components[i]
                         pointers[
                             self.lyte_direct.id_dict[lyte_id],
                             i + reference_index,
-                        ] = mol_dict[molecule_id]
+                        ] = mol_dict[mol_id]
                         weights[
                             self.lyte_direct.id_dict[lyte_id],
                             i + reference_index,
@@ -551,12 +551,12 @@ class DegradationModel(Model):
             fetched_pointers_lyte, [-1],
         )
 
-        features_molecule, loss_molecule = self.mol_direct(
+        feats_mol, loss_mol = self.mol_direct(
             fetched_pointers_lyte_reshaped,
             training = training, sample = sample,
         )
-        features_molecule_reshaped = tf.reshape(
-            features_molecule,
+        feats_mol_reshaped = tf.reshape(
+            feats_mol,
             [
                 -1,
                 self.n_sol_max + self.n_salt_max + self.n_additive_max,
@@ -565,8 +565,8 @@ class DegradationModel(Model):
         )
 
         if training:
-            loss_molecule_reshaped = tf.reshape(
-                loss_molecule,
+            loss_mol_reshaped = tf.reshape(
+                loss_mol,
                 [
                     -1,
                     self.n_sol_max + self.n_salt_max + self.n_additive_max,
@@ -574,10 +574,10 @@ class DegradationModel(Model):
                 ]
             )
 
-        fetched_molecule_weights = tf.reshape(
+        fetched_mol_weights = tf.reshape(
             fetched_weights_lyte,
             [-1, self.n_sol_max + self.n_salt_max + self.n_additive_max, 1],
-        ) * features_molecule_reshaped
+        ) * feats_mol_reshaped
 
         total_solvent = 1. / (1e-10 + tf.reduce_sum(
             fetched_weights_lyte[:, 0:self.n_sol_max],
@@ -585,17 +585,17 @@ class DegradationModel(Model):
         ))
 
         features_solvent = tf.reshape(total_solvent, [-1, 1]) * tf.reduce_sum(
-            fetched_molecule_weights[:, 0:self.n_sol_max, :],
+            fetched_mol_weights[:, 0:self.n_sol_max, :],
             axis = 1,
         )
         features_salt = tf.reduce_sum(
-            fetched_molecule_weights[
+            fetched_mol_weights[
             :, self.n_sol_max:self.n_sol_max + self.n_salt_max, :,
             ],
             axis = 1,
         )
         features_additive = tf.reduce_sum(
-            fetched_molecule_weights[
+            fetched_mol_weights[
             :,
             self.n_sol_max + self.n_salt_max:
             self.n_sol_max + self.n_salt_max + self.n_additive_max,
@@ -605,26 +605,26 @@ class DegradationModel(Model):
         )
 
         if training:
-            fetched_molecule_loss_weights = tf.reshape(
+            fetched_mol_loss_weights = tf.reshape(
                 fetched_weights_lyte,
                 [
                     -1,
                     self.n_sol_max + self.n_salt_max + self.n_additive_max,
                     1,
                 ]
-            ) * loss_molecule_reshaped
+            ) * loss_mol_reshaped
             loss_solvent = tf.reshape(total_solvent, [-1, 1]) * tf.reduce_sum(
-                fetched_molecule_loss_weights[:, 0:self.n_sol_max, :],
+                fetched_mol_loss_weights[:, 0:self.n_sol_max, :],
                 axis = 1,
             )
             loss_salt = tf.reduce_sum(
-                fetched_molecule_loss_weights[
+                fetched_mol_loss_weights[
                 :, self.n_sol_max:self.n_sol_max + self.n_salt_max, :,
                 ],
                 axis = 1,
             )
             loss_additive = tf.reduce_sum(
-                fetched_molecule_loss_weights[
+                fetched_mol_loss_weights[
                 :,
                 self.n_sol_max + self.n_salt_max:
                 self.n_sol_max + self.n_salt_max + self.n_additive_max,

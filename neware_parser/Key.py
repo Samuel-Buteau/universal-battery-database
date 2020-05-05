@@ -243,3 +243,7 @@ class Key:
         RECIP = "reciprocal_loss"
         PROJ = "projection_loss"
         OOB = "out_of_bounds_loss"
+
+    class Pred:
+        I_CC = "pred_cc_capacity"
+        I_CV = "pred_cv_capacity"

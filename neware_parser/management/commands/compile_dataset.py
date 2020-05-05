@@ -160,7 +160,7 @@ def get_component_from_electrolyte(electrolyte):
     return weight_dict, name_dict
 
 
-def make_my_barcodes(fit_args):
+def get_barcodes(fit_args):
     """
 
     Args:
@@ -169,7 +169,7 @@ def make_my_barcodes(fit_args):
     Returns:
 
     """
-    my_barcodes = CyclingFile.objects.filter(
+    barcodes = CyclingFile.objects.filter(
         database_file__deprecated = False,
         database_file__is_valid = True
     ).exclude(
@@ -182,7 +182,7 @@ def make_my_barcodes(fit_args):
     ).distinct()
 
     used_barcodes = []
-    for b in my_barcodes:
+    for b in barcodes:
         if (
             ChargeCycleGroup.objects.filter(barcode = b).exists()
             or DischargeCycleGroup.objects.filter(barcode = b).exists()
@@ -198,7 +198,7 @@ def make_my_barcodes(fit_args):
 
 
 # TODO (harvey): reformat docstring
-def initial_processing(my_barcodes, fit_args, flags):
+def initial_processing(barcodes, fit_args, flags):
     """
 
     Returns:
@@ -217,21 +217,21 @@ def initial_processing(my_barcodes, fit_args, flags):
         fit_args[Key.MIX_V_GRID],
         fit_args[Key.MAX_V_GRID],
         int(fit_args[Key.V_N_GRID] / 4),
-        my_barcodes
+        barcodes,
     )
 
     current_grid = make_current_grid(
         fit_args[Key.I_MIN_GRID],
         fit_args[Key.I_MAX_GRID],
         fit_args[Key.I_N_GRID],
-        my_barcodes
+        barcodes,
     )
 
     temperature_grid = make_temperature_grid(
         fit_args[Key.TEMP_GRID_MIN_V],
         fit_args[Key.TEMP_GRID_MAX_V],
         fit_args[Key.TEMP_GRID_N],
-        my_barcodes
+        barcodes,
     )
     sign_grid = make_sign_grid()
 
@@ -241,7 +241,7 @@ def initial_processing(my_barcodes, fit_args, flags):
     - things are split up this way to sample each group equally
     - each barcode corresponds to a single cell
     """
-    for barcode in my_barcodes:
+    for barcode in barcodes:
         """
         - dictionary indexed by charging and discharging rate (i.e. cycle group)
         - contains structured arrays of
@@ -403,7 +403,7 @@ def initial_processing(my_barcodes, fit_args, flags):
                             current_max_n = fit_args[Key.I_MAX],
                             voltage_grid_min_v = fit_args[Key.MIN_V_GRID],
                             voltage_grid_max_v = fit_args[Key.MAX_V_GRID],
-                            flagged = flagged
+                            flagged = flagged,
                         )
 
                         if post_process_results is None:
@@ -473,19 +473,6 @@ def initial_processing(my_barcodes, fit_args, flags):
             Key.REF_ALL_MATS: all_reference_mats,
         }
 
-    """
-    "cell_id_list": 1D array of barcodes
-    "pos_id_list": 1D array of positive electrode ids
-    "neg_id_list": 1D array of negative electrode ids
-    "electrolyte_id_list": 1D array of electrolyte ids
-    Key.CELL_TO_POS: a dictionary indexed by barcode yielding a positive
-        electrode id.
-    Key.CELL_TO_NEG: a dictionary indexed by barcode yielding a positive
-        electrode id.
-    Key.CELL_TO_ELE: a dictionary indexed by barcode yielding a
-        positive electrode id.
-    """
-
     cell_id_to_pos_id = {}
     cell_id_to_neg_id = {}
     cell_id_to_electrolyte_id = {}
@@ -504,7 +491,7 @@ def initial_processing(my_barcodes, fit_args, flags):
     dry_cell_to_dry_cell_name = {}
     molecule_to_molecule_name = {}
 
-    for cell_id in my_barcodes:
+    for cell_id in barcodes:
         pos, pos_name = get_pos_id_from_cell_id(cell_id)
         neg, neg_name = get_neg_id_from_cell_id(cell_id)
         electrolyte, electrolyte_name = get_electrolyte_id_from_cell_id(cell_id)
@@ -607,9 +594,18 @@ def initial_processing(my_barcodes, fit_args, flags):
 
 
 def compile_dataset(fit_args):
+    """
+    Main function for handling the process of compiling the dataset
+
+    Args:
+        fit_args:
+
+    Returns:
+
+    """
     if not os.path.exists(fit_args[Key.PATH_DATASET]):
         os.mkdir(fit_args[Key.PATH_DATASET])
-    my_barcodes = make_my_barcodes(fit_args)
+    barcodes = get_barcodes(fit_args)
 
     flags = {}
     if fit_args["path_to_flags"] != '':
@@ -618,7 +614,7 @@ def compile_dataset(fit_args):
             with open(flag_filename, 'rb') as file:
                 flags = pickle.load(file)
 
-    pick, pick_names = initial_processing(my_barcodes, fit_args, flags)
+    pick, pick_names = initial_processing(barcodes, fit_args, flags)
     with open(
         os.path.join(
             fit_args[Key.PATH_DATASET],

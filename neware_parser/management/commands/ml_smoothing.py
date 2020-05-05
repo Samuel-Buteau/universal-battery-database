@@ -771,14 +771,14 @@ def train_step(neighborhood, params, fit_args):
         )
 
         main_losses = (
-            fit_args[Key.Coeff.Q_CV] * cv_capacity_loss
-            + fit_args[Key.Coeff.Q_CC] * cc_capacity_loss
+            fit_args[Key.COEFF_Q_CV] * cv_capacity_loss
+            + fit_args[Key.COEFF_Q_CC] * cc_capacity_loss
         )
         loss = (
             main_losses
             + tf.stop_gradient(main_losses) * (
-                fit_args[Key.Coeff.Q] * train_results[Key.Loss.Q]
-                + fit_args[Key.Coeff.CELL] * train_results[Key.Loss.CELL]
+                fit_args[Key.COEFF_Q] * train_results[Key.Loss.Q]
+                + fit_args[Key.COEFF_CELL] * train_results[Key.Loss.CELL]
             )
         )
 

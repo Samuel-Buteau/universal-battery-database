@@ -67,7 +67,7 @@ class Key:
     GLB_NORM_CLIP = "global_norm_clip"
     LRN_RATE = "learning_rate"
     MIN_LAT = "min_latent"
-    COEFF_FEAT_CELL_DER_ = "coeff_d_features_cell"
+    COEFF_FEAT_CELL_DER = "coeff_d_features_cell"
     COEFF_FEAT_CELL_DER2 = "coeff_d2_features_cell"
     COEFF_CELL = "coeff_cell"
     COEFF_CELL_OUT = "coeff_cell_output"
@@ -212,14 +212,10 @@ class Key:
 
     # TODO (harvey): replace the following class of keys
     class Coeff:
-        Q = "coeff_q"
-        Q_CV = "coeff_cv_capacity"
-        Q_CC = "coeff_cc_capacity"
         V_CC = "coeff_cc_voltage"
         SCALE = "coeff_scale"
         R = "coeff_r"
         SHIFT = "coeff_shift"
-        CELL = "coeff_cell"
         RECIP = "coeff_reciprocal"
         PROJ = "coeff_projection"
         OOB = "coeff_out_of_bounds"

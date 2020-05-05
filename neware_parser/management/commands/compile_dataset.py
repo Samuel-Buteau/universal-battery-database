@@ -593,32 +593,30 @@ def initial_processing(barcodes, fit_args, flags):
            }
 
 
-def compile_dataset(fit_args):
-    """
-    Main function for handling the process of compiling the dataset
+def compile_dataset(options):
+    """ Main function for handling the process of compiling the dataset.
+
+    The compiled dataset are written to pickle files.
 
     Args:
-        fit_args:
-
-    Returns:
-
+        options: A dictionary of arguments for compiling and fitting datasets.
     """
-    if not os.path.exists(fit_args[Key.PATH_DATASET]):
-        os.mkdir(fit_args[Key.PATH_DATASET])
-    barcodes = get_barcodes(fit_args)
+    if not os.path.exists(options[Key.PATH_DATASET]):
+        os.mkdir(options[Key.PATH_DATASET])
+    barcodes = get_barcodes(options)
 
     flags = {}
-    if fit_args["path_to_flags"] != '':
-        flag_filename = os.path.join(fit_args["path_to_flags"], "FLAGS.file")
+    if options["path_to_flags"] != '':
+        flag_filename = os.path.join(options["path_to_flags"], "FLAGS.file")
         if os.path.exists(flag_filename):
             with open(flag_filename, 'rb') as file:
                 flags = pickle.load(file)
 
-    pick, pick_names = initial_processing(barcodes, fit_args, flags)
+    pick, pick_names = initial_processing(barcodes, options, flags)
     with open(
         os.path.join(
-            fit_args[Key.PATH_DATASET],
-            "dataset_ver_{}.file".format(fit_args[Key.DATA_VERSION])
+            options[Key.PATH_DATASET],
+            "dataset_ver_{}.file".format(options[Key.DATA_VERSION])
         ),
         "wb"
     ) as f:
@@ -626,8 +624,8 @@ def compile_dataset(fit_args):
 
     with open(
         os.path.join(
-            fit_args[Key.PATH_DATASET],
-            "dataset_ver_{}_names.file".format(fit_args[Key.DATA_VERSION])
+            options[Key.PATH_DATASET],
+            "dataset_ver_{}_names.file".format(options[Key.DATA_VERSION])
         ),
         "wb"
     ) as f:

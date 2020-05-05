@@ -569,7 +569,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                     plot_params = {
                         "barcodes": barcodes,
                         "count": count,
-                        Key.FIT_ARGS: fit_args,
+                        Key.OPTIONS: fit_args,
                     }
 
                     if (count % fit_args[Key.VIS]) == 0:
@@ -819,70 +819,70 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
 
         required_args = [
-            "--path_to_dataset",
-            "--dataset_version",
-            "--path_to_plots",
-
+            "path_to_dataset",
+            "dataset_version",
+            "path_to_plots",
         ]
 
         float_args = {
-            "--global_norm_clip": 10.,
+            "global_norm_clip": 10.,
 
-            "--learning_rate": 5e-4,
-            "--min_latent": .05,
+            "learning_rate": 5e-4,
+            "min_latent": .05,
 
-            "--coeff_d_features_cell": .001,
-            "--coeff_d2_features_cell": .01,
+            "coeff_d_features_cell": .001,
+            "coeff_d2_features_cell": .01,
 
-            "--coeff_cell": 1.,
-            "--coeff_cell_output": .1,
-            "--coeff_cell_input": .1,
-            "--coeff_cell_derivative": .1,
-            "--coeff_cell_eq": 10.,
+            "coeff_cell": 1.,
+            "coeff_cell_output": .1,
+            "coeff_cell_input": .1,
+            "coeff_cell_derivative": .1,
+            "coeff_cell_eq": 10.,
 
-            "--coeff_electrolyte": 1.,
-            "--coeff_electrolyte_output": .1,
-            "--coeff_electrolyte_input": .1,
-            "--coeff_electrolyte_derivative": .1,
-            "--coeff_electrolyte_eq": 10.,
+            "coeff_electrolyte": 1.,
+            "coeff_electrolyte_output": .1,
+            "coeff_electrolyte_input": .1,
+            "coeff_electrolyte_derivative": .1,
+            "coeff_electrolyte_eq": 10.,
 
-            "--coeff_cv_capacity": 1.,
-            "--coeff_cc_capacity": 1.,
+            "coeff_cv_capacity": 1.,
+            "coeff_cc_capacity": 1.,
 
-            "--coeff_q": 1.,
-            "--coeff_q_geq": 1.,
-            "--coeff_q_leq": 1.,
-            "--coeff_q_v_mono": .1,
-            "--coeff_q_d3_v": 1.,
-            "--coeff_q_d3_current": 1.,
-            "--coeff_q_d3_cycle": 1.,
-            "--coeff_q_d_current": 1.,
-            "--coeff_q_d_cycle": 10.,
-
+            "coeff_q": 1.,
+            "coeff_q_geq": 1.,
+            "coeff_q_leq": 1.,
+            "coeff_q_v_mono": .1,
+            "coeff_q_d3_v": 1.,
+            "coeff_q_d3_current": 1.,
+            "coeff_q_d3_cycle": 1.,
+            "coeff_q_d_current": 1.,
+            "coeff_q_d_cycle": 10.,
         }
 
         vis = 10000
         int_args = {
-            "--n_sample": 8 * 16,
+            "n_sample": 8 * 16,
 
-            "--depth": 3,
-            "--width": 50,
-            "--batch_size": 4 * 16,
+            "depth": 3,
+            "width": 50,
+            "batch_size": 4 * 16,
 
-            "--print_loss_every": 500,
-            "--visualize_fit_every": vis,
-            "--visualize_vq_every": vis,
+            "print_loss_every": 500,
+            "visualize_fit_every": vis,
+            "visualize_vq_every": vis,
 
-            "--stop_count": 1000004,
-            "--barcode_show": 10,
+            "stop_count": 1000004,
+            "barcode_show": 10,
         }
 
         for arg in required_args:
-            parser.add_argument(arg, required = True)
+            parser.add_argument("--" + arg, required = True)
         for arg in float_args:
-            parser.add_argument(arg, type = float, default = float_args[arg])
+            parser.add_argument(
+                "--" + arg, type = float, default = float_args[arg],
+            )
         for arg in int_args:
-            parser.add_argument(arg, type = int, default = int_args[arg])
+            parser.add_argument("--" + arg, type = int, default = int_args[arg])
 
         barcodes = [
             57706, 57707, 57710, 57711, 57714, 57715, 64260, 64268, 83010,

@@ -238,9 +238,9 @@ def plot_vq(plot_params, init_returns):
 
     """
     barcodes\
-        = plot_params["barcodes"][:plot_params[Key.FIT_ARGS]["barcode_show"]]
+        = plot_params["barcodes"][:plot_params[Key.OPTIONS]["barcode_show"]]
     count = plot_params["count"]
-    fit_args = plot_params[Key.FIT_ARGS]
+    fit_args = plot_params[Key.OPTIONS]
 
     degradation_model = init_returns[Key.MODEL]
     my_data = init_returns[Key.DATASET]
@@ -551,9 +551,9 @@ def plot_capacity(
 
 def plot_things_vs_cycle_number(plot_params, init_returns):
     barcodes\
-        = plot_params["barcodes"][:plot_params[Key.FIT_ARGS]["barcode_show"]]
+        = plot_params["barcodes"][:plot_params[Key.OPTIONS]["barcode_show"]]
     count = plot_params["count"]
-    fit_args = plot_params[Key.FIT_ARGS]
+    fit_args = plot_params[Key.OPTIONS]
 
     degradation_model = init_returns[Key.MODEL]
     my_data = init_returns[Key.DATASET]

@@ -1821,8 +1821,8 @@ class DegradationModelNaiveStructure(Model):
             )
 
             return {
-                "pred_cc_capacity": pred_cc_capacity,
-                "pred_cv_capacity": pred_cv_capacity,
+                Key.Pred.I_CC: pred_cc_capacity,
+                Key.Pred.I_CV: pred_cv_capacity,
                 "pred_cc_voltage": pred_cc_voltage,
                 "pred_cv_voltage": pred_cv_voltage,
 
@@ -1876,8 +1876,8 @@ class DegradationModelNaiveStructure(Model):
             )
 
             return {
-                "pred_cc_capacity": pred_cc_capacity,
-                "pred_cv_capacity": pred_cv_capacity,
+                Key.Pred.I_CC: pred_cc_capacity,
+                Key.Pred.I_CV: pred_cv_capacity,
                 "pred_R": resistance,
                 "pred_scale": scale,
                 "pred_shift": shift,

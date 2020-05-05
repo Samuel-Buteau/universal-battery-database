@@ -1108,8 +1108,8 @@ class DegradationModel(Model):
         pred_cv_capacity = tf.reshape(cv_capacity, [-1, current_count])
 
         returns = {
-            "pred_cc_capacity": pred_cc_capacity,
-            "pred_cv_capacity": pred_cv_capacity,
+            Key.Pred.I_CC: pred_cc_capacity,
+            Key.Pred.I_CV: pred_cv_capacity,
         }
 
         if training:

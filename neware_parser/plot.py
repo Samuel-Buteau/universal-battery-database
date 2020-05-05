@@ -359,13 +359,13 @@ def plot_vq(plot_params, init_returns):
 
                     if mode == "cc":
                         pred_cap = tf.reshape(
-                            test_results["pred_cc_capacity"], shape = [-1]
+                            test_results[Key.Pred.I_CC], shape = [-1]
                         )
                         yrange = v_range
                     elif mode == "cv":
                         yrange = current_range
                         pred_cap = tf.reshape(
-                            test_results["pred_cv_capacity"], shape = [-1]
+                            test_results[Key.Pred.I_CV], shape = [-1]
                         )
 
                     ax.set_xlim(x_lim)
@@ -502,11 +502,11 @@ def plot_predicted(
 
         if mode == "cc":
             pred_cap = tf.reshape(
-                test_results["pred_cc_capacity"],
+                test_results[Key.Pred.I_CC],
                 shape = [-1]
             )
         elif mode == "cv":
-            pred_cap = test_results["pred_cv_capacity"].numpy()[:, -1]
+            pred_cap = test_results[Key.Pred.I_CV].numpy()[:, -1]
 
         ax1.plot(cycle, sign_change * pred_cap, c = COLORS[k_count])
 

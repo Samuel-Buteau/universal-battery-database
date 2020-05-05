@@ -214,8 +214,8 @@ def initial_processing(my_barcodes, fit_args, flags):
     all_data = {}
 
     voltage_grid_degradation = make_voltage_grid(
-        fit_args[Key.V_MIN_GRID],
-        fit_args[Key.V_MAX_GRID],
+        fit_args[Key.MIX_V_GRID],
+        fit_args[Key.MAX_V_GRID],
         int(fit_args[Key.V_N_GRID] / 4),
         my_barcodes
     )
@@ -346,9 +346,11 @@ def initial_processing(my_barcodes, fit_args, flags):
             for cyc_group in groups:
                 result = []
 
-                future_key = (cyc_group.constant_rate, cyc_group.end_rate_prev,
-                              cyc_group.end_rate, cyc_group.end_voltage,
-                              cyc_group.end_voltage_prev, typ)
+                future_key = (
+                    cyc_group.constant_rate, cyc_group.end_rate_prev,
+                    cyc_group.end_rate, cyc_group.end_voltage,
+                    cyc_group.end_voltage_prev, typ,
+                )
 
                 if any([
                     abs(cyc_group.end_rate_prev) < 1e-5,

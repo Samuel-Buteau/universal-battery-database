@@ -19,8 +19,6 @@ class Key:
     V_PREV_END = "end_voltage_prev"
     V_PREV_END_AVG = "avg_end_voltage_prev"
     V_END_AVG = "avg_end_voltage"
-    V_MIN_GRID = "voltage_grid_min_v"
-    V_MAX_GRID = "voltage_grid_max_v"
     V_N_GRID = "voltage_grid_n_samples"
 
     Q_CC = "cc_capacities"

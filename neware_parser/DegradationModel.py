@@ -259,16 +259,8 @@ def create_derivatives(nn, params, der_params, internal_loss = False):
 
 class DegradationModel(Model):
     """
-    The Model responsible for the machine learning modelling aspect of the
-    project.
-    This version of Degradation Model has almost no internal structure.
-    We shall have multiple DegradationModels based on their level of internal
-    structure this is a deliberate choice allowing quick comparison but also
-    keeping each independent as they might become pretty different and there
-    are things I want to try that don't fit within the existing model.
-
-    Attributes:
-        nn_r (dict): Neural network for R.
+    The model responsible for the machine learning modelling aspect of the
+    project. This version of Degradation Model has almost no internal structure.
     """
 
     def __init__(
@@ -399,12 +391,8 @@ class DegradationModel(Model):
             depth, width, last = self.num_feats,
         )
 
-        self.n_sol_max = numpy.max(
-            [len(v) for v in lyte_to_solvent.values()]
-        )
-        self.n_salt_max = numpy.max(
-            [len(v) for v in lyte_to_salt.values()]
-        )
+        self.n_sol_max = numpy.max([len(v) for v in lyte_to_solvent.values()])
+        self.n_salt_max = numpy.max([len(v) for v in lyte_to_salt.values()])
         self.n_additive_max = numpy.max(
             [len(v) for v in lyte_to_additive.values()]
         )
@@ -524,18 +512,12 @@ class DegradationModel(Model):
         # TODO(sam): this is not quite right
         loss_dry_cell = loss_dry_cell_unknown
 
-        (
-            feats_lyte_direct, loss_lyte_direct
-        ) = self.lyte_direct(
-            lyte_indices,
-            training = training,
-            sample = sample
+        feats_lyte_direct, loss_lyte_direct = self.lyte_direct(
+            lyte_indices, training = training, sample = sample,
         )
 
         fetched_lat_lyte = tf.gather(
-            self.lyte_lat_flags,
-            lyte_indices,
-            axis = 0
+            self.lyte_lat_flags, lyte_indices, axis = 0,
         )
         fetched_lat_lyte = (
             self.min_lat + (1 - self.min_lat) * fetched_lat_lyte
@@ -574,10 +556,10 @@ class DegradationModel(Model):
                 ]
             )
 
-        fetched_mol_weights = tf.reshape(
+        fetched_mol_weights = feats_mol_reshaped * tf.reshape(
             fetched_weights_lyte,
             [-1, self.n_sol_max + self.n_salt_max + self.n_additive_max, 1],
-        ) * feats_mol_reshaped
+        )
 
         total_solvent = 1. / (1e-10 + tf.reduce_sum(
             fetched_weights_lyte[:, 0:self.n_sol_max],
@@ -605,14 +587,10 @@ class DegradationModel(Model):
         )
 
         if training:
-            fetched_mol_loss_weights = tf.reshape(
+            fetched_mol_loss_weights = loss_mol_reshaped * tf.reshape(
                 fetched_weights_lyte,
-                [
-                    -1,
-                    self.n_sol_max + self.n_salt_max + self.n_additive_max,
-                    1,
-                ]
-            ) * loss_mol_reshaped
+                [-1, self.n_sol_max + self.n_salt_max + self.n_additive_max, 1],
+            )
             loss_solvent = tf.reshape(total_solvent, [-1, 1]) * tf.reduce_sum(
                 fetched_mol_loss_weights[:, 0:self.n_sol_max, :],
                 axis = 1,
@@ -649,22 +627,17 @@ class DegradationModel(Model):
                 )
 
                 feats_lyte_indirect = nn_call(
-                    self.lyte_indirect,
-                    lyte_dependencies,
-                    training = training,
+                    self.lyte_indirect, lyte_dependencies, training = training,
                 )
 
             derivatives["d_features_solvent"] = tape_d1.batch_jacobian(
-                source = feats_solvent,
-                target = feats_lyte_indirect,
+                source = feats_solvent, target = feats_lyte_indirect,
             )
             derivatives["d_features_salt"] = tape_d1.batch_jacobian(
-                source = feats_salt,
-                target = feats_lyte_indirect,
+                source = feats_salt, target = feats_lyte_indirect,
             )
             derivatives["d_features_additive"] = tape_d1.batch_jacobian(
-                source = feats_additive,
-                target = feats_lyte_indirect,
+                source = feats_additive, target = feats_lyte_indirect,
             )
 
             del tape_d1
@@ -676,9 +649,7 @@ class DegradationModel(Model):
             )
 
             feats_lyte_indirect = nn_call(
-                self.lyte_indirect,
-                lyte_dependencies,
-                training = training,
+                self.lyte_indirect, lyte_dependencies, training = training,
             )
 
         feats_lyte = (
@@ -688,8 +659,8 @@ class DegradationModel(Model):
 
         loss_lyte_eq = tf.reduce_mean(
             (1. - fetched_lat_lyte) * incentive_inequality(
-                feats_lyte_direct, Inequality.Equals,
-                feats_lyte_indirect, Level.Proportional,
+                feats_lyte_direct, Inequality.Equals, feats_lyte_indirect,
+                Level.Proportional,
             )
         )
 
@@ -703,7 +674,10 @@ class DegradationModel(Model):
                 tape_d1.watch(feats_dry_cell)
 
                 cell_dependencies = (
-                    feats_pos, feats_neg, feats_lyte, feats_dry_cell,
+                    feats_pos,
+                    feats_neg,
+                    feats_lyte,
+                    feats_dry_cell,
                 )
 
                 feats_cell_indirect = nn_call(
@@ -737,8 +711,8 @@ class DegradationModel(Model):
             )
 
         feats_cell = (
-            (fetched_latent_cell * feats_cell_direct) +
-            ((1. - fetched_latent_cell) * feats_cell_indirect)
+            fetched_latent_cell * feats_cell_direct
+            + (1. - fetched_latent_cell) * feats_cell_indirect
         )
         loss_cell_eq = tf.reduce_mean(
             (1. - fetched_latent_cell) * incentive_inequality(
@@ -885,23 +859,21 @@ class DegradationModel(Model):
         # NOTE(sam): this is an example of a forall.
         # (for all voltages, and all cell features)
         sampled_vs = tf.random.uniform(
-            minval = 2.5, maxval = 5., shape = [n_sample, 1]
+            minval = 2.5, maxval = 5., shape = [n_sample, 1],
         )
         sampled_qs = tf.random.uniform(
-            minval = -.25, maxval = 1.25, shape = [n_sample, 1]
+            minval = -.25, maxval = 1.25, shape = [n_sample, 1],
         )
         sampled_cycles = tf.random.uniform(
-            minval = -.1, maxval = 5., shape = [n_sample, 1]
+            minval = -.1, maxval = 5., shape = [n_sample, 1],
         )
         sampled_constant_current = tf.random.uniform(
             minval = tf.math.log(0.001), maxval = tf.math.log(5.),
-            shape = [n_sample, 1]
+            shape = [n_sample, 1],
         )
         sampled_constant_current = tf.exp(sampled_constant_current)
         sampled_constant_current_sign = tf.random.uniform(
-            minval = 0, maxval = 1,
-            shape = [n_sample, 1], dtype = tf.int32,
-
+            minval = 0, maxval = 1, shape = [n_sample, 1], dtype = tf.int32,
         )
         sampled_constant_current_sign = tf.cast(
             sampled_constant_current_sign, dtype = tf.float32,
@@ -919,8 +891,7 @@ class DegradationModel(Model):
                 maxval = self.cell_direct.num_keys,
                 shape = [n_sample], dtype = tf.int32,
             ),
-            training = False,
-            sample = True
+            training = False, sample = True,
         )
         sampled_feats_cell = tf.stop_gradient(sampled_feats_cell)
 
@@ -967,23 +938,23 @@ class DegradationModel(Model):
             v = params[Key.V_PREV_END],
             feats_cell = params[Key.CELL_FEAT],
             current = params[Key.I_PREV],
-            training = training
+            training = training,
         )
 
         q_1 = self.q_direct(
             encoded_stress = add_v_dep(
                 encoded_stress,
                 params,
-                encoded_stress.shape[1]
+                encoded_stress.shape[1],
             ),
             cycle = add_v_dep(params[Key.CYC], params),
             v = params[Key.V],
             feats_cell = add_v_dep(
                 params[Key.CELL_FEAT], params,
-                params[Key.CELL_FEAT].shape[1]
+                params[Key.CELL_FEAT].shape[1],
             ),
             current = add_v_dep(params[Key.I_CC], params),
-            training = training
+            training = training,
         )
 
         return q_1 - add_v_dep(q_0, params)
@@ -1001,7 +972,7 @@ class DegradationModel(Model):
             v = params[Key.V_PREV_END],
             feats_cell = params[Key.CELL_FEAT],
             current = params[Key.I_PREV],
-            training = training
+            training = training,
         )
 
         # NOTE (sam): if there truly is no dependency on current for scale,
@@ -1043,7 +1014,7 @@ class DegradationModel(Model):
             cycle,
             v,
             feats_cell,
-            current
+            current,
         )
         return tf.nn.elu(nn_call(self.nn_q, dependencies, training = training))
 

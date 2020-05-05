@@ -276,7 +276,7 @@ class DegradationModel(Model):
         cell_dict, pos_dict, neg_dict, lyte_dict, mol_dict, dry_cell_dict,
         cell_lat_flags, cell_to_pos, cell_to_neg,
         cell_to_lyte, cell_to_dry_cell, dry_cell_to_meta,
-        lyte_to_solvent, lyte_to_salt, lyte_to_add, lyte_lat_flags,
+        lyte_to_solvent, lyte_to_salt, lyte_to_additive, lyte_lat_flags,
         names, n_sample, incentive_coeffs,
         n_channels = 16, min_lat = 0.1,
     ):
@@ -285,7 +285,7 @@ class DegradationModel(Model):
         print_cell_info(
             cell_lat_flags, cell_to_pos, cell_to_neg, cell_to_lyte,
             cell_to_dry_cell, dry_cell_to_meta,
-            lyte_to_solvent, lyte_to_salt, lyte_to_add, lyte_lat_flags,
+            lyte_to_solvent, lyte_to_salt, lyte_to_additive, lyte_lat_flags,
             names,
         )
 
@@ -406,7 +406,7 @@ class DegradationModel(Model):
             [len(v) for v in lyte_to_salt.values()]
         )
         self.n_additive_max = numpy.max(
-            [len(v) for v in lyte_to_add.values()]
+            [len(v) for v in lyte_to_additive.values()]
         )
 
         # electrolyte latent flags
@@ -443,7 +443,7 @@ class DegradationModel(Model):
             for reference_index, lyte_to in [
                 (0, lyte_to_solvent),
                 (self.n_sol_max, lyte_to_salt),
-                (self.n_sol_max + self.n_salt_max, lyte_to_add),
+                (self.n_sol_max + self.n_salt_max, lyte_to_additive),
             ]:
                 if lyte_id in lyte_to.keys():
                     my_components = lyte_to[lyte_id]

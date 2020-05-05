@@ -35,7 +35,7 @@ class Key:
     I_PREV = "end_current_prev"
     I_PREV_END_AVG = "avg_end_current_prev"
 
-    TEMP = "temperature"
+    T = "temperature"
 
     MASK_CC = "cc_masks"
     MASK_CC_VEC = "cc_mask_vector"
@@ -131,7 +131,7 @@ class Key:
     """
     MAIN = "main_data"
     # TODO(harvey): change the key
-    DATASET = "my_data"
+    DATASET = "dataset"
 
     """ Groups of steps indexed by group averages of
         ( end_current_prev, constant_current, end_current,
@@ -163,7 +163,7 @@ class Key:
     """
     ALL_DATA = "all_data"
 
-    # (number) The maximum capacity across the dataset.
+    """ (number) The maximum capacity across the dataset """
     MAX_Q = "max_cap"
 
     """ (1d array) Measured voltages """

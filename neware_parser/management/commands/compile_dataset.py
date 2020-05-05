@@ -449,7 +449,7 @@ def initial_processing(barcodes, fit_args, flags):
                         (Key.V_CC_LAST, "f4"),
                         (Key.Q_CC_LAST, "f4"),
                         (Key.Q_CV_LAST, "f4"),
-                        (Key.TEMP, "f4"),
+                        (Key.T, "f4"),
                     ]
                 )
 

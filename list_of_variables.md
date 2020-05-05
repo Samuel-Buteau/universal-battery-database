@@ -33,7 +33,7 @@ Structured array with `dtype`:
     (I_CC, "f4"), (I_PREV, "f4"),
     (V_PREV_END, "f4"), (V_END, "f4"),
     (Q_CC_LAST, "f4"), (Q_CV_LAST, "f4"),
-    (Key.TEMP, "f4"),
+    (Key.T, "f4"),
 ]
 ```
 

@@ -1074,9 +1074,7 @@ class DegradationModel(Model):
         count_matrix = x[9]
 
         features_cell, _, _ = self.cell_from_indices(
-            indices = indices,
-            training = training,
-            sample = False
+            indices = indices, training = training, sample = False,
         )
 
         # duplicate cycles and others for all the voltages

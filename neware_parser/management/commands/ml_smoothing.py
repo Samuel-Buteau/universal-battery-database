@@ -901,7 +901,7 @@ class Command(BaseCommand):
         ]
 
         parser.add_argument(
-            "--wanted_barcodes", type = int, nargs = "+", default = barcodes,
+            "--" + Key.BARCODES, type = int, nargs = "+", default = barcodes,
         )
 
     def handle(self, *args, **options):

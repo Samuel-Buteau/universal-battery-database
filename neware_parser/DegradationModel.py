@@ -488,7 +488,11 @@ class DegradationModel(Model):
         self, indices,
         training = True, sample = False, compute_derivatives = False,
     ):
-        """ Cell from indices """
+        """ Cell from indices
+        TODO(harvey, confusion): Need detailed explanation for what this
+            function does.
+            What are `indices`? What do the flags do?
+        """
         feats_cell_direct, loss_cell = self.cell_direct(
             indices, training = training, sample = False,
         )
@@ -879,6 +883,20 @@ class DegradationModel(Model):
         return feats_cell, loss, fetched_latent_cell
 
     def sample(self, svit_grid, batch_count, count_matrix, n_sample = 4 * 32):
+        """
+        Sample from all possible values of different variables.
+
+        Args: TODO(harvey)
+            svit_grid:
+            batch_count:
+            count_matrix:
+            n_sample:
+
+        Returns:
+            Sample values, including voltages, capacities, cycles,
+                constant current, cell features, latent, svit_grid,
+                count_matrix, encoded_stress.
+        """
 
         # NOTE(sam): this is an example of a forall.
         # (for all voltages, and all cell features)
@@ -950,6 +968,17 @@ class DegradationModel(Model):
     """ General variable methods """
 
     def cc_capacity(self, params, training = True):
+        """
+        Compute constant-current capacity during training or evaluation.
+
+        Args:
+            params: Dictionary containing all parameters, including those of
+                constant-current capacity.
+            training: Flag for training or evaluation.
+
+        Returns:
+            Computed constant-current capacity.
+        """
 
         encoded_stress = self.stress_to_encoded_direct(
             svit_grid = params[Key.SVIT_GRID],
@@ -984,6 +1013,17 @@ class DegradationModel(Model):
         return q_1 - add_v_dep(q_0, params)
 
     def cv_capacity(self, params, training = True):
+        """
+        Compute constant-voltage capacity during training or evaluation.
+
+        Args:
+            params: Dictionary containing all parameters, including those of
+                constant-voltage capacity.
+            training: Flag for training or evaluation.
+
+        Returns:
+            Computed constant-voltage capacity.
+        """
 
         encoded_stress = self.stress_to_encoded_direct(
             svit_grid = params[Key.SVIT_GRID],
@@ -1018,17 +1058,25 @@ class DegradationModel(Model):
 
         return q_1 - add_current_dep(q_0, params)
 
-    """ Stress variable methods """
-
     def stress_to_encoded_direct(
         self, svit_grid, count_matrix, training = True,
     ):
+        """
+        Compute stress directly
+            (receiving arguments directly without using `params`)
+
+        Args: TODO(harvey)
+            svit_grid:
+            count_matrix:
+            training: Flag for training or evaluation.
+
+        Returns:
+            (svid_grid, count_matrix) and the training flag.
+        """
         return self.stress_to_encoded_layer(
             (svit_grid, count_matrix),
             training = training
         )
-
-    """ Direct variable methods """
 
     def q_direct(
         self, encoded_stress, cycle, v, feats_cell, current, training = True,

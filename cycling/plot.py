@@ -31,73 +31,48 @@ COLORS = [
     (1., .5, 0.),
     (.5, 1., 0.),
 ]
+
+C_OVER_TWENTY_RULE = (0.038,0.062)
+C_OVER_TWO_RULE = (0.38,0.62)
+C_RULE = (0.85,1.3)
+TWO_C_RULE = (1.6,2.4)
+THREE_C_RULE = (2.5,3.5)
+
+
 #TODO(sam): keep track of these in the database and allow users to modify.
 Preferred_Legends = {
-    ("C/20", "C/20", "C/20", None, None):0,
-    ("C/20", "C/2", "C/2", None, None): 1,
-    ("C/20", "1C", "1C", None, None): 2,
-    ("C/20", "2C", "2C", None, None): 3,
-    ("C/20", "3C", "3C", None, None): 4,
+    (C_OVER_TWENTY_RULE, C_OVER_TWENTY_RULE, C_OVER_TWENTY_RULE, None, None):0,
+    (C_OVER_TWENTY_RULE, C_OVER_TWO_RULE, C_OVER_TWO_RULE, None, None): 1,
+    (C_OVER_TWENTY_RULE, C_RULE, C_RULE, None, None): 2,
+    (C_OVER_TWENTY_RULE, TWO_C_RULE, TWO_C_RULE, None, None): 3,
+    (C_OVER_TWENTY_RULE, THREE_C_RULE, THREE_C_RULE, None, None): 4,
 
-    ("C/20", "C/20", "C/20", None, None): 0,
-    ("C/20", "1C", "C/20", None, None): 5,
-    ("C/2", "1C", None, None, None): 1,
-    ("1C", "1C", "C/20", None, None): 2,
-    ("2C", "1C", "C/20", None, None): 3,
-    ("3C", "1C", "C/20", None, None): 4,
+    (C_OVER_TWENTY_RULE, C_OVER_TWENTY_RULE, C_OVER_TWENTY_RULE, None, None): 0,
+    (C_OVER_TWENTY_RULE, C_RULE, C_OVER_TWENTY_RULE, None, None): 5,
+    (C_OVER_TWO_RULE, C_RULE, None, None, None): 1,
+    (C_RULE, C_RULE, C_OVER_TWENTY_RULE, None, None): 2,
+    (TWO_C_RULE, C_RULE, C_OVER_TWENTY_RULE, None, None): 3,
+    (THREE_C_RULE, C_RULE, C_OVER_TWENTY_RULE, None, None): 4,
 
 }
 
 def bake_rate(rate_in):
-    rate = round(40. * rate_in) / 40.
-    if rate == .025:
-        rate = "C/40"
-    elif rate == .05:
-        rate = "C/20"
-    elif rate > 1.75:
-        rate = "{}C".format(int(round(rate)))
-    elif rate > 0.4:
-        rate = round(2. * rate_in) / 2.
-        if rate == 1.:
-            rate = "1C"
-        elif rate == 1.5:
-            rate = "3C/2"
-        elif rate == 0.5:
-            rate = "C/2"
-    elif rate > 0.09:
-        if rate == 0.1:
-            rate = "C/10"
-        elif rate == 0.2:
-            rate = "C/5"
-        elif rate == 0.35:
-            rate = "C/3"
-        else:
-            rate = "{:1.1f}C".format(rate)
+    rate = round(100. * rate_in) / 100.
     return rate
-
 
 def bake_voltage(vol_in):
     vol = round(10. * vol_in) / 10.
-    if vol == 1. or vol == 2. or vol == 3. or vol == 4. or vol == 5.:
-        vol = "{}".format(int(vol))
-    else:
-        vol = "{:1.1f}".format(vol)
     return vol
 
 
 def make_legend_key(key):
-    constant_rate = key[0]
-    constant_rate = bake_rate(constant_rate)
-    end_rate_prev = key[1]
-    end_rate_prev = bake_rate(end_rate_prev)
-    end_rate = key[2]
-    end_rate = bake_rate(end_rate)
 
-    end_voltage = key[3]
-    end_voltage = bake_voltage(end_voltage)
+    constant_rate = bake_rate(key[0])
+    end_rate_prev= bake_rate(key[1])
+    end_rate = bake_rate(key[2])
 
-    end_voltage_prev = key[4]
-    end_voltage_prev = bake_voltage(end_voltage_prev)
+    end_voltage = bake_voltage(key[3])
+    end_voltage_prev = bake_voltage(key[4])
 
     return (
         end_rate_prev, constant_rate, end_rate, end_voltage_prev, end_voltage
@@ -108,7 +83,7 @@ def match_legend_key(legend_key, rule):
     for i in range(len(legend_key)):
         if rule[i] is None:
             continue
-        if rule[i] == legend_key[i]:
+        if rule[i][0] <= legend_key[i] <= rule[i][1]:
             continue
         else:
             match = False
@@ -117,7 +92,7 @@ def match_legend_key(legend_key, rule):
 
 def make_legend(key):
     end_rate_prev, constant_rate, end_rate, end_voltage_prev, end_voltage = make_legend_key(key)
-    template = "I {}:{}:{:5}   V {}:{}"
+    template = "I {:3.2f}:{:3.2f}:{:3.2f} V {:2.1f}:{:2.1f}"
     return template.format(
         end_rate_prev, constant_rate, end_rate, end_voltage_prev, end_voltage
     )

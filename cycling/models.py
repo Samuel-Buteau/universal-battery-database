@@ -305,11 +305,6 @@ def get_discharge_groups_from_barcode(barcode):
 
 
 
-class BarcodeNode(models.Model):
-    barcode = models.IntegerField(primary_key=True)
-
-
-
 
 class CyclingFile(models.Model):
     database_file = models.OneToOneField(filename_database.models.DatabaseFile, on_delete=models.CASCADE)

@@ -1,12 +1,11 @@
-import time
+
 import pickle
-import numpy as np
+
 from django.core.management.base import BaseCommand
 from cycling.plot import *
 from cycling.Key import Key
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from matplotlib.axes._axes import _log as matplotlib_axes_logger
 
 """
 Shortened Variable Names:
@@ -188,138 +187,137 @@ def initial_processing(
             pickle.dump(flags, file, pickle.HIGHEST_PROTOCOL)
 
 
+        fig, axs = plt.subplots(nrows=3, figsize=[5, 10], sharex=True)
 
-        plot_1(cyc_grp_dict, barcode, fit_args, legends=Preferred_Legends)
+        typs = ["dchg", "chg", "chg"]
+        modes = ["cc", "cc", "cv"]
+        x_legs = [0.5, 0.5, 0.]
+        y_legs = [1., 0.5, 0.5]
+        for typ, ax, mode, x_leg, y_leg in zip(typs, axs, modes, x_legs, y_legs):
+            list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
+            needed_fields = []
+            generic_map = {}
+            if mode == 'cc':
+                needed_fields = [Key.N, "cc_capacity_vector", "cc_voltage_vector",  "cc_mask_vector"]
+                generic_map = {
+                    'x': "cc_capacity_vector",
+                    'y': "cc_voltage_vector",
+                    'mask': "cc_mask_vector"
+                }
+            elif mode == 'cv':
+                needed_fields = [Key.N, "cv_capacity_vector", "cv_current_vector", "cv_mask_vector"]
+                generic_map = {
+                    'x': "cv_capacity_vector",
+                    'y': "cv_current_vector",
+                    'mask': "cv_mask_vector"
+                }
 
+            y_quantity = ""
+            if mode == 'cc':
+                y_quantity = 'Voltage'
+            elif mode == 'cv':
+                y_quantity = 'Current'
+            ylabel = typ + "-" + mode + "\n" + y_quantity
+            xlabel = "Capacity"
+            if typ == "dchg":
+                sign_change = -1.
+            else:
+                sign_change = +1.
+            groups = {}
+            for k in list_of_keys:
+                groups[k] = cyc_grp_dict[k][Key.MAIN][needed_fields]
+            plot_generic_y_vs_capacity(groups, list_of_keys, generic_map, sign_change, ax, x_leg, y_leg, xlabel, ylabel)
 
+        fig.tight_layout()
+        fig.subplots_adjust(hspace = 0)
+        savefig("voltage_dependence_{}.png".format(barcode), fit_args)
+        plt.close(fig)
 
-
-def plot_1(cyc_grp_dict, barcode, fit_args, legends=None):
-    # x_lim = [-0.01, 1.01]
-    y_lim = [2.95, 4.35]
-    if legends is None:
-        legends = {}
-
-
-    fig, axs = plt.subplots(nrows = 3, figsize = [5, 10], sharex = True)
-
-    for typ, off, mode, x_leg, y_leg in [
-        ("dchg", 0, "cc", 0.5, 1),
-        ("chg", 1, "cc", 0.5, 0.5),
-        ("chg", 2, "cv", 0., 0.5)
-    ]:
-        list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
-
-        custom_colors = {}
-        colors_taken = []
-        for k in list_of_keys:
-            legend_key = make_legend_key(k)
-            matched = False
-            for legend_rule in legends.keys():
-                if match_legend_key(legend_key, legend_rule):
-                    matched = True
-                    color_index = legends[legend_rule]
-                    if color_index in colors_taken:
-                        possible_colors = [c_i for c_i in range(len(COLORS)) if c_i not in colors_taken]
-                        if len(possible_colors) == 0:
-                            color_index = 0
-                        else:
-                            color_index = sorted(possible_colors)[0]
-
-                    if not color_index in colors_taken:
-                        colors_taken.append(color_index)
-                    custom_colors[k] = color_index
-                    break
-            if not matched:
-                continue
-
-        for color_index in legends.values():
-            if not color_index in colors_taken:
-                colors_taken.append(color_index)
-
-        for k in list_of_keys:
-            if not k in custom_colors.keys():
-                possible_colors = [c_i for c_i in range(len(COLORS)) if c_i not in colors_taken]
-                if len(possible_colors) == 0:
-                    color_index = 0
-                else:
-                    color_index = sorted(possible_colors)[0]
+def map_legend_to_color(list_of_keys):
+    legends = Preferred_Legends
+    custom_colors = {}
+    colors_taken = []
+    for k in list_of_keys:
+        legend_key = make_legend_key(k)
+        matched = False
+        for legend_rule in legends.keys():
+            if match_legend_key(legend_key, legend_rule):
+                matched = True
+                color_index = legends[legend_rule]
+                if color_index in colors_taken:
+                    possible_colors = [c_i for c_i in range(len(COLORS)) if c_i not in colors_taken]
+                    if len(possible_colors) == 0:
+                        color_index = 0
+                    else:
+                        color_index = sorted(possible_colors)[0]
 
                 if not color_index in colors_taken:
                     colors_taken.append(color_index)
                 custom_colors[k] = color_index
+                break
+        if not matched:
+            continue
 
+    for color_index in legends.values():
+        if not color_index in colors_taken:
+            colors_taken.append(color_index)
 
-
-        list_of_patches = []
-        ax = axs[off]
-        for k_count, k in enumerate(list_of_keys):
-
-
-            color = custom_colors[k]
-
-            list_of_patches.append(mpatches.Patch(
-                color=COLORS[color], label=make_legend(k)
-            ))
-
-            if k[-1] == "dchg":
-                sign_change = -1.
+    for k in list_of_keys:
+        if not k in custom_colors.keys():
+            possible_colors = [c_i for c_i in range(len(COLORS)) if c_i not in colors_taken]
+            if len(possible_colors) == 0:
+                color_index = 0
             else:
-                sign_change = +1.
+                color_index = sorted(possible_colors)[0]
 
-            barcode_k = cyc_grp_dict[k][Key.MAIN]
+            if not color_index in colors_taken:
+                colors_taken.append(color_index)
+            custom_colors[k] = color_index
 
-            if mode == "cc":
-                capacity_tensor = barcode_k["cc_capacity_vector"]
-            elif mode == "cv":
-                capacity_tensor = barcode_k["cv_capacity_vector"]
+    for k in list_of_keys:
+        custom_colors[k] = COLORS[custom_colors[k]]
 
-            for vq_count, vq in enumerate(capacity_tensor):
-                cyc = barcode_k[Key.N][vq_count]
-
-                mult = 1. - (.5 * float(cyc) / 6000.)
-
-                if mode == "cc":
-                    vq_mask = barcode_k["cc_mask_vector"][vq_count]
-                    y_axis = barcode_k["cc_voltage_vector"][vq_count]
-                    y_lim = [2.95, 4.35]
-                elif mode == "cv":
-                    vq_mask = barcode_k["cv_mask_vector"][vq_count]
-                    y_axis = barcode_k["cv_current_vector"][vq_count]
-                    y_lim = [
-                        min([key[2] for key in list_of_keys]) - 0.05,
-                        0.05 + max([key[0] for key in list_of_keys])
-                    ]
-
-                valids = vq_mask > .5
-
-                # ax.set_xlim(x_lim)
-                # ax.set_ylim(y_lim)
-
-                ax.scatter(
-                    sign_change * vq[valids],
-                    y_axis[valids],
-                    c = [[
-                        mult * COLORS[color][0],
-                        mult * COLORS[color][1],
-                        mult * COLORS[color][2]
-                    ]],
-                    s = 3
-                )
+    return custom_colors
 
 
-        ax.legend(
-            handles = list_of_patches, fontsize = "small",
-            bbox_to_anchor = (x_leg, y_leg), loc = "upper left"
-        )
-        ax.set_ylabel(typ + "-" + mode)
+def adjust_color(cyc, color):
+    mult = 1. - (.5 * float(cyc) / 6000.)
+    return [[
+            mult * color[0],
+            mult * color[1],
+            mult * color[2]
+        ]]
 
-    axs[2].set_xlabel("pred_cap")
-    fig.tight_layout()
-    fig.subplots_adjust(hspace = 0)
-    savefig("voltage_dependence_{}.png".format(barcode), fit_args)
-    plt.close(fig)
+def plot_generic_y_vs_capacity(
+        groups,list_of_keys, generic_map, sign_change,
+        ax, x_leg, y_leg, xlabel,ylabel
+    ):
 
+    custom_colors = map_legend_to_color(list_of_keys)
+    list_of_patches = []
+    for k in list_of_keys:
+        color = custom_colors[k]
+        list_of_patches.append(mpatches.Patch(
+            color=color, label=make_legend(k)
+        ))
+
+        single_group = groups[k]
+        for i in range(len(single_group)):
+            valids = single_group[generic_map['mask']][i] > .5
+            ax.scatter(
+                sign_change * single_group[generic_map['x']][i][valids],
+                single_group[generic_map['y']][i][valids],
+                c = adjust_color(single_group[Key.N][i], color),
+                s = 3
+            )
+
+
+    ax.legend(
+        handles = list_of_patches, fontsize = "small",
+        bbox_to_anchor = (x_leg, y_leg), loc = "upper left"
+    )
+    ax.set_ylabel(ylabel)
+    ax.set_xlabel(xlabel)
 
 
 class Command(BaseCommand):

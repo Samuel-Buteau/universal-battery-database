@@ -187,6 +187,7 @@ def initial_processing(
             pickle.dump(flags, file, pickle.HIGHEST_PROTOCOL)
 
 
+        #open plot
         fig, axs = plt.subplots(nrows=3, figsize=[5, 10], sharex=True)
 
         typs = ["dchg", "chg", "chg"]
@@ -194,24 +195,7 @@ def initial_processing(
         x_legs = [0.5, 0.5, 0.]
         y_legs = [1., 0.5, 0.5]
         for typ, ax, mode, x_leg, y_leg in zip(typs, axs, modes, x_legs, y_legs):
-            list_of_keys = get_list_of_keys(cyc_grp_dict, typ)
-            needed_fields = []
-            generic_map = {}
-            if mode == 'cc':
-                needed_fields = [Key.N, "cc_capacity_vector", "cc_voltage_vector",  "cc_mask_vector"]
-                generic_map = {
-                    'x': "cc_capacity_vector",
-                    'y': "cc_voltage_vector",
-                    'mask': "cc_mask_vector"
-                }
-            elif mode == 'cv':
-                needed_fields = [Key.N, "cv_capacity_vector", "cv_current_vector", "cv_mask_vector"]
-                generic_map = {
-                    'x': "cv_capacity_vector",
-                    'y': "cv_current_vector",
-                    'mask': "cv_mask_vector"
-                }
-
+            # options
             y_quantity = ""
             if mode == 'cc':
                 y_quantity = 'Voltage'
@@ -219,19 +203,76 @@ def initial_processing(
                 y_quantity = 'Current'
             ylabel = typ + "-" + mode + "\n" + y_quantity
             xlabel = "Capacity"
+
+            # sign_change
             if typ == "dchg":
                 sign_change = -1.
             else:
                 sign_change = +1.
-            groups = {}
-            for k in list_of_keys:
-                groups[k] = cyc_grp_dict[k][Key.MAIN][needed_fields]
-            plot_generic_y_vs_capacity(groups, list_of_keys, generic_map, sign_change, ax, x_leg, y_leg, xlabel, ylabel)
 
+
+            # data engine from compiled to generic_y_vs_capacity
+            generic_y_vs_capacity, list_of_keys, generic_map = data_engine(
+                'compiled',
+                'generic_y_vs_capacity',
+                cyc_grp_dict,
+                typ,
+                mode
+            )
+            #plot
+            plot_generic_y_vs_capacity(
+                generic_y_vs_capacity, list_of_keys, generic_map , ax,
+                options = {
+                   "sign_change":sign_change,
+                   "x_leg":x_leg,
+                   "y_leg":y_leg,
+                   "xlabel":xlabel,
+                   "ylabel":ylabel
+                }
+            )
+
+        #export
         fig.tight_layout()
         fig.subplots_adjust(hspace = 0)
         savefig("voltage_dependence_{}.png".format(barcode), fit_args)
         plt.close(fig)
+
+
+
+def data_engine(
+        source,
+        target,
+        compiled,
+        typ,
+        mode,
+    ):
+    if not (source == 'compiled' and target == 'generic_y_vs_capacity'):
+        return None, None, None, None
+
+    list_of_keys = get_list_of_keys(compiled, typ)
+    needed_fields = []
+    generic_map = {}
+    if mode == 'cc':
+        needed_fields = [Key.N, "cc_capacity_vector", "cc_voltage_vector", "cc_mask_vector"]
+        generic_map = {
+            'x': "cc_capacity_vector",
+            'y': "cc_voltage_vector",
+            'mask': "cc_mask_vector"
+        }
+    elif mode == 'cv':
+        needed_fields = [Key.N, "cv_capacity_vector", "cv_current_vector", "cv_mask_vector"]
+        generic_map = {
+            'x': "cv_capacity_vector",
+            'y': "cv_current_vector",
+            'mask': "cv_mask_vector"
+        }
+
+    generic_y_vs_capacity = {}
+    for k in list_of_keys:
+        generic_y_vs_capacity[k] = compiled[k][Key.MAIN][needed_fields]
+
+    return generic_y_vs_capacity, list_of_keys, generic_map
+
 
 def map_legend_to_color(list_of_keys):
     legends = Preferred_Legends
@@ -280,7 +321,7 @@ def map_legend_to_color(list_of_keys):
     return custom_colors
 
 
-def adjust_color(cyc, color):
+def adjust_color(cyc, color, ):
     mult = 1. - (.5 * float(cyc) / 6000.)
     return [[
             mult * color[0],
@@ -288,9 +329,18 @@ def adjust_color(cyc, color):
             mult * color[2]
         ]]
 
+
+def produce_annotations(ax, list_of_patches, options):
+    ax.legend(
+        handles = list_of_patches, fontsize = "small",
+        bbox_to_anchor = (options["x_leg"], options["y_leg"]), loc = "upper left"
+    )
+    ax.set_ylabel(options["ylabel"])
+    ax.set_xlabel(options["xlabel"])
+
 def plot_generic_y_vs_capacity(
-        groups,list_of_keys, generic_map, sign_change,
-        ax, x_leg, y_leg, xlabel,ylabel
+        groups,list_of_keys, generic_map,
+        ax, options
     ):
 
     custom_colors = map_legend_to_color(list_of_keys)
@@ -300,24 +350,16 @@ def plot_generic_y_vs_capacity(
         list_of_patches.append(mpatches.Patch(
             color=color, label=make_legend(k)
         ))
-
-        single_group = groups[k]
-        for i in range(len(single_group)):
-            valids = single_group[generic_map['mask']][i] > .5
+        group = groups[k]
+        for i in range(len(group)):
+            valids = group[generic_map['mask']][i] > .5
             ax.scatter(
-                sign_change * single_group[generic_map['x']][i][valids],
-                single_group[generic_map['y']][i][valids],
-                c = adjust_color(single_group[Key.N][i], color),
+                options["sign_change"] * group[generic_map['x']][i][valids],
+                group[generic_map['y']][i][valids],
+                c = adjust_color(group[Key.N][i], color),
                 s = 3
             )
-
-
-    ax.legend(
-        handles = list_of_patches, fontsize = "small",
-        bbox_to_anchor = (x_leg, y_leg), loc = "upper left"
-    )
-    ax.set_ylabel(ylabel)
-    ax.set_xlabel(xlabel)
+    produce_annotations(ax, list_of_patches, options)
 
 
 class Command(BaseCommand):

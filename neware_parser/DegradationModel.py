@@ -1073,7 +1073,7 @@ class DegradationModel(Model):
         svit_grid = x[8]
         count_matrix = x[9]
 
-        features_cell, _, _ = self.cell_from_indices(
+        feats_cell, _, _ = self.cell_from_indices(
             indices = indices, training = training, sample = False,
         )
 
@@ -1095,7 +1095,7 @@ class DegradationModel(Model):
             Key.I_CC: constant_current,
             Key.I_PREV: end_current_prev,
             Key.V_PREV_END: end_voltage_prev,
-            "features_cell": features_cell,
+            "features_cell": feats_cell,
             Key.V_END: end_voltage,
 
             Key.SVIT_GRID: svit_grid,

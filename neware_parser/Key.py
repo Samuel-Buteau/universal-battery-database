@@ -1,7 +1,5 @@
 class Key:
-    """ Define dictionary keys """
-
-    N = "cycle_number"
+    """ Define dictionary keys used throughout the project."""
 
     # TODO: Why are there keys with the same values except "_vector"?
     #       Are they the same values just different types?
@@ -10,6 +8,15 @@ class Key:
     #       Are they different values?
     #           If so, give them different and more descriptive names
 
+    N = "cycle_number"
+    CYC = "cycle"
+    CELL_FEAT = "features_cell"
+
+    COUNT_BATCH = "batch_count"
+    COUNT_V = "voltage_count"
+    COUNT_I = "current_count"
+
+    V = "v"
     V_CC = "cc_voltages"
     V_CC_VEC = "cc_voltage_vector"
     V_CC_LAST = "last_cc_voltage"
@@ -28,7 +35,8 @@ class Key:
 
     I_CC = "constant_current"
     I_CC_AVG = "avg_constant_current"
-    I_CV = "cv_currents"
+    I_CV = "cv_current"
+    I_CVS = "cv_currents"
     I_CV_VEC = "cv_current_vector"
     I_END = "end_current"
     I_END_AVG = "avg_end_current"

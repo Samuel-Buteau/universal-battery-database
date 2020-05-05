@@ -414,7 +414,7 @@ def initial_processing(barcodes, fit_args, flags):
                             post_process_results[Key.V_CC],
                             post_process_results[Key.Q_CC],
                             post_process_results[Key.MASK_CC],
-                            sign * post_process_results[Key.I_CV],
+                            sign * post_process_results[Key.I_CVS],
                             post_process_results[Key.Q_CV],
                             post_process_results[Key.MASK_CV],
                             sign * post_process_results[Key.I_CC],

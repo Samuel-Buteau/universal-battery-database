@@ -48,7 +48,7 @@ NEIGH_REFERENCE = 11
 NEIGH_TOTAL = 12
 
 
-def ml_smoothing(fit_args: dict) -> None:
+def ml_smoothing(options: dict) -> None:
     """
     The main function to carry out the machine learning training and evaluation
     procedure.
@@ -56,7 +56,7 @@ def ml_smoothing(fit_args: dict) -> None:
     Todo(harvey): Add more description about what this does.
 
     Args:
-        fit_args: Dictionary defining various fitting-related arguments.
+        options: Dictionary defining various fitting-related arguments.
 
     Returns: None
     """
@@ -67,25 +67,25 @@ def ml_smoothing(fit_args: dict) -> None:
     else:
         strategy = tf.distribute.OneDeviceStrategy("/cpu:0")
 
-    if not os.path.exists(fit_args[Key.PATH_PLOTS]):
-        os.makedirs(fit_args[Key.PATH_PLOTS])
+    if not os.path.exists(options[Key.PATH_PLOTS]):
+        os.makedirs(options[Key.PATH_PLOTS])
 
     with open(
-        os.path.join(fit_args[Key.PATH_PLOTS], "fit_args_log.txt"), "w"
+        os.path.join(options[Key.PATH_PLOTS], "fit_args_log.txt"), "w"
     ) as f:
         my_str = ""
-        for k in fit_args:
-            my_str = "{} \n {}: {}".format(my_str, k, str(fit_args[k]))
+        for k in options:
+            my_str = "{} \n {}: {}".format(my_str, k, str(options[k]))
         f.write(my_str)
 
     dataset_path = os.path.join(
-        fit_args[Key.PATH_DATA],
-        "dataset_ver_{}.file".format(fit_args[Key.DATA_VER]),
+        options[Key.PATH_DATA],
+        "dataset_ver_{}.file".format(options[Key.DATA_VER]),
     )
 
     dataset_names_path = os.path.join(
-        fit_args[Key.PATH_DATA],
-        "dataset_ver_{}_names.file".format(fit_args[Key.DATA_VER]),
+        options[Key.PATH_DATA],
+        "dataset_ver_{}_names.file".format(options[Key.DATA_VER]),
     )
 
     if not os.path.exists(dataset_path):
@@ -102,9 +102,9 @@ def ml_smoothing(fit_args: dict) -> None:
 
     barcodes = list(dataset[Key.ALL_DATA].keys())
 
-    if len(fit_args[Key.BARCODES]) != 0:
+    if len(options[Key.BARCODES]) != 0:
         barcodes = list(
-            set(barcodes).intersection(set(fit_args[Key.BARCODES]))
+            set(barcodes).intersection(set(options[Key.BARCODES]))
         )
 
     if len(barcodes) == 0:
@@ -113,10 +113,10 @@ def ml_smoothing(fit_args: dict) -> None:
 
     train_and_evaluate(
         initial_processing(
-            dataset, dataset_names, barcodes, fit_args, strategy = strategy,
+            dataset, dataset_names, barcodes, options, strategy = strategy,
         ),
         barcodes,
-        fit_args
+        options
     )
 
 
@@ -140,7 +140,7 @@ def three_level_flatten(iterables):
 
 def initial_processing(
     dataset: dict, dataset_names, barcodes,
-    fit_args, strategy
+    options: dict, strategy
 ) -> dict:
     """ Handle the initial data processing
 
@@ -148,7 +148,7 @@ def initial_processing(
         dataset: Dictionary that stores the quantities given in the dataset.
         dataset_names: TODO(harvey)
         barcodes: TODO(harvey)
-        fit_args: TODO(harvey)
+        options: Parameters used to tune the machine learning fitting process.
         strategy: TODO(harvey)
 
     Returns: { Key.STRAT, Key.MODEL, Key.TENSORS, Key.TRAIN_DS, Key.CYC_M,
@@ -436,7 +436,7 @@ def initial_processing(
     for label in labels:
         compiled_tensors[label] = tf.constant(compiled_data[label])
 
-    batch_size = fit_args[Key.BATCH]
+    batch_size = options[Key.BATCH]
 
     with strategy.scope():
         train_ds_ = tf.data.Dataset.from_tensor_slices(
@@ -460,8 +460,8 @@ def initial_processing(
             dry_cell_to_dry_cell_name = dataset_names[Key.NAME_DRY]
 
         degradation_model = DegradationModel(
-            width = fit_args[Key.WIDTH],
-            depth = fit_args[Key.DEPTH],
+            width = options[Key.WIDTH],
+            depth = options[Key.DEPTH],
             cell_dict = id_dict_from_id_list(cell_id_list),
             pos_dict = id_dict_from_id_list(pos_id_list),
             neg_dict = id_dict_from_id_list(neg_id_list),
@@ -489,13 +489,13 @@ def initial_processing(
                 molecule_to_molecule_name,
                 dry_cell_to_dry_cell_name,
             ),
-            n_sample = fit_args[Key.N_SAMPLE],
-            incentive_coeffs = fit_args,
-            min_lat = fit_args[Key.MIN_LAT]
+            n_sample = options[Key.N_SAMPLE],
+            incentive_coeffs = options,
+            min_lat = options[Key.MIN_LAT]
         )
 
         optimizer = tf.keras.optimizers.Adam(
-            learning_rate = fit_args[Key.LRN_RATE]
+            learning_rate = options[Key.LRN_RATE]
         )
 
     return {
@@ -510,13 +510,13 @@ def initial_processing(
     }
 
 
-def train_and_evaluate(init_returns, barcodes, fit_args):
+def train_and_evaluate(init_returns, barcodes, options):
     """
 
     Args:
         init_returns:
         barcodes:
-        fit_args:
+        options:
 
     Returns:
 
@@ -538,7 +538,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
     def dist_train_step(strategy, neighborhood):
         return strategy.experimental_run_v2(
             lambda neighborhood: train_step(
-                neighborhood, train_step_params, fit_args
+                neighborhood, train_step_params, options
             ),
             args = (neighborhood,)
         )
@@ -559,23 +559,23 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                     l += l_
 
                 if count != 0:
-                    if (count % fit_args[Key.PRINT_LOSS]) == 0:
+                    if (count % options[Key.PRINT_LOSS]) == 0:
                         tot = l / tf.cast(sub_count, dtype = tf.float32)
                         l = None
                         sub_count = 0
                         loss_record.record(count, tot.numpy())
-                        loss_record.print_recent(fit_args)
+                        loss_record.print_recent(options)
 
                     plot_params = {
                         "barcodes": barcodes,
                         "count": count,
-                        Key.OPTIONS: fit_args,
+                        Key.OPTIONS: options,
                     }
 
-                    if (count % fit_args[Key.VIS_FIT]) == 0:
+                    if (count % options[Key.VIS_FIT]) == 0:
                         start = time.time()
                         print("time to simulate: ", start - end)
-                        loss_record.plot(count, fit_args)
+                        loss_record.plot(count, options)
                         plot_things_vs_cycle_number(plot_params, init_returns)
                         plot_vq(plot_params, init_returns)
 
@@ -583,11 +583,20 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                         print("time to plot: ", end - start)
                         print()
 
-                if count >= fit_args[Key.STOP]:
+                if count >= options[Key.STOP]:
                     return
 
 
-def train_step(neighborhood, params, fit_args):
+def train_step(neighborhood, params, options):
+    """
+
+    Args:
+        neighborhood:
+        params:
+        options:
+
+    Returns:
+    """
     sign_grid_tensor = params[Key.TENSORS][Key.GRID_SIGN]
     voltage_grid_tensor = params[Key.TENSORS][Key.GRID_V]
     current_grid_tensor = params[Key.TENSORS][Key.GRID_I]
@@ -771,14 +780,14 @@ def train_step(neighborhood, params, fit_args):
         )
 
         main_losses = (
-            fit_args[Key.COEFF_Q_CV] * cv_capacity_loss
-            + fit_args[Key.COEFF_Q_CC] * cc_capacity_loss
+            options[Key.COEFF_Q_CV] * cv_capacity_loss
+            + options[Key.COEFF_Q_CC] * cc_capacity_loss
         )
         loss = (
             main_losses
             + tf.stop_gradient(main_losses) * (
-                fit_args[Key.COEFF_Q] * train_results[Key.Loss.Q]
-                + fit_args[Key.COEFF_CELL] * train_results[Key.Loss.CELL]
+                options[Key.COEFF_Q] * train_results[Key.Loss.Q]
+                + options[Key.COEFF_CELL] * train_results[Key.Loss.CELL]
             )
         )
 
@@ -791,7 +800,7 @@ def train_step(neighborhood, params, fit_args):
     ]
 
     gradients_norm_clipped, _ = tf.clip_by_global_norm(
-        gradients_no_nans, fit_args[Key.GLB_NORM_CLIP],
+        gradients_no_nans, options[Key.GLB_NORM_CLIP],
     )
 
     optimizer.apply_gradients(

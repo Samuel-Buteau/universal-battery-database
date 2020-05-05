@@ -861,18 +861,18 @@ class Command(BaseCommand):
 
         vis = 10000
         int_args = {
-            "n_sample": 8 * 16,
+            Key.N_SAMPLE: 8 * 16,
 
             Key.DEPTH: 3,
             Key.WIDTH: 50,
             Key.BATCH: 4 * 16,
 
-            "print_loss_every": 500,
+            Key.PRINT_LOSS: 500,
             Key.VIS_FIT: vis,
-            "visualize_vq_every": vis,
+            Key.VIS_VQ: vis,
 
-            "stop_count": 1000004,
-            "barcode_show": 10,
+            Key.STOP: 1000004,
+            Key.BAR_SHOW: 10,
         }
 
         for arg in required_args:

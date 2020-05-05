@@ -33,6 +33,7 @@ class Key:
     Q_CC_LAST = "last_cc_capacity"
     Q_CV_LAST = "last_cv_capacity"
 
+    I = "current"
     I_CC = "constant_current"
     I_CC_AVG = "avg_constant_current"
     I_CV = "cv_current"
@@ -44,6 +45,8 @@ class Key:
     I_PREV_END_AVG = "avg_end_current_prev"
 
     T = "temperature"
+
+    STRESS = "encoded_stress"
 
     MASK_CC = "cc_masks"
     MASK_CC_VEC = "cc_mask_vector"

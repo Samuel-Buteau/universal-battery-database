@@ -642,17 +642,17 @@ class Command(BaseCommand):
         float_args = {
             Key.MIN_V_GRID: 2.5,
             Key.MAX_V_GRID: 5.0,
-            "current_grid_min_v": 1.,
-            "current_grid_max_v": 1000.,
-            "temperature_grid_min_v": 20.,
-            "temperature_grid_max_v": 60.,
+            Key.I_MIN_V_GRID: 1.,
+            Key.I_MAX_V_GRID: 1000.,
+            Key.T_MIN_V_GRID: 20.,
+            Key.T_MAX_V_GRID: 60.,
         }
         int_args = {
-            "reference_cycles_n": 10,
-            "voltage_grid_n_samples": 32,
-            "current_grid_n_samples": 8,
-            "current_max_n": 8,
-            "temperature_grid_n_samples": 3,
+            Key.REF_CYC: 10,
+            Key.V_N_GRID: 32,
+            Key.I_N_GRID: 8,
+            Key.I_MAX: 8,
+            Key.TEMP_GRID_N: 3,
         }
 
         for arg in required_args:

@@ -586,8 +586,8 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                         start = time.time()
                         print("time to simulate: ", start - end)
                         loss_record.plot(count, fit_args)
-                        plot_things_vs_cycle_number(plot_params, init_returns)
-                        plot_vq(plot_params, init_returns)
+                        plot_direct("generic_vs_cycle", plot_params, init_returns)
+                        plot_direct("generic_vs_capacity", plot_params, init_returns)
 
                         end = time.time()
                         print("time to plot: ", end - start)

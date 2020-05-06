@@ -102,21 +102,26 @@ def make_legend(key):
 
 
 #TODO(sam): make the interface more general
-def plot_engine_direct(data_streams, target, todos, barcode, fit_args, filename, max_cyc_n = 8):
+def plot_engine_direct(data_streams, target, todos, fit_args, filename):
     # open plot
-    fig, axs = plt.subplots(nrows=len(todos), figsize=[5, 10], sharex=True)
+    figsize = None
+    if target == "generic_vs_capacity":
+        figsize = [5, 10]
+    elif target == "generic_vs_cycle":
+        figsize = [11, 10]
+
+    fig, axs = plt.subplots(nrows=len(todos), figsize=figsize, sharex=True)
 
     for i, todo in enumerate(todos):
         typ, mode = todo
         ax = axs[i]
 
         # options
-        options = generate_options(mode, typ)
+        options = generate_options(mode, typ, target)
 
         list_of_target_data = []
 
-        for source, data, _ in data_streams:
-            # data engine from compiled to generic_vs_capacity
+        for source, data, _, max_cyc_n in data_streams:
             list_of_target_data.append(
                 data_engine(
                     source,
@@ -132,10 +137,11 @@ def plot_engine_direct(data_streams, target, todos, barcode, fit_args, filename,
         custom_colors = map_legend_to_color(list_of_keys)
 
         for j, target_data in enumerate(list_of_target_data):
-            generic_vs_capacity, _, generic_map = target_data
+            generic, _, generic_map = target_data
             # plot
-            plot_generic_vs_capacity(
-                generic_vs_capacity, list_of_keys, custom_colors,
+            plot_generic(
+                target,
+                generic, list_of_keys, custom_colors,
                 generic_map, ax,
                 channel=data_streams[j][2],
                 options=options,
@@ -150,31 +156,42 @@ def plot_engine_direct(data_streams, target, todos, barcode, fit_args, filename,
     plt.close(fig)
 
 
-def generate_options(mode, typ):
-    #label
-    y_quantity = ""
-    if mode == 'cc':
-        y_quantity = 'Voltage'
-    elif mode == 'cv':
-        y_quantity = 'Current'
-    ylabel = typ + "-" + mode + "\n" + y_quantity
-    xlabel = "Capacity"
-
+def generate_options(mode, typ, target):
     # sign_change
     if typ == "dchg":
         sign_change = -1.
     else:
         sign_change = +1.
 
-    #leg
-    leg = {
-        ("dchg", "cc"): (.5, 1.),
-        ("chg", "cc"): (.5, .5),
-        ("chg", "cv"): (0., .5),
-    }
+    if target == 'generic_vs_capacity':
+        #label
+        x_quantity = "Capacity"
+        y_quantity = ""
+        if mode == 'cc':
+            y_quantity = 'Voltage'
+        elif mode == 'cv':
+            y_quantity = 'Current'
+        #leg
+        leg = {
+            ("dchg", "cc"): (.5, 1.),
+            ("chg", "cc"): (.5, .5),
+            ("chg", "cv"): (0., .5),
+        }
 
+    elif target == "generic_vs_cycle":
+        # label
+        x_quantity = "Cycle"
+        y_quantity = 'Capacity'
+        # leg
+        leg = {
+            ("dchg", "cc"): (.7, 1.),
+            ("chg", "cc"):  (.7, 1.),
+            ("chg", "cv"):  (.7, 1.),
+        }
+
+    ylabel = typ + "-" + mode + "\n" + y_quantity
+    xlabel = x_quantity
     x_leg, y_leg = leg[(typ,mode)]
-
     return {
         "sign_change": sign_change,
         "x_leg": x_leg,
@@ -182,7 +199,6 @@ def generate_options(mode, typ):
         "xlabel": xlabel,
         "ylabel": ylabel
     }
-
 
 def fetch_svit_keys_averages(compiled, barcode):
     svit_and_count = get_svit_and_count(compiled, barcode)
@@ -206,7 +222,6 @@ def data_engine(
         mode,
         max_cyc_n
     ):
-    #TODO(sam): this parameter is important and needs better handling
     if (source == 'compiled' and target == 'generic_vs_capacity'):
 
         list_of_keys = get_list_of_keys(data.keys(), typ)
@@ -227,14 +242,14 @@ def data_engine(
                 'mask': "cv_mask_vector"
             }
 
-        generic_vs_capacity = {}
+        generic = {}
         for k in list_of_keys:
             actual_n = len(data[k][Key.MAIN])
             if actual_n > max_cyc_n:
                 indecies = np.linspace(0, actual_n-1, max_cyc_n).astype(dtype=np.int32)
-                generic_vs_capacity[k] = data[k][Key.MAIN][needed_fields][indecies]
+                generic[k] = data[k][Key.MAIN][needed_fields][indecies]
             else:
-                generic_vs_capacity[k] = data[k][Key.MAIN][needed_fields]
+                generic[k] = data[k][Key.MAIN][needed_fields]
 
 
     elif (source == 'model' and target == 'generic_vs_capacity'):
@@ -260,22 +275,87 @@ def data_engine(
             }
 
         list_of_keys = get_list_of_keys(keys,typ)
-        generic_vs_capacity = {}
+        generic = {}
         for k in list_of_keys:
-
-
-            generic_vs_capacity[k] = compute_vq(
+            generic[k] = compute_target(
+                target,
                 degradation_model,
                 barcode,
                 sign_change,
                 mode,
                 averages[k],
+                generic_map,
                 svit_and_count,
                 cycle_m,
                 cycle_v,
+                max_cyc_n=max_cyc_n,
             )
 
-    return generic_vs_capacity, list_of_keys, generic_map
+    elif (source == 'compiled' and target == 'generic_vs_cycle'):
+        list_of_keys = get_list_of_keys(data.keys(), typ)
+        needed_fields = []
+        generic_map = {}
+        if mode == 'cc':
+            needed_fields = [Key.N, "last_cc_capacity"]
+            generic_map = {
+                'y': "last_cc_capacity",
+            }
+        elif mode == 'cv':
+            needed_fields = [Key.N, "last_cv_capacity"]
+            generic_map = {
+                'y': "last_cv_capacity",
+            }
+
+        generic = {}
+        for k in list_of_keys:
+            actual_n = len(data[k][Key.MAIN])
+            if actual_n > max_cyc_n:
+                indecies = np.linspace(0, actual_n-1, max_cyc_n).astype(dtype=np.int32)
+                generic[k] = data[k][Key.MAIN][needed_fields][indecies]
+            else:
+                generic[k] = data[k][Key.MAIN][needed_fields]
+
+
+    elif (source == 'model' and target == 'generic_vs_cycle'):
+
+        degradation_model, barcode, cycle_m, cycle_v, svit_and_count, keys, averages = data
+
+        if typ == "dchg":
+            sign_change = -1.
+        else:
+            sign_change = 1.
+
+
+        generic_map = {}
+        if mode == "cc":
+            generic_map = {
+                'y': "last_cc_capacity",
+            }
+        elif mode == "cv":
+            generic_map = {
+                'y': "last_cv_capacity",
+            }
+
+        list_of_keys = get_list_of_keys(keys,typ)
+        generic = {}
+        for k in list_of_keys:
+            generic[k] = compute_target(
+                target,
+                degradation_model,
+                barcode,
+                sign_change,
+                mode,
+                averages[k],
+                generic_map,
+                svit_and_count,
+                cycle_m,
+                cycle_v,
+                max_cyc_n=max_cyc_n,
+            )
+
+
+
+    return generic, list_of_keys, generic_map
 
 
 
@@ -354,26 +434,51 @@ def produce_annotations(ax, list_of_patches, options):
 
 
 
-def plot_generic_vs_capacity(
+def plot_generic(
+        target,
         groups,list_of_keys, custom_colors, generic_map,
         ax,
         channel,
         options
     ):
 
-    for k in list_of_keys:
-        group = groups[k]
-        for i in range(len(group)):
-            x_ = options["sign_change"] * group[generic_map['x']][i]
-            y_ = group[generic_map['y']][i]
-            if 'mask' in generic_map.keys():
-                valids = group[generic_map['mask']][i] > .5
-                x = x_[valids]
-                y = y_[valids]
-            else:
-                x = x_
-                y = y_
-            color =  adjust_color(group[Key.N][i], custom_colors[k])
+    if target == "generic_vs_capacity":
+        for k in list_of_keys:
+            group = groups[k]
+            for i in range(len(group)):
+                x_ = options["sign_change"] * group[generic_map['x']][i]
+                y_ = group[generic_map['y']][i]
+                if 'mask' in generic_map.keys():
+                    valids = group[generic_map['mask']][i] > .5
+                    x = x_[valids]
+                    y = y_[valids]
+                else:
+                    x = x_
+                    y = y_
+                color =  adjust_color(group[Key.N][i], custom_colors[k])
+                if channel == 'scatter':
+                    ax.scatter(
+                    x,
+                    y,
+                    c = [list(color)],
+                    s = 3
+                )
+                elif channel == 'plot':
+                    ax.plot(
+                    x,
+                    y,
+                    c = color,
+                )
+                else:
+                    raise Exception("not yet implemented. channel = {}".format(channel))
+
+    elif target == "generic_vs_cycle":
+        for k in list_of_keys:
+            group = groups[k]
+            x =  group[Key.N]
+            y = options["sign_change"] * group[generic_map['y']]
+
+            color = custom_colors[k]
             if channel == 'scatter':
                 ax.scatter(
                 x,
@@ -389,8 +494,6 @@ def plot_generic_vs_capacity(
             )
             else:
                 raise Exception("not yet implemented. channel = {}".format(channel))
-
-
 
 
 def get_svit_and_count(my_data, barcode):
@@ -433,86 +536,124 @@ def get_svit_and_count(my_data, barcode):
 
 
 
-def compute_vq(degradation_model, barcode, sign_change, mode, averages, svit_and_count, cycle_m, cycle_v, cycle = [0, 6000 / 2, 6000]):
-
-    v_range = np.ones((1), dtype=np.float32)
-    current_range = np.ones((1), dtype=np.float32)
-    if mode == 'cc':
-        v_min = min(averages[Key.V_PREV_END_AVG], averages[Key.V_END_AVG])
-        v_max = max(averages[Key.V_PREV_END_AVG], averages[Key.V_END_AVG])
-        v_range = np.linspace(v_min, v_max, 32)
-        y_n = 32
-    elif mode == 'cv':
-        curr_max = abs(averages[Key.I_CC_AVG])
-        curr_min = abs(averages[Key.I_END_AVG])
-
-        if curr_min == curr_max:
-            current_range = np.array([curr_min])
-            y_n = 1
-        else:
-            current_range = sign_change * np.exp(
-                np.linspace(
-                    np.log(curr_min),
-                    np.log(curr_max),
-                    32
-                )
-            )
+def compute_target(target, degradation_model, barcode, sign_change, mode, averages, generic_map, svit_and_count, cycle_m, cycle_v, cycle_min = 0, cycle_max = 6000 , max_cyc_n = 3):
+    cycle = np.linspace(cycle_min, cycle_max, max_cyc_n)
+    if target == 'generic_vs_capacity':
+        v_range = np.ones((1), dtype=np.float32)
+        current_range = np.ones((1), dtype=np.float32)
+        if mode == 'cc':
+            v_min = min(averages[Key.V_PREV_END_AVG], averages[Key.V_END_AVG])
+            v_max = max(averages[Key.V_PREV_END_AVG], averages[Key.V_END_AVG])
+            v_range = np.linspace(v_min, v_max, 32)
             y_n = 32
+        elif mode == 'cv':
+            curr_max = abs(averages[Key.I_CC_AVG])
+            curr_min = abs(averages[Key.I_END_AVG])
+
+            if curr_min == curr_max:
+                current_range = np.array([curr_min])
+                y_n = 1
+            else:
+                current_range = sign_change * np.exp(
+                    np.linspace(
+                        np.log(curr_min),
+                        np.log(curr_max),
+                        32
+                    )
+                )
+                y_n = 32
 
 
-    generated = []
-    for i, cyc in enumerate(cycle):
-        scaled_cyc = ((float(cyc) - cycle_m) / tf.sqrt(cycle_v))
-        test_results = degradation_model.test_all_voltages(
-            tf.constant(scaled_cyc, dtype=tf.float32),
+        generated = []
+        for i, cyc in enumerate(cycle):
+            scaled_cyc = ((float(cyc) - cycle_m) / tf.sqrt(cycle_v))
+            test_results = degradation_model.test_all_voltages(
+                tf.constant(scaled_cyc, dtype=tf.float32),
+                tf.constant(averages[Key.I_CC_AVG], dtype=tf.float32),
+                tf.constant(averages[Key.I_PREV_END_AVG], dtype=tf.float32),
+                tf.constant(averages[Key.V_PREV_END_AVG], dtype=tf.float32),
+                tf.constant(averages[Key.V_END_AVG], dtype=tf.float32),
+                tf.constant(degradation_model.cell_direct.id_dict[barcode], dtype=tf.int32),
+                tf.constant(v_range,dtype=tf.float32),
+                tf.constant(current_range,dtype=tf.float32),
+                tf.constant(svit_and_count[Key.SVIT_GRID],dtype=tf.float32),
+                tf.constant(svit_and_count[Key.COUNT_MATRIX],dtype=tf.float32),
+            )
+
+            if mode == "cc":
+                yrange = v_range
+                cap = tf.reshape(
+                    test_results["pred_cc_capacity"], shape = [-1]
+                )
+
+            elif mode == "cv":
+                yrange = current_range
+                cap = tf.reshape(
+                    test_results["pred_cv_capacity"], shape = [-1]
+                )
+
+            generated.append(
+                (cyc, cap, yrange)
+            )
+
+
+        if y_n == 1:
+            y_n = (1,)
+
+        generic_vs_capacity = np.array(
+            generated,
+            dtype= [
+                (Key.N, 'f4'),
+                (generic_map['x'], 'f4', y_n),
+                (generic_map['y'], 'f4', y_n),
+            ]
+        )
+        return generic_vs_capacity
+
+    elif target == "generic_vs_cycle":
+        scaled_cyc = (cycle - cycle_m) / tf.sqrt(cycle_v)
+
+
+        if mode == "cc":
+            target_voltage = averages["avg_last_cc_voltage"]
+            target_currents = [averages[Key.I_CC_AVG]]
+        elif mode == "cv":
+            target_voltage = averages[Key.V_END_AVG]
+            target_currents = [averages[Key.I_END_AVG]]
+
+        test_results = degradation_model.test_single_voltage(
+            tf.cast(scaled_cyc, dtype=tf.float32),
+            tf.constant(target_voltage, dtype=tf.float32),
             tf.constant(averages[Key.I_CC_AVG], dtype=tf.float32),
             tf.constant(averages[Key.I_PREV_END_AVG], dtype=tf.float32),
             tf.constant(averages[Key.V_PREV_END_AVG], dtype=tf.float32),
             tf.constant(averages[Key.V_END_AVG], dtype=tf.float32),
+            tf.constant(target_currents, dtype=tf.float32),
             tf.constant(degradation_model.cell_direct.id_dict[barcode], dtype=tf.int32),
-            tf.constant(v_range,dtype=tf.float32),
-            tf.constant(current_range,dtype=tf.float32),
-            tf.constant(svit_and_count[Key.SVIT_GRID],dtype=tf.float32),
-            tf.constant(svit_and_count[Key.COUNT_MATRIX],dtype=tf.float32),
+            tf.constant(svit_and_count[Key.SVIT_GRID], dtype=tf.float32),
+            tf.constant(svit_and_count[Key.COUNT_MATRIX], dtype=tf.float32)
         )
-
         if mode == "cc":
-            yrange = v_range
-            cap = tf.reshape(
-                test_results["pred_cc_capacity"], shape = [-1]
-            )
-            generic_map = {
-                'x': "cc_capacity_vector",
-                'y': "cc_voltage_vector",
-            }
-
+            pred_cap = tf.reshape(
+                test_results["pred_cc_capacity"],
+                shape=[-1]
+            ).numpy()
         elif mode == "cv":
-            yrange = current_range
-            cap = tf.reshape(
-                test_results["pred_cv_capacity"], shape = [-1]
-            )
-            generic_map = {
-                'x': "cv_capacity_vector",
-                'y': "cv_current_vector",
-            }
+            pred_cap = test_results["pred_cv_capacity"].numpy()[:, -1]
 
-        generated.append(
-            (cyc, cap, yrange)
+
+
+        generic_vs_cycle = np.array(
+            list(zip(cycle, pred_cap)),
+            dtype= [
+                (Key.N, 'f4'),
+                (generic_map['y'], 'f4'),
+            ]
+
         )
 
+        return generic_vs_cycle
 
-    if y_n == 1:
-        y_n = (1,)
-
-    generic_vs_capacity = np.array(
-        generated,
-        dtype= [
-            (Key.N, 'f4'),
-            (generic_map['x'], 'f4', y_n),
-            (generic_map['y'], 'f4', y_n),
-        ]
-    )
-    return generic_vs_capacity
 
 
 
@@ -540,8 +681,8 @@ def plot_vq(plot_params, init_returns):
 
         plot_engine_direct(
             data_streams=[
-                ('compiled', compiled_groups, 'scatter'),
-                ('model', model_data, 'plot')
+                ('compiled', compiled_groups, 'scatter', 8),
+                ('model', model_data, 'plot', 3)
             ],
             target='generic_vs_capacity',
             todos=[
@@ -549,7 +690,6 @@ def plot_vq(plot_params, init_returns):
                 ("chg", "cc"),
                 ("chg", "cv"),
             ],
-            barcode=barcode,
             fit_args=fit_args,
             filename="VQ_{}_Count_{}.png".format(barcode, count)
         )
@@ -605,19 +745,8 @@ def plot_predicted(
             target_currents = [cyc_grp_dict[k][Key.I_CC_AVG]]
         elif mode == "cv":
             target_voltage = cyc_grp_dict[k][Key.V_END_AVG]
-            curr_min = abs(cyc_grp_dict[k][Key.I_CC_AVG])
-            curr_max = abs(cyc_grp_dict[k]["avg_end_current"])
+            target_currents = [cyc_grp_dict[k][Key.I_END_AVG]]
 
-            if curr_min == curr_max:
-                target_currents = np.array([curr_min])
-            else:
-                target_currents = sign_change * np.exp(
-                    np.arange(
-                        np.log(curr_min),
-                        np.log(curr_max),
-                        .05 * (np.log(curr_max) - np.log(curr_min))
-                    )
-                )
 
         test_results = degradation_model.test_single_voltage(
             tf.cast(my_cycle,dtype=tf.float32),
@@ -700,25 +829,28 @@ def plot_things_vs_cycle_number(plot_params, init_returns):
     cycle_m = init_returns[Key.CYC_M]
     cycle_v = init_returns[Key.CYC_V]
 
-    # for each cell, plot the quantities of interest
-    for barcode_count, barcode in enumerate(barcodes):
-        svit_and_count = get_svit_and_count(my_data, barcode)
-        fig = plt.figure(figsize = [11, 10])
-        tot = 3
-        typs =["dchg", "chg", "chg"]
-        modes = ["cc", "cc", "cv"]
-        #TODO: use the grid to directly get axs.
-        axs = [fig.add_subplot(tot, 1, 1 + off) for off in range(tot)]
-        cyc_grp_dict = my_data[Key.ALL_DATA][barcode][Key.CYC_GRP_DICT]
 
-        plot_capacities(
-            cyc_grp_dict, cycle_m, cycle_v, barcode,
-            degradation_model, svit_and_count,
-            axs, typs, modes
+    for barcode in barcodes:
+        compiled_groups = my_data[Key.ALL_DATA][barcode][Key.CYC_GRP_DICT]
+
+        svit_and_count, keys, averages = fetch_svit_keys_averages(my_data, barcode)
+
+        model_data = degradation_model, barcode, cycle_m, cycle_v, svit_and_count, keys, averages
+
+        plot_engine_direct(
+            data_streams=[
+                ('compiled', compiled_groups, 'scatter', 2000),
+                ('model', model_data, 'plot', 200)
+            ],
+            target='generic_vs_cycle',
+            todos=[
+                ("dchg", "cc"),
+                ("chg", "cc"),
+                ("chg", "cv"),
+            ],
+            fit_args=fit_args,
+            filename="Cap_{}_Count_{}.png".format(barcode, count),
         )
-
-        savefig("Cap_{}_Count_{}.png".format(barcode, count), fit_args)
-        plt.close(fig)
 
 
 

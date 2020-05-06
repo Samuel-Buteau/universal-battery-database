@@ -187,17 +187,29 @@ def initial_processing(
             pickle.dump(flags, file, pickle.HIGHEST_PROTOCOL)
 
         plot_engine_direct(
-            data_streams = [('compiled', cyc_grp_dict, 'scatter')],
+            data_streams = [('compiled', cyc_grp_dict, 'scatter', 20000)],
             target = 'generic_vs_capacity',
             todos = [
                 ("dchg", "cc"),
                 ("chg", "cc"),
                 ("chg", "cv"),
             ],
-            barcode= barcode,
             fit_args = fit_args,
             filename= "voltage_dependence_{}.png".format(barcode),
-            max_cyc_n = 20000
+
+        )
+
+        plot_engine_direct(
+            data_streams=[('compiled', cyc_grp_dict, 'scatter', 20000)],
+            target='generic_vs_cycle',
+            todos=[
+                ("dchg", "cc"),
+                ("chg", "cc"),
+                ("chg", "cv"),
+            ],
+            fit_args=fit_args,
+            filename="cycle_dependence_{}.png".format(barcode),
+
         )
 
 

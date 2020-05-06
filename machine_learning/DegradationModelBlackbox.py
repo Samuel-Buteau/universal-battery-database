@@ -1251,3 +1251,119 @@ class DegradationModel(Model):
 
 
         return returns
+
+
+
+    @tf.function
+    def test_all_voltages(
+        self,
+        cycle, constant_current, end_current_prev, end_voltage_prev, end_voltage,
+        barcode_index,
+        voltages, currents, svit_grid, count_matrix,
+    ):
+
+        expanded_cycle = tf.reshape(
+            cycle,
+            shape = [1, 1],
+        )
+        expanded_constant_current = tf.reshape(
+            constant_current,
+            shape = [1, 1],
+        )
+        expanded_end_current_prev = tf.reshape(
+            end_current_prev,
+            shape = [1, 1],
+        )
+        expanded_end_voltage_prev = tf.reshape(
+            end_voltage_prev,
+            shape = [1, 1],
+        )
+        expanded_end_voltage = tf.reshape(
+            end_voltage,
+            shape = [1, 1],
+        )
+
+        expanded_svit_grid = tf.expand_dims(svit_grid, axis=0)
+        expanded_count_matrix = tf.expand_dims(count_matrix, axis=0)
+
+        indices = tf.reshape(barcode_index, [1])
+
+        return self.call(
+            (
+                expanded_cycle,
+                expanded_constant_current,
+                expanded_end_current_prev,
+                expanded_end_voltage_prev,
+                expanded_end_voltage,
+                indices,
+                tf.reshape(voltages, [1, -1]),
+                tf.reshape(currents, [1, -1]),
+                expanded_svit_grid,
+                expanded_count_matrix,
+            ),
+            training = False
+        )
+
+    @tf.function
+    def test_single_voltage(
+        self,
+        cycle, v, constant_current, end_current_prev, end_voltage_prev, end_voltage,
+        currents, barcode_index, svit_grid, count_matrix
+    ):
+
+        expanded_cycle = tf.expand_dims(cycle, axis = 1)
+        expanded_constant_current = tf.tile(
+            tf.reshape(constant_current,[1,1]),
+            [cycle.shape[0], 1],
+
+        )
+        expanded_end_current_prev = tf.tile(
+            tf.reshape(end_current_prev,[1,1]),
+            [cycle.shape[0], 1],
+        )
+        expanded_end_voltage_prev = tf.tile(
+            tf.reshape(end_voltage_prev,[1,1]),
+            [cycle.shape[0], 1],
+        )
+        expanded_end_voltage = tf.tile(
+            tf.reshape(end_voltage,[1,1]),
+            [cycle.shape[0], 1],
+        )
+
+        indecies = tf.tile(
+            tf.expand_dims(barcode_index, axis = 0),
+            [cycle.shape[0]])
+
+        expanded_svit_grid = tf.tile(
+            tf.expand_dims(svit_grid, axis=0),
+            [cycle.shape[0], 1, 1, 1, 1, 1],
+        )
+        expanded_count_matrix = tf.tile(
+            tf.expand_dims(count_matrix, axis=0),
+            [cycle.shape[0], 1, 1, 1, 1, 1],
+        )
+
+
+        return self.call(
+            (
+                expanded_cycle,
+                expanded_constant_current,
+                expanded_end_current_prev,
+                expanded_end_voltage_prev,
+                expanded_end_voltage,
+                indecies,
+                tf.tile(
+                    tf.reshape(v, [1, 1]),
+                    [cycle.shape[0], 1],
+                ),
+
+                tf.tile(
+                    tf.reshape(currents, shape = [1, -1]),
+                    [cycle.shape[0], 1]
+                ),
+
+                expanded_svit_grid,
+                expanded_count_matrix,
+            ),
+            training = False
+        )

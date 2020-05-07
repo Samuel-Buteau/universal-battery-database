@@ -687,8 +687,7 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
                 step.save()
 
 
-        ChargeCycleGroup.objects.filter(cell_id=cell_id).delete()
-        DischargeCycleGroup.objects.filter(cell_id=cell_id).delete()
+        CycleGroup.objects.filter(cell_id=cell_id).delete()
 
 
 
@@ -697,14 +696,14 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
         total_capacity = max(1e-10, total_capacity)
 
         # DISCHARGE
-        for polarity in ["chg", "dchg"]:
+        for polarity in [CHARGE, DISCHARGE]:
             new_data = []
             for cyc in Cycle.objects.filter(
                     cycling_file__database_file__in = files, valid_cycle=True).order_by("cycle_number"):
 
-                if polarity == "dchg":
+                if polarity == DISCHARGE:
                     step = cyc.get_first_discharge_step()
-                elif polarity == "chg":
+                elif polarity == CHARGE:
                     step = cyc.get_first_charge_step()
                 else:
                     raise Exception("unknown polarity {}".format(polarity))
@@ -837,23 +836,14 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
                                                         summary_data[(avg_constant_rate, avg_end_rate, avg_end_rate_prev, avg_end_voltage, avg_end_voltage_prev)] = new_data_6
 
                 for k in summary_data.keys():
-
-                    if polarity == "dchg":
-                        cyc_group = DischargeCycleGroup(cell_id=cell_id,
-                                                        constant_rate=math.exp(k[0]),
-                                                        end_rate=math.exp(k[1]),
-                                                        end_rate_prev=math.exp(k[2]),
-                                                        end_voltage=k[3],
-                                                        end_voltage_prev=k[4],
-                                                        )
-                    elif polarity == "chg":
-                        cyc_group = ChargeCycleGroup(cell_id=cell_id,
-                                                    constant_rate=math.exp(k[0]),
-                                                    end_rate=math.exp(k[1]),
-                                                    end_rate_prev=math.exp(k[2]),
-                                                    end_voltage=k[3],
-                                                    end_voltage_prev=k[4],
-                                                )
+                    cyc_group = CycleGroup(cell_id=cell_id,
+                                           constant_rate=math.exp(k[0]),
+                                           end_rate=math.exp(k[1]),
+                                           end_rate_prev=math.exp(k[2]),
+                                           end_voltage=k[3],
+                                           end_voltage_prev=k[4],
+                                           polarity=polarity
+                                           )
 
                     cyc_group.save()
 

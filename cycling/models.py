@@ -163,7 +163,7 @@ def compute_from_database(cell_id, lower_cycle=None, upper_cycle=None, valid=Tru
                 (
                     cycle_group.constant_rate, cycle_group.end_rate_prev,
                     cycle_group.end_rate, cycle_group.end_voltage,
-                    cycle_group.end_voltage_prev, "dchg",
+                    cycle_group.end_voltage_prev, cycle_group.polarity,
                 )
             ] = numpy.array(
                 q_curves,
@@ -273,7 +273,7 @@ def get_byte_image(fig, dpi):
 #TODO(sam): use common mechanism as in compile_dataset/ml_smoothing for ordering
 #TODO(sam): set default color rules in the UI.
 def get_discharge_groups_from_cell_id(cell_id):
-    return list(DischargeCycleGroup.objects.filter(cell_id=cell_id).order_by("constant_rate"))
+    return list(CycleGroup.objects.filter(cell_id=cell_id,polarity=DISCHARGE).order_by("constant_rate"))
 
 
 
@@ -345,22 +345,27 @@ class CyclingFile(models.Model):
         )
 
 
+CHARGE = 'chg'
+DISCHARGE = 'dchg'
 
-class ChargeCycleGroup(models.Model):
+POLARITIES = [
+    (CHARGE, 'CHARGE'),
+    (DISCHARGE, 'DISCHARGE'),
+
+
+]
+
+
+
+class CycleGroup(models.Model):
     cell_id = models.IntegerField()
     constant_rate = models.FloatField()
     end_rate = models.FloatField()
     end_rate_prev = models.FloatField()
     end_voltage = models.FloatField()
     end_voltage_prev = models.FloatField()
+    polarity = models.CharField(max_length=4, choices=POLARITIES, blank=True)
 
-class DischargeCycleGroup(models.Model):
-    cell_id = models.IntegerField()
-    constant_rate = models.FloatField()
-    end_rate = models.FloatField()
-    end_rate_prev = models.FloatField()
-    end_voltage = models.FloatField()
-    end_voltage_prev = models.FloatField()
 
 class Cycle(models.Model):
     cycling_file = models.ForeignKey(CyclingFile, on_delete=models.CASCADE)
@@ -377,9 +382,8 @@ class Cycle(models.Model):
         """
         return float(self.cycling_file.database_file.valid_metadata.temperature)
 
-
-    charge_group = models.ForeignKey(ChargeCycleGroup, null=True, on_delete=models.SET_NULL)
-    discharge_group = models.ForeignKey(DischargeCycleGroup, null=True, on_delete=models.SET_NULL)
+    charge_group = models.ForeignKey(CycleGroup, null=True, on_delete=models.SET_NULL, related_name='charge_group')
+    discharge_group = models.ForeignKey(CycleGroup, null=True, on_delete=models.SET_NULL, related_name='discharge_group')
 
     valid_cycle = models.BooleanField(default=True)
 

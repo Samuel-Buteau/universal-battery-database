@@ -9,7 +9,8 @@ import matplotlib.pyplot as plt
 import filename_database.models
 import os
 from io import BytesIO
-
+from Key import Key
+import plot_constants
 
 def id_dict_from_id_list(id_list):
     n = len(id_list)
@@ -134,81 +135,60 @@ def make_temperature_grid(min_t, max_t, n_samples, my_barcodes):
     return numpy.array([my_min + delta * float(i) for i in range(n_samples)])
 
 
-def plot_barcode(barcode, path_to_plots = None, lower_cycle=None, upper_cycle=None, show_invalid=False, vertical_barriers=None, list_all_options=None, figsize = None):
+def compute_from_database(barcode, lower_cycle=None, upper_cycle=None, valid=True, ):
     files_barcode = CyclingFile.objects.filter(
         database_file__deprecated=False,
         database_file__valid_metadata__barcode=barcode).order_by("database_file__last_modified")
-    if figsize is None:
-        figsize = [5., 5.]
 
-    colors = ["k", "r", "b", "g", "c", "m", "y"]
-    rates = {0.05:"C/20", 0.5:"C/2", 1.:"1C", 2.:"2C", 3.:"3C"}
+    groups = {}
+    for cycle_group in get_discharge_groups_from_barcode(barcode):
+        q_curves= []
+        for f in files_barcode:
+            offset_cycle = f.database_file.valid_metadata.start_cycle
+            filters = Q(valid_cycle=valid)&Q(cycling_file=f)
+            if not (lower_cycle is None and upper_cycle is None):
+                filters = filters & Q(cycle_number__range=(lower_cycle-offset_cycle, upper_cycle-offset_cycle))
 
-    fig = plt.figure(figsize=figsize)
-    ax = fig.add_subplot(1, 1, 1)
-    for axis in ["top", "bottom", "left", "right"]:
-        ax.spines[axis].set_linewidth(3.)
-    #TODO: unify this with the overview plot
-    for counter, cycle_group in enumerate(get_discharge_groups_from_barcode(barcode)):
-        if show_invalid:
-            dat = [[True, ".", 100],
-                   [False, "x", 5]]
-        else:
-            dat = [[True, ".", 100]]
+            cycles = cycle_group.cycle_set.filter(filters)
+            if cycles.exists():
+                q_curves += list([
+                    (float(cyc.cycle_number + offset_cycle), -cyc.dchg_total_capacity)
+                    for cyc in cycles.order_by("cycle_number")])
 
-        for d in dat:
 
-            all_cycles = cycle_group.cycle_set.filter(valid_cycle=d[0])
-            q_curves= []
-            for f in files_barcode:
-                offset_cycle = f.database_file.valid_metadata.start_cycle
-                if lower_cycle is None and upper_cycle is None:
-                    cycles = all_cycles.filter(cycling_file=f)
-                else:
-                    cycles = all_cycles.filter(cycling_file=f).filter(cycle_number__range=(lower_cycle-offset_cycle, upper_cycle-offset_cycle))
-                if cycles.exists():
-                    q_curves.append( numpy.array([
-                        [cyc.cycle_number + offset_cycle, cyc.dchg_total_capacity]
-                        for cyc in cycles.order_by("cycle_number")])
-                    )
+        if len(q_curves) >0 :
 
-            if not any([len(q_curve) != 0 for q_curve in q_curves]):
-                continue
-            q_curve = numpy.concatenate(q_curves, axis=0)
 
-            if d[0]:
-                chg = cycle_group.end_rate_prev
-                found = False
-                for k in rates.keys():
-                    if abs(k - chg)/k < 0.2:
-                        chg = rates[k]
-                        found = True
-                        break
-                if not found:
-                    chg = "{:1.2f}".format(chg)
-                dchg= cycle_group.constant_rate
-                found = False
-                for k in rates.keys():
-                    if abs(k - dchg)/k < 0.2:
-                        dchg = rates[k]
-                        found = True
-                        break
-                if not found:
-                    dchg = "{:1.2f}".format(dchg)
+            groups[
+                (
+                    cycle_group.constant_rate, cycle_group.end_rate_prev,
+                    cycle_group.end_rate, cycle_group.end_voltage,
+                    cycle_group.end_voltage_prev, "dchg",
+                )
+            ] = numpy.array(
+                q_curves,
+                dtype=[
+                    ( Key.N, 'f4'),
+                    ("last_cc_capacity", 'f4')
+                ]
+            )
 
-                ax.scatter(q_curve[:, 0], q_curve[:, 1], c=colors[counter],
-                           marker=d[1],
-                           s=d[2],
-                           label="{}:{}".format(
-                               # counter,
-                               chg, dchg))
-            else:
-                ax.scatter(q_curve[:, 0], q_curve[:, 1], c=colors[counter],
-                           marker=d[1],
-                           s=d[2]
-                           )
 
-    file_colors = ["k", "c", "b", "g", "r", "k"]
+    return groups
+
+
+
+
+
+
+
+
+
+
+def make_file_legends_and_vertical(ax, barcode, lower_cycle=None, upper_cycle=None, show_invalid=False, vertical_barriers=None, list_all_options=None, leg1=None):
+    files_barcode = CyclingFile.objects.filter(
+        database_file__deprecated=False,
+        database_file__valid_metadata__barcode=barcode).order_by("database_file__last_modified")
 
     file_leg = []
     if len(files_barcode) >= 1:
@@ -237,16 +217,16 @@ def plot_barcode(barcode, path_to_plots = None, lower_cycle=None, upper_cycle=No
                 if max_cycle < lower_cycle:
                     continue
 
-            bla = plt.axvspan(min_cycle, max_cycle, ymin=.05 * (1+f_i), ymax=.05 * (2 + f_i),
-                              facecolor=file_colors[f_i],
+            bla = plt.axvspan(min_cycle, max_cycle, ymin=.05 * (1 + f_i), ymax=.05 * (2 + f_i),
+                              facecolor=plot_constants.COLORS[f_i],
                               alpha=0.1
                               )
-            file_leg.append( (bla,"File {} Last Modif: {}-{}-{}. Size: {}KB".format(
+            file_leg.append((bla, "File {} Last Modif: {}-{}-{}. Size: {}KB".format(
                 f_i,
                 f.database_file.last_modified.year,
                 f.database_file.last_modified.month,
                 f.database_file.last_modified.day,
-                int(f.database_file.filesize/1024)) ))
+                int(f.database_file.filesize / 1024))))
 
     if vertical_barriers is not None:
         for index_set_i in range(len(vertical_barriers) + 1):
@@ -270,32 +250,24 @@ def plot_barcode(barcode, path_to_plots = None, lower_cycle=None, upper_cycle=No
 
     ax.tick_params(direction="in", length=7, width=2, labelsize=11, bottom=True, top=True, left=True,
                    right=True)
-    leg1 = ax.legend(loc= "upper right")
+
 
     if len(file_leg) > 0:
         if list_all_options is None:
              loc="lower left"
         else:
              loc="upper left"
-        leg2 = ax.legend([x[0] for x in file_leg], [x[1] for x in file_leg], loc=loc)
+        ax.legend([x[0] for x in file_leg], [x[1] for x in file_leg], loc=loc)
         ax.add_artist(leg1)
-    plt.tight_layout(pad=0.)
 
-    if path_to_plots is not None:
-        plt.savefig(
-            os.path.join(path_to_plots, "Initial_{}.png".format(barcode)))
-        plt.close(fig)
-        return None
-    else:
-        if vertical_barriers is None:
-            dpi = 50
-        else:
-            dpi = 300
-        buf = BytesIO()
-        plt.savefig(buf, format="png", dpi=dpi)
-        image_base64 = base64.b64encode(buf.getvalue()).decode("utf-8").replace("\n", "")
-        buf.close()
-        return image_base64
+
+def get_byte_image(fig, dpi):
+    buf = BytesIO()
+    plt.savefig(buf, format="png", dpi=dpi)
+    image_base64 = base64.b64encode(buf.getvalue()).decode("utf-8").replace("\n", "")
+    buf.close()
+    plt.close(fig)
+    return image_base64
 
 
 #TODO(sam): use common mechanism as in compile_dataset/ml_smoothing for ordering

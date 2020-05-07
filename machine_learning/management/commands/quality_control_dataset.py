@@ -2,10 +2,8 @@
 import pickle
 
 from django.core.management.base import BaseCommand
-from cycling.plot import *
-from cycling.Key import Key
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
+from plot import *
+from Key import Key
 
 """
 Shortened Variable Names:

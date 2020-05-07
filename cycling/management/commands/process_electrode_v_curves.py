@@ -4,8 +4,8 @@ import numpy
 from django.core.management.base import BaseCommand
 
 from cycling.models import *
-from cycling.plot import *
-from cycling.Key import *
+from plot import *
+from Key import *
 import csv
 
 

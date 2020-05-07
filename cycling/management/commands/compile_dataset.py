@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand
 
 from cycling.neware_processing_functions import *
 from cell_database.models import *
-from cycling.Key import Key
+from Key import Key
 
 
 def get_dry_cell_meta_from_cell_id(cell_id):

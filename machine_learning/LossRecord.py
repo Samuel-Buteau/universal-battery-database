@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
-from cycling.plot import savefig
-from cycling.Key import *
+from plot import savefig
+from Key import *
 
 
 class LossRecord:

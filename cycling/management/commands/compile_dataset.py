@@ -138,8 +138,7 @@ def make_my_cell_ids(fit_args):
     used_cell_ids = []
     for b in my_cell_ids:
         if (
-            ChargeCycleGroup.objects.filter(cell_id = b).exists()
-            or DischargeCycleGroup.objects.filter(cell_id = b).exists()
+            CycleGroup.objects.filter(cell_id = b).exists()
         ):
             used_cell_ids.append(b)
 
@@ -332,20 +331,16 @@ def initial_processing(my_cell_ids, fit_args, flags):
         )
 
         cyc_grp_dict = {}
-        for typ in ["chg", "dchg"]:
-            if typ == "dchg":
+        for typ in [CHARGE, DISCHARGE]:
+            if typ == DISCHARGE:
                 sign = -1.
             else:
                 sign = 1.
 
-            if typ == "dchg":
-                groups = DischargeCycleGroup.objects.filter(
-                    cell_id = cell_id
-                ).order_by("constant_rate")
-            else:
-                groups = ChargeCycleGroup.objects.filter(
-                    cell_id = cell_id
-                ).order_by("constant_rate")
+            groups = CycleGroup.objects.filter(
+                cell_id=cell_id, polarity=typ
+            ).order_by("constant_rate")
+
             for cyc_group in groups:
                 result = []
 

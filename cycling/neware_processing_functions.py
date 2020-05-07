@@ -37,18 +37,18 @@ def get_good_neware_files():
 
 
 
-def get_barcodes():
+def get_cell_ids():
     exp_type = filename_models.ExperimentType.objects.get(
         category=filename_models.Category.objects.get(name="cycling"),
         subcategory=filename_models.SubCategory.objects.get(name="neware")
     )
 
-    all_current_barcodes = filename_models.DatabaseFile.objects.filter(
+    all_current_cell_ids = filename_models.DatabaseFile.objects.filter(
         is_valid=True, deprecated=False).exclude(
         valid_metadata=None).filter(valid_metadata__experiment_type=exp_type).values_list(
-        "valid_metadata__barcode", flat=True).distinct()
+        "valid_metadata__cell_id", flat=True).distinct()
 
-    return all_current_barcodes
+    return all_current_cell_ids
 
 def strip(string, sub):
     if string.endswith(sub):
@@ -489,9 +489,9 @@ def import_single_file(database_file, DEBUG=False):
                 return error_message
 
 
-def bulk_import(barcodes=None, DEBUG=False):
-    if barcodes is not None:
-        neware_files = get_good_neware_files().filter(valid_metadata__barcode__in=barcodes)
+def bulk_import(cell_ids=None, DEBUG=False):
+    if cell_ids is not None:
+        neware_files = get_good_neware_files().filter(valid_metadata__cell_id__in=cell_ids)
 
     else:
         neware_files = get_good_neware_files()
@@ -565,9 +565,9 @@ def average_data(data_source_, val_keys, sort_val, weight_func=None, weight_exp_
         return {val_keys[i]: (avg[i], std[i]) for i in range(len(val_keys))}
 
 
-def default_deprecation(barcode):
+def default_deprecation(cell_id):
     with transaction.atomic():
-        files = get_good_neware_files().filter(valid_metadata__barcode=barcode)
+        files = get_good_neware_files().filter(valid_metadata__cell_id=cell_id)
         if files.count() == 0:
             return
         start_cycles = files.order_by("valid_metadata__start_cycle").values_list(
@@ -594,11 +594,11 @@ def default_deprecation(barcode):
 
 
 
-def process_barcode(barcode, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
+def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
     #TODO(sam): incorporate resting steps properly.
-    print(barcode)
+    print(cell_id)
     with transaction.atomic():
-        fs = get_files_for_barcode(barcode)
+        fs = get_files_for_cell_id(cell_id)
         for f in fs:
             steps = Step.objects.filter(cycle__cycling_file=f).order_by("cycle__cycle_number", "step_number")
             if len(steps) == 0:
@@ -687,12 +687,12 @@ def process_barcode(barcode, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
                 step.save()
 
 
-        ChargeCycleGroup.objects.filter(barcode=barcode).delete()
-        DischargeCycleGroup.objects.filter(barcode=barcode).delete()
+        ChargeCycleGroup.objects.filter(cell_id=cell_id).delete()
+        DischargeCycleGroup.objects.filter(cell_id=cell_id).delete()
 
 
 
-        files = get_good_neware_files().filter(valid_metadata__barcode=barcode)
+        files = get_good_neware_files().filter(valid_metadata__cell_id=cell_id)
         total_capacity = Cycle.objects.filter(cycling_file__database_file__in=files, valid_cycle=True).aggregate(Max("dchg_total_capacity"))["dchg_total_capacity__max"]
         total_capacity = max(1e-10, total_capacity)
 
@@ -839,7 +839,7 @@ def process_barcode(barcode, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
                 for k in summary_data.keys():
 
                     if polarity == "dchg":
-                        cyc_group = DischargeCycleGroup(barcode=barcode,
+                        cyc_group = DischargeCycleGroup(cell_id=cell_id,
                                                         constant_rate=math.exp(k[0]),
                                                         end_rate=math.exp(k[1]),
                                                         end_rate_prev=math.exp(k[2]),
@@ -847,7 +847,7 @@ def process_barcode(barcode, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
                                                         end_voltage_prev=k[4],
                                                         )
                     elif polarity == "chg":
-                        cyc_group = ChargeCycleGroup(barcode=barcode,
+                        cyc_group = ChargeCycleGroup(cell_id=cell_id,
                                                     constant_rate=math.exp(k[0]),
                                                     end_rate=math.exp(k[1]),
                                                     end_rate_prev=math.exp(k[2]),
@@ -860,10 +860,6 @@ def process_barcode(barcode, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
                     for cyc_id in (summary_data[k]["cycle_id"]):
                         cyc_group.cycle_set.add(Cycle.objects.get(id=cyc_id))
 
-
-            bn, _ = BarcodeNode.objects.get_or_create(barcode=barcode)
-            bn.last_modified = timezone.now()
-            bn.save()
 
 def process_single_file(f,DEBUG=False):
     error_message = {"filename": f.database_file.filename}
@@ -1657,49 +1653,49 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n,voltage_
 
 
 
-def bulk_process(DEBUG=False, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10, barcodes = None):
-    if barcodes is None:
+def bulk_process(DEBUG=False, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10, cell_ids = None):
+    if cell_ids is None:
         #errors = list(map(lambda x: process_single_file(x, DEBUG),
         #                  CyclingFile.objects.filter(database_file__deprecated=False,
         #                                             process_time__lte = F("import_time"))))
-        all_current_barcodes = CyclingFile.objects.filter(
+        all_current_cell_ids = CyclingFile.objects.filter(
             database_file__deprecated=False).values_list(
-            "database_file__valid_metadata__barcode", flat=True).distinct()
+            "database_file__valid_metadata__cell_id", flat=True).distinct()
 
     else:
         # errors = list(map(lambda x: process_single_file(x, DEBUG),
         #                   CyclingFile.objects.filter(database_file__deprecated=False,
-        #                                              database_file__valid_metadata__barcode__in=barcodes,
+        #                                              database_file__valid_metadata__cell_id__in=cell_ids,
         #                                              process_time__lte=F("import_time"))))
-        all_current_barcodes = barcodes
+        all_current_cell_ids = cell_ids
 
-    print(list(all_current_barcodes))
-    for barcode in all_current_barcodes:
-        process_barcode(
-            barcode,
+    print(list(all_current_cell_ids))
+    for cell_id in all_current_cell_ids:
+        process_cell_id(
+            cell_id,
             NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS)
 
     return []#list(filter(lambda x: x["error"], errors))
 
 
 
-def bulk_deprecate(barcodes=None):
-    if barcodes is None:
-        all_current_barcodes = get_good_neware_files().values_list(
-            "valid_metadata__barcode", flat=True).distinct()
-        print(list(all_current_barcodes))
+def bulk_deprecate(cell_ids=None):
+    if cell_ids is None:
+        all_current_cell_ids = get_good_neware_files().values_list(
+            "valid_metadata__cell_id", flat=True).distinct()
+        print(list(all_current_cell_ids))
     else:
-        all_current_barcodes = barcodes
+        all_current_cell_ids = cell_ids
 
-    for barcode in all_current_barcodes:
+    for cell_id in all_current_cell_ids:
         default_deprecation(
-            barcode)
+            cell_id)
 
 
 @background(schedule=5)
-def full_import_barcodes(barcodes):
+def full_import_cell_ids(cell_ids):
     with transaction.atomic():
-        bulk_deprecate(barcodes)
-        bulk_import(barcodes=barcodes, DEBUG=False)
-        bulk_process(DEBUG=False, barcodes=barcodes)
+        bulk_deprecate(cell_ids)
+        bulk_import(cell_ids=cell_ids, DEBUG=False)
+        bulk_process(DEBUG=False, cell_ids=cell_ids)
 

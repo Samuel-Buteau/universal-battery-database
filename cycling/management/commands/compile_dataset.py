@@ -122,37 +122,37 @@ def get_component_from_electrolyte(electrolyte):
 
 
 # TODO (harvey): add docstring
-def make_my_barcodes(fit_args):
-    my_barcodes = CyclingFile.objects.filter(
+def make_my_cell_ids(fit_args):
+    my_cell_ids = CyclingFile.objects.filter(
         database_file__deprecated = False,
         database_file__is_valid = True
     ).exclude(
         database_file__valid_metadata = None
     ).order_by(
-        "database_file__valid_metadata__barcode"
+        "database_file__valid_metadata__cell_id"
     ).values_list(
-        "database_file__valid_metadata__barcode",
+        "database_file__valid_metadata__cell_id",
         flat = True
     ).distinct()
 
-    used_barcodes = []
-    for b in my_barcodes:
+    used_cell_ids = []
+    for b in my_cell_ids:
         if (
-            ChargeCycleGroup.objects.filter(barcode = b).exists()
-            or DischargeCycleGroup.objects.filter(barcode = b).exists()
+            ChargeCycleGroup.objects.filter(cell_id = b).exists()
+            or DischargeCycleGroup.objects.filter(cell_id = b).exists()
         ):
-            used_barcodes.append(b)
+            used_cell_ids.append(b)
 
-    if len(fit_args[Key.BARCODES]) == 0:
-        return used_barcodes
+    if len(fit_args[Key.CELL_IDS]) == 0:
+        return used_cell_ids
     else:
         return list(
-            set(used_barcodes).intersection(set(fit_args[Key.BARCODES]))
+            set(used_cell_ids).intersection(set(fit_args[Key.CELL_IDS]))
         )
 
 
 # TODO (harvey): reformat docstring
-def initial_processing(my_barcodes, fit_args, flags):
+def initial_processing(my_cell_ids, fit_args, flags):
     """
 
     Returns:
@@ -163,16 +163,16 @@ def initial_processing(my_barcodes, fit_args, flags):
             Key.TEMP_GRID (1D array): temperatures
             Key.SIGN_GRID (1D array): signs
             Key.CELL_TO_POS (dict):
-                Indexed by barcode yielding a positive electrode id.
+                Indexed by cell_id yielding a positive electrode id.
             Key.CELL_TO_NEG (dict):
-                Indexed by barcode yielding a positive electrode id.
+                Indexed by cell_id yielding a positive electrode id.
             Key.CELL_TO_ELE (dic):
-                Indexed by barcode yielding a positive electrode id.
+                Indexed by cell_id yielding a positive electrode id.
             Key.CELL_TO_LAT (dict):
-                Indexed by barcode yielding
+                Indexed by cell_id yielding
                     1 if the cell is latent,
                     0 if made of known pos, neg, electrolyte
-            Key.ALL_DATA (dict): Indexed by barcode. Each barcode yields:
+            Key.ALL_DATA (dict): Indexed by cell_id. Each cell_id yields:
                 Key.ALL_REF_MATS (structured array):
                     dtype = [
                         (Key.N, "f4"),
@@ -225,30 +225,30 @@ def initial_processing(my_barcodes, fit_args, flags):
         fit_args[Key.V_MIN_GRID],
         fit_args[Key.V_MAX_GRID],
         int(fit_args[Key.V_N_GRID] / 4),
-        my_barcodes
+        my_cell_ids
     )
 
     current_grid = make_current_grid(
         fit_args[Key.I_MIN_GRID],
         fit_args[Key.I_MAX_GRID],
         fit_args[Key.I_N_GRID],
-        my_barcodes
+        my_cell_ids
     )
 
     temperature_grid = make_temperature_grid(
         fit_args[Key.TEMP_GRID_MIN_V],
         fit_args[Key.TEMP_GRID_MAX_V],
         fit_args[Key.TEMP_GRID_N],
-        my_barcodes
+        my_cell_ids
     )
     sign_grid = make_sign_grid()
     """
     - cycles are grouped by their charge rates and discharge rates.
     - a cycle group contains many cycles
     - things are split up this way to sample each group equally
-    - each barcode corresponds to a single cell
+    - each cell_id corresponds to a single cell
     """
-    for barcode in my_barcodes:
+    for cell_id in my_cell_ids:
         """
         - dictionary indexed by charging and discharging rate (i.e. cycle group)
         - contains structured arrays of
@@ -264,7 +264,7 @@ def initial_processing(my_barcodes, fit_args, flags):
               (mask of 0)]
         """
 
-        files = get_files_for_barcode(barcode)
+        files = get_files_for_cell_id(cell_id)
 
         all_mats = []
         for cyc in Cycle.objects.filter(cycling_file__in = files).order_by(
@@ -340,11 +340,11 @@ def initial_processing(my_barcodes, fit_args, flags):
 
             if typ == "dchg":
                 groups = DischargeCycleGroup.objects.filter(
-                    barcode = barcode
+                    cell_id = cell_id
                 ).order_by("constant_rate")
             else:
                 groups = ChargeCycleGroup.objects.filter(
-                    barcode = barcode
+                    cell_id = cell_id
                 ).order_by("constant_rate")
             for cyc_group in groups:
                 result = []
@@ -374,7 +374,7 @@ def initial_processing(my_barcodes, fit_args, flags):
                             list_of_flags = flags[flag_type]
                             if len(list_of_flags) == 0:
                                 continue
-                            list_of_flags = [fs for fs in list_of_flags if fs["barcode"] == barcode]
+                            list_of_flags = [fs for fs in list_of_flags if fs["cell_id"] == cell_id]
                             if len(list_of_flags) == 0:
                                 continue
 
@@ -460,21 +460,21 @@ def initial_processing(my_barcodes, fit_args, flags):
                         Key.V_CC_LAST_AVG: numpy.average(res[Key.V_CC_LAST]),
                     }
 
-        all_data[barcode] = {
+        all_data[cell_id] = {
             Key.CYC_GRP_DICT: cyc_grp_dict,
             Key.REF_ALL_MATS: all_reference_mats,
         }
 
     """
-    "cell_id_list": 1D array of barcodes
+    "cell_id_list": 1D array of cell_ids
     "pos_id_list": 1D array of positive electrode ids
     "neg_id_list": 1D array of negative electrode ids
     "electrolyte_id_list": 1D array of electrolyte ids
-    Key.CELL_TO_POS: a dictionary indexed by barcode yielding a positive
+    Key.CELL_TO_POS: a dictionary indexed by cell_id yielding a positive
         electrode id.
-    Key.CELL_TO_NEG: a dictionary indexed by barcode yielding a positive
+    Key.CELL_TO_NEG: a dictionary indexed by cell_id yielding a positive
         electrode id.
-    Key.CELL_TO_ELE: a dictionary indexed by barcode yielding a
+    Key.CELL_TO_ELE: a dictionary indexed by cell_id yielding a
         positive electrode id.
     """
 
@@ -496,7 +496,7 @@ def initial_processing(my_barcodes, fit_args, flags):
     dry_cell_to_dry_cell_name = {}
     molecule_to_molecule_name = {}
 
-    for cell_id in my_barcodes:
+    for cell_id in my_cell_ids:
         pos, pos_name = get_pos_id_from_cell_id(cell_id)
         neg, neg_name = get_neg_id_from_cell_id(cell_id)
         electrolyte, electrolyte_name = get_electrolyte_id_from_cell_id(cell_id)
@@ -556,9 +556,9 @@ def initial_processing(my_barcodes, fit_args, flags):
                 ]
 
     max_cap = 0.
-    for barcode in all_data.keys():
+    for cell_id in all_data.keys():
 
-        cyc_grp_dict = all_data[barcode][Key.CYC_GRP_DICT]
+        cyc_grp_dict = all_data[cell_id][Key.CYC_GRP_DICT]
         # find largest cap measured for this cell (max over all cycle groups)
         for k in cyc_grp_dict.keys():
             if len(cyc_grp_dict[k][Key.MAIN][Key.Q_CC_LAST]) > 0:
@@ -596,7 +596,7 @@ def initial_processing(my_barcodes, fit_args, flags):
 def compile_dataset(fit_args):
     if not os.path.exists(fit_args[Key.PATH_DATASET]):
         os.mkdir(fit_args[Key.PATH_DATASET])
-    my_barcodes = make_my_barcodes(fit_args)
+    my_cell_ids = make_my_cell_ids(fit_args)
 
     flags = {}
     if fit_args["path_to_flags"] != '':
@@ -605,7 +605,7 @@ def compile_dataset(fit_args):
             with open(flag_filename, 'rb') as file:
                 flags = pickle.load(file)
 
-    pick, pick_names = initial_processing(my_barcodes, fit_args, flags)
+    pick, pick_names = initial_processing(my_cell_ids, fit_args, flags)
     with open(
         os.path.join(
             fit_args[Key.PATH_DATASET],
@@ -655,7 +655,7 @@ class Command(BaseCommand):
         for arg in int_args:
             parser.add_argument(arg, type = int, default = int_args[arg])
 
-        # default_barcodes = [
+        # default_cell_ids = [
         #     57706, 57707, 57710, 57711, 57714, 57715, 64260, 64268, 81602,
         #     81603, 81604, 81605, 81606, 81607, 81608, 81609, 81610, 81611,
         #     81612, 81613, 81614, 81615, 81616, 81617, 81618, 81619, 81620,
@@ -671,10 +671,10 @@ class Command(BaseCommand):
         #     83744, 83745, 83746, 83747, 83748,
         # ]
 
-        default_barcodes = []
+        default_cell_ids = []
         parser.add_argument(
-            "--wanted_barcodes", type = int, nargs = "+",
-            default = default_barcodes,
+            "--wanted_cell_ids", type = int, nargs = "+",
+            default = default_cell_ids,
 
         )
         parser.add_argument(

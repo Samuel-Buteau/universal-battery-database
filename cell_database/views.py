@@ -721,24 +721,24 @@ def define_wet_cell_bulk(request, predefined=None):
                         # initial['dry_cell']=bulk_parameters_form.cleaned_data['dry_cell']
                         initial['electrolyte'] = bulk_parameters_form.cleaned_data['electrolyte']
 
-                    start_barcode = bulk_parameters_form.cleaned_data['start_barcode']
-                    end_barcode = bulk_parameters_form.cleaned_data['end_barcode']
-                    number_of_barcodes = bulk_parameters_form.cleaned_data['number_of_barcodes']
+                    start_cell_id = bulk_parameters_form.cleaned_data['start_cell_id']
+                    end_cell_id = bulk_parameters_form.cleaned_data['end_cell_id']
+                    number_of_cell_ids = bulk_parameters_form.cleaned_data['number_of_cell_ids']
 
-                    if start_barcode is not None and end_barcode is None and number_of_barcodes is None:
-                        end_barcode = start_barcode
-                    if start_barcode is not None and end_barcode is None and number_of_barcodes is not None:
-                        end_barcode = start_barcode + number_of_barcodes - 1
+                    if start_cell_id is not None and end_cell_id is None and number_of_cell_ids is None:
+                        end_cell_id = start_cell_id
+                    if start_cell_id is not None and end_cell_id is None and number_of_cell_ids is not None:
+                        end_cell_id = start_cell_id + number_of_cell_ids - 1
 
-                    if start_barcode is None and number_of_barcodes is not None:
-                        start_barcode = 0
-                        end_barcode = start_barcode + number_of_barcodes - 1
+                    if start_cell_id is None and number_of_cell_ids is not None:
+                        start_cell_id = 0
+                        end_cell_id = start_cell_id + number_of_cell_ids - 1
 
-                    if start_barcode is not None and end_barcode is not None:
+                    if start_cell_id is not None and end_cell_id is not None:
 
                         initials = []
-                        for bc in range(start_barcode, end_barcode + 1):
-                            init = {'barcode':bc}
+                        for bc in range(start_cell_id, end_cell_id + 1):
+                            init = {'cell_id':bc}
 
                             for k in initial.keys():
                                 init[k] = initial[k]
@@ -848,7 +848,7 @@ def define_wet_cell_bulk(request, predefined=None):
                                     type='dry_cell'
                                 )
 
-                            my_cell_id = entry.cleaned_data['barcode']
+                            my_cell_id = entry.cleaned_data['cell_id']
 
                             print('!!!!creating a wet cell!!!!')
                             print(my_cell_id)

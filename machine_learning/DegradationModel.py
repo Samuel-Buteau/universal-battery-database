@@ -400,7 +400,7 @@ class DegradationModel(Model):
 
         self.num_keys = self.cell_direct.num_keys
 
-        # cell_latent_flags is a dict with barcodes as keys.
+        # cell_latent_flags is a dict with cell_ids as keys.
         # latent_flags is a numpy array such that the indecies match cell_dict
         latent_flags = numpy.ones(
             (self.cell_direct.num_keys, 1),
@@ -1709,10 +1709,10 @@ class DegradationModel(Model):
             training = training
         )
 
-    def get_v_curves(self, barcode, shift, v, q, current):
+    def get_v_curves(self, cell_id, shift, v, q, current):
         #TODO(sam): this no longer works.
         """
-        :param barcode: a barcode
+        :param cell_id: a cell_id
         :param shift: a 1-D array of shifts
         :param v: a 1-D array of vs
         :param q: a 1-D array of qs
@@ -1729,7 +1729,7 @@ class DegradationModel(Model):
         """
         training = False
         indices = tf.constant(
-            self.cell_direct.id_dict[barcode],
+            self.cell_direct.id_dict[cell_id],
             shape = [1]
         )
 

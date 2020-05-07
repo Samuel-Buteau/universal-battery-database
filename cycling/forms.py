@@ -27,10 +27,10 @@ class SearchForm(forms.Form):
     charID_search = forms.BooleanField(required=False)
     charID_exact = forms.CharField(required=False)
 
-    barcode_search = forms.BooleanField(required=False)
-    barcode_exact = forms.IntegerField(required=False)
-    barcode_minimum = forms.IntegerField(required=False)
-    barcode_maximum = forms.IntegerField(required=False)
+    cell_id_search = forms.BooleanField(required=False)
+    cell_id_exact = forms.IntegerField(required=False)
+    cell_id_minimum = forms.IntegerField(required=False)
+    cell_id_maximum = forms.IntegerField(required=False)
 
     voltage_search = forms.BooleanField(required=False)
     voltage_exact = forms.FloatField(required=False)
@@ -56,8 +56,8 @@ class SearchForm(forms.Form):
         self.data = data
 
 
-class BarcodeOverviewForm(forms.Form):
-    barcode = forms.IntegerField(
+class CellIDOverviewForm(forms.Form):
+    cell_id = forms.IntegerField(
         widget=forms.TextInput(attrs={"readonly": "readonly", "size": 5}),
         required=False)
     exclude = forms.BooleanField(required=False)
@@ -77,4 +77,4 @@ class BarcodeOverviewForm(forms.Form):
 
 
 
-BarcodeOverviewFormset = formset_factory(BarcodeOverviewForm, extra=0)
+CellIDOverviewFormset = formset_factory(CellIDOverviewForm, extra=0)

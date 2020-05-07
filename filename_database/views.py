@@ -14,8 +14,8 @@ def get_exclusions(experiment_type=None):
                     'drive_profile_y_denominator', 'drive_profile_z']
 
 
-    if experiment_type is None or not experiment_type.barcode_active:
-        exclude.append('barcode')
+    if experiment_type is None or not experiment_type.cell_id_active:
+        exclude.append('cell_id')
 
     if experiment_type is None or not experiment_type.start_cycle_active:
         exclude.append('start_cycle')
@@ -41,7 +41,7 @@ def get_headings(experiment_type=None, exclude=None, has_file_linked=True):
     headings = []
     possible_fields = [
         'charID',
-        'barcode',
+        'cell_id',
         'start_cycle',
         'voltage',
         'temperature',
@@ -206,7 +206,7 @@ def main_page(request):
                             'deprecate': db_filename.deprecated,
                             "experiment_type": experiment_type,
                             "charID": db_filename.valid_metadata.charID,
-                            "barcode": db_filename.valid_metadata.barcode,
+                            "cell_id": db_filename.valid_metadata.cell_id,
                             "start_cycle": db_filename.valid_metadata.start_cycle,
                             "voltage": db_filename.valid_metadata.voltage,
                             "temperature": db_filename.valid_metadata.temperature,
@@ -229,7 +229,7 @@ def main_page(request):
                             'date': forms.SelectDateWidget(empty_label="Nothing",
                                                            years=range(2000, datetime.date.today().year + 1)),
                             'charID': forms.TextInput(attrs={'size': 5}),
-                            'barcode': forms.NumberInput(attrs={'style': 'width:8ch'}),
+                            'cell_id': forms.NumberInput(attrs={'style': 'width:8ch'}),
                             'start_cycle': forms.NumberInput(attrs={'style': 'width:8ch'}),
                             'temperature': forms.NumberInput(attrs={'style': 'width:8ch'}),
                             'voltage': forms.NumberInput(attrs={'style': 'width:6ch'}), }
@@ -276,7 +276,7 @@ def main_page(request):
 
                         if 'make_changes_to_metadata' in request.POST:
                             charID = None
-                            barcode = None
+                            cell_id = None
                             voltage = None
                             temperature = None
                             AC = None
@@ -285,8 +285,8 @@ def main_page(request):
                             date = None
                             if 'charID' in form.cleaned_data.keys():
                                 charID = form.cleaned_data['charID']
-                            if 'barcode' in form.cleaned_data.keys():
-                                barcode = form.cleaned_data['barcode']
+                            if 'cell_id' in form.cleaned_data.keys():
+                                cell_id = form.cleaned_data['cell_id']
                             if 'start_cycle' in form.cleaned_data.keys():
                                 start_cycle = form.cleaned_data['start_cycle']
                             if 'voltage' in form.cleaned_data.keys():
@@ -305,7 +305,7 @@ def main_page(request):
                             file.set_valid_metadata(
                                 experiment_type=experiment_type,
                                 charID=charID,
-                                barcode=barcode,
+                                cell_id=cell_id,
                                 start_cycle=start_cycle,
                                 voltage=voltage,
                                 temperature=temperature,
@@ -336,7 +336,7 @@ def main_page(request):
 
                     if form.is_valid():
                         charID = None
-                        barcode = None
+                        cell_id = None
                         voltage = None
                         temperature = None
                         AC = None
@@ -345,8 +345,8 @@ def main_page(request):
                         date = None
                         if 'charID' in form.cleaned_data.keys():
                             charID = form.cleaned_data['charID']
-                        if 'barcode' in form.cleaned_data.keys():
-                            barcode = form.cleaned_data['barcode']
+                        if 'cell_id' in form.cleaned_data.keys():
+                            cell_id = form.cleaned_data['cell_id']
                         if 'start_cycle' in form.cleaned_data.keys():
                             start_cycle = form.cleaned_data['start_cycle']
                         if 'voltage' in form.cleaned_data.keys():
@@ -367,7 +367,7 @@ def main_page(request):
                             ValidMetadata(
                             experiment_type=experiment_type,
                             charID=charID,
-                            barcode=barcode,
+                            cell_id=cell_id,
                             start_cycle=start_cycle,
                             voltage=voltage,
                             temperature=temperature,

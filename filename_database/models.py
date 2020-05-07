@@ -15,7 +15,7 @@ class SubCategory(models.Model):
 class ExperimentType(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     subcategory = models.ForeignKey(SubCategory, on_delete=models.CASCADE)
-    barcode_active = models.BooleanField(default=True)
+    cell_id_active = models.BooleanField(default=True)
     start_cycle_active = models.BooleanField(default=True)
     voltage_active = models.BooleanField(default=True)
     voltage_name = models.CharField(max_length = 50, default = 'upper_cutoff_voltage')
@@ -73,7 +73,7 @@ class ValidMetadata(models.Model):
     ]
     experiment_type = models.ForeignKey(ExperimentType, on_delete=models.CASCADE, null=True)
     charID = models.CharField(max_length=5, null=True)
-    barcode = models.IntegerField(null=True)
+    cell_id = models.IntegerField(null=True)
 
     start_cycle = models.IntegerField(null=True)
     voltage = models.FloatField(null=True)
@@ -99,7 +99,7 @@ class ValidMetadata(models.Model):
         return '{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}'.format(
             self.experiment_type,
             self.charID,
-            self.barcode,
+            self.cell_id,
         self.start_cycle,
         self.voltage,
         self.temperature,
@@ -117,7 +117,7 @@ class ValidMetadata(models.Model):
     @property
     def is_valid(self):
         return (( self.charID is not None) and
-                (not self.experiment_type.barcode_active or self.barcode is not None) and
+                (not self.experiment_type.cell_id_active or self.cell_id is not None) and
                 (not self.experiment_type.start_cycle_active or self.start_cycle is not None) and
                 (not self.experiment_type.voltage_active or self.voltage is not None) and
                 (not self.experiment_type.temperature_active or self.temperature is not None) and
@@ -156,8 +156,8 @@ class ValidMetadata(models.Model):
             filename_printed_fields.append(str(self.AC))
         if self.experiment_type.AC_active and self.experiment_type.AC_increment_active:
             filename_printed_fields.append('{}{}'.format(str(self.AC),str(self.AC_increment)))
-        if self.experiment_type.barcode_active:
-            filename_printed_fields.append(str(self.barcode))
+        if self.experiment_type.cell_id_active:
+            filename_printed_fields.append(str(self.cell_id))
         if self.experiment_type.charger != '':
             filename_printed_fields.append(str(self.experiment_type.charger))
         if self.experiment_type.start_cycle_active:
@@ -191,7 +191,7 @@ class DatabaseFile(models.Model):
                         valid_metadata = None,
                         experiment_type = None,
                         charID = None,
-                        barcode = None,
+                        cell_id = None,
                         start_cycle = None,
                         voltage = None,
                         temperature = None,
@@ -212,7 +212,7 @@ class DatabaseFile(models.Model):
                 # both exist.
                 if ((self.valid_metadata.experiment_type == valid_metadata.experiment_type) and
                     (self.valid_metadata.charID == valid_metadata.charID) and
-                    (self.valid_metadata.barcode == valid_metadata.barcode) and
+                    (self.valid_metadata.cell_id == valid_metadata.cell_id) and
                     (self.valid_metadata.voltage == valid_metadata.voltage) and
                     (self.valid_metadata.temperature == valid_metadata.temperature) and
                     (self.valid_metadata.date == valid_metadata.date) and
@@ -233,7 +233,7 @@ class DatabaseFile(models.Model):
                 if (
                     ((experiment_type is None) or (experiment_type == self.valid_metadata.experiment_type)) and
                     ((charID is None) or (charID == self.valid_metadata.charID)) and
-                    ((barcode is None) or (barcode == self.valid_metadata.barcode)) and
+                    ((cell_id is None) or (cell_id == self.valid_metadata.cell_id)) and
                     ((start_cycle is None) or (start_cycle == self.valid_metadata.start_cycle)) and
                     ((voltage is None) or (voltage == self.valid_metadata.voltage)) and
                     ((temperature is None) or (temperature == self.valid_metadata.temperature)) and
@@ -262,8 +262,8 @@ class DatabaseFile(models.Model):
                     self.valid_metadata.experiment_type = experiment_type
                 if charID is not None:
                     self.valid_metadata.charID = charID
-                if barcode is not None:
-                    self.valid_metadata.barcode = barcode
+                if cell_id is not None:
+                    self.valid_metadata.cell_id = cell_id
                 if start_cycle is not None:
                     self.valid_metadata.start_cycle = start_cycle
                 if voltage is not None:

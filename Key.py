@@ -74,7 +74,7 @@ class Key:
     PATH_V_CURVES = "path_v_curves"
     PATH_V_CURVES_META = "path_v_curves_meta"
     DATA_VERSION = "dataset_version"
-    BARCODES = "wanted_barcodes"
+    CELL_IDS = "wanted_cell_ids"
     STOP = "stop_count"
     VIS = "visualize_fit_every"
     PRINT_LOSS = "print_loss_every"
@@ -84,7 +84,7 @@ class Key:
     FIT_ARGS = "fit_args"
     MAIN = "main_data"
     MY_DATA = "my_data"
-    # Dictionary indexed by barcode.
+    # Dictionary indexed by cell_id.
     ALL_DATA = "all_data"
     CYC_GRP_DICT = "cyc_grp_dict"
 
@@ -102,13 +102,13 @@ class Key:
     REF_ALL_MATS = "all_reference_mats"
     REF_CYC = "reference_cycles_n"
 
-    # Dictionary indexed by barcode yielding a positive electrode id.
+    # Dictionary indexed by cell_id yielding a positive electrode id.
     CELL_TO_POS = "cell_id_to_pos_id"
-    # Dictionary indexed by barcode yielding a positive electrode id.
+    # Dictionary indexed by cell_id yielding a positive electrode id.
     CELL_TO_NEG = "cell_id_to_neg_id"
-    # Dictionary indexed by barcode yielding a positive electrode id.
+    # Dictionary indexed by cell_id yielding a positive electrode id.
     CELL_TO_ELE = "cell_id_to_electrolyte_id"
-    # Dictionary indexed by barcode yielding
+    # Dictionary indexed by cell_id yielding
     #     1 if the cell is latent,
     #     0 if made of known pos, neg, electrolyte
     CELL_TO_LAT = "cell_id_to_latent"

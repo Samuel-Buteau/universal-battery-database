@@ -55,10 +55,10 @@ table, th, td {
     <tr>
 
     <tr>
-        <th>CharID </th> <td>{{ search_form.charID_search }}</td><td>{{ search_form.charID_exact }}</td>  <td></td><td></td>
+        <th>Char ID </th> <td>{{ search_form.charID_search }}</td><td>{{ search_form.charID_exact }}</td>  <td></td><td></td>
     </tr>
     <tr>
-        <th>Barcode</th> <td>{{ search_form.barcode_search }}</td><td>{{ search_form.barcode_exact }}</td><td>{{ search_form.barcode_minimum }}</td><td>{{ search_form.barcode_maximum }}</td>
+        <th>Cell ID</th> <td>{{ search_form.cell_id_search }}</td><td>{{ search_form.cell_id_exact }}</td><td>{{ search_form.cell_id_minimum }}</td><td>{{ search_form.cell_id_maximum }}</td>
     </tr>
 
     <tr>
@@ -94,9 +94,9 @@ table, th, td {
 
 
 
-{% if barcode_overview_formset %}
+{% if cell_id_overview_formset %}
 {% csrf_token %}
-{{ barcode_overview_formset.management_form }}
+{{ cell_id_overview_formset.management_form }}
 
 Showing page {{page_number}}/{{max_page_number}}.
     <table>
@@ -104,7 +104,7 @@ Showing page {{page_number}}/{{max_page_number}}.
     <col width = "5">
 
             <tr>
-                <th>Barcode</th>
+                <th>Cell ID</th>
                 <th>Exclude</th>
                 <th>Number of Active Files</th>
                 <th>Number of Imported But Deprecated Files</th>
@@ -112,10 +112,10 @@ Showing page {{page_number}}/{{max_page_number}}.
                 <th>First Active File</th>
             </tr>
 
-        {% for form in barcode_overview_formset %}
+        {% for form in cell_id_overview_formset %}
             <tr>
 
-                <td>{{ form.barcode }}</td>
+                <td>{{ form.cell_id }}</td>
                 <td>{{ form.exclude }}</td>
                 <td>{{ form.number_of_active }}</td>
                 <td>{{ form.number_of_deprecated }}</td>
@@ -142,14 +142,14 @@ Showing page {{page_number}}/{{max_page_number}}.
         <table border="1">
             {% for zd in visual_data %}
                 <tr valign="top">
-                    {% for barcode, image64 in zd %}
+                    {% for cell_id, image64 in zd %}
                         <td valign="top">
 
-                            <a href="{% url 'view_barcode'  barcode  '' %}">
+                            <a href="{% url 'view_cell_id'  cell_id  '' %}">
                                 <img src="data:image/png;base64,{{image64}}" alt="If you see this, there was an error. Send email to Samuel.Buteau@dal.ca" width=200 height=auto />
                             </a>
 
-                                 <font size="+2">{{barcode}}</font>
+                                 <font size="+2">{{cell_id}}</font>
 
 
                         </td>

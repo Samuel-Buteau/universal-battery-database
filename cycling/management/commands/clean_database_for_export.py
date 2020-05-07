@@ -4,7 +4,7 @@ from django.db import transaction
 from filename_database.models import *
 from cycling.models import *
 
-wanted_barcodes = [
+wanted_cell_ids = [
     83220,
     83083,
     82012,
@@ -24,7 +24,7 @@ class Command(BaseCommand):
         # valid
         # non-deprecated
         # cycling
-        # files with wanted barcode
+        # files with wanted cell_id
         with transaction.atomic():
             DatabaseFile.objects.filter(valid_metadata = None).delete()
             DatabaseFile.objects.exclude(
@@ -35,10 +35,9 @@ class Command(BaseCommand):
             DatabaseFile.objects.filter(deprecated = True).delete()
             DatabaseFile.objects.filter(is_valid = False).delete()
             DatabaseFile.objects.exclude(
-                valid_metadata__barcode__in = wanted_barcodes).delete()
+                valid_metadata__cell_id__in = wanted_cell_ids).delete()
 
-            # Remove Barcode nodes that are not wanted.
-            BarcodeNode.objects.all().delete()
+
 
             # Remove ValidMetadata which is not attached to anything.
             ValidMetadata.objects.filter(databasefile = None).delete()

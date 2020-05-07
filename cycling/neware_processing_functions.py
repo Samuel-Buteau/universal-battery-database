@@ -846,9 +846,10 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
                                            )
 
                     cyc_group.save()
-
-                    for cyc_id in (summary_data[k]["cycle_id"]):
-                        cyc_group.cycle_set.add(Cycle.objects.get(id=cyc_id))
+                    if polarity == CHARGE:
+                        Cycle.objects.filter(id__in=list(summary_data[k]["cycle_id"])).update(charge_group=cyc_group)
+                    elif polarity == DISCHARGE:
+                        Cycle.objects.filter(id__in=list(summary_data[k]["cycle_id"])).update(discharge_group=cyc_group)
 
 
 def process_single_file(f,DEBUG=False):
@@ -1684,8 +1685,19 @@ def bulk_deprecate(cell_ids=None):
 
 @background(schedule=5)
 def full_import_cell_ids(cell_ids):
+    """
+    TEMPDOC(sam):
+    this gets called when asking to trigger a reimport
+    TODO(sam): does it create CycleGroups?
+
+
+
+    :param cell_ids:
+    :return:
+    """
+    #TODO(sam): split into smaller batches?
     with transaction.atomic():
-        bulk_deprecate(cell_ids)
-        bulk_import(cell_ids=cell_ids, DEBUG=False)
-        bulk_process(DEBUG=False, cell_ids=cell_ids)
+        bulk_deprecate(cell_ids) #TODO what does deprecate do?
+        bulk_import(cell_ids=cell_ids, DEBUG=False) #TODO what does import do?
+        bulk_process(DEBUG=False, cell_ids=cell_ids) #TODO what does process do?
 

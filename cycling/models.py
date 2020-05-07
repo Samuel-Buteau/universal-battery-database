@@ -140,6 +140,7 @@ def compute_from_database(cell_id, lower_cycle=None, upper_cycle=None, valid=Tru
         database_file__deprecated=False,
         database_file__valid_metadata__cell_id=cell_id).order_by("database_file__last_modified")
 
+    polarity = DISCHARGE
     groups = {}
     for cycle_group in get_discharge_groups_from_cell_id(cell_id):
         q_curves= []
@@ -149,7 +150,11 @@ def compute_from_database(cell_id, lower_cycle=None, upper_cycle=None, valid=Tru
             if not (lower_cycle is None and upper_cycle is None):
                 filters = filters & Q(cycle_number__range=(lower_cycle-offset_cycle, upper_cycle-offset_cycle))
 
-            cycles = cycle_group.cycle_set.filter(filters)
+            if polarity == DISCHARGE:
+                filters = Q(discharge_group=cycle_group) & filters
+            elif polarity == CHARGE:
+                filters = Q(charge_group=cycle_group) & filters
+            cycles = Cycle.objects.filter(filters)
             if cycles.exists():
                 q_curves += list([
                     (float(cyc.cycle_number + offset_cycle), -cyc.dchg_total_capacity)

@@ -363,7 +363,7 @@ def main_page(request):
                     pn = 1
                     search_form.set_page_number(pn)
 
-                print(list(total_query))
+
 
 
                 for cell_id in total_query[(pn - 1) * number_per_page:min(n, (pn) * number_per_page)]:
@@ -421,7 +421,6 @@ def main_page(request):
                     datas = []
                     for cell_id in total_query[(pn - 1) * number_per_page:min(n, (pn) * number_per_page)]:
                         image_base64 = plot_cycling_direct(cell_id, path_to_plots=None, figsize=[5., 4.])
-                        print(image_base64)
                         datas.append((cell_id, image_base64))
 
                     n = 5

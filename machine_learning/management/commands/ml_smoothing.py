@@ -877,7 +877,7 @@ class Command(BaseCommand):
 
         }
 
-        vis = 10000
+        vis = 1
         int_args = {
             "--n_sample": 8 * 16,
 

@@ -282,7 +282,7 @@ def initial_processing(
             normalize_keys = [
                 Key.Q_CC_VEC, Key.Q_CV_VEC, Key.Q_CC_LAST,
                 Key.Q_CV_LAST, Key.I_CV_VEC, Key.I_CC,
-                Key.I_PREV
+                Key.I_PREV_END
             ]
             for key in normalize_keys:
                 main_data[key] = 1. / max_cap * main_data[key]
@@ -427,7 +427,7 @@ def initial_processing(
                 Key.Q_CV_VEC: main_data[Key.Q_CV_VEC],
                 Key.MASK_CV_VEC: main_data[Key.MASK_CV_VEC],
                 Key.I_CC: main_data[Key.I_CC],
-                Key.I_PREV: main_data[Key.I_PREV],
+                Key.I_PREV_END: main_data[Key.I_PREV_END],
                 Key.V_PREV_END: main_data[Key.V_PREV_END],
                 Key.V_END: main_data[Key.V_END],
             }
@@ -449,7 +449,7 @@ def initial_processing(
 
     labels = [
         Key.V_CC_VEC, Key.Q_CC_VEC, Key.MASK_CC_VEC, Key.Q_CV_VEC, Key.I_CV_VEC,
-        Key.MASK_CV_VEC, Key.I_CC, Key.I_PREV, Key.V_PREV_END, Key.V_END,
+        Key.MASK_CV_VEC, Key.I_CC, Key.I_PREV_END, Key.V_PREV_END, Key.V_END,
         Key.COUNT_MATRIX, Key.SIGN_GRID, Key.V_GRID, Key.I_GRID, Key.TEMP_GRID,
     ]
     for label in labels:
@@ -525,7 +525,7 @@ def initial_processing(
         Key.CYC_M: cycle_m,
         Key.CYC_V: cycle_v,
         Key.OPT: optimizer,
-        Key.MY_DATA: my_data
+        Key.DATASET: my_data
     }
 
 
@@ -578,7 +578,7 @@ def train_and_evaluate(init_returns, cell_ids, fit_args):
                     plot_params = {
                         "cell_ids": cell_ids,
                         "count": count,
-                        Key.FIT_ARGS: fit_args,
+                        Key.OPTIONS: fit_args,
                     }
 
                     if (count % fit_args[Key.VIS]) == 0:
@@ -607,7 +607,7 @@ def train_step(neighborhood, params, fit_args):
 
     cycle_tensor = params[Key.TENSORS]["cycle"]
     constant_current_tensor = params[Key.TENSORS][Key.I_CC]
-    end_current_prev_tensor = params[Key.TENSORS][Key.I_PREV]
+    end_current_prev_tensor = params[Key.TENSORS][Key.I_PREV_END]
     end_voltage_prev_tensor = params[Key.TENSORS][Key.V_PREV_END]
     end_voltage_tensor = params[Key.TENSORS][Key.V_END]
 

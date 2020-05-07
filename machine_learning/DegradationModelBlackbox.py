@@ -1091,7 +1091,7 @@ class DegradationModel(Model):
             cycle = params["cycle"],
             v = params[Key.V_PREV_END],
             features_cell = params["features_cell"],
-            current = params[Key.I_PREV],
+            current = params[Key.I_PREV_END],
             training = training
         )
 
@@ -1132,7 +1132,7 @@ class DegradationModel(Model):
             cycle = params["cycle"],
             v = params[Key.V_PREV_END],
             features_cell = params["features_cell"],
-            current = params[Key.I_PREV],
+            current = params[Key.I_PREV_END],
             training = training
         )
 
@@ -1230,7 +1230,7 @@ class DegradationModel(Model):
 
             "cycle": cycle,
             Key.I_CC: constant_current,
-            Key.I_PREV: end_current_prev,
+            Key.I_PREV_END: end_current_prev,
             Key.V_PREV_END: end_voltage_prev,
             "features_cell": features_cell,
             Key.V_END: end_voltage,

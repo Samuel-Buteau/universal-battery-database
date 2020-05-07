@@ -632,12 +632,12 @@ def plot_direct(target, plot_params, init_returns):
         model_max_cyc_n = 200
         header = "Cap"
 
-    cell_ids = plot_params["cell_ids"][:plot_params[Key.FIT_ARGS]["cell_id_show"]]
+    cell_ids = plot_params["cell_ids"][:plot_params[Key.OPTIONS]["cell_id_show"]]
     count = plot_params["count"]
-    fit_args = plot_params[Key.FIT_ARGS]
+    fit_args = plot_params[Key.OPTIONS]
 
     degradation_model = init_returns[Key.MODEL]
-    my_data = init_returns[Key.MY_DATA]
+    my_data = init_returns[Key.DATASET]
     cycle_m = init_returns[Key.CYC_M]
     cycle_v = init_returns[Key.CYC_V]
 

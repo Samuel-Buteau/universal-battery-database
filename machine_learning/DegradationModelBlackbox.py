@@ -14,11 +14,17 @@ main_activation = tf.keras.activations.relu
 def feedforward_nn_parameters(
     depth: int, width: int, last = None, finalize = False
 ):
-    """ Create and returns a new neural network
+    """ Create a new feedforward neural network
+
+    Args:
+        depth: The depth the feedforward neural network
+        width: The width of the feedforward neural network
+        last: TODO(harvey, confusion)
+        finalize: TODO(harvey, confusion)
 
     Returns:
-        dict: Indexed by "initial", "bulk", and "final" for each part of
-            neural network.
+        { "initial", "bulk", and "final" }, each key corresponds to a component
+            of the neural network.
     """
     if last is None:
         last = 1
@@ -60,7 +66,21 @@ def feedforward_nn_parameters(
     return {"initial": initial, "bulk": bulk, "final": final}
 
 
-def nn_call(nn_func, dependencies, training = True):
+def nn_call(nn_func: dict, dependencies: tuple, training = True):
+    """ Call a feedforward neural network
+
+    Examples:
+        nn_call(self.lyte_indirect, lyte_dependencies, training = training)
+
+    Args:
+        nn_func: The neural network to call.
+        dependencies: The dependencies of the neural network.
+        training: Flag for training or evaluation.
+            True for training; False for evaluation.
+
+    Returns:
+        The output of the neural network.
+    """
     centers = nn_func["initial"](
         tf.concat(dependencies, axis = 1),
         training = training,
@@ -76,6 +96,9 @@ def nn_call(nn_func, dependencies, training = True):
     return nn_func["final"](centers, training = training)
 
 
+# TODO(harvey): rename
+#   - "electrolyte" to "lyte"
+#   - "molecule" to "mol"
 def print_cell_info(
     cell_latent_flags, cell_to_pos, cell_to_neg, cell_to_electrolyte,
     cell_to_dry_cell, dry_cell_to_meta,
@@ -169,25 +192,52 @@ def print_cell_info(
         print()
 
 
-def add_v_dep(thing, params, dim = 1):
-    """ Add voltage dependence: [cyc] -> [cyc, vol] """
+def add_v_dep(
+    voltage_independent: tf.Tensor, params: dict, dim = 1,
+) -> tf.Tensor:
+    """ Add voltage dependence: [cyc] -> [cyc, vol]
+
+    Args:
+        voltage_independent: Some voltage-independent quantity.
+        params: Contains all parameters.
+        dim: Dimension.
+
+    Returns:
+        The previously voltage-independent quantity with an "extra" voltage
+            dimension, of shape
+            `[params[Key.COUNT_BATCH] * params[Key.COUNT_V], dim]`
+    """
 
     return tf.reshape(
         tf.tile(
-            tf.expand_dims(thing, axis = 1),
-            [1, params["voltage_count"], 1]
+            tf.expand_dims(voltage_independent, axis = 1),
+            [1, params[Key.COUNT_V], 1],
         ),
-        [params["batch_count"] * params["voltage_count"], dim]
+        [params[Key.COUNT_BATCH] * params[Key.COUNT_V], dim]
     )
 
 
-def add_current_dep(thing, params, dim = 1):
+def add_current_dep(
+    current_independent: tf.Tensor, params: dict, dim = 1,
+) -> tf.Tensor:
+    """ Add current dependence: [vol] -> [cyc, vol]
+
+    Args:
+        current_independent: Some current-independent quantity.
+        params: Contains all parameters.
+        dim: Dimension.
+
+    Returns:
+        The previously current-independent quantity with an "extra" current
+            dimension, of shape
+            `[params[Key.COUNT_BATCH] * params[Key.COUNT_I], dim]`
+    """
     return tf.reshape(
         tf.tile(
-            tf.expand_dims(thing, axis = 1),
-            [1, params["current_count"], 1]
+            tf.expand_dims(current_independent, axis = 1),
+            [1, params[Key.COUNT_I], 1],
         ),
-        [params["batch_count"] * params["current_count"], dim]
+        [params[Key.COUNT_BATCH] * params[Key.COUNT_I], dim]
     )
 
 

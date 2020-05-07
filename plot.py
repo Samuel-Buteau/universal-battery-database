@@ -7,54 +7,13 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.axes._axes import _log as matplotlib_axes_logger
 
-from cycling.Key import Key
-
+from Key import Key
+from cycling.models import compute_from_database, make_file_legends_and_vertical, get_byte_image
 matplotlib_axes_logger.setLevel("ERROR")
+from plot_constants import *
 
 FIGSIZE = [6, 5]
 
-COLORS = [
-    (.4, .4, .4),
-
-    (1., 0., 0.),
-    (0., 0., 1.),
-    (0., 1., 0.),
-
-    (.6, 0., .6),
-    (0., .6, .6),
-    (.6, .6, 0.),
-
-    (1., 0., .5),
-    (.5, 0., 1.),
-    (0., 1., .5),
-    (0., .5, 1.),
-    (1., .5, 0.),
-    (.5, 1., 0.),
-]
-
-C_OVER_TWENTY_RULE = (0.038,0.062)
-C_OVER_TWO_RULE = (0.38,0.62)
-C_RULE = (0.85,1.3)
-TWO_C_RULE = (1.6,2.4)
-THREE_C_RULE = (2.5,3.5)
-
-
-#TODO(sam): keep track of these in the database and allow users to modify.
-Preferred_Legends = {
-    (C_OVER_TWENTY_RULE, C_OVER_TWENTY_RULE, C_OVER_TWENTY_RULE, None, None):0,
-    (C_OVER_TWENTY_RULE, C_OVER_TWO_RULE, C_OVER_TWO_RULE, None, None): 1,
-    (C_OVER_TWENTY_RULE, C_RULE, C_RULE, None, None): 2,
-    (C_OVER_TWENTY_RULE, TWO_C_RULE, TWO_C_RULE, None, None): 3,
-    (C_OVER_TWENTY_RULE, THREE_C_RULE, THREE_C_RULE, None, None): 4,
-
-    (C_OVER_TWENTY_RULE, C_OVER_TWENTY_RULE, C_OVER_TWENTY_RULE, None, None): 0,
-    (C_OVER_TWENTY_RULE, C_RULE, C_OVER_TWENTY_RULE, None, None): 5,
-    (C_OVER_TWO_RULE, C_RULE, None, None, None): 1,
-    (C_RULE, C_RULE, C_OVER_TWENTY_RULE, None, None): 2,
-    (TWO_C_RULE, C_RULE, C_OVER_TWENTY_RULE, None, None): 3,
-    (THREE_C_RULE, C_RULE, C_OVER_TWENTY_RULE, None, None): 4,
-
-}
 
 def bake_rate(rate_in):
     rate = round(100. * rate_in) / 100.
@@ -109,16 +68,31 @@ def get_figsize(target):
 
 
 #TODO(sam): make the interface more general
-def plot_engine_direct(data_streams, target, todos, fit_args, filename):
+def plot_engine_direct(data_streams, target, todos, fit_args, filename,
+                       lower_cycle=None, upper_cycle=None,
+                       vertical_barriers=None, list_all_options=None,
+                       show_invalid=False,
+                       figsize = None):
     # open plot
-    fig, axs = plt.subplots(nrows=len(todos), figsize=get_figsize(target), sharex=True)
+    if figsize is None:
+        figsize = get_figsize(target)
+
+    fig, axs = plt.subplots(nrows=len(todos), figsize=figsize, sharex=True)
     for i, todo in enumerate(todos):
         typ, mode = todo
-        ax = axs[i]
+        if len(todos) ==1:
+            ax = axs
+        else:
+            ax = axs[i]
+        for axis in ["top", "bottom", "left", "right"]:
+            ax.spines[axis].set_linewidth(3.)
+
         # options
         options = generate_options(mode, typ, target)
         list_of_target_data = []
 
+        source_database = False
+        barcode = None
         for source, data, _, max_cyc_n in data_streams:
             list_of_target_data.append(
                 data_engine(
@@ -127,11 +101,20 @@ def plot_engine_direct(data_streams, target, todos, fit_args, filename):
                     data,
                     typ,
                     mode,
-                    max_cyc_n = max_cyc_n
+                    max_cyc_n = max_cyc_n,
+                    lower_cycle=lower_cycle,
+                    upper_cycle=upper_cycle,
                 )
             )
+            if source == "database":
+                source_database = True
+                barcode, valid = data
 
-        _, list_of_keys, _ = list_of_target_data[0]
+        list_of_keys = []
+        for _, lok, _ in list_of_target_data:
+            list_of_keys += lok
+        list_of_keys = get_list_of_keys(list(set(list_of_keys)), typ)
+
         custom_colors = map_legend_to_color(list_of_keys)
 
         for j, target_data in enumerate(list_of_target_data):
@@ -145,12 +128,34 @@ def plot_engine_direct(data_streams, target, todos, fit_args, filename):
                 options=options,
             )
 
-        produce_annotations(ax, get_list_of_patches(list_of_keys, custom_colors), options)
+        leg = produce_annotations(ax, get_list_of_patches(list_of_keys, custom_colors), options)
+        if source_database:
+            make_file_legends_and_vertical(ax, barcode, lower_cycle, upper_cycle, show_invalid,
+                                           vertical_barriers, list_all_options, leg)
 
     # export
     fig.tight_layout()
     fig.subplots_adjust(hspace=0)
-    savefig(filename, fit_args)
+    if source_database:
+        #TODO(sam):
+        send_to_file = False
+        if vertical_barriers is None:
+            quick=True
+        else:
+            quick=False
+
+        if send_to_file:
+            savefig(filename, fit_args)
+            plt.close(fig)
+        else:
+            if quick:
+                dpi=50
+            else:
+                dpi=300
+            return get_byte_image(fig,dpi)
+
+    if not source_database:
+        savefig(filename, fit_args)
     plt.close(fig)
 
 
@@ -242,27 +247,17 @@ def data_engine(
         data,
         typ,
         mode,
-        max_cyc_n
+        max_cyc_n,
+        lower_cycle=None,
+        upper_cycle=None,
     ):
+    generic = {}
     sign_change=get_sign_change(typ)
     generic_map = get_generic_map(source, target, mode)
     if source == "model":
         degradation_model, barcode, cycle_m, cycle_v, svit_and_count, keys, averages = data
         list_of_keys = get_list_of_keys(keys, typ)
-    elif source == "compiled":
-        list_of_keys = get_list_of_keys(data.keys(), typ)
-        needed_fields = [Key.N] + list(generic_map.values())
-
-    generic = {}
-    for k in list_of_keys:
-        if source == 'compiled':
-            actual_n = len(data[k][Key.MAIN])
-            if actual_n > max_cyc_n:
-                indecies = np.linspace(0, actual_n-1, max_cyc_n).astype(dtype=np.int32)
-                generic[k] = data[k][Key.MAIN][needed_fields][indecies]
-            else:
-                generic[k] = data[k][Key.MAIN][needed_fields]
-        elif source == 'model':
+        for k in list_of_keys:
             generic[k] = compute_target(
                 target,
                 degradation_model,
@@ -276,6 +271,23 @@ def data_engine(
                 cycle_v,
                 max_cyc_n=max_cyc_n,
             )
+    elif source == "database":
+        if typ != "dchg" or mode != "cc":
+            return None, None, None
+        barcode, valid = data
+        generic = compute_from_database(barcode, lower_cycle, upper_cycle, valid)
+        list_of_keys = get_list_of_keys(generic.keys(), typ)
+
+    elif source == "compiled":
+        list_of_keys = get_list_of_keys(data.keys(), typ)
+        needed_fields = [Key.N] + list(generic_map.values())
+        for k in list_of_keys:
+            actual_n = len(data[k][Key.MAIN])
+            if actual_n > max_cyc_n:
+                indecies = np.linspace(0, actual_n - 1, max_cyc_n).astype(dtype=np.int32)
+                generic[k] = data[k][Key.MAIN][needed_fields][indecies]
+            else:
+                generic[k] = data[k][Key.MAIN][needed_fields]
 
     return generic, list_of_keys, generic_map
 
@@ -348,21 +360,32 @@ def adjust_color(cyc, color, target_cycle=6000., target_ratio=.5):
 
 
 def produce_annotations(ax, list_of_patches, options):
-    ax.legend(
+    leg = ax.legend(
         handles = list_of_patches, fontsize = "small",
         bbox_to_anchor = (options["x_leg"], options["y_leg"]), loc = "upper left"
     )
     ax.set_ylabel(options["ylabel"])
     ax.set_xlabel(options["xlabel"])
-
+    return leg
 
 def simple_plot(ax, x,y, color, channel):
-    if channel == 'scatter':
+    if channel == 'scatter' or channel == "scatter_valid" or channel == "scatter_invalid":
+        if channel== 'scatter':
+            s=3
+            marker='.'
+        elif channel== "scatter_valid":
+            s=100
+            marker='.'
+        elif channel== "scatter_invalid":
+            s=5
+            marker='x'
+
         ax.scatter(
             x,
             y,
             c=[list(color)],
-            s=3
+            s=s,
+            marker=marker
         )
     elif channel == 'plot':
         ax.plot(
@@ -383,6 +406,8 @@ def plot_generic(
     ):
 
     for k in list_of_keys:
+        if not k in groups.keys():
+            continue
         group = groups[k]
         if target == "generic_vs_cycle":
             x = group[Key.N]
@@ -552,6 +577,49 @@ def compute_target(target, degradation_model, barcode, sign_change, mode, averag
 
 
 
+def plot_cycling_direct(barcode, path_to_plots = None, lower_cycle=None, upper_cycle=None, show_invalid=False, vertical_barriers=None, list_all_options=None, figsize = None):
+    if show_invalid:
+        data_streams = [
+            ('database', (barcode, True), 'scatter_valid', 100),
+            ('database', (barcode, False), 'scatter_invalid', 100)
+        ]
+    else:
+        data_streams = [
+            ('database', (barcode, True), 'scatter_valid', 100),
+        ]
+
+    if path_to_plots is None:
+        return plot_engine_direct(
+                data_streams=data_streams,
+                target="generic_vs_cycle",
+                todos=[
+                    ("dchg", "cc"),
+                ],
+                fit_args={'path_to_plots':path_to_plots},
+                filename="Initial_{}.png".format(barcode),
+                lower_cycle = lower_cycle,
+                upper_cycle = upper_cycle,
+                vertical_barriers = vertical_barriers,
+                list_all_options = list_all_options,
+                show_invalid = show_invalid,
+                figsize= figsize,
+            )
+    else:
+        plot_engine_direct(
+            data_streams=data_streams,
+            target="generic_vs_cycle",
+            todos=[
+                ("dchg", "cc"),
+            ],
+            fit_args={'path_to_plots': path_to_plots},
+            filename="Initial_{}.png".format(barcode),
+            lower_cycle=lower_cycle,
+            upper_cycle=upper_cycle,
+            vertical_barriers=vertical_barriers,
+            list_all_options=list_all_options,
+            show_invalid=show_invalid,
+            figsize=figsize,
+        )
 
 
 def plot_direct(target, plot_params, init_returns):

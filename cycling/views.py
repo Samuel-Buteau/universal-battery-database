@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 from io import BytesIO
 import base64
 from django.db.models import Q, F
-
+from plot import plot_cycling_direct
 
 import numpy
 
@@ -175,11 +175,12 @@ def view_barcode(request, barcode, cursor):
         lowest_cycle = cycle_list[interval[0]]
         largest_cycle = cycle_list[interval[0]+interval[1]-1]
 
-        image_base64 = plot_barcode(barcode,
+        image_base64 = plot_cycling_direct(barcode,
                                     lower_cycle=lowest_cycle, upper_cycle=largest_cycle,
                                     show_invalid=True, vertical_barriers=vertical_barriers,
                                     list_all_options=list_all_options[:max_possible_options],
                                     figsize=[14., 6.])
+
         my_form = ChoiceForm()
 
         ar["image_base64"]= image_base64
@@ -419,7 +420,7 @@ def main_page(request):
                 if search_form.cleaned_data["show_visuals"]:
                     datas = []
                     for barcode in total_query[(pn - 1) * number_per_page:min(n, (pn) * number_per_page)]:
-                        image_base64 = plot_barcode(barcode, path_to_plots=None, figsize=[5., 4.])
+                        image_base64 = plot_cycling_direct(barcode, path_to_plots=None, figsize=[5., 4.])
                         print(image_base64)
                         datas.append((barcode, image_base64))
 

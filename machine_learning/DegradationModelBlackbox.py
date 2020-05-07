@@ -6,7 +6,7 @@ from tensorflow.keras.layers import Dense
 from machine_learning.PrimitiveDictionaryLayer import PrimitiveDictionaryLayer
 from machine_learning.StressToEncodedLayer import StressToEncodedLayer
 from machine_learning.loss_calculator_blackbox import *
-from cycling.Key import Key
+from Key import Key
 
 main_activation = tf.keras.activations.relu
 

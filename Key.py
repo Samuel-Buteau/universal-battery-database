@@ -41,7 +41,7 @@ class Key:
     I_CV_VEC = "cv_current_vector"
     I_END = "end_current"
     I_END_AVG = "avg_end_current"
-    I_PREV = "end_current_prev"
+    I_PREV_END = "end_current_prev"
     I_PREV_END_AVG = "avg_end_current_prev"
     I_GRID = "current_grid"
     I_MAX = "current_max_n"
@@ -81,9 +81,9 @@ class Key:
     MIN_LAT = "min_latent"
     GLB_NORM_CLIP = "global_norm_clip"
 
-    FIT_ARGS = "fit_args"
+    OPTIONS = "fit_args"
     MAIN = "main_data"
-    MY_DATA = "my_data"
+    DATASET = "my_data"
     # Dictionary indexed by cell_id.
     ALL_DATA = "all_data"
     CYC_GRP_DICT = "cyc_grp_dict"

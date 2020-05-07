@@ -53,6 +53,7 @@ class Key:
     MASK_CV = "cv_masks"
     MASK_CV_VEC = "cv_mask_vector"
     COUNT_MATRIX = "count_matrix"
+    """ Multi-grid of (S, V, I, T) """
     SVIT_GRID = "svit_grid"
 
     PATH_V_CURVES = "path_v_curves"

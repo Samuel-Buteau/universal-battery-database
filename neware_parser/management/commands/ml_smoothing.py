@@ -766,7 +766,7 @@ def train_step(neighborhood, params, options):
                 svit_grid,
                 count_matrix,
             ),
-            training = True
+            training = True,
         )
 
         pred_cc_capacity = train_results[Key.Pred.I_CC]

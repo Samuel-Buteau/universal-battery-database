@@ -75,6 +75,7 @@ def nn_call(nn_func: dict, dependencies: tuple, training = True):
         nn_func: The neural network to call.
         dependencies: The dependencies of the neural network.
         training: Flag for training or evaluation.
+            True for training; False for evaluation.
 
     Returns:
         The output of the neural network.
@@ -190,7 +191,7 @@ def add_v_dep(
 
     Args:
         voltage_independent: Some voltage-independent quantity.
-        params: Dictionary containing all parameters.
+        params: Contains all parameters.
         dim: Dimension.
 
     Returns:
@@ -215,7 +216,7 @@ def add_current_dep(
 
     Args:
         current_independent: Some current-independent quantity.
-        params: Dictionary containing all parameters.
+        params: Contains all parameters.
         dim: Dimension.
 
     Returns:
@@ -263,10 +264,14 @@ def create_derivatives(
     Args:
         nn: A DegradationModel `for_derivative` method;
             it specifies the quantity to compute and derive.
-        params: Parameters for computing the given quantity.
-        der_params: Parameters for computing the first derivative of the given
-            quantity.
-        internal_loss: TODO(harvey
+        params: Contains parameters for computing the given quantity.
+        der_params: Contains parameters for computing the first derivative of
+            the given quantity.
+        internal_loss: TODO(harvey, confusion)
+
+    Returns:
+        The evaluated quantity and it first derivative. If the `internal_loss`
+            flag is on, then also the loss.
     """
     derivatives = {}
 
@@ -327,10 +332,13 @@ def create_derivatives(
 class DegradationModel(Model):
     """
     The model responsible for the machine learning aspect of the project.
+
+    Notes:
         This version of Degradation Model has almost no internal structure.
 
-    Methods:
-
+    See Also:
+        See the `call` method in this class for further information on using
+            this class.
     """
 
     def __init__(
@@ -933,13 +941,13 @@ class DegradationModel(Model):
         Sample from all possible values of different variables.
 
         Args: TODO(harvey)
-            svit_grid:
+            svit_grid: multi-grid of (S, V, I, T).
             batch_count:
             count_matrix:
             n_sample:
 
         Returns:
-            Sample values, including voltages, capacities, cycles,
+            Sample values - voltages, capacities, cycles,
                 constant current, cell features, latent, svit_grid,
                 count_matrix, encoded_stress.
         """
@@ -1011,16 +1019,14 @@ class DegradationModel(Model):
             sampled_count_matrix, sampled_encoded_stress,
         )
 
-    """ General variable methods """
-
-    def cc_capacity(self, params, training = True):
+    def cc_capacity(self, params: dict, training = True):
         """
         Compute constant-current capacity during training or evaluation.
 
         Args:
-            params: Dictionary containing all parameters, including those of
-                constant-current capacity.
+            params: Contains the parameters of constant-current capacity.
             training: Flag for training or evaluation.
+                True for training; False for evaluation.
 
         Returns:
             Computed constant-current capacity.
@@ -1063,6 +1069,7 @@ class DegradationModel(Model):
             params (dict): Parameters for computing constant-voltage (cv)
                 capacity.
             training: Flag for training or evaluation.
+                True for training; False for evaluation.
 
         Returns:
             Computed constant-voltage capacity.
@@ -1109,9 +1116,10 @@ class DegradationModel(Model):
             (receiving arguments directly without using `params`)
 
         Args: TODO(harvey)
-            svit_grid:
+            svit_grid: Multi-grid of (S, V, I, T).
             count_matrix:
             training: Flag for training or evaluation.
+                True for training; False for evaluation.
 
         Returns:
             (svit_grid, count_matrix) and the training flag.
@@ -1130,11 +1138,12 @@ class DegradationModel(Model):
 
         Args: TODO(harvey)
             encoded_stress
-            cycle: Cycle, often Key.CYC
+            cycle: Cycle, often Key.CYC.
             v: Voltage
-            feats_cell: Cell features
-            current: Current
+            feats_cell: Cell features.
+            current: Current.
             training: Flag for training or evaluation.
+                True for training; False for evaluation.
 
         Returns:
             Computed state of charge.
@@ -1153,7 +1162,8 @@ class DegradationModel(Model):
     def q_for_derivative(self, params: dict, training = True):
         """
         Wrapper function calling `q_direct`, to be passed in to
-            `create_derivatives` to state of charge and its first derivative.
+            `create_derivatives` to compute state of charge
+            and its first derivative.
 
         Examples:
             ```python
@@ -1174,8 +1184,9 @@ class DegradationModel(Model):
             ```
 
         Args:
-            params (dict): Parameters for computing state of charge (q).
-            training (bool): Flag for training or evaluation.
+            params: Contains input parameters for computing state of charge (q).
+            training: Flag for training or evaluation.
+                True for training; False for evaluation.
 
         Returns:
             Computed state of charge; same as that for `q_direct`.
@@ -1194,14 +1205,64 @@ class DegradationModel(Model):
         """
         Call function for the Model during training or evaluation.
 
+        Examples:
+
+            training:
+                ```python
+                train_results = degradation_model(
+                    (
+                        tf.expand_dims(cycle, axis = 1),
+                        tf.expand_dims(constant_current, axis = 1),
+                        tf.expand_dims(end_current_prev, axis = 1),
+                        tf.expand_dims(end_voltage_prev, axis = 1),
+                        tf.expand_dims(end_voltage, axis = 1),
+                        cell_indices,
+                        cc_voltage,
+                        cv_current,
+                        svit_grid,
+                        count_matrix,
+                    ),
+                    training = True,
+                )
+                ```
+
+            evaluation:
+                ```python
+                eval_results = degradation_model(
+                    (
+                        tf.constant(cycle, shape = [1, 1]),
+                        tf.constant(constant_current, shape = [1, 1]),
+                        tf.constant(end_current_prev, shape = [1, 1]),
+                        tf.constant(end_voltage_prev, shape = [1, 1]),
+                        tf.constant(end_voltage, shape = [1, 1]),
+                        tf.reshape(barcode_count, [1]),
+                        tf.reshape(voltages, [1, len(voltages)]),
+                        tf.reshape(currents, [1, len(currents)]),
+                        tf.constant([svit_grid]),
+                        tf.constant([count_matrix]),
+                    ),
+                    training = False
+                )
+                ```
+
         Args:
-            x:
-            training: Flag for training or evaluation.
+            x: Contains -
+                Cycle,
+                Constant current,
+                The end current of the previous step,
+                The end voltage of the previous step,
+                The end voltage of the current step,
+                Indices,
+                Voltage,
+                Current
+                S.V.I.T. grid,
+                Count
+            traiNing: Flag for training or evaluation.
+                True for training; False for evaluation.
 
         Returns:
             `{ Key.Pred.I_CC, Key.Pred.I_CV }`. During training, the
                 dictionary also includes `{ "q_loss", "cell_loss" }`.
-
         """
 
         # TODO(harvey): Error-prone way of passing these variables,

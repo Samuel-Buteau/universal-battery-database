@@ -8,11 +8,34 @@ class Print:
     UNDERLINE = "\033[4m"
     END = "\033[0m"
 
+    @staticmethod
+    def red(s):
+        Print.colour(Print.RED, s)
+
+    @staticmethod
+    def yellow(s):
+        Print.colour(Print.YELLOW, s)
+
+    @staticmethod
+    def blue(s):
+        Print.colour(Print.BLUE, s)
+
+    @staticmethod
+    def green(s):
+        Print.colour(Print.GREEN, s)
+
+    @staticmethod
+    def pink(s):
+        Print.colour(Print.PINK, s)
+
+    @staticmethod
     def colour(c, s):
         print(c + str(s) + Print.END)
 
+    @staticmethod
     def bold(c, s):
-        colour(c + Print.BOLD, s)
+        Print.colour(c + Print.BOLD, s)
 
+    @staticmethod
     def type(x):
-        bold(type(x))
+        Print.bold(type(x))

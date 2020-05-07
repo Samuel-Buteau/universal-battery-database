@@ -16,9 +16,15 @@ def feedforward_nn_parameters(
 ) -> dict:
     """ Create a new feedforward neural network
 
+    Args:
+        depth: The depth the feedforward neural network
+        width: The width of the feedforward neural network
+        last: TODO(harvey, confusion)
+        finalize: TODO(harvey, confusion)
+
     Returns:
-        { "initial", "bulk", and "final" }, each key represents a component of
-            the neural network.
+        { "initial", "bulk", and "final" }, each key corresponds to a component
+            of the neural network.
     """
     if last is None:
         last = 1
@@ -177,36 +183,50 @@ def print_cell_info(
         print()
 
 
-def add_v_dep(voltage_independent, params: dict, dim = 1):
+def add_v_dep(
+    voltage_independent: tf.Tensor, params: dict, dim = 1,
+) -> tf.Tensor:
     """ Add voltage dependence: [cyc] -> [cyc, vol]
 
     Args:
         voltage_independent: Some voltage-independent quantity.
         params: Dictionary containing all parameters.
         dim: Dimension.
+
+    Returns:
+        The previously voltage-independent quantity with an "extra" voltage
+            dimension, of shape
+            `[params[Key.COUNT_BATCH] * params[Key.COUNT_V], dim]`
     """
 
     return tf.reshape(
         tf.tile(
             tf.expand_dims(voltage_independent, axis = 1),
-            [1, params[Key.COUNT_V], 1]
+            [1, params[Key.COUNT_V], 1],
         ),
         [params[Key.COUNT_BATCH] * params[Key.COUNT_V], dim]
     )
 
 
-def add_current_dep(current_independent, params: dict, dim = 1):
+def add_current_dep(
+    current_independent: tf.Tensor, params: dict, dim = 1,
+) -> tf.Tensor:
     """ Add current dependence: [vol] -> [cyc, vol]
 
     Args:
-        current_independent:
-        params:
-        dim:
+        current_independent: Some current-independent quantity.
+        params: Dictionary containing all parameters.
+        dim: Dimension.
+
+    Returns:
+        The previously current-independent quantity with an "extra" current
+            dimension, of shape
+            `[params[Key.COUNT_BATCH] * params[Key.COUNT_I], dim]`
     """
     return tf.reshape(
         tf.tile(
             tf.expand_dims(current_independent, axis = 1),
-            [1, params[Key.COUNT_I], 1]
+            [1, params[Key.COUNT_I], 1],
         ),
         [params[Key.COUNT_BATCH] * params[Key.COUNT_I], dim]
     )

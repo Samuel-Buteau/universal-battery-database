@@ -25,6 +25,7 @@ class Key:
     V_PREV_END = "end_voltage_prev"
     V_PREV_END_AVG = "avg_end_voltage_prev"
     V_END_AVG = "avg_end_voltage"
+    V_TENSOR = "voltage_tensor"
 
     Q_CC = "cc_capacities"
     Q_CC_VEC = "cc_capacity_vector"
@@ -41,8 +42,9 @@ class Key:
     I_CV_VEC = "cv_current_vector"
     I_END = "end_current"
     I_END_AVG = "avg_end_current"
-    I_PREV = "end_current_prev"
+    I_PREV_END = "end_current_prev"
     I_PREV_END_AVG = "avg_end_current_prev"
+    I_TENSOR = "current_tensor"
 
     T = "temperature"
 
@@ -59,6 +61,8 @@ class Key:
     PATH_V_CURVES = "path_v_curves"
     PATH_V_CURVES_META = "path_v_curves_meta"
     BARCODES = "wanted_barcodes"
+
+    INDICES = "indices"
 
     # Begin: Keys in options (ml_smoothing and compile_dataset =================
 

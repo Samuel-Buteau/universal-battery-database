@@ -264,7 +264,7 @@ def initial_processing(
             normalize_keys = [
                 Key.Q_CC_VEC, Key.Q_CV_VEC, Key.Q_CC_LAST,
                 Key.Q_CV_LAST, Key.I_CV_VEC, Key.I_CC,
-                Key.I_PREV
+                Key.I_PREV_END
             ]
             for key in normalize_keys:
                 main_data[key] = 1. / max_cap * main_data[key]
@@ -408,7 +408,7 @@ def initial_processing(
                 Key.Q_CV_VEC: main_data[Key.Q_CV_VEC],
                 Key.MASK_CV_VEC: main_data[Key.MASK_CV_VEC],
                 Key.I_CC: main_data[Key.I_CC],
-                Key.I_PREV: main_data[Key.I_PREV],
+                Key.I_PREV_END: main_data[Key.I_PREV_END],
                 Key.V_PREV_END: main_data[Key.V_PREV_END],
                 Key.V_END: main_data[Key.V_END],
             }
@@ -430,7 +430,7 @@ def initial_processing(
 
     labels = [
         Key.V_CC_VEC, Key.Q_CC_VEC, Key.MASK_CC_VEC, Key.Q_CV_VEC, Key.I_CV_VEC,
-        Key.MASK_CV_VEC, Key.I_CC, Key.I_PREV, Key.V_PREV_END, Key.V_END,
+        Key.MASK_CV_VEC, Key.I_CC, Key.I_PREV_END, Key.V_PREV_END, Key.V_END,
         Key.COUNT_MATRIX, Key.GRID_SIGN, Key.GRID_V, Key.GRID_I, Key.GRID_T,
     ]
     for label in labels:
@@ -606,7 +606,7 @@ def train_step(neighborhood, params, options):
 
     cycle_tensor = params[Key.TENSORS][Key.CYC]
     constant_current_tensor = params[Key.TENSORS][Key.I_CC]
-    end_current_prev_tensor = params[Key.TENSORS][Key.I_PREV]
+    end_current_prev_tensor = params[Key.TENSORS][Key.I_PREV_END]
     end_voltage_prev_tensor = params[Key.TENSORS][Key.V_PREV_END]
     end_voltage_tensor = params[Key.TENSORS][Key.V_END]
 
@@ -754,18 +754,18 @@ def train_step(neighborhood, params, options):
 
     with tf.GradientTape() as tape:
         train_results = degradation_model(
-            (
-                tf.expand_dims(cycle, axis = 1),
-                tf.expand_dims(constant_current, axis = 1),
-                tf.expand_dims(end_current_prev, axis = 1),
-                tf.expand_dims(end_voltage_prev, axis = 1),
-                tf.expand_dims(end_voltage, axis = 1),
-                cell_indices,
-                cc_voltage,
-                cv_current,
-                svit_grid,
-                count_matrix,
-            ),
+            {
+                Key.CYC: tf.expand_dims(cycle, axis = 1),
+                Key.I_CC: tf.expand_dims(constant_current, axis = 1),
+                Key.I_PREV_END: tf.expand_dims(end_current_prev, axis = 1),
+                Key.V_PREV_END: tf.expand_dims(end_voltage_prev, axis = 1),
+                Key.V_END: tf.expand_dims(end_voltage, axis = 1),
+                Key.INDICES: cell_indices,
+                Key.V_TENSOR: cc_voltage,
+                Key.I_TENSOR: cv_current,
+                Key.SVIT_GRID: svit_grid,
+                Key.COUNT_MATRIX: count_matrix,
+            },
             training = True,
         )
 

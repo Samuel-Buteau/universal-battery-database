@@ -538,7 +538,7 @@ class DegradationModel(Model):
         self.width = width
         self.n_channels = n_channels
 
-    def call(self, x, training = False) -> dict:
+    def call(self, params: dict, training = False) -> dict:
         """
         Call function for the Model during training or evaluation.
 
@@ -583,7 +583,7 @@ class DegradationModel(Model):
                 ```
 
         Args:
-            x: Contains -
+            params: Contains -
                 Cycle,
                 Constant current,
                 The end current of the previous step,
@@ -602,18 +602,16 @@ class DegradationModel(Model):
                 dictionary also includes `{ "q_loss", "cell_loss" }`.
         """
 
-        # TODO(harvey): Error-prone way of passing these variables,
-        #   change to dictionary.
-        cycle = x[0]  # matrix; dim: [batch, 1]
-        constant_current = x[1]  # matrix; dim: [batch, 1]
-        end_current_prev = x[2]  # matrix; dim: [batch, 1]
-        end_voltage_prev = x[3]  # matrix; dim: [batch, 1]
-        end_voltage = x[4]  # matrix; dim: [batch, 1]
-        indices = x[5]  # batch of index; dim: [batch]
-        voltage_tensor = x[6]  # dim: [batch, voltages]
-        current_tensor = x[7]  # dim: [batch, voltages]
-        svit_grid = x[8]
-        count_matrix = x[9]
+        cycle = params[Key.CYC]  # matrix; dim: [batch, 1]
+        constant_current = params[Key.I_CC]  # matrix; dim: [batch, 1]
+        end_current_prev = params[Key.I_PREV_END]  # matrix; dim: [batch, 1]
+        end_voltage_prev = params[Key.V_PREV_END]  # matrix; dim: [batch, 1]
+        end_voltage = params[Key.V_END]  # matrix; dim: [batch, 1]
+        indices = params[Key.INDICES]  # batch of index; dim: [batch]
+        voltage_tensor = params[Key.V_TENSOR]  # dim: [batch, voltages]
+        current_tensor = params[Key.I_TENSOR]  # dim: [batch, voltages]
+        svit_grid = params[Key.SVIT_GRID]
+        count_matrix = params[Key.COUNT_MATRIX]
 
         feats_cell, _, _ = self.cell_from_indices(
             indices = indices, training = training, sample = False,
@@ -635,7 +633,7 @@ class DegradationModel(Model):
 
             Key.CYC: cycle,
             Key.I_CC: constant_current,
-            Key.I_PREV: end_current_prev,
+            Key.I_PREV_END: end_current_prev,
             Key.V_PREV_END: end_voltage_prev,
             Key.CELL_FEAT: feats_cell,
             Key.V_END: end_voltage,
@@ -1204,7 +1202,7 @@ class DegradationModel(Model):
             cycle = params[Key.CYC],
             v = params[Key.V_PREV_END],
             feats_cell = params[Key.CELL_FEAT],
-            current = params[Key.I_PREV],
+            current = params[Key.I_PREV_END],
             training = training,
         )
 
@@ -1223,13 +1221,12 @@ class DegradationModel(Model):
 
         return q_1 - add_v_dep(q_0, params)
 
-    def cv_capacity(self, params, training = True):
+    def cv_capacity(self, params: dict, training = True):
         """
         Compute constant-voltage capacity during training or evaluation.
 
         Args:
-            params (dict): Parameters for computing constant-voltage (cv)
-                capacity.
+            params: Parameters for computing constant-voltage (cv) capacity.
             training: Flag for training or evaluation.
                 True for training; False for evaluation.
 
@@ -1247,7 +1244,7 @@ class DegradationModel(Model):
             cycle = params[Key.CYC],
             v = params[Key.V_PREV_END],
             feats_cell = params[Key.CELL_FEAT],
-            current = params[Key.I_PREV],
+            current = params[Key.I_PREV_END],
             training = training,
         )
 

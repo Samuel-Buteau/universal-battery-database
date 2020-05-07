@@ -616,18 +616,18 @@ def test_all_voltages(
     indices = tf.reshape(barcode_count, [1])
 
     return degradation_model(
-        (
-            expanded_cycle,
-            expanded_constant_current,
-            expanded_end_current_prev,
-            expanded_end_voltage_prev,
-            expanded_end_voltage,
-            indices,
-            tf.reshape(voltages, [1, len(voltages)]),
-            tf.reshape(currents, [1, len(currents)]),
-            expanded_svit_grid,
-            expanded_count_matrix,
-        ),
+        {
+            Key.CYC: expanded_cycle,
+            Key.I_CC: expanded_constant_current,
+            Key.I_PREV_END: expanded_end_current_prev,
+            Key.V_PREV_END: expanded_end_voltage_prev,
+            Key.V_END: expanded_end_voltage,
+            Key.INDICES: indices,
+            Key.V_TENSOR: tf.reshape(voltages, [1, len(voltages)]),
+            Key.I_TENSOR: tf.reshape(currents, [1, len(currents)]),
+            Key.SVIT_GRID: expanded_svit_grid,
+            Key.COUNT_MATRIX: expanded_count_matrix,
+        },
         training = False
     )
 
@@ -676,21 +676,21 @@ def test_single_voltage(
     )
 
     return degradation_model(
-        (
-            expanded_cycle,
-            expanded_constant_current,
-            expanded_end_current_prev,
-            expanded_end_voltage_prev,
-            expanded_end_voltage,
-            indecies,
-            tf.constant(v, shape = [len(cycle), 1]),
-            tf.tile(
+        {
+            Key.CYC: expanded_cycle,
+            Key.I_CC: expanded_constant_current,
+            Key.I_PREV_END: expanded_end_current_prev,
+            Key.V_PREV_END: expanded_end_voltage_prev,
+            Key.V_END: expanded_end_voltage,
+            Key.INDICES: indecies,
+            Key.V_TENSOR: tf.constant(v, shape = [len(cycle), 1]),
+            Key.I_TENSOR: tf.tile(
                 tf.reshape(currents, shape = [1, len(currents)]),
                 [len(cycle), 1]
             ),
-            expanded_svit_grid,
-            expanded_count_matrix,
-        ),
+            Key.SVIT_GRID: expanded_svit_grid,
+            Key.COUNT_MATRIX: expanded_count_matrix,
+        },
         training = False
     )
 

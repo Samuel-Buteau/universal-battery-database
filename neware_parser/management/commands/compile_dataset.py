@@ -418,7 +418,7 @@ def initial_processing(barcodes, fit_args, flags):
                             post_process_results[Key.Q_CV],
                             post_process_results[Key.MASK_CV],
                             sign * post_process_results[Key.I_CC],
-                            -sign * post_process_results[Key.I_PREV],
+                            -sign * post_process_results[Key.I_PREV_END],
                             sign * post_process_results[Key.I_END],
                             post_process_results[Key.V_PREV_END],
                             post_process_results[Key.V_END],
@@ -442,7 +442,7 @@ def initial_processing(barcodes, fit_args, flags):
                         (Key.MASK_CV_VEC, "f4", fit_args[Key.I_MAX]),
 
                         (Key.I_CC, "f4"),
-                        (Key.I_PREV, "f4"),
+                        (Key.I_PREV_END, "f4"),
                         (Key.I_END, "f4"),
                         (Key.V_PREV_END, "f4"),
                         (Key.V_END, "f4"),
@@ -461,7 +461,7 @@ def initial_processing(barcodes, fit_args, flags):
                     )] = {
                         Key.MAIN: res,
                         Key.I_CC_AVG: numpy.average(res[Key.I_CC]),
-                        Key.I_PREV_END_AVG: numpy.average(res[Key.I_PREV]),
+                        Key.I_PREV_END_AVG: numpy.average(res[Key.I_PREV_END]),
                         Key.I_END_AVG: numpy.average(res[Key.I_END]),
                         Key.V_PREV_END_AVG: numpy.average(res[Key.V_PREV_END]),
                         Key.V_END_AVG: numpy.average(res[Key.V_END]),

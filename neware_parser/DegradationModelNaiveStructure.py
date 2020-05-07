@@ -1035,14 +1035,14 @@ class DegradationModelNaiveStructure(Model):
 
         v_eq_0 = calculate_equilibrium_voltage(
             v = params[Key.V_PREV_END],
-            current = params[Key.I_PREV],
+            current = params[Key.I_PREV_END],
             resistance = resistance
         )
 
         q_0 = self.q_direct(
             encoded_stress = encoded_stress, norm_cycle = norm_cycle,
             v = v_eq_0, shift = shift, cell_features = cell_features,
-            current = params[Key.I_PREV], training = training
+            current = params[Key.I_PREV_END], training = training
         )
 
         v_eq_1 = calculate_equilibrium_voltage(
@@ -1092,7 +1092,7 @@ class DegradationModelNaiveStructure(Model):
         )
         v_eq_0 = calculate_equilibrium_voltage(
             v = params[Key.V_PREV_END],
-            current = params[Key.I_PREV],
+            current = params[Key.I_PREV_END],
             resistance = resistance,
         )
         q_0 = self.q_direct(
@@ -1101,7 +1101,7 @@ class DegradationModelNaiveStructure(Model):
             v = v_eq_0,
             shift = shift,
             cell_features = cell_features,
-            current = params[Key.I_PREV],
+            current = params[Key.I_PREV_END],
             training = training
         )
         q_over_q = (
@@ -1156,7 +1156,7 @@ class DegradationModelNaiveStructure(Model):
         )
         v_eq_0 = calculate_equilibrium_voltage(
             v = params[Key.V_PREV_END],
-            current = params[Key.I_PREV],
+            current = params[Key.I_PREV_END],
             resistance = resistance,
         )
         q_0 = self.q_direct(
@@ -1165,7 +1165,7 @@ class DegradationModelNaiveStructure(Model):
             v = v_eq_0,
             shift = shift,
             cell_features = cell_features,
-            current = params[Key.I_PREV],
+            current = params[Key.I_PREV_END],
             training = training
         )
         q_over_q = tf.reshape(params["cv_capacity"], [-1, 1]) / (
@@ -1223,7 +1223,7 @@ class DegradationModelNaiveStructure(Model):
 
         v_eq_0 = calculate_equilibrium_voltage(
             v = params[Key.V_PREV_END],
-            current = params[Key.I_PREV],
+            current = params[Key.I_PREV_END],
             resistance = resistance,
         )
 
@@ -1233,7 +1233,7 @@ class DegradationModelNaiveStructure(Model):
             v = v_eq_0,
             shift = shift,
             cell_features = cell_features,
-            current = params[Key.I_PREV],
+            current = params[Key.I_PREV_END],
             training = training
         )
 
@@ -1624,7 +1624,7 @@ class DegradationModelNaiveStructure(Model):
 
             Key.CYC: cycle,
             Key.I_CC: constant_current,
-            Key.I_PREV: end_current_prev,
+            Key.I_PREV_END: end_current_prev,
             Key.V_PREV_END: end_voltage_prev,
             "features": features,
             Key.V_END: end_voltage,

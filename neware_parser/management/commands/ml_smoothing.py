@@ -151,8 +151,8 @@ def initial_processing(
         options: Parameters used to tune the machine learning fitting process.
         strategy: TODO(harvey)
 
-    Returns: { Key.STRAT, Key.MODEL, Key.TENSORS, Key.TRAIN_DS, Key.CYC_M,
-               Key.CYC_V, Key.OPT, Key.MY_DATA }
+    Returns: `{ Key.STRAT, Key.MODEL, Key.TENSORS, Key.TRAIN_DS, Key.CYC_M,
+               Key.CYC_V, Key.OPT, Key.MY_DATA }`
     """
     # TODO (harvey): Cleanup Docstring, maybe put detailed description elsewhere
     #   An appropriate place might be in the docstring for

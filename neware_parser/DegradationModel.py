@@ -13,12 +13,12 @@ main_activation = tf.keras.activations.relu
 
 def feedforward_nn_parameters(
     depth: int, width: int, last = None, finalize = False
-):
-    """ Create and returns a new neural network
+) -> dict:
+    """ Create a new feedforward neural network
 
     Returns:
-        dict: Indexed by "initial", "bulk", and "final" for each part of
-            neural network.
+        { "initial", "bulk", and "final" }, each key represents a component of
+            the neural network.
     """
     if last is None:
         last = 1
@@ -74,8 +74,7 @@ def nn_call(nn_func: dict, dependencies: tuple, training = True):
         The output of the neural network.
     """
     centers = nn_func["initial"](
-        tf.concat(dependencies, axis = 1),
-        training = training,
+        tf.concat(dependencies, axis = 1), training = training,
     )
 
     for dd in nn_func["bulk"]:
@@ -93,7 +92,7 @@ def print_cell_info(
     cell_to_dry_cell, dry_cell_to_meta,
     lyte_to_solvent, lyte_to_salt, lyte_to_additive,
     lyte_latent_flags, names,
-):
+) -> None:
     """ Print cell information upon the initialization of the Model """
 
     # TODO: names being a tuple is really dumb. use some less error prone way.
@@ -178,7 +177,7 @@ def print_cell_info(
         print()
 
 
-def add_v_dep(voltage_independent, params, dim = 1):
+def add_v_dep(voltage_independent, params: dict, dim = 1):
     """ Add voltage dependence: [cyc] -> [cyc, vol]
 
     Args:
@@ -196,7 +195,7 @@ def add_v_dep(voltage_independent, params, dim = 1):
     )
 
 
-def add_current_dep(current_independent, params, dim = 1):
+def add_current_dep(current_independent, params: dict, dim = 1):
     """ Add current dependence: [vol] -> [cyc, vol]
 
     Args:
@@ -213,14 +212,41 @@ def add_current_dep(current_independent, params, dim = 1):
     )
 
 
-def create_derivatives(nn, params, der_params, internal_loss = False):
+def create_derivatives(
+    nn, params: dict, der_params: dict, internal_loss = False
+):
     """
+    Given a feedforward neural network `nn`,
+        compute its value and its first derivative.
+
+    TODO(harvey, confusion): Is "forall" explained somewhere? Maybe an entry
+        in a wiki would be helpful.
     Derivatives will only be taken inside forall statements.
     If auxiliary variables must be given, create a lambda.
 
+    Examples:
+        ```python
+        # state of charge and its first derivative
+        q, q_der = create_derivatives(
+            self.q_for_derivative,
+            params = {
+                Key.CYC: sampled_cycles,
+                Key.STRESS: sampled_encoded_stress,
+                Key.V: sampled_vs,
+                Key.CELL_FEAT: sampled_features_cell,
+                Key.I: sampled_constant_current
+            },
+            der_params = {Key.V: 3, Key.CELL_FEAT: 2, Key.I: 3, Key.CYC: 3}
+        )
+        ```
+
     Args:
-        nn: The neural network for which to compute derivatives.
-        params: The network"s parameters
+        nn: A DegradationModel `for_derivative` method;
+            it specifies the quantity to compute and derive.
+        params: Parameters for computing the given quantity.
+        der_params: Parameters for computing the first derivative of the given
+            quantity.
+        internal_loss: TODO(harvey
     """
     derivatives = {}
 
@@ -258,7 +284,7 @@ def create_derivatives(nn, params, der_params, internal_loss = False):
                 derivatives["d2_" + k] = tape_d2.batch_jacobian(
                     source = params[k], target = derivatives["d_" + k],
                 )
-                if not k in [Key.CELL_FEAT, Key.STRESS]:
+                if k not in [Key.CELL_FEAT, Key.STRESS]:
                     derivatives["d2_" + k] = derivatives["d2_" + k][:, 0, :]
 
         del tape_d2
@@ -280,8 +306,8 @@ def create_derivatives(nn, params, der_params, internal_loss = False):
 
 class DegradationModel(Model):
     """
-    The model responsible for the machine learning modelling aspect of the
-    project. This version of Degradation Model has almost no internal structure.
+    The model responsible for the machine learning aspect of the project.
+        This version of Degradation Model has almost no internal structure.
 
     Methods:
 
@@ -943,7 +969,7 @@ class DegradationModel(Model):
                 minval = 0, maxval = batch_count,
                 shape = [n_sample], dtype = tf.int32,
             ),
-            axis = 0
+            axis = 0,
         )
         sampled_count_matrix = tf.gather(
             count_matrix,
@@ -996,15 +1022,12 @@ class DegradationModel(Model):
 
         q_1 = self.q_direct(
             encoded_stress = add_v_dep(
-                encoded_stress,
-                params,
-                encoded_stress.shape[1],
+                encoded_stress, params, encoded_stress.shape[1],
             ),
             cycle = add_v_dep(params[Key.CYC], params),
             v = params[Key.V],
             feats_cell = add_v_dep(
-                params[Key.CELL_FEAT], params,
-                params[Key.CELL_FEAT].shape[1],
+                params[Key.CELL_FEAT], params, params[Key.CELL_FEAT].shape[1],
             ),
             current = add_v_dep(params[Key.I_CC], params),
             training = training,
@@ -1017,8 +1040,8 @@ class DegradationModel(Model):
         Compute constant-voltage capacity during training or evaluation.
 
         Args:
-            params: Dictionary containing all parameters, including those of
-                constant-voltage capacity.
+            params (dict): Parameters for computing constant-voltage (cv)
+                capacity.
             training: Flag for training or evaluation.
 
         Returns:
@@ -1071,7 +1094,7 @@ class DegradationModel(Model):
             training: Flag for training or evaluation.
 
         Returns:
-            (svid_grid, count_matrix) and the training flag.
+            (svit_grid, count_matrix) and the training flag.
         """
         return self.stress_to_encoded_layer(
             (svit_grid, count_matrix),
@@ -1081,6 +1104,21 @@ class DegradationModel(Model):
     def q_direct(
         self, encoded_stress, cycle, v, feats_cell, current, training = True,
     ):
+        """
+        Compute state of charge directly
+            (receiving arguments directly without using `params`)
+
+        Args: TODO(harvey)
+            encoded_stress
+            cycle: Cycle, often Key.CYC
+            v: Voltage
+            feats_cell: Cell features
+            current: Current
+            training: Flag for training or evaluation.
+
+        Returns:
+            Computed state of charge.
+        """
         dependencies = (
             encoded_stress,
             cycle,
@@ -1092,7 +1130,36 @@ class DegradationModel(Model):
 
     """ For derivative variable methods """
 
-    def q_for_derivative(self, params, training = True):
+    def q_for_derivative(self, params: dict, training = True):
+        """
+        Wrapper function calling `q_direct`, to be passed in to
+            `create_derivatives` to state of charge and its first derivative.
+
+        Examples:
+            ```python
+            # state of charge and its first derivative
+            q, q_der = create_derivatives(
+                self.q_for_derivative,
+                params = {
+                    Key.CYC: sampled_cycles,
+                    Key.STRESS: sampled_encoded_stress,
+                    Key.V: sampled_vs,
+                    Key.CELL_FEAT: sampled_features_cell,
+                    Key.I: sampled_constant_current
+                },
+                der_params = {
+                    Key.V: 3, Key.CELL_FEAT: 2, Key.I: 3, Key.CYC: 3,
+                }
+            )
+            ```
+
+        Args:
+            params (dict): Parameters for computing state of charge (q).
+            training (bool): Flag for training or evaluation.
+
+        Returns:
+            Computed state of charge; same as that for `q_direct`.
+        """
 
         return self.q_direct(
             encoded_stress = params[Key.STRESS],
@@ -1103,8 +1170,22 @@ class DegradationModel(Model):
             training = training,
         )
 
-    def call(self, x, training = False):
+    def call(self, x, training = False) -> dict:
+        """
+        Call function for the Model during training or evaluation.
 
+        Args:
+            x:
+            training: Flag for training or evaluation.
+
+        Returns:
+            `{ Key.Pred.I_CC, Key.Pred.I_CV }`. During training, the
+                dictionary also includes `{ "q_loss", "cell_loss" }`.
+
+        """
+
+        # TODO(harvey): Error-prone way of passing these variables,
+        #   change to dictionary.
         cycle = x[0]  # matrix; dim: [batch, 1]
         constant_current = x[1]  # matrix; dim: [batch, 1]
         end_current_prev = x[2]  # matrix; dim: [batch, 1]
@@ -1179,9 +1260,7 @@ class DegradationModel(Model):
                     Key.CELL_FEAT: sampled_features_cell,
                     Key.I: sampled_constant_current
                 },
-                der_params = {
-                    Key.V: 3, Key.CELL_FEAT: 2, Key.I: 3, Key.CYC: 3,
-                }
+                der_params = {Key.V: 3, Key.CELL_FEAT: 2, Key.I: 3, Key.CYC: 3}
             )
 
             q_loss = calculate_q_loss(

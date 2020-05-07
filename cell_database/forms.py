@@ -409,7 +409,7 @@ class DryCellGeometryForm(ModelForm):
 
 
 class WetCellForm(Form):
-    barcode = forms.IntegerField(required=False)
+    cell_id = forms.IntegerField(required=False)
     dry_cell = forms.ChoiceField(
         choices=dry_cell_choices,
         required=False
@@ -422,9 +422,9 @@ class WetCellForm(Form):
 
 
 class WetCellParametersForm(WetCellForm):
-    start_barcode = forms.IntegerField(required=False)
-    end_barcode = forms.IntegerField(required=False)
-    number_of_barcodes = forms.IntegerField(required=False)
+    start_cell_id = forms.IntegerField(required=False)
+    end_cell_id = forms.IntegerField(required=False)
+    number_of_cell_ids = forms.IntegerField(required=False)
 
     override_existing = forms.BooleanField(required=False)
 
@@ -454,9 +454,9 @@ def initialize_mini_electrolyte(self, value=False, molecule=False, number=10, dr
 
 
 class ElectrolyteBulkParametersForm(ElectrolyteForm):
-    start_barcode = forms.IntegerField(required=False)
-    end_barcode = forms.IntegerField(required=False)
-    number_of_barcodes = forms.IntegerField(required=False)
+    start_cell_id = forms.IntegerField(required=False)
+    end_cell_id = forms.IntegerField(required=False)
+    number_of_cell_ids = forms.IntegerField(required=False)
     override_existing = forms.BooleanField(required=False)
 
     def __init__(self, *args, **kwargs):
@@ -472,7 +472,7 @@ class ElectrolyteBulkParametersForm(ElectrolyteForm):
 
 
 class ElectrolyteBulkSingleEntryForm(ElectrolyteForm):
-    barcode = forms.IntegerField(required=False)
+    cell_id = forms.IntegerField(required=False)
 
     def __init__(self, *args, **kwargs):
         super(ElectrolyteBulkSingleEntryForm, self).__init__(*args, **kwargs)

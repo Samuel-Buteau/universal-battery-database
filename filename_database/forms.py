@@ -11,8 +11,8 @@ class ParserFieldForm(forms.Form):
     student_search = forms.BooleanField(required=False)
     student = forms.CharField(required=False)
 
-    barcode_search = forms.BooleanField(required=False)
-    barcode = forms.IntegerField(required=False)
+    cell_id_search = forms.BooleanField(required=False)
+    cell_id = forms.IntegerField(required=False)
 
     start_cycle_search = forms.BooleanField(required=False)
     start_cycle = forms.IntegerField(required=False)

@@ -27,7 +27,7 @@ table, th, td {
             <input type="submit" name = 'bulk_process_entries' value="Register These Cells">
         {% endif %}
         <br>
-        Start Barcode: {{bulk_parameters_form.start_barcode}} End Barcode: {{bulk_parameters_form.end_barcode}} Number of Barcodes: {{bulk_parameters_form.number_of_barcodes}}
+        Start Cell ID: {{bulk_parameters_form.start_cell_id}} End Cell ID: {{bulk_parameters_form.end_cell_id}} Number of Cell IDs: {{bulk_parameters_form.number_of_cell_ids}}
         Override Existing Registration: {{bulk_parameters_form.override_existing}}
         <br>
         <table>
@@ -77,7 +77,7 @@ table, th, td {
                 {{ bulk_entries_formset.management_form }}
                 <th>Result</th>
                 {% if predefined == 'False' %}
-                    <th></th><th>Barcode:<th></th><th></th><th></th><th>Electrolytes:</th></th>
+                    <th></th><th>Cell ID:<th></th><th></th><th></th><th>Electrolytes:</th></th>
                 {% endif %}
 
                 {%for entry in bulk_entries_formset %}
@@ -92,7 +92,7 @@ table, th, td {
                                 {{entry.dry_cell}}
                             {% endif %}
                         </td>
-                        <td>{{entry.barcode}}</td>
+                        <td>{{entry.cell_id}}</td>
                         {% if predefined == 'True' %}
                             <td>{{entry.electrolyte}}</td>
                         {% endif %}

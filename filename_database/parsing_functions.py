@@ -145,8 +145,8 @@ def deterministic_parser(filename, exp_type):
 
         return None
 
-    def get_possible_barcodes(fileList):
-        possible_barcodes = []
+    def get_possible_cell_ids(fileList):
+        possible_cell_ids = []
         max_look = min(5, len(fileList) - 1)
         for elem in fileList[:max_look]:
             if (not re.match(r'200[8-9]0[1-9][0-3][0-9]$|'
@@ -162,8 +162,8 @@ def deterministic_parser(filename, exp_type):
                              r'[1-2][0-9]0[1-9][0-3][0-1]$|'
                              r'[1-2][0-9]1[0-2][0-3][0-1]$',
                              elem)) and (re.match(r'^(\d{5,6})$|^(0\d{5,5})$', elem)) and elem.isdigit():
-                possible_barcodes.append( int(elem))
-        return possible_barcodes
+                possible_cell_ids.append( int(elem))
+        return possible_cell_ids
 
     def get_start_cycle(fileList, avoid=None):
         max_look = min(7, len(fileList) - 1)
@@ -298,7 +298,7 @@ def deterministic_parser(filename, exp_type):
         return possible_drive_profiles
 
 
-    # TODO: once you have a date, you must prevent barcode from being that date.
+    # TODO: once you have a date, you must prevent cell_id from being that date.
     # TODO: for now, if multiple alternatives show up, take first one and print.
 
     metadata = ValidMetadata(experiment_type=exp_type)
@@ -317,34 +317,34 @@ def deterministic_parser(filename, exp_type):
     else:
         metadata.date = dates[0]
 
-    if exp_type.barcode_active:
-        barcodes = get_possible_barcodes(fileList)
-        if len(barcodes) == 0:
+    if exp_type.cell_id_active:
+        cell_ids = get_possible_cell_ids(fileList)
+        if len(cell_ids) == 0:
             valid = False
         else:
             if metadata.date is None:
-                if len(barcodes) > 1:
+                if len(cell_ids) > 1:
                     valid = False
                 else:
-                    metadata.barcode = barcodes[0]
+                    metadata.cell_id = cell_ids[0]
             else:
-                valid_barcodes = []
-                for barcode in barcodes:
+                valid_cell_ids = []
+                for cell_id in cell_ids:
                     date_pieces = [metadata.date.year % 100, metadata.date.month, metadata.date.day]
                     all_perms = list(itertools.permutations(date_pieces))
-                    barcode_ok = True
+                    cell_id_ok = True
                     for p in all_perms:
-                        if barcode == p[0] + p[1]*100 + p[2]*10000:
-                            barcode_ok = False
+                        if cell_id == p[0] + p[1]*100 + p[2]*10000:
+                            cell_id_ok = False
                             break
 
-                    if barcode_ok:
-                        valid_barcodes.append(barcode)
+                    if cell_id_ok:
+                        valid_cell_ids.append(cell_id)
 
-                if len(valid_barcodes) > 1 or len(valid_barcodes) == 0:
+                if len(valid_cell_ids) > 1 or len(valid_cell_ids) == 0:
                     valid = False
                 else:
-                    metadata.barcode = valid_barcodes[0]
+                    metadata.cell_id = valid_cell_ids[0]
 
     if exp_type.AC_active and exp_type.AC_increment_active:
         ac, increment = get_ac_increment(fileList)

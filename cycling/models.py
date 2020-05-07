@@ -22,8 +22,8 @@ def id_dict_from_id_list(id_list):
 
 
 
-def get_files_for_barcode(barcode):
-    return CyclingFile.objects.filter(database_file__deprecated=False).filter(database_file__valid_metadata__barcode=barcode)
+def get_files_for_cell_id(cell_id):
+    return CyclingFile.objects.filter(database_file__deprecated=False).filter(database_file__valid_metadata__cell_id=cell_id)
 
 def clamp(a, x, b):
     x = min(x, b)
@@ -31,11 +31,11 @@ def clamp(a, x, b):
     return x
 
 
-def make_voltage_grid(min_v, max_v, n_samples, my_barcodes):
+def make_voltage_grid(min_v, max_v, n_samples, my_cell_ids):
     if n_samples < 2:
         n_samples = 2
     all_cycs = Cycle.objects.filter(
-        discharge_group__barcode__in = my_barcodes,
+        discharge_group__cell_id__in = my_cell_ids,
         valid_cycle = True
     )
     my_max = max(
@@ -62,11 +62,11 @@ def make_voltage_grid(min_v, max_v, n_samples, my_barcodes):
     return numpy.array([my_min + delta * float(i) for i in range(n_samples)])
 
 
-def make_current_grid(min_c, max_c, n_samples, my_barcodes):
+def make_current_grid(min_c, max_c, n_samples, my_cell_ids):
     if n_samples < 2:
         n_samples = 2
     all_cycs = Cycle.objects.filter(
-        discharge_group__barcode__in = my_barcodes,
+        discharge_group__cell_id__in = my_cell_ids,
         valid_cycle = True
     )
     my_max = max(abs(
@@ -109,11 +109,11 @@ def current_to_log_current(current):
 def make_sign_grid():
     return numpy.array([1., -1.])
 
-def make_temperature_grid(min_t, max_t, n_samples, my_barcodes):
+def make_temperature_grid(min_t, max_t, n_samples, my_cell_ids):
     if n_samples < 2:
         n_samples = 2
 
-    my_files = CyclingFile.objects.filter(database_file__deprecated=False).filter(database_file__valid_metadata__barcode__in=my_barcodes)
+    my_files = CyclingFile.objects.filter(database_file__deprecated=False).filter(database_file__valid_metadata__cell_id__in=my_cell_ids)
     my_max = my_files.aggregate(Max("database_file__valid_metadata__temperature"))[
             "database_file__valid_metadata__temperature__max"
         ]
@@ -135,15 +135,15 @@ def make_temperature_grid(min_t, max_t, n_samples, my_barcodes):
     return numpy.array([my_min + delta * float(i) for i in range(n_samples)])
 
 
-def compute_from_database(barcode, lower_cycle=None, upper_cycle=None, valid=True, ):
-    files_barcode = CyclingFile.objects.filter(
+def compute_from_database(cell_id, lower_cycle=None, upper_cycle=None, valid=True, ):
+    files_cell_id = CyclingFile.objects.filter(
         database_file__deprecated=False,
-        database_file__valid_metadata__barcode=barcode).order_by("database_file__last_modified")
+        database_file__valid_metadata__cell_id=cell_id).order_by("database_file__last_modified")
 
     groups = {}
-    for cycle_group in get_discharge_groups_from_barcode(barcode):
+    for cycle_group in get_discharge_groups_from_cell_id(cell_id):
         q_curves= []
-        for f in files_barcode:
+        for f in files_cell_id:
             offset_cycle = f.database_file.valid_metadata.start_cycle
             filters = Q(valid_cycle=valid)&Q(cycling_file=f)
             if not (lower_cycle is None and upper_cycle is None):
@@ -185,14 +185,14 @@ def compute_from_database(barcode, lower_cycle=None, upper_cycle=None, valid=Tru
 
 
 
-def make_file_legends_and_vertical(ax, barcode, lower_cycle=None, upper_cycle=None, show_invalid=False, vertical_barriers=None, list_all_options=None, leg1=None):
-    files_barcode = CyclingFile.objects.filter(
+def make_file_legends_and_vertical(ax, cell_id, lower_cycle=None, upper_cycle=None, show_invalid=False, vertical_barriers=None, list_all_options=None, leg1=None):
+    files_cell_id = CyclingFile.objects.filter(
         database_file__deprecated=False,
-        database_file__valid_metadata__barcode=barcode).order_by("database_file__last_modified")
+        database_file__valid_metadata__cell_id=cell_id).order_by("database_file__last_modified")
 
     file_leg = []
-    if len(files_barcode) >= 1:
-        for f_i, f in enumerate(files_barcode):
+    if len(files_cell_id) >= 1:
+        for f_i, f in enumerate(files_cell_id):
             if show_invalid:
                 min_cycle = Cycle.objects.filter(cycling_file=f).aggregate(Min("cycle_number"))[
                                 "cycle_number__min"] + f.database_file.valid_metadata.start_cycle
@@ -272,8 +272,8 @@ def get_byte_image(fig, dpi):
 
 #TODO(sam): use common mechanism as in compile_dataset/ml_smoothing for ordering
 #TODO(sam): set default color rules in the UI.
-def get_discharge_groups_from_barcode(barcode):
-    return list(DischargeCycleGroup.objects.filter(barcode=barcode).order_by("constant_rate"))
+def get_discharge_groups_from_cell_id(cell_id):
+    return list(DischargeCycleGroup.objects.filter(cell_id=cell_id).order_by("constant_rate"))
 
 
 
@@ -347,7 +347,7 @@ class CyclingFile(models.Model):
 
 
 class ChargeCycleGroup(models.Model):
-    barcode = models.IntegerField()
+    cell_id = models.IntegerField()
     constant_rate = models.FloatField()
     end_rate = models.FloatField()
     end_rate_prev = models.FloatField()
@@ -355,7 +355,7 @@ class ChargeCycleGroup(models.Model):
     end_voltage_prev = models.FloatField()
 
 class DischargeCycleGroup(models.Model):
-    barcode = models.IntegerField()
+    cell_id = models.IntegerField()
     constant_rate = models.FloatField()
     end_rate = models.FloatField()
     end_rate_prev = models.FloatField()

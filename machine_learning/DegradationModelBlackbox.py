@@ -356,7 +356,7 @@ class DegradationModel(Model):
 
         self.num_keys = self.cell_direct.num_keys
 
-        # cell_latent_flags is a dict with barcodes as keys.
+        # cell_latent_flags is a dict with cell_ids as keys.
         # latent_flags is a numpy array such that the indecies match cell_dict
         latent_flags = numpy.ones(
             (self.cell_direct.num_keys, 1),
@@ -1258,7 +1258,7 @@ class DegradationModel(Model):
     def test_all_voltages(
         self,
         cycle, constant_current, end_current_prev, end_voltage_prev, end_voltage,
-        barcode_index,
+        cell_id_index,
         voltages, currents, svit_grid, count_matrix,
     ):
 
@@ -1282,7 +1282,7 @@ class DegradationModel(Model):
         )
 
         indecies = tf.tile(
-            tf.expand_dims(barcode_index, axis = 0),
+            tf.expand_dims(cell_id_index, axis = 0),
             [cycle.shape[0]])
 
         expanded_svit_grid = tf.tile(
@@ -1324,7 +1324,7 @@ class DegradationModel(Model):
     def test_single_voltage(
         self,
         cycle, v, constant_current, end_current_prev, end_voltage_prev, end_voltage,
-        currents, barcode_index, svit_grid, count_matrix
+        currents, cell_id_index, svit_grid, count_matrix
     ):
 
         expanded_cycle = tf.expand_dims(cycle, axis = 1)
@@ -1347,7 +1347,7 @@ class DegradationModel(Model):
         )
 
         indecies = tf.tile(
-            tf.expand_dims(barcode_index, axis = 0),
+            tf.expand_dims(cell_id_index, axis = 0),
             [cycle.shape[0]])
 
         expanded_svit_grid = tf.tile(

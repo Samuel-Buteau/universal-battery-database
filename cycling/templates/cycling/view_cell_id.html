@@ -15,9 +15,9 @@ table, th, td {
 </style>
 
 
-<h1>Fix Bad Cycles for Barcode: {{ barcode }}</h1>
+<h1>Fix Bad Cycles for Cell ID: {{ cell_id }}</h1>
 
-<form action="{% url 'view_barcode' barcode cursor %}" method="post" >
+<form action="{% url 'view_cell_id' cell_id cursor %}" method="post" >
     {% csrf_token %}
 
     {{my_form}} <br>

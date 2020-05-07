@@ -92,7 +92,7 @@ def plot_engine_direct(data_streams, target, todos, fit_args, filename,
         list_of_target_data = []
 
         source_database = False
-        barcode = None
+        cell_id = None
         for source, data, _, max_cyc_n in data_streams:
             list_of_target_data.append(
                 data_engine(
@@ -108,7 +108,7 @@ def plot_engine_direct(data_streams, target, todos, fit_args, filename,
             )
             if source == "database":
                 source_database = True
-                barcode, valid = data
+                cell_id, valid = data
 
         list_of_keys = []
         for _, lok, _ in list_of_target_data:
@@ -130,7 +130,7 @@ def plot_engine_direct(data_streams, target, todos, fit_args, filename,
 
         leg = produce_annotations(ax, get_list_of_patches(list_of_keys, custom_colors), options)
         if source_database:
-            make_file_legends_and_vertical(ax, barcode, lower_cycle, upper_cycle, show_invalid,
+            make_file_legends_and_vertical(ax, cell_id, lower_cycle, upper_cycle, show_invalid,
                                            vertical_barriers, list_all_options, leg)
 
     # export
@@ -196,12 +196,12 @@ def generate_options(mode, typ, target):
         "ylabel": ylabel
     }
 
-def fetch_svit_keys_averages(compiled, barcode):
-    svit_and_count = get_svit_and_count(compiled, barcode)
-    keys = compiled[Key.ALL_DATA][barcode][Key.CYC_GRP_DICT].keys()
+def fetch_svit_keys_averages(compiled, cell_id):
+    svit_and_count = get_svit_and_count(compiled, cell_id)
+    keys = compiled[Key.ALL_DATA][cell_id][Key.CYC_GRP_DICT].keys()
     averages = {}
     for k in keys:
-        view = compiled[Key.ALL_DATA][barcode][Key.CYC_GRP_DICT][k]
+        view = compiled[Key.ALL_DATA][cell_id][Key.CYC_GRP_DICT][k]
         averages[k] = {}
         for t in [Key.I_CC_AVG, Key.I_PREV_END_AVG, Key.I_END_AVG, Key.V_PREV_END_AVG, Key.V_END_AVG,
                   Key.V_CC_LAST_AVG]:
@@ -255,13 +255,13 @@ def data_engine(
     sign_change=get_sign_change(typ)
     generic_map = get_generic_map(source, target, mode)
     if source == "model":
-        degradation_model, barcode, cycle_m, cycle_v, svit_and_count, keys, averages = data
+        degradation_model, cell_id, cycle_m, cycle_v, svit_and_count, keys, averages = data
         list_of_keys = get_list_of_keys(keys, typ)
         for k in list_of_keys:
             generic[k] = compute_target(
                 target,
                 degradation_model,
-                barcode,
+                cell_id,
                 sign_change,
                 mode,
                 averages[k],
@@ -274,8 +274,8 @@ def data_engine(
     elif source == "database":
         if typ != "dchg" or mode != "cc":
             return None, None, None
-        barcode, valid = data
-        generic = compute_from_database(barcode, lower_cycle, upper_cycle, valid)
+        cell_id, valid = data
+        generic = compute_from_database(cell_id, lower_cycle, upper_cycle, valid)
         list_of_keys = get_list_of_keys(generic.keys(), typ)
 
     elif source == "compiled":
@@ -371,7 +371,7 @@ def produce_annotations(ax, list_of_patches, options):
 def simple_plot(ax, x,y, color, channel):
     if channel == 'scatter' or channel == "scatter_valid" or channel == "scatter_invalid":
         if channel== 'scatter':
-            s=3
+            s=20
             marker='.'
         elif channel== "scatter_valid":
             s=100
@@ -429,14 +429,14 @@ def plot_generic(
                 simple_plot(ax, x, y, color, channel)
 
 
-def get_svit_and_count(my_data, barcode):
+def get_svit_and_count(my_data, cell_id):
     n_sign = len(my_data["sign_grid"])
     n_voltage = len(my_data["voltage_grid"])
     n_current = len(my_data["current_grid"])
     n_temperature = len(my_data["temperature_grid"])
 
     count_matrix = np.reshape(
-        my_data[Key.ALL_DATA][barcode]["all_reference_mats"]
+        my_data[Key.ALL_DATA][cell_id]["all_reference_mats"]
         [Key.COUNT_MATRIX][-1],
         [n_sign, n_voltage, n_current, n_temperature, 1]
     )
@@ -469,7 +469,7 @@ def get_svit_and_count(my_data, barcode):
 
 
 
-def compute_target(target, degradation_model, barcode, sign_change, mode, averages, generic_map, svit_and_count,
+def compute_target(target, degradation_model, cell_id, sign_change, mode, averages, generic_map, svit_and_count,
                    cycle_m, cycle_v, cycle_min = 0, cycle_max = 6000 , max_cyc_n = 3):
     cycle = np.linspace(cycle_min, cycle_max, max_cyc_n)
     scaled_cyc = (cycle - cycle_m) / tf.sqrt(cycle_v)
@@ -506,7 +506,7 @@ def compute_target(target, degradation_model, barcode, sign_change, mode, averag
             tf.constant(averages[Key.I_PREV_END_AVG], dtype=tf.float32),
             tf.constant(averages[Key.V_PREV_END_AVG], dtype=tf.float32),
             tf.constant(averages[Key.V_END_AVG], dtype=tf.float32),
-            tf.constant(degradation_model.cell_direct.id_dict[barcode], dtype=tf.int32),
+            tf.constant(degradation_model.cell_direct.id_dict[cell_id], dtype=tf.int32),
             tf.constant(v_range, dtype=tf.float32),
             tf.constant(current_range, dtype=tf.float32),
             tf.constant(svit_and_count[Key.SVIT_GRID], dtype=tf.float32),
@@ -551,7 +551,7 @@ def compute_target(target, degradation_model, barcode, sign_change, mode, averag
             tf.constant(averages[Key.V_PREV_END_AVG], dtype=tf.float32),
             tf.constant(averages[Key.V_END_AVG], dtype=tf.float32),
             tf.constant(target_currents, dtype=tf.float32),
-            tf.constant(degradation_model.cell_direct.id_dict[barcode], dtype=tf.int32),
+            tf.constant(degradation_model.cell_direct.id_dict[cell_id], dtype=tf.int32),
             tf.constant(svit_and_count[Key.SVIT_GRID], dtype=tf.float32),
             tf.constant(svit_and_count[Key.COUNT_MATRIX], dtype=tf.float32)
         )
@@ -577,15 +577,15 @@ def compute_target(target, degradation_model, barcode, sign_change, mode, averag
 
 
 
-def plot_cycling_direct(barcode, path_to_plots = None, lower_cycle=None, upper_cycle=None, show_invalid=False, vertical_barriers=None, list_all_options=None, figsize = None):
+def plot_cycling_direct(cell_id, path_to_plots = None, lower_cycle=None, upper_cycle=None, show_invalid=False, vertical_barriers=None, list_all_options=None, figsize = None):
     if show_invalid:
         data_streams = [
-            ('database', (barcode, True), 'scatter_valid', 100),
-            ('database', (barcode, False), 'scatter_invalid', 100)
+            ('database', (cell_id, True), 'scatter_valid', 100),
+            ('database', (cell_id, False), 'scatter_invalid', 100)
         ]
     else:
         data_streams = [
-            ('database', (barcode, True), 'scatter_valid', 100),
+            ('database', (cell_id, True), 'scatter_valid', 100),
         ]
 
     if path_to_plots is None:
@@ -596,7 +596,7 @@ def plot_cycling_direct(barcode, path_to_plots = None, lower_cycle=None, upper_c
                     ("dchg", "cc"),
                 ],
                 fit_args={'path_to_plots':path_to_plots},
-                filename="Initial_{}.png".format(barcode),
+                filename="Initial_{}.png".format(cell_id),
                 lower_cycle = lower_cycle,
                 upper_cycle = upper_cycle,
                 vertical_barriers = vertical_barriers,
@@ -612,7 +612,7 @@ def plot_cycling_direct(barcode, path_to_plots = None, lower_cycle=None, upper_c
                 ("dchg", "cc"),
             ],
             fit_args={'path_to_plots': path_to_plots},
-            filename="Initial_{}.png".format(barcode),
+            filename="Initial_{}.png".format(cell_id),
             lower_cycle=lower_cycle,
             upper_cycle=upper_cycle,
             vertical_barriers=vertical_barriers,
@@ -632,7 +632,7 @@ def plot_direct(target, plot_params, init_returns):
         model_max_cyc_n = 200
         header = "Cap"
 
-    barcodes = plot_params["barcodes"][:plot_params[Key.FIT_ARGS]["barcode_show"]]
+    cell_ids = plot_params["cell_ids"][:plot_params[Key.FIT_ARGS]["cell_id_show"]]
     count = plot_params["count"]
     fit_args = plot_params[Key.FIT_ARGS]
 
@@ -641,10 +641,10 @@ def plot_direct(target, plot_params, init_returns):
     cycle_m = init_returns[Key.CYC_M]
     cycle_v = init_returns[Key.CYC_V]
 
-    for barcode_count, barcode in enumerate(barcodes):
-        compiled_groups = my_data[Key.ALL_DATA][barcode][Key.CYC_GRP_DICT]
-        svit_and_count, keys, averages = fetch_svit_keys_averages(my_data, barcode)
-        model_data = degradation_model, barcode, cycle_m, cycle_v, svit_and_count, keys, averages
+    for cell_id_count, cell_id in enumerate(cell_ids):
+        compiled_groups = my_data[Key.ALL_DATA][cell_id][Key.CYC_GRP_DICT]
+        svit_and_count, keys, averages = fetch_svit_keys_averages(my_data, cell_id)
+        model_data = degradation_model, cell_id, cycle_m, cycle_v, svit_and_count, keys, averages
 
         plot_engine_direct(
             data_streams=[
@@ -658,7 +658,7 @@ def plot_direct(target, plot_params, init_returns):
                 ("chg", "cv"),
             ],
             fit_args=fit_args,
-            filename=header+"_{}_Count_{}.png".format(barcode, count)
+            filename=header+"_{}_Count_{}.png".format(cell_id, count)
         )
 
 

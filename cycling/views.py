@@ -9,7 +9,7 @@ from django import forms
 import datetime
 
 from django.utils import timezone
-from cycling.neware_processing_functions import full_import_barcodes
+from cycling.neware_processing_functions import full_import_cell_ids
 from .models import *
 from django.db.models import Max,Min
 import math
@@ -45,13 +45,13 @@ def get_all_intervals(initial, n, M):
 colors = ["k","r","b","g","c","m","o"]
 number_of_options = 26
 
-def view_barcode(request, barcode, cursor):
+def view_cell_id(request, cell_id, cursor):
     list_all_options = ["A","B","C","D", "E", "F", "G", "H", "I", "J", "K","L",
                "M","N", "O", "P", "Q","R","S","T", "U", "V", "W", "X", "Y", "Z"]
 
-    barcode = int(barcode)
+    cell_id = int(cell_id)
     ar = {
-        "barcode": barcode}
+        "cell_id": cell_id}
 
     if len(cursor) == 0:
         chosen = []
@@ -63,25 +63,25 @@ def view_barcode(request, barcode, cursor):
     if request.method == "POST" and "back" in request.POST:
         if len(chosen) == 0:
             return HttpResponseRedirect(
-                reverse("view_barcode", args=(barcode, cursor)))
+                reverse("view_cell_id", args=(cell_id, cursor)))
 
         new_cursor = "_".join([list_all_options[c] for c in chosen[:-1]]  )
 
         return HttpResponseRedirect(
-            reverse("view_barcode", args=(barcode, new_cursor)))
+            reverse("view_cell_id", args=(cell_id, new_cursor)))
 
     if request.method == "POST" and "start" in request.POST:
         return HttpResponseRedirect(
-                reverse("view_barcode", args=(barcode, "")))
+                reverse("view_cell_id", args=(cell_id, "")))
 
 
 
 
-    files_barcode = get_files_for_barcode(barcode)
+    files_cell_id = get_files_for_cell_id(cell_id)
 
-    if len(files_barcode)!=0:
+    if len(files_cell_id)!=0:
         c_curves = set([])
-        for f in files_barcode:
+        for f in files_cell_id:
             offset_cycle = f.database_file.valid_metadata.start_cycle
             c_curves.update(set([offset_cycle + cyc
              for cyc in Cycle.objects.filter(cycling_file=f).order_by("cycle_number").values_list(
@@ -104,7 +104,7 @@ def view_barcode(request, barcode, cursor):
             if choice >= interval[1]:
                 new_cursor = "_".join([list_all_options[c] for c in chosen[:count]])
                 return HttpResponseRedirect(
-                    reverse("view_barcode", args=(barcode, new_cursor)))
+                    reverse("view_cell_id", args=(cell_id, new_cursor)))
             interval = split_interval(interval[0], interval[1], M=number_of_options, i=choice)
             print("interval", interval)
         max_possible_options = min(number_of_options, interval[1])
@@ -115,7 +115,7 @@ def view_barcode(request, barcode, cursor):
         if request.method == "POST" and "zoom" in request.POST:
             if interval[1] == 1:
                 return HttpResponseRedirect(
-                    reverse("view_barcode", args=(barcode, cursor)))
+                    reverse("view_cell_id", args=(cell_id, cursor)))
 
             my_form = ChoiceForm(request.POST)
             if my_form.is_valid():
@@ -125,10 +125,10 @@ def view_barcode(request, barcode, cursor):
                     new_cursor = "_".join([list_all_options[c] for c in chosen] + [option])
                 else:
                     return HttpResponseRedirect(
-                        reverse("view_barcode", args=(barcode, cursor)))
+                        reverse("view_cell_id", args=(cell_id, cursor)))
 
             return HttpResponseRedirect(
-                reverse("view_barcode", args=(barcode,new_cursor)))
+                reverse("view_cell_id", args=(cell_id,new_cursor)))
 
         if request.method == "POST" and ("curse" in request.POST or "bless" in request.POST):
             doing = {"curse": [True, False], "bless":[False, True]}
@@ -143,7 +143,7 @@ def view_barcode(request, barcode, cursor):
                 option = my_form.cleaned_data["option"]
                 if not option in list_all_options[:max_possible_options]:
                     return HttpResponseRedirect(
-                        reverse("view_barcode", args=(barcode, cursor)))
+                        reverse("view_cell_id", args=(cell_id, cursor)))
 
                 option_index = list_all_options.index(option)
                 selected_interval = split_interval(interval[0],interval[1],M=max_possible_options, i=option_index)
@@ -151,7 +151,7 @@ def view_barcode(request, barcode, cursor):
                 largest_cycle = cycle_list[selected_interval[0] + selected_interval[1]-1]
 
             # TODO: add option to choose file.
-            for f in files_barcode:
+            for f in files_cell_id:
                 offset_cycle = f.database_file.valid_metadata.start_cycle
                 Cycle.objects.filter(
                     cycling_file=f,
@@ -160,7 +160,7 @@ def view_barcode(request, barcode, cursor):
 
 
             return HttpResponseRedirect(
-                reverse("view_barcode", args=(barcode,cursor)))
+                reverse("view_cell_id", args=(cell_id,cursor)))
 
 
         all_intervals = get_all_intervals(interval[0],interval[1], M=max_possible_options)
@@ -175,7 +175,7 @@ def view_barcode(request, barcode, cursor):
         lowest_cycle = cycle_list[interval[0]]
         largest_cycle = cycle_list[interval[0]+interval[1]-1]
 
-        image_base64 = plot_cycling_direct(barcode,
+        image_base64 = plot_cycling_direct(cell_id,
                                     lower_cycle=lowest_cycle, upper_cycle=largest_cycle,
                                     show_invalid=True, vertical_barriers=vertical_barriers,
                                     list_all_options=list_all_options[:max_possible_options],
@@ -191,7 +191,7 @@ def view_barcode(request, barcode, cursor):
 
     active_files = CyclingFile.objects.filter(
             database_file__deprecated=False,
-            database_file__valid_metadata__barcode=barcode,
+            database_file__valid_metadata__cell_id=cell_id,
             database_file__last_modified__lte=F("import_time"))
     if active_files.exists():
         ar["active_files"] = [(f.database_file.filename, f.database_file.valid_metadata.start_cycle, "{}-{}-{}".format(f.database_file.last_modified.year,f.database_file.last_modified.month, f.database_file.last_modified.day ), int(f.database_file.filesize/1024))
@@ -199,7 +199,7 @@ def view_barcode(request, barcode, cursor):
 
     deprecated_files = CyclingFile.objects.filter(
             database_file__deprecated=True,
-            database_file__valid_metadata__barcode=barcode)
+            database_file__valid_metadata__cell_id=cell_id)
     if deprecated_files.exists():
         ar["deprecated_files"] = [(f.database_file.filename, f.database_file.valid_metadata.start_cycle, "{}-{}-{}".format(f.database_file.last_modified.year,f.database_file.last_modified.month, f.database_file.last_modified.day ), int(f.database_file.filesize/1024))
                                for f in deprecated_files.order_by("database_file__valid_metadata__start_cycle")]
@@ -207,7 +207,7 @@ def view_barcode(request, barcode, cursor):
     needs_importing_files = []
     needs_importing_files1 = CyclingFile.objects.filter(
                     database_file__deprecated=False,
-                    database_file__valid_metadata__barcode=barcode,
+                    database_file__valid_metadata__cell_id=cell_id,
                     database_file__last_modified__gt=F("import_time"))
     if needs_importing_files1.exists():
         needs_importing_files+= [(f.database_file.filename, f.database_file.valid_metadata.start_cycle,
@@ -224,9 +224,9 @@ def view_barcode(request, barcode, cursor):
                     deprecated=False
                 ).exclude(valid_metadata=None).filter(
                     valid_metadata__experiment_type=exp_type,
-                    valid_metadata__barcode=barcode
+                    valid_metadata__cell_id=cell_id
                 ).exclude(id__in=CyclingFile.objects.filter(
-                    database_file__valid_metadata__barcode=barcode
+                    database_file__valid_metadata__cell_id=cell_id
                 ).values_list("database_file_id", flat=True))
     if needs_importing_files2.exists():
         needs_importing_files += [(f.filename, f.valid_metadata.start_cycle,
@@ -238,7 +238,7 @@ def view_barcode(request, barcode, cursor):
 
 
     return render(request,
-                  "cycling/view_barcode.html",
+                  "cycling/view_cell_id.html",
                   ar
                   )
 
@@ -293,16 +293,16 @@ def main_page(request):
                 if search_form.cleaned_data["charID_search"]:
                     q = q & Q(valid_metadata__charID=search_form.cleaned_data["charID_exact"])
 
-                if search_form.cleaned_data["barcode_search"]:
-                    if search_form.cleaned_data["barcode_exact"] is not None:
-                        q = q & Q(valid_metadata__barcode=search_form.cleaned_data["barcode_exact"])
+                if search_form.cleaned_data["cell_id_search"]:
+                    if search_form.cleaned_data["cell_id_exact"] is not None:
+                        q = q & Q(valid_metadata__cell_id=search_form.cleaned_data["cell_id_exact"])
                     else:
-                        if search_form.cleaned_data["barcode_minimum"] is not None and search_form.cleaned_data["barcode_maximum"] is not None:
-                            q = q & Q(valid_metadata__barcode__range=(search_form.cleaned_data["barcode_minimum"], search_form.cleaned_data["barcode_maximum"]))
-                        elif search_form.cleaned_data["barcode_minimum"] is None and search_form.cleaned_data["barcode_maximum"] is not None:
-                            q = q & Q(valid_metadata__barcode__lte=search_form.cleaned_data["barcode_maximum"])
-                        elif search_form.cleaned_data["barcode_minimum"] is not None and search_form.cleaned_data["barcode_maximum"] is None:
-                            q = q & Q(valid_metadata__barcode__gte=search_form.cleaned_data["barcode_minimum"])
+                        if search_form.cleaned_data["cell_id_minimum"] is not None and search_form.cleaned_data["cell_id_maximum"] is not None:
+                            q = q & Q(valid_metadata__cell_id__range=(search_form.cleaned_data["cell_id_minimum"], search_form.cleaned_data["cell_id_maximum"]))
+                        elif search_form.cleaned_data["cell_id_minimum"] is None and search_form.cleaned_data["cell_id_maximum"] is not None:
+                            q = q & Q(valid_metadata__cell_id__lte=search_form.cleaned_data["cell_id_maximum"])
+                        elif search_form.cleaned_data["cell_id_minimum"] is not None and search_form.cleaned_data["cell_id_maximum"] is None:
+                            q = q & Q(valid_metadata__cell_id__gte=search_form.cleaned_data["cell_id_minimum"])
 
 
                 if search_form.cleaned_data["voltage_search"]:
@@ -341,8 +341,8 @@ def main_page(request):
                             q = q & Q(valid_metadata__date__gte=search_form.cleaned_data["date_minimum"])
 
 
-                total_query = DatabaseFile.objects.filter(q).order_by("valid_metadata__barcode").values_list(
-        "valid_metadata__barcode", flat=True).distinct()
+                total_query = DatabaseFile.objects.filter(q).order_by("valid_metadata__cell_id").values_list(
+        "valid_metadata__cell_id", flat=True).distinct()
 
                 number_per_page = 10
                 initial = []
@@ -366,9 +366,9 @@ def main_page(request):
                 print(list(total_query))
 
 
-                for barcode in total_query[(pn - 1) * number_per_page:min(n, (pn) * number_per_page)]:
+                for cell_id in total_query[(pn - 1) * number_per_page:min(n, (pn) * number_per_page)]:
                     """
-                    barcode
+                    cell_id
                     exclude
                     number_of_active
                     number_of_deprecated
@@ -377,68 +377,68 @@ def main_page(request):
                     """
 
                     my_initial = {
-                        "barcode": barcode,
+                        "cell_id": cell_id,
                         "exclude": True,
                         "number_of_active": CyclingFile.objects.filter(
                             database_file__deprecated=False,
-                            database_file__valid_metadata__barcode=barcode,
+                            database_file__valid_metadata__cell_id=cell_id,
                             database_file__last_modified__lte=F("import_time")).count(),
                         "number_of_deprecated": CyclingFile.objects.filter(
                             database_file__deprecated=True,
-                            database_file__valid_metadata__barcode=barcode).count(),
+                            database_file__valid_metadata__cell_id=cell_id).count(),
                         "number_of_needs_importing": (
                                 CyclingFile.objects.filter(
                                     database_file__deprecated=False,
-                                    database_file__valid_metadata__barcode=barcode,
+                                    database_file__valid_metadata__cell_id=cell_id,
                                     database_file__last_modified__gt=F("import_time")).count() +
                               DatabaseFile.objects.filter(
                                   is_valid=True,
                                   deprecated=False
                               ).exclude(valid_metadata=None).filter(
                                   valid_metadata__experiment_type=exp_type,
-                                  valid_metadata__barcode=barcode
+                                  valid_metadata__cell_id=cell_id
                               ).exclude(id__in=CyclingFile.objects.filter(
-                                      database_file__valid_metadata__barcode=barcode
+                                      database_file__valid_metadata__cell_id=cell_id
                                   ).values_list("database_file_id", flat=True)
                                   ).count()),
                         "first_active_file":""
                     }
                     if CyclingFile.objects.filter(
                             database_file__deprecated=False,
-                            database_file__valid_metadata__barcode=barcode,
+                            database_file__valid_metadata__cell_id=cell_id,
                             database_file__last_modified__lte=F("import_time")).exists():
                         my_initial["first_active_file"] = (CyclingFile.objects.filter(
                             database_file__deprecated=False,
-                            database_file__valid_metadata__barcode=barcode,
+                            database_file__valid_metadata__cell_id=cell_id,
                             database_file__last_modified__lte=F("import_time"))[0]).database_file.filename
 
                     initial.append(my_initial)
 
-                barcode_overview_formset = BarcodeOverviewFormset(initial=initial)
+                cell_id_overview_formset = CellIDOverviewFormset(initial=initial)
 
 
                 if search_form.cleaned_data["show_visuals"]:
                     datas = []
-                    for barcode in total_query[(pn - 1) * number_per_page:min(n, (pn) * number_per_page)]:
-                        image_base64 = plot_cycling_direct(barcode, path_to_plots=None, figsize=[5., 4.])
+                    for cell_id in total_query[(pn - 1) * number_per_page:min(n, (pn) * number_per_page)]:
+                        image_base64 = plot_cycling_direct(cell_id, path_to_plots=None, figsize=[5., 4.])
                         print(image_base64)
-                        datas.append((barcode, image_base64))
+                        datas.append((cell_id, image_base64))
 
                     n = 5
 
                     split_datas = [datas[i:min(len(datas), i + n)] for i in range(0, len(datas), n)]
                     ar["visual_data"] = split_datas
 
-                ar["barcode_overview_formset"] = barcode_overview_formset
+                ar["cell_id_overview_formset"] = cell_id_overview_formset
                 ar["search_form"] = search_form
                 ar["page_number"] = pn
                 ar["max_page_number"] = max_page
 
 
             elif "trigger_reimport" in request.POST :
-                barcode_overview_formset = BarcodeOverviewFormset(request.POST)
-                collected_barcodes = []
-                for form in barcode_overview_formset:
+                cell_id_overview_formset = CellIDOverviewFormset(request.POST)
+                collected_cell_ids = []
+                for form in cell_id_overview_formset:
                     validation_step = form.is_valid()
                     to_be_excluded = form.cleaned_data["exclude"]
 
@@ -448,9 +448,9 @@ def main_page(request):
 
 
                     if validation_step:
-                        collected_barcodes.append(form.cleaned_data["barcode"])
+                        collected_cell_ids.append(form.cleaned_data["cell_id"])
 
-                full_import_barcodes(collected_barcodes)
+                full_import_cell_ids(collected_cell_ids)
                 ar["search_form"] = search_form
 
     else:

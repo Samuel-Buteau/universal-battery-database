@@ -19,7 +19,7 @@ Shortened Variable Names:
     res -   result
 """
 
-# TODO(sam): For each barcode, needs a multigrid of (S, V, I, T) (current
+# TODO(sam): For each cell_id, needs a multigrid of (S, V, I, T) (current
 #  needs to be adjusted)
 # TODO(sam): Each cycle must have an index mapping to the nearest reference
 #  cycle.
@@ -30,7 +30,7 @@ Shortened Variable Names:
 NEIGH_MIN_CYC = 0
 NEIGH_MAX_CYC = 1
 NEIGH_RATE = 2
-NEIGH_BARCODE = 3
+NEIGH_CELL_ID = 3
 NEIGH_ABSOLUTE_CYCLE = 4
 NEIGH_VALID_CYC = 5
 NEIGH_SIGN_GRID = 6
@@ -66,18 +66,18 @@ def quality_control(fit_args):
         my_data = pickle.load(f)
 
 
-    barcodes = list(my_data[Key.ALL_DATA].keys())
+    cell_ids = list(my_data[Key.ALL_DATA].keys())
 
 
 
     initial_processing(
-        my_data, barcodes,
+        my_data, cell_ids,
         fit_args,
     )
 
 
 def initial_processing(
-    my_data: dict, barcodes,
+    my_data: dict, cell_ids,
     fit_args
 ) -> dict:
 
@@ -87,8 +87,8 @@ def initial_processing(
     max_cap = my_data[Key.Q_MAX]
 
 
-    for barcode_count, barcode in enumerate(barcodes):
-        all_data = my_data[Key.ALL_DATA][barcode]
+    for cell_id_count, cell_id in enumerate(cell_ids):
+        all_data = my_data[Key.ALL_DATA][cell_id]
         cyc_grp_dict = all_data[Key.CYC_GRP_DICT]
 
         dual_legends = {}
@@ -135,7 +135,7 @@ def initial_processing(
                         {
                             "type": 'bad_group_bounds',
                             "flag": {
-                                "barcode": barcode,
+                                "cell_id": cell_id,
                                 "group": k,
                                 "cycle": cycs[i],
                             },
@@ -159,7 +159,7 @@ def initial_processing(
                         {
                             "type": 'opposite_polarity',
                             "flag":{
-                                "barcode": barcode,
+                                "cell_id": cell_id,
                                 "group": k,
                                 "cycle": cycs[i],
                             },
@@ -193,7 +193,7 @@ def initial_processing(
                 ("chg", "cv"),
             ],
             fit_args = fit_args,
-            filename= "voltage_dependence_{}.png".format(barcode),
+            filename= "voltage_dependence_{}.png".format(cell_id),
 
         )
 
@@ -206,7 +206,7 @@ def initial_processing(
                 ("chg", "cv"),
             ],
             fit_args=fit_args,
-            filename="cycle_dependence_{}.png".format(barcode),
+            filename="cycle_dependence_{}.png".format(cell_id),
 
         )
 
@@ -238,7 +238,7 @@ class Command(BaseCommand):
         for arg in float_args:
             parser.add_argument(arg, type=float, default=float_args[arg])
 
-        # barcodes = [
+        # cell_ids = [
         #     81602, 81603, 81604, 81605, 81606, 81607, 81608, 81609, 81610,
         #     81611, 81612, 81613, 81614, 81615, 81616, 81617, 81618, 81619,
         #     81620, 81621, 81622, 81623, 81624, 81625, 81626, 81627, 81712,
@@ -255,7 +255,7 @@ class Command(BaseCommand):
         # 83012, 83013, 83014, 83015, 83016
 
         # parser.add_argument(
-        #     "--wanted_barcodes", type = int, nargs = "+", default = barcodes,
+        #     "--wanted_cell_ids", type = int, nargs = "+", default = cell_ids,
         # )
 
     def handle(self, *args, **options):

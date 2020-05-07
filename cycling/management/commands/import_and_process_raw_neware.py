@@ -6,14 +6,14 @@ from cycling.neware_processing_functions import *
 def import_and_process(args):
     if len(args["path_to_filter"]) > 0:
         with open(args["path_to_filter"], "rb") as f:
-            barcodes = pickle.load(f)
+            cell_ids = pickle.load(f)
 
     else:
-        barcodes = None
+        cell_ids = None
 
     # bulk_deprecate()
     # print(bulk_import(
-    #     barcodes=barcodes,
+    #     cell_ids=cell_ids,
     #     DEBUG=args["DEBUG"]))
     print(bulk_process(
         DEBUG = args["DEBUG"],

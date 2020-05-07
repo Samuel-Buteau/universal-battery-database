@@ -24,7 +24,7 @@ Shortened Variable Names:
     res -   result
 """
 
-# TODO(sam): For each barcode, needs a multigrid of (S, V, I, T) (current
+# TODO(sam): For each cell_id, needs a multigrid of (S, V, I, T) (current
 #  needs to be adjusted)
 # TODO(sam): Each cycle must have an index mapping to the nearest reference
 #  cycle.
@@ -35,7 +35,7 @@ Shortened Variable Names:
 NEIGH_MIN_CYC = 0
 NEIGH_MAX_CYC = 1
 NEIGH_RATE = 2
-NEIGH_BARCODE = 3
+NEIGH_CELL_ID = 3
 NEIGH_ABSOLUTE_CYCLE = 4
 NEIGH_VALID_CYC = 5
 NEIGH_SIGN_GRID = 6
@@ -94,22 +94,22 @@ def ml_smoothing(fit_args):
         with open(dataset_names_path, "rb") as f:
             my_names = pickle.load(f)
 
-    barcodes = list(my_data[Key.ALL_DATA].keys())
+    cell_ids = list(my_data[Key.ALL_DATA].keys())
 
-    if len(fit_args[Key.BARCODES]) != 0:
-        barcodes = list(
-            set(barcodes).intersection(set(fit_args[Key.BARCODES])))
+    if len(fit_args[Key.CELL_IDS]) != 0:
+        cell_ids = list(
+            set(cell_ids).intersection(set(fit_args[Key.CELL_IDS])))
 
-    if len(barcodes) == 0:
-        print("no barcodes")
+    if len(cell_ids) == 0:
+        print("no cell_ids")
         return
 
     train_and_evaluate(
         initial_processing(
-            my_data, my_names, barcodes,
+            my_data, my_names, cell_ids,
             fit_args, strategy = strategy,
         ),
-        barcodes,
+        cell_ids,
         fit_args
     )
 
@@ -137,7 +137,7 @@ def three_level_flatten(iterables):
 
 
 def initial_processing(
-    my_data: dict, my_names, barcodes,
+    my_data: dict, my_names, cell_ids,
     fit_args, strategy
 ) -> dict:
     """ Handle the initial data processing
@@ -145,7 +145,7 @@ def initial_processing(
     Args:
         my_data (dictionary).
         my_names: TODO(harvey)
-        barcodes: TODO(harvey)
+        cell_ids: TODO(harvey)
         fit_args: TODO(harvey)
         strategy: TODO(harvey)
 
@@ -172,7 +172,7 @@ def initial_processing(
         numpy_acc(compiled_data, key, numpy.array([my_data[key]]))
 
     my_data[Key.I_GRID] = my_data[Key.I_GRID] - numpy.log(max_cap)
-    # the current grid is adjusted by the max capacity of the barcode. It is
+    # the current grid is adjusted by the max capacity of the cell_id. It is
     # in log space, so I/q becomes log(I) - log(q)
     numpy_acc(
         compiled_data, Key.I_GRID,
@@ -180,7 +180,7 @@ def initial_processing(
     )
 
     # TODO (harvey): simplify the following using loops
-    cell_id_list = numpy.array(barcodes)
+    cell_id_list = numpy.array(cell_ids)
     cell_id_to_pos_id = {}
     cell_id_to_neg_id = {}
     cell_id_to_electrolyte_id = {}
@@ -260,9 +260,9 @@ def initial_processing(
         sorted(list(set(cell_id_to_electrolyte_id.values())))
     )
 
-    for barcode_count, barcode in enumerate(barcodes):
+    for cell_id_count, cell_id in enumerate(cell_ids):
 
-        all_data = my_data[Key.ALL_DATA][barcode]
+        all_data = my_data[Key.ALL_DATA][cell_id]
         cyc_grp_dict = all_data[Key.CYC_GRP_DICT]
 
         for k_count, k in enumerate(cyc_grp_dict.keys()):
@@ -376,7 +376,7 @@ def initial_processing(
                 neighborhood_data_i[NEIGH_MIN_CYC] = min_cyc_index
                 neighborhood_data_i[NEIGH_MAX_CYC] = max_cyc_index
                 neighborhood_data_i[NEIGH_RATE] = k_count
-                neighborhood_data_i[NEIGH_BARCODE] = barcode_count
+                neighborhood_data_i[NEIGH_CELL_ID] = cell_id_count
                 neighborhood_data_i[NEIGH_ABSOLUTE_CYCLE]\
                     = number_of_compiled_cycles
                 # a weight based on prevalence. Set later
@@ -529,7 +529,7 @@ def initial_processing(
     }
 
 
-def train_and_evaluate(init_returns, barcodes, fit_args):
+def train_and_evaluate(init_returns, cell_ids, fit_args):
     strategy = init_returns[Key.STRAT]
 
     epochs = 100000
@@ -576,7 +576,7 @@ def train_and_evaluate(init_returns, barcodes, fit_args):
                         loss_record.print_recent(fit_args)
 
                     plot_params = {
-                        "barcodes": barcodes,
+                        "cell_ids": cell_ids,
                         "count": count,
                         Key.FIT_ARGS: fit_args,
                     }
@@ -751,7 +751,7 @@ def train_step(neighborhood, params, fit_args):
         [1, cv_current.shape[1]],
     )
 
-    cell_indices = neighborhood[:, NEIGH_BARCODE]
+    cell_indices = neighborhood[:, NEIGH_CELL_ID]
 
     with tf.GradientTape() as tape:
         train_results = degradation_model(
@@ -890,7 +890,7 @@ class Command(BaseCommand):
             "--visualize_vq_every": vis,
 
             "--stop_count": 1000004,
-            "--barcode_show": 10,
+            "--cell_id_show": 10,
         }
 
         for arg in required_args:
@@ -900,7 +900,7 @@ class Command(BaseCommand):
         for arg in int_args:
             parser.add_argument(arg, type = int, default = int_args[arg])
 
-        barcodes = [
+        cell_ids = [
             57706, 57707, 57710, 57711, 57714, 57715, 64260, 64268, 83010, 83011,
             83012, 83013, 83014, 83015, 83016,
             81602, 81603, 81604, 81605, 81606, 81607, 81608, 81609, 81610,
@@ -919,7 +919,7 @@ class Command(BaseCommand):
 
 
         parser.add_argument(
-            "--wanted_barcodes", type = int, nargs = "+", default = barcodes,
+            "--wanted_cell_ids", type = int, nargs = "+", default = cell_ids,
         )
 
     def handle(self, *args, **options):

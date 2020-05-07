@@ -693,8 +693,8 @@ if __name__ == '__main__':
 
     if len(args.path_to_filter) > 0:
         with open(args.path_to_filter,'rb') as f:
-            barcodes = pickle.load(f)
-            match_string = r'|'.join([r'({})'.format(b) for b in barcodes.keys()])
+            cell_ids = pickle.load(f)
+            match_string = r'|'.join([r'({})'.format(b) for b in cell_ids.keys()])
 
 
         all_path_filenames = []

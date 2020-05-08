@@ -319,7 +319,7 @@ def create_derivatives(
                     source = params[k],
                     target = derivatives["d_" + k]
                 )
-                if not k in ["features_cell", "encoded_stress"]:
+                if not k in [Key.CELL_FEAT, "encoded_stress"]:
                     derivatives["d2_" + k] = derivatives["d2_" + k][:, 0, :]
 
         del tape_d2
@@ -330,7 +330,7 @@ def create_derivatives(
                 source = params[k],
                 target = derivatives["d2_" + k]
             )
-            if not k in ["features_cell", "encoded_stress"]:
+            if not k in [Key.CELL_FEAT, "encoded_stress"]:
                 derivatives["d3_" + k] = derivatives["d3_" + k][:, 0, :]
 
     del tape_d3
@@ -1120,7 +1120,7 @@ class DegradationModel(Model):
             encoded_stress = encoded_stress,
             cycle = params["cycle"],
             v = params[Key.V_PREV_END],
-            features_cell = params["features_cell"],
+            features_cell = params[Key.CELL_FEAT],
             current = params[Key.I_PREV_END],
             training = training
         )
@@ -1134,8 +1134,8 @@ class DegradationModel(Model):
             cycle=add_v_dep(params["cycle"], params),
             v = params["v"],
             features_cell = add_v_dep(
-                params["features_cell"], params,
-                params["features_cell"].shape[1]
+                params[Key.CELL_FEAT], params,
+                params[Key.CELL_FEAT].shape[1]
             ),
             current = add_v_dep(
                 params[Key.I_CC],
@@ -1161,7 +1161,7 @@ class DegradationModel(Model):
             encoded_stress = encoded_stress,
             cycle = params["cycle"],
             v = params[Key.V_PREV_END],
-            features_cell = params["features_cell"],
+            features_cell = params[Key.CELL_FEAT],
             current = params[Key.I_PREV_END],
             training = training
         )
@@ -1176,7 +1176,7 @@ class DegradationModel(Model):
             cycle=add_current_dep(params["cycle"], params),
             v = add_current_dep(params[Key.V_END], params),
             features_cell = add_current_dep(
-                params["features_cell"], params, params["features_cell"].shape[1]
+                params[Key.CELL_FEAT], params, params[Key.CELL_FEAT].shape[1]
             ),
             current = params["cv_current"],
             training = training
@@ -1218,7 +1218,7 @@ class DegradationModel(Model):
         return self.q_direct(
             encoded_stress=params["encoded_stress"],
             cycle=params["cycle"],
-            features_cell =  params["features_cell"],
+            features_cell =  params[Key.CELL_FEAT],
             v = params["v"],
             current = params["current"],
             training = training,
@@ -1262,7 +1262,7 @@ class DegradationModel(Model):
             Key.I_CC: constant_current,
             Key.I_PREV_END: end_current_prev,
             Key.V_PREV_END: end_voltage_prev,
-            "features_cell": features_cell,
+            Key.CELL_FEAT: features_cell,
             Key.V_END: end_voltage,
 
             Key.SVIT_GRID: svit_grid,
@@ -1306,10 +1306,10 @@ class DegradationModel(Model):
                     "cycle": sampled_cycles,
                     "encoded_stress": sampled_encoded_stress,
                     "v": sampled_vs,
-                    "features_cell": sampled_features_cell,
+                    Key.CELL_FEAT: sampled_features_cell,
                     "current": sampled_constant_current
                 },
-                der_params = {"v": 3, "features_cell": 2, "current": 3, "cycle": 3}
+                der_params = {"v": 3, Key.CELL_FEAT: 2, "current": 3, "cycle": 3}
             )
 
             q_loss = calculate_q_loss(q, q_der,

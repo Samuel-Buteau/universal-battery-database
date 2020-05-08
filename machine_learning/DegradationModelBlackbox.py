@@ -710,7 +710,11 @@ class DegradationModel(Model):
         self,
         indices, training = True, sample = False, compute_derivatives = False,
     ):
-        """ Cell from indices """
+        """ Cell from indices
+        TODO(harvey, confusion): Need detailed explanation for what this
+            function does.
+            What are `indices`? What do the flags do?
+        """
         feats_cell_direct, loss_cell = self.cell_direct(
             indices, training = training, sample = False,
         )
@@ -1107,6 +1111,20 @@ class DegradationModel(Model):
         )
 
     def sample(self, svit_grid, batch_count, count_matrix, n_sample = 4 * 32):
+        """
+        Sample from all possible values of different variables.
+
+        Args: TODO(harvey)
+            svit_grid: multi-grid of (S, V, I, T).
+            batch_count:
+            count_matrix:
+            n_sample:
+
+        Returns:
+            Sample values - voltages, capacities, cycles,
+                constant current, cell features, latent, svit_grid,
+                count_matrix, encoded_stress.
+        """
 
         # NOTE(sam): this is an example of a forall.
         # (for all voltages, and all cell features)

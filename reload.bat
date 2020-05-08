@@ -1,4 +1,9 @@
-call full_reload_private_prefix.bat %1 %2
+(
+echo drop database %1;
+echo create database %1 with owner %2;
+echo \q
+) | psql -U postgres
+
 del cell_database\migrations\*
 copy NUL cell_database\migrations\__init__.py
 

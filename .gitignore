@@ -276,4 +276,6 @@ v_curves*
 compile_dataset_shortcut.bat
 flags*
 cycling/config.ini
-
+cycling/config_old.ini
+reload_private.bat
+/log_reload.txt

@@ -240,17 +240,47 @@ def add_current_dep(
         [params[Key.COUNT_BATCH] * params[Key.COUNT_I], dim]
     )
 
-
-def create_derivatives(nn, params, der_params, internal_loss = False):
+def create_derivatives(
+    nn, params: dict, der_params: dict, internal_loss = False
+):
     """
+    Given a feedforward neural network `nn`,
+        compute its value and its first derivative.
+
+    TODO(harvey, confusion): Is "forall" explained somewhere? Maybe an entry
+        in a wiki would be helpful.
     Derivatives will only be taken inside forall statements.
     If auxiliary variables must be given, create a lambda.
 
-    Args:
-        nn: The neural network for which to compute derivatives.
-        params: The network"s parameters
+    Examples:
+        ```python
+        # state of charge and its first derivative
+        q, q_der = create_derivatives(
+            self.q_for_derivative,
+            params = {
+                Key.CYC: sampled_cycles,
+                Key.STRESS: sampled_encoded_stress,
+                Key.V: sampled_vs,
+                Key.CELL_FEAT: sampled_features_cell,
+                Key.I: sampled_constant_current
+            },
+            der_params = {Key.V: 3, Key.CELL_FEAT: 2, Key.I: 3, Key.CYC: 3}
+        )
+        ```
 
+    Args:
+        nn: A DegradationModel `for_derivative` method;
+            it specifies the quantity to compute and derive.
+        params: Contains parameters for computing the given quantity.
+        der_params: Contains parameters for computing the first derivative of
+            the given quantity.
+        internal_loss: TODO(harvey, confusion)
+
+    Returns:
+        The evaluated quantity and it first derivative. If the `internal_loss`
+            flag is on, then also the loss.
     """
+
     derivatives = {}
 
     with tf.GradientTape(persistent = True) as tape_d3:

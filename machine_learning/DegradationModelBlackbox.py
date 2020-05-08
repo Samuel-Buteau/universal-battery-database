@@ -1209,7 +1209,18 @@ class DegradationModel(Model):
 
         return q_1 - add_v_dep(q_0, params)
 
-    def cv_capacity(self, params, training = True):
+    def cv_capacity(self, params: dict, training = True):
+        """
+        Compute constant-voltage capacity during training or evaluation.
+
+        Args:
+            params: Parameters for computing constant-voltage (cv) capacity.
+            training: Flag for training or evaluation.
+                True for training; False for evaluation.
+
+        Returns:
+            Computed constant-voltage capacity.
+        """
 
         encoded_stress = self.stress_to_encoded_direct(
             svit_grid = params[Key.SVIT_GRID],
@@ -1243,20 +1254,45 @@ class DegradationModel(Model):
 
         return q_1 - add_current_dep(q_0, params)
 
-    """ Stress variable methods """
-
     def stress_to_encoded_direct(
         self, svit_grid, count_matrix, training = True,
     ):
+        """
+        Compute stress directly
+            (receiving arguments directly without using `params`)
+
+        Args: TODO(harvey)
+            svit_grid: Multi-grid of (S, V, I, T).
+            count_matrix:
+            training: Flag for training or evaluation.
+                True for training; False for evaluation.
+
+        Returns:
+            (svit_grid, count_matrix) and the training flag.
+        """
         return self.stress_to_encoded_layer(
             (svit_grid, count_matrix), training = training,
         )
 
-    """ Direct variable methods """
-
     def q_direct(
         self, encoded_stress, cycle, v, feats_cell, current, training = True,
     ):
+        """
+        Compute state of charge directly
+            (receiving arguments directly without using `params`)
+
+        Args: TODO(harvey)
+            encoded_stress
+            cycle: Cycle, often Key.CYC.
+            v: Voltage
+            feats_cell: Cell features.
+            current: Current.
+            training: Flag for training or evaluation.
+                True for training; False for evaluation.
+
+        Returns:
+            Computed state of charge.
+        """
         dependencies = (
             encoded_stress,
             cycle,
@@ -1266,9 +1302,38 @@ class DegradationModel(Model):
         )
         return tf.nn.elu(nn_call(self.nn_q, dependencies, training = training))
 
-    """ For derivative variable methods """
+    def q_for_derivative(self, params: dict, training = True):
+        """
+        Wrapper function calling `q_direct`, to be passed in to
+            `create_derivatives` to compute state of charge
+            and its first derivative.
 
-    def q_for_derivative(self, params, training = True):
+        Examples:
+            ```python
+            # state of charge and its first derivative
+            q, q_der = create_derivatives(
+                self.q_for_derivative,
+                params = {
+                    Key.CYC: sampled_cycles,
+                    Key.STRESS: sampled_encoded_stress,
+                    Key.V: sampled_vs,
+                    Key.CELL_FEAT: sampled_features_cell,
+                    Key.I: sampled_constant_current
+                },
+                der_params = {
+                    Key.V: 3, Key.CELL_FEAT: 2, Key.I: 3, Key.CYC: 3,
+                }
+            )
+            ```
+
+        Args:
+            params: Contains input parameters for computing state of charge (q).
+            training: Flag for training or evaluation.
+                True for training; False for evaluation.
+
+        Returns:
+            Computed state of charge; same as that for `q_direct`.
+        """
 
         return self.q_direct(
             encoded_stress = params[Key.STRESS],

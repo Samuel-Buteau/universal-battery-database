@@ -547,7 +547,7 @@ class DegradationModel(Model):
         self.width = width
         self.n_channels = n_channels
 
-    def call(self, params, training = False):
+    def call(self, params: dict, training = False) -> dict:
         """
         Call function for the Model during training or evaluation.
 
@@ -707,8 +707,8 @@ class DegradationModel(Model):
         return returns
 
     def cell_from_indices(
-        self,
-        indices, training = True, sample = False, compute_derivatives = False,
+        self, indices,
+        training = True, sample = False, compute_derivatives = False,
     ):
         """ Cell from indices
         TODO(harvey, confusion): Need detailed explanation for what this
@@ -1139,7 +1139,7 @@ class DegradationModel(Model):
         )
         sampled_constant_current = tf.random.uniform(
             minval = tf.math.log(0.001), maxval = tf.math.log(5.),
-            shape = [n_sample, 1]
+            shape = [n_sample, 1],
         )
         sampled_constant_current = tf.exp(sampled_constant_current)
         sampled_constant_current_sign = tf.random.uniform(
@@ -1201,12 +1201,18 @@ class DegradationModel(Model):
             sampled_encoded_stress,
         )
 
-    # TODO(Harvey): Group general/direct/derivative functions sensibly
-    #               (new Classes?)
+    def cc_capacity(self, params: dict, training = True):
+        """
+        Compute constant-current capacity during training or evaluation.
 
-    """ General variable methods """
+        Args:
+            params: Contains the parameters of constant-current capacity.
+            training: Flag for training or evaluation.
+                True for training; False for evaluation.
 
-    def cc_capacity(self, params, training = True):
+        Returns:
+            Computed constant-current capacity.
+        """
 
         encoded_stress = self.stress_to_encoded_direct(
             svit_grid = params[Key.SVIT_GRID],
@@ -1418,7 +1424,8 @@ class DegradationModel(Model):
                 Key.V_PREV_END: expanded_end_voltage_prev,
                 Key.V_END: expanded_end_voltage,
                 Key.INDICES: indices,
-                Key.V_TENSOR: tf.tile(tf.reshape(v, [1, 1]), [cycle.shape[0], 1]),
+                Key.V_TENSOR: tf.tile(tf.reshape(v, [1, 1]),
+                                      [cycle.shape[0], 1]),
                 Key.I_TENSOR: tf.tile(
                     tf.reshape(currents, shape = [1, -1]),
                     [cycle.shape[0], 1],

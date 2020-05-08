@@ -876,7 +876,7 @@ class Command(BaseCommand):
             Key.VIS_VQ: vis,
 
             Key.STOP: 1000004,
-            Key.BAR_SHOW: 10,
+            Key.CELL_ID_SHOW: 10,
         }
 
         for arg in required_args:

@@ -116,7 +116,7 @@ class Key:
     VIS_FIT = "visualize_fit_every"
     VIS_VQ = "visualize_vq_every"
     STOP = "stop_count"
-    BAR_SHOW = "barcode_show"
+    CELL_ID_SHOW = "cell_id_show"
 
     REF_CYC = "reference_cycles_n"
     V_N_GRID = "voltage_grid_n_samples"

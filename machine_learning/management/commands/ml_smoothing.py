@@ -460,9 +460,9 @@ def initial_processing(
             pos_to_pos_name = my_names[Key.POS_TO_POS]
             neg_to_neg_name = my_names[Key.NEG_TO_NEG]
             electrolyte_to_electrolyte_name\
-                = my_names[Key.ELE_TO_ELE]
+                = my_names[Key.LYTE_TO_LYTE]
             molecule_to_molecule_name = my_names[Key.MOL_TO_MOL]
-            dry_cell_to_dry_cell_name = my_names["dry_to_dry_name"]
+            dry_cell_to_dry_cell_name = my_names[Key.DRY_TO_DRY]
 
         degradation_model = DegradationModel(
             width = fit_args[Key.WIDTH],

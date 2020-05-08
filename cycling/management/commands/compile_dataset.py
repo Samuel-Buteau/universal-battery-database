@@ -582,9 +582,9 @@ def initial_processing(my_cell_ids, fit_args, flags):
            }, {
                Key.POS_TO_POS: pos_to_pos_name,
                Key.NEG_TO_NEG: neg_to_neg_name,
-               Key.ELE_TO_ELE: electrolyte_to_electrolyte_name,
+               Key.LYTE_TO_LYTE: electrolyte_to_electrolyte_name,
                Key.MOL_TO_MOL: molecule_to_molecule_name,
-               "dry_to_dry_name": dry_cell_to_dry_cell_name,
+               Key.DRY_TO_DRY: dry_cell_to_dry_cell_name,
            }
 
 

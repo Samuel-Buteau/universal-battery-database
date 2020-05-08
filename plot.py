@@ -56,11 +56,12 @@ def match_legend_key(legend_key, rule):
 
 
 def make_legend(key):
-    end_rate_prev, constant_rate, end_rate, end_voltage_prev, end_voltage = make_legend_key(
-        key)
+    (
+        end_rate_prev, constant_rate, end_rate, end_voltage_prev, end_voltage,
+    ) = make_legend_key(key)
     template = "I {:3.2f}:{:3.2f}:{:3.2f} V {:2.1f}:{:2.1f}"
     return template.format(
-        end_rate_prev, constant_rate, end_rate, end_voltage_prev, end_voltage
+        end_rate_prev, constant_rate, end_rate, end_voltage_prev, end_voltage,
     )
 
 
@@ -74,17 +75,18 @@ def get_figsize(target):
 
 
 # TODO(sam): make the interface more general
-def plot_engine_direct(data_streams, target, todos, fit_args, filename,
-                       lower_cycle = None, upper_cycle = None,
-                       vertical_barriers = None, list_all_options = None,
-                       show_invalid = False,
-                       figsize = None):
+def plot_engine_direct(
+    data_streams, target, todos, fit_args, filename,
+    lower_cycle = None, upper_cycle = None, vertical_barriers = None,
+    list_all_options = None, show_invalid = False, figsize = None,
+):
     # open plot
     if figsize is None:
         figsize = get_figsize(target)
 
-    fig, axs = plt.subplots(nrows = len(todos), figsize = figsize,
-                            sharex = True)
+    fig, axs = plt.subplots(
+        nrows = len(todos), figsize = figsize, sharex = True,
+    )
     for i, todo in enumerate(todos):
         typ, mode = todo
         if len(todos) == 1:
@@ -103,11 +105,7 @@ def plot_engine_direct(data_streams, target, todos, fit_args, filename,
         for source, data, _, max_cyc_n in data_streams:
             list_of_target_data.append(
                 data_engine(
-                    source,
-                    target,
-                    data,
-                    typ,
-                    mode,
+                    source, target, data, typ, mode,
                     max_cyc_n = max_cyc_n,
                     lower_cycle = lower_cycle,
                     upper_cycle = upper_cycle,
@@ -128,21 +126,18 @@ def plot_engine_direct(data_streams, target, todos, fit_args, filename,
             generic, _, generic_map = target_data
             # plot
             plot_generic(
-                target,
-                generic, list_of_keys, custom_colors,
-                generic_map, ax,
-                channel = data_streams[j][2],
-                options = options,
+                target, generic, list_of_keys, custom_colors, generic_map, ax,
+                channel = data_streams[j][2], options = options,
             )
 
-        leg = produce_annotations(ax, get_list_of_patches(list_of_keys,
-                                                          custom_colors),
-                                  options)
+        leg = produce_annotations(
+            ax, get_list_of_patches(list_of_keys, custom_colors), options
+        )
         if source_database:
-            make_file_legends_and_vertical(ax, cell_id, lower_cycle,
-                                           upper_cycle, show_invalid,
-                                           vertical_barriers, list_all_options,
-                                           leg)
+            make_file_legends_and_vertical(
+                ax, cell_id, lower_cycle, upper_cycle, show_invalid,
+                vertical_barriers, list_all_options, leg,
+            )
 
     # export
     fig.tight_layout()
@@ -215,9 +210,10 @@ def fetch_svit_keys_averages(compiled, cell_id):
     for k in keys:
         view = compiled[Key.ALL_DATA][cell_id][Key.CYC_GRP_DICT][k]
         averages[k] = {}
-        for t in [Key.I_CC_AVG, Key.I_PREV_END_AVG, Key.I_END_AVG,
-                  Key.V_PREV_END_AVG, Key.V_END_AVG,
-                  Key.V_CC_LAST_AVG]:
+        for t in [
+            Key.I_CC_AVG, Key.I_PREV_END_AVG, Key.I_END_AVG,
+            Key.V_PREV_END_AVG, Key.V_END_AVG, Key.V_CC_LAST_AVG
+        ]:
             averages[k][t] = view[t]
 
     return svit_and_count, keys, averages
@@ -243,9 +239,7 @@ def get_generic_map(source, target, mode):
     quantity = get_y_quantity(mode)
     generic_map = {}
     if target == "generic_vs_cycle":
-        generic_map = {
-            'y': "last_{}_capacity".format(mode),
-        }
+        generic_map = {'y': "last_{}_capacity".format(mode)}
     elif target == "generic_vs_capacity":
         generic_map = {
             'x': "{}_capacity_vector".format(mode),
@@ -257,14 +251,8 @@ def get_generic_map(source, target, mode):
 
 
 def data_engine(
-    source,
-    target,
-    data,
-    typ,
-    mode,
-    max_cyc_n,
-    lower_cycle = None,
-    upper_cycle = None,
+    source, target, data, typ, mode, max_cyc_n,
+    lower_cycle = None, upper_cycle = None,
 ):
     generic = {}
     sign_change = get_sign_change(typ)
@@ -274,16 +262,8 @@ def data_engine(
         list_of_keys = get_list_of_keys(keys, typ)
         for k in list_of_keys:
             generic[k] = compute_target(
-                target,
-                degradation_model,
-                cell_id,
-                sign_change,
-                mode,
-                averages[k],
-                generic_map,
-                svit_and_count,
-                cycle_m,
-                cycle_v,
+                target, degradation_model, cell_id, sign_change, mode,
+                averages[k], generic_map, svit_and_count, cycle_m, cycle_v,
                 max_cyc_n = max_cyc_n,
             )
     elif source == "database":
@@ -300,10 +280,10 @@ def data_engine(
         for k in list_of_keys:
             actual_n = len(data[k][Key.MAIN])
             if actual_n > max_cyc_n:
-                indecies = np.linspace(
-                    0, actual_n - 1, max_cyc_n
-                ).astype(dtype = np.int32)
-                generic[k] = data[k][Key.MAIN][needed_fields][indecies]
+                indices = np.linspace(0, actual_n - 1, max_cyc_n).astype(
+                    dtype = np.int32
+                )
+                generic[k] = data[k][Key.MAIN][needed_fields][indices]
             else:
                 generic[k] = data[k][Key.MAIN][needed_fields]
 

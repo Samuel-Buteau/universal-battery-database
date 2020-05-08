@@ -100,7 +100,7 @@ class Command(BaseCommand):
         parser.add_argument('--visuals', dest='visuals', action='store_true')
         parser.add_argument('--no-visuals', dest='visuals', action='store_false')
         parser.set_defaults(visuals=False)
-        parser.add_argument('--data_dir', default="/DB/srv/samba/share/DATA")
+        parser.add_argument('--data_dir', required=True)
 
 
     def handle(self, *args, **options):

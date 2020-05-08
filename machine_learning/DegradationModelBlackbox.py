@@ -412,8 +412,12 @@ class DegradationModel(Model):
                 for i, key in enumerate(todo):
                     if key in dry_cell_to_meta[dry_cell_id].keys():
                         val = dry_cell_to_meta[dry_cell_id][key]
-                        self.dry_cell_given[self.dry_cell_direct.id_dict[dry_cell_id], i] = val
-                        self.dry_cell_latent_flags[self.dry_cell_direct.id_dict[dry_cell_id], i] = 0.
+                        self.dry_cell_given[
+                            self.dry_cell_direct.id_dict[dry_cell_id], i,
+                        ] = val
+                        self.dry_cell_latent_flags[
+                            self.dry_cell_direct.id_dict[dry_cell_id], i,
+                        ] = 0.
 
         self.dry_cell_given = tf.constant(self.dry_cell_given)
         self.dry_cell_latent_flags = tf.constant(self.dry_cell_latent_flags)
@@ -445,7 +449,9 @@ class DegradationModel(Model):
 
         for cell_id in self.cell_direct.id_dict.keys():
             if cell_id in cell_latent_flags.keys():
-                latent_flags[self.cell_direct.id_dict[cell_id], 0]= cell_latent_flags[cell_id]
+                latent_flags[
+                    self.cell_direct.id_dict[cell_id], 0
+                ]= cell_latent_flags[cell_id]
 
         self.cell_latent_flags = tf.constant(latent_flags)
 
@@ -455,13 +461,21 @@ class DegradationModel(Model):
 
         for cell_id in self.cell_direct.id_dict.keys():
             if cell_id in cell_to_pos.keys():
-                cell_pointers[self.cell_direct.id_dict[cell_id], 0]= pos_dict[cell_to_pos[cell_id]]
+                cell_pointers[
+                    self.cell_direct.id_dict[cell_id], 0
+                ]= pos_dict[cell_to_pos[cell_id]]
             if cell_id in cell_to_neg.keys():
-                cell_pointers[self.cell_direct.id_dict[cell_id], 1] = neg_dict[cell_to_neg[cell_id]]
+                cell_pointers[
+                    self.cell_direct.id_dict[cell_id], 1
+                ] = neg_dict[cell_to_neg[cell_id]]
             if cell_id in cell_to_lyte.keys():
-                cell_pointers[self.cell_direct.id_dict[cell_id], 2] = lyte_dict[cell_to_lyte[cell_id]]
+                cell_pointers[
+                    self.cell_direct.id_dict[cell_id], 2
+                ] = lyte_dict[cell_to_lyte[cell_id]]
             if cell_id in cell_to_dry_cell.keys():
-                cell_pointers[self.cell_direct.id_dict[cell_id], 3] = dry_cell_dict[cell_to_dry_cell[cell_id]]
+                cell_pointers[
+                    self.cell_direct.id_dict[cell_id], 3
+                ] = dry_cell_dict[cell_to_dry_cell[cell_id]]
 
 
         self.cell_pointers = tf.constant(cell_pointers)
@@ -559,7 +573,9 @@ class DegradationModel(Model):
             axis = 0
         )
 
-        fetched_latent_cell= self.min_latent + (1 - self.min_latent) * fetched_latent_cell
+        fetched_latent_cell= (
+            self.min_latent + (1 - self.min_latent) * fetched_latent_cell
+        )
         fetched_pointers_cell = tf.gather(
             self.cell_pointers,
             indices,
@@ -601,46 +617,38 @@ class DegradationModel(Model):
             axis=0
         )
 
-        feats_dry_cell = latent_dry_cell*feats_dry_cell_unknown + (1. - latent_dry_cell)*feats_dry_cell_given
-        loss_dry_cell = loss_dry_cell_unknown # TODO(sam): this is not quite right
+        feats_dry_cell = (
+            latent_dry_cell*feats_dry_cell_unknown
+            + (1. - latent_dry_cell)*feats_dry_cell_given
+        )
+        # TODO(sam): this is not quite right
+        loss_dry_cell = loss_dry_cell_unknown
 
 
-        (
-            feats_lyte_direct, loss_lyte_direct
-        ) = self.lyte_direct(
-            lyte_indices,
-            training = training,
-            sample = sample
+        feats_lyte_direct, loss_lyte_direct  = self.lyte_direct(
+            lyte_indices, training = training, sample = sample
         )
 
         fetched_latent_lyte = tf.gather(
-            self.lyte_latent_flags,
-            lyte_indices,
-            axis = 0
+            self.lyte_latent_flags, lyte_indices, axis = 0
         )
         fetched_latent_lyte = (
             self.min_latent + (1 - self.min_latent) * fetched_latent_lyte
         )
 
         fetched_pointers_lyte = tf.gather(
-            self.lyte_pointers,
-            lyte_indices,
-            axis = 0
+            self.lyte_pointers, lyte_indices, axis = 0
         )
         fetched_weights_lyte = tf.gather(
-            self.lyte_weights,
-            lyte_indices,
-            axis = 0
+            self.lyte_weights, lyte_indices, axis = 0
         )
         fetched_pointers_lyte_reshaped = tf.reshape(
-            fetched_pointers_lyte,
-            [-1]
+            fetched_pointers_lyte, [-1]
         )
 
         feats_mol, loss_molecule = self.molecule_direct(
             fetched_pointers_lyte_reshaped,
-            training = training,
-            sample = sample
+            training = training, sample = sample
         )
         feats_mol_reshaped = tf.reshape(
             feats_mol,
@@ -1047,10 +1055,17 @@ class DegradationModel(Model):
             dtype = tf.int32,
 
         )
-        sampled_constant_current_sign = tf.cast(sampled_constant_current_sign, dtype=tf.float32)
-        sampled_constant_current_sign = 1. * (sampled_constant_current_sign) + (-1.)*(1.-sampled_constant_current_sign)
+        sampled_constant_current_sign = tf.cast(
+            sampled_constant_current_sign, dtype=tf.float32
+        )
+        sampled_constant_current_sign =(
+            1. * sampled_constant_current_sign
+            - (1.-sampled_constant_current_sign)
+        )
 
-        sampled_constant_current = sampled_constant_current_sign * sampled_constant_current
+        sampled_constant_current = (
+                        sampled_constant_current_sign * sampled_constant_current
+        )
 
         sampled_feats_cell, _, sampled_latent = self.cell_from_indices(
             indices = tf.random.uniform(
@@ -1172,7 +1187,9 @@ class DegradationModel(Model):
 
 
         q_1 = self.q_direct(
-            encoded_stress=add_current_dep(encoded_stress, params, encoded_stress.shape[1]),
+            encoded_stress=add_current_dep(
+                encoded_stress, params, encoded_stress.shape[1]
+            ),
             cycle=add_current_dep(params["cycle"], params),
             v = add_current_dep(params[Key.V_END], params),
             feats_cell = add_current_dep(
@@ -1201,7 +1218,9 @@ class DegradationModel(Model):
     """ Direct variable methods """
 
 
-    def q_direct(self, encoded_stress, cycle, v, feats_cell, current, training = True):
+    def q_direct(
+        self, encoded_stress, cycle, v, feats_cell, current, training = True
+    ):
         dependencies = (
             encoded_stress,
             cycle,
@@ -1309,11 +1328,15 @@ class DegradationModel(Model):
                     Key.CELL_FEAT: sampled_feats_cell,
                     "current": sampled_constant_current
                 },
-                der_params = {"v": 3, Key.CELL_FEAT: 2, "current": 3, "cycle": 3}
+                der_params = {
+                    "v": 3, Key.CELL_FEAT: 2, "current": 3, "cycle": 3
+                }
             )
 
-            q_loss = calculate_q_loss(q, q_der,
-                                      incentive_coeffs = self.incentive_coeffs)
+            q_loss = calculate_q_loss(
+                q, q_der,
+                                      incentive_coeffs = self.incentive_coeffs
+            )
 
 
             _, cell_loss, _ = self.cell_from_indices(

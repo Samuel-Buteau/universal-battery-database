@@ -2035,11 +2035,11 @@ class DegradationModel(Model):
                 "pred_cc_voltage": pred_cc_voltage,
                 "pred_cv_voltage": pred_cv_voltage,
 
-                "q_loss": q_loss,
+                Key.Loss.Q: q_loss,
                 "scale_loss": scale_loss,
                 "r_loss": r_loss,
                 "shift_loss": shift_loss,
-                "cell_loss": cell_loss,
+                Key.Loss.CELL: cell_loss,
                 "reciprocal_loss": reciprocal_loss,
                 "projection_loss": projection_loss,
                 "out_of_bounds_loss": out_of_bounds_loss + out_of_bounds_loss_1 + out_of_bounds_loss_2 + out_of_bounds_loss_3,

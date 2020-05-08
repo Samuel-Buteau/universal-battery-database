@@ -608,7 +608,7 @@ class DegradationModel(Model):
 
         Returns:
             `{ Key.Pred.I_CC, Key.Pred.I_CV }`. During training, the
-                dictionary also includes `{ "q_loss", "cell_loss" }`.
+                dictionary also includes `{ Key.Loss.Q, Key.Loss.CELL }`.
         """
 
         cycle = params[Key.CYC]  # matrix; dim: [batch, 1]
@@ -701,8 +701,8 @@ class DegradationModel(Model):
                 compute_derivatives = True,
             )
 
-            returns["q_loss"] = q_loss
-            returns["cell_loss"] = cell_loss
+            returns[Key.Loss.Q] = q_loss
+            returns[Key.Loss.CELL] = cell_loss
 
         return returns
 

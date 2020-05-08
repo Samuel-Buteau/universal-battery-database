@@ -633,14 +633,14 @@ class DegradationModel(Model):
         current_count = current_tensor.shape[1]
 
         params = {
-            "batch_count": batch_count,
-            "voltage_count": voltage_count,
-            "current_count": current_count,
+            Key.COUNT_BATCH: batch_count,
+            Key.COUNT_V: voltage_count,
+            Key.COUNT_I: current_count,
 
-            "v": tf.reshape(voltage_tensor, [-1, 1]),
-            "cv_current": tf.reshape(current_tensor, [-1, 1]),
+            Key.V: tf.reshape(voltage_tensor, [-1, 1]),
+            Key.I_CV: tf.reshape(current_tensor, [-1, 1]),
 
-            "cycle": cycle,
+            Key.CYC: cycle,
             Key.I_CC: constant_current,
             Key.I_PREV_END: end_current_prev,
             Key.V_PREV_END: end_voltage_prev,
@@ -679,14 +679,14 @@ class DegradationModel(Model):
             q, q_der = create_derivatives(
                 self.q_for_derivative,
                 params = {
-                    "cycle": sampled_cycles,
+                    Key.CYC: sampled_cycles,
                     "encoded_stress": sampled_encoded_stress,
-                    "v": sampled_vs,
+                    Key.V: sampled_vs,
                     Key.CELL_FEAT: sampled_feats_cell,
                     "current": sampled_constant_current,
                 },
                 der_params = {
-                    "v": 3, Key.CELL_FEAT: 2, "current": 3, "cycle": 3,
+                    Key.V: 3, Key.CELL_FEAT: 2, "current": 3, Key.CYC: 3,
                 }
             )
 
@@ -1197,7 +1197,7 @@ class DegradationModel(Model):
 
         q_0 = self.q_direct(
             encoded_stress = encoded_stress,
-            cycle = params["cycle"],
+            cycle = params[Key.CYC],
             v = params[Key.V_PREV_END],
             feats_cell = params[Key.CELL_FEAT],
             current = params[Key.I_PREV_END],
@@ -1208,8 +1208,8 @@ class DegradationModel(Model):
             encoded_stress = add_v_dep(
                 encoded_stress, params, encoded_stress.shape[1],
             ),
-            cycle = add_v_dep(params["cycle"], params),
-            v = params["v"],
+            cycle = add_v_dep(params[Key.CYC], params),
+            v = params[Key.V],
             feats_cell = add_v_dep(
                 params[Key.CELL_FEAT], params, params[Key.CELL_FEAT].shape[1],
             ),
@@ -1228,7 +1228,7 @@ class DegradationModel(Model):
 
         q_0 = self.q_direct(
             encoded_stress = encoded_stress,
-            cycle = params["cycle"],
+            cycle = params[Key.CYC],
             v = params[Key.V_PREV_END],
             feats_cell = params[Key.CELL_FEAT],
             current = params[Key.I_PREV_END],
@@ -1242,12 +1242,12 @@ class DegradationModel(Model):
             encoded_stress = add_current_dep(
                 encoded_stress, params, encoded_stress.shape[1],
             ),
-            cycle = add_current_dep(params["cycle"], params),
+            cycle = add_current_dep(params[Key.CYC], params),
             v = add_current_dep(params[Key.V_END], params),
             feats_cell = add_current_dep(
                 params[Key.CELL_FEAT], params, params[Key.CELL_FEAT].shape[1],
             ),
-            current = params["cv_current"],
+            current = params[Key.I_CV],
             training = training,
         )
 
@@ -1282,9 +1282,9 @@ class DegradationModel(Model):
 
         return self.q_direct(
             encoded_stress = params["encoded_stress"],
-            cycle = params["cycle"],
+            cycle = params[Key.CYC],
             feats_cell = params[Key.CELL_FEAT],
-            v = params["v"],
+            v = params[Key.V],
             current = params["current"],
             training = training,
         )

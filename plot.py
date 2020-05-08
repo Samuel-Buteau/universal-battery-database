@@ -176,7 +176,7 @@ def generate_options(mode, typ, target):
 
     elif target == "generic_vs_cycle":
         # label
-        x_quantity = "Cycle"
+        x_quantity = Key.CYC
         y_quantity = 'capacity'
         # leg
         leg = {

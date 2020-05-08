@@ -373,7 +373,7 @@ def initial_processing(my_cell_ids, fit_args, flags):
                             if len(list_of_flags) == 0:
                                 continue
 
-                            list_of_flags = [fs for fs in list_of_flags if fs["cycle"] == offset_cycle]
+                            list_of_flags = [fs for fs in list_of_flags if fs[Key.CYC] == offset_cycle]
                             if len(list_of_flags) == 0:
                                 continue
                             list_of_flags= [fs for fs in list_of_flags if fs["group"] == future_key]

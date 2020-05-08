@@ -175,9 +175,9 @@ def add_v_dep(thing, params, dim = 1):
     return tf.reshape(
         tf.tile(
             tf.expand_dims(thing, axis = 1),
-            [1, params["voltage_count"], 1]
+            [1, params[Key.COUNT_V], 1]
         ),
-        [params["batch_count"] * params["voltage_count"], dim]
+        [params[Key.COUNT_BATCH] * params[Key.COUNT_V], dim]
     )
 
 
@@ -185,9 +185,9 @@ def add_current_dep(thing, params, dim = 1):
     return tf.reshape(
         tf.tile(
             tf.expand_dims(thing, axis = 1),
-            [1, params["current_count"], 1]
+            [1, params[Key.COUNT_I], 1]
         ),
-        [params["batch_count"] * params["current_count"], dim]
+        [params[Key.COUNT_BATCH] * params[Key.COUNT_I], dim]
     )
 
 
@@ -210,7 +210,7 @@ def calculate_equilibrium_voltage(v, current, resistance):
 def get_norm_cycle(params):
     return get_norm_cycle_direct(
         norm_constant = get_norm_constant(params["features"]),
-        cycle = params["cycle"]
+        cycle = params[Key.CYC]
     )
 
 
@@ -1094,7 +1094,7 @@ class DegradationModel(Model):
     def cc_capacity(self, params, training = True):
 
         norm_cycle = get_norm_cycle_direct(
-            cycle = params["cycle"],
+            cycle = params[Key.CYC],
             norm_constant = get_norm_constant(features = params["features"])
         )
 
@@ -1142,7 +1142,7 @@ class DegradationModel(Model):
         )
 
         v_eq_1 = calculate_equilibrium_voltage(
-            v = params["v"],
+            v = params[Key.V],
             current = add_v_dep(params[Key.I_CC], params),
             resistance = add_v_dep(resistance, params)
         )
@@ -1173,7 +1173,7 @@ class DegradationModel(Model):
     def cc_voltage(self, params, training = True):
         norm_constant = get_norm_constant(features = params["features"])
         norm_cycle = get_norm_cycle_direct(
-            cycle = params["cycle"],
+            cycle = params[Key.CYC],
             norm_constant = norm_constant,
         )
 
@@ -1246,7 +1246,7 @@ class DegradationModel(Model):
     def cv_voltage(self, params, training = True):
         norm_constant = get_norm_constant(features = params["features"])
         norm_cycle = get_norm_cycle_direct(
-            cycle = params["cycle"],
+            cycle = params[Key.CYC],
             norm_constant = norm_constant,
         )
 
@@ -1303,12 +1303,12 @@ class DegradationModel(Model):
             cell_features = add_current_dep(
                 cell_features, params, cell_features.shape[1]
             ),
-            current = params["cv_current"],
+            current = params[Key.I_CV],
             training = training
         )
 
         cv_v = (v +
-                (params["cv_current"] * add_current_dep(resistance, params))
+                (params[Key.I_CV] * add_current_dep(resistance, params))
                 )
 
         return cv_v, out_of_bounds_loss
@@ -1316,7 +1316,7 @@ class DegradationModel(Model):
     def cv_capacity(self, params, training = True):
         norm_constant = get_norm_constant(features = params["features"])
         norm_cycle = get_norm_cycle_direct(
-            cycle = params["cycle"], norm_constant = norm_constant
+            cycle = params[Key.CYC], norm_constant = norm_constant
         )
 
         cell_features = get_cell_features(features = params["features"])
@@ -1368,7 +1368,7 @@ class DegradationModel(Model):
 
         v_eq_1 = calculate_equilibrium_voltage(
             v = add_current_dep(params[Key.V_END], params),
-            current = params["cv_current"],
+            current = params[Key.I_CV],
             resistance = add_current_dep(resistance, params),
         )
 
@@ -1380,7 +1380,7 @@ class DegradationModel(Model):
             cell_features = add_current_dep(
                 cell_features, params, cell_features.shape[1]
             ),
-            current = params["cv_current"],
+            current = params[Key.I_CV],
             training = training
         )
 
@@ -1610,7 +1610,7 @@ class DegradationModel(Model):
 
     def v_plus_for_derivative(self, params, training = True):
         norm_cycle = get_norm_cycle(
-            params={"cycle": params["cycle"], "features": params["features"]}
+            params={Key.CYC: params[Key.CYC], "features": params["features"]}
         )
 
         v_plus, loss = self.v_plus_direct(
@@ -1625,7 +1625,7 @@ class DegradationModel(Model):
 
     def v_minus_for_derivative(self, params, training = True):
         norm_cycle = get_norm_cycle(
-            params={"cycle": params["cycle"], "features": params["features"]}
+            params={Key.CYC: params[Key.CYC], "features": params["features"]}
         )
 
         v_m, loss = self.v_minus_direct(
@@ -1640,13 +1640,13 @@ class DegradationModel(Model):
 
     def q_for_derivative(self, params, training = True):
         norm_cycle = get_norm_cycle(
-            params={"cycle": params["cycle"], "features": params["features"]}
+            params={Key.CYC: params[Key.CYC], "features": params["features"]}
         )
         return self.q_direct(
             encoded_stress=params["encoded_stress"],
             norm_cycle=norm_cycle,
             cell_features = get_cell_features(features = params["features"]),
-            v = params["v"],
+            v = params[Key.V],
             shift = params["shift"],
             current = params["current"],
             training = training,
@@ -1654,7 +1654,7 @@ class DegradationModel(Model):
 
     def r_for_derivative(self, params, training = True):
         norm_cycle = get_norm_cycle(
-            params = {"cycle": params["cycle"], "features": params["features"]}
+            params = {Key.CYC: params[Key.CYC], "features": params["features"]}
         )
         cell_features = get_cell_features(features = params["features"])
 
@@ -1672,7 +1672,7 @@ class DegradationModel(Model):
 
     def scale_for_derivative(self, params, training = True):
         norm_cycle = get_norm_cycle(
-            params = {"cycle": params["cycle"], "features": params["features"]}
+            params = {Key.CYC: params[Key.CYC], "features": params["features"]}
         )
         cell_features = get_cell_features(features = params["features"])
 
@@ -1691,7 +1691,7 @@ class DegradationModel(Model):
     def shift_for_derivative(self, params, training = True):
         norm_cycle = get_norm_cycle(
             params = {
-                "cycle": params["cycle"],
+                Key.CYC: params[Key.CYC],
                 "features": params["features"]
             }
         )
@@ -1722,7 +1722,7 @@ class DegradationModel(Model):
                       corresponds to q[j]
             - "v_minus": a 2-D matrix such that v_minus[i][j]
                       corresponds to shift[i] and q[j]
-            - "v": a 2-D matrix such that v[i][j]
+            - Key.V: a 2-D matrix such that v[i][j]
                       corresponds to shift[i] and q[j]
             - "q": a 2-D matrix such that q[i][k]
                       corresponds to shift[i] and v[k]
@@ -1800,7 +1800,7 @@ class DegradationModel(Model):
         return {
             "v_plus": v_plus,
             "v_minus": v_minus,
-            "v": v_out,
+            Key.V: v_out,
             "q": q_out,
         }
 
@@ -1830,14 +1830,14 @@ class DegradationModel(Model):
         current_count = current_tensor.shape[1]
 
         params = {
-            "batch_count": batch_count,
-            "voltage_count": voltage_count,
-            "current_count": current_count,
+            Key.COUNT_BATCH: batch_count,
+            Key.COUNT_V: voltage_count,
+            Key.COUNT_I: current_count,
 
-            "v": tf.reshape(voltage_tensor, [-1, 1]),
-            "cv_current": tf.reshape(current_tensor, [-1, 1]),
+            Key.V: tf.reshape(voltage_tensor, [-1, 1]),
+            Key.I_CV: tf.reshape(current_tensor, [-1, 1]),
 
-            "cycle": cycle,
+            Key.CYC: cycle,
             Key.I_CC: constant_current,
             Key.I_PREV_END: end_current_prev,
             Key.V_PREV_END: end_voltage_prev,
@@ -1930,24 +1930,24 @@ class DegradationModel(Model):
             v_plus, v_plus_der = create_derivatives(
                 self.v_plus_for_derivative,
                 params = {
-                    "cycle":sampled_cycles,
+                    Key.CYC:sampled_cycles,
                     "encoded_stress":sampled_encoded_stress,
                     "q": sampled_qs,
                     "features": sampled_features,
                     "current": sampled_constant_current
                 },
-                der_params = {"q": 1, "current": 3, "cycle": 3}
+                der_params = {"q": 1, "current": 3, Key.CYC: 3}
             )
             v_minus, v_minus_der = create_derivatives(
                 self.v_minus_for_derivative,
                 params = {
-                    "cycle": sampled_cycles,
+                    Key.CYC: sampled_cycles,
                     "encoded_stress": sampled_encoded_stress,
                     "q": sampled_qs,
                     "features": sampled_features,
                     "current": sampled_constant_current
                 },
-                der_params = {"q": 1, "current": 3, "cycle": 3}
+                der_params = {"q": 1, "current": 3, Key.CYC: 3}
             )
 
 
@@ -1965,14 +1965,14 @@ class DegradationModel(Model):
             q, q_der = create_derivatives(
                 self.q_for_derivative,
                 params = {
-                    "cycle": sampled_cycles,
+                    Key.CYC: sampled_cycles,
                     "encoded_stress": sampled_encoded_stress,
-                    "v": sampled_vs,
+                    Key.V: sampled_vs,
                     "features": sampled_features,
                     "shift": sampled_shift,
                     "current": sampled_constant_current
                 },
-                der_params = {"v": 3, "features": 2, "shift": 3, "current": 3, "cycle": 3}
+                der_params = {Key.V: 3, "features": 2, "shift": 3, "current": 3, Key.CYC: 3}
             )
 
             q_loss = calculate_q_loss(q, q_der,
@@ -1981,12 +1981,12 @@ class DegradationModel(Model):
             scale, scale_der = create_derivatives(
                 self.scale_for_derivative,
                 params = {
-                    "cycle": sampled_cycles,
+                    Key.CYC: sampled_cycles,
                     "features": sampled_features,
                     Key.SVIT_GRID: sampled_svit_grid,
                     Key.COUNT_MATRIX: sampled_count_matrix
                 },
-                der_params = {"cycle": 3, "features": 2}
+                der_params = {Key.CYC: 3, "features": 2}
             )
 
             scale_loss = calculate_scale_loss(scale, scale_der,
@@ -1995,12 +1995,12 @@ class DegradationModel(Model):
             shift, shift_der, shift_internal_loss = create_derivatives(
                 self.shift_for_derivative,
                 params = {
-                    "cycle": sampled_cycles,
+                    Key.CYC: sampled_cycles,
                     "features": sampled_features,
                     Key.SVIT_GRID: sampled_svit_grid,
                     Key.COUNT_MATRIX: sampled_count_matrix
                 },
-                der_params = {"features": 2, "cycle": 3},
+                der_params = {"features": 2, Key.CYC: 3},
                 internal_loss = True
             )
             shift_loss = calculate_shift_loss(shift, shift_der,
@@ -2009,12 +2009,12 @@ class DegradationModel(Model):
             r, r_der = create_derivatives(
                 self.r_for_derivative,
                 params = {
-                    "cycle": sampled_cycles,
+                    Key.CYC: sampled_cycles,
                     "features": sampled_features,
                     Key.SVIT_GRID: sampled_svit_grid,
                     Key.COUNT_MATRIX: sampled_count_matrix
                 },
-                der_params = {"cycle": 3, "features": 2}
+                der_params = {Key.CYC: 3, "features": 2}
             )
             r_loss = calculate_r_loss(r, r_der,
                                       incentive_coeffs = self.incentive_coeffs)
@@ -2050,7 +2050,7 @@ class DegradationModel(Model):
             norm_constant = get_norm_constant(features = params["features"])
 
             norm_cycle = get_norm_cycle_direct(
-                cycle = params["cycle"], norm_constant = norm_constant,
+                cycle = params[Key.CYC], norm_constant = norm_constant,
             )
 
             cell_features = get_cell_features(features = params["features"])

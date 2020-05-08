@@ -580,11 +580,11 @@ def initial_processing(my_cell_ids, fit_args, flags):
                Key.ELE_TO_SALT: electrolyte_id_to_salt_id_weight,
                Key.ELE_TO_ADD: electrolyte_id_to_additive_id_weight,
            }, {
-               Key.POS_TO_POS: pos_to_pos_name,
-               Key.NEG_TO_NEG: neg_to_neg_name,
-               Key.LYTE_TO_LYTE: electrolyte_to_electrolyte_name,
-               Key.MOL_TO_MOL: molecule_to_molecule_name,
-               Key.DRY_TO_DRY: dry_cell_to_dry_cell_name,
+               Key.NAME_POS: pos_to_pos_name,
+               Key.NAME_NEG: neg_to_neg_name,
+               Key.NAME_LYTE: electrolyte_to_electrolyte_name,
+               Key.NAME_MOL: molecule_to_molecule_name,
+               Key.NAME_DRY: dry_cell_to_dry_cell_name,
            }
 
 

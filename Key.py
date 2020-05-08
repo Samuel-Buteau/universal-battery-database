@@ -211,11 +211,11 @@ class Key:
 
     # Begin: keys for dataset names ============================================
 
-    DRY_TO_DRY = "dry_to_dry_name"
-    POS_TO_POS = "pos_to_pos_name"
-    NEG_TO_NEG = "neg_to_neg_name"
-    LYTE_TO_LYTE = "electrolyte_to_electrolyte_name"
-    MOL_TO_MOL = "molecule_to_molecule_name"
+    NAME_DRY = "dry_to_dry_name"
+    NAME_POS = "pos_to_pos_name"
+    NAME_NEG = "neg_to_neg_name"
+    NAME_LYTE = "electrolyte_to_electrolyte_name"
+    NAME_MOL = "molecule_to_molecule_name"
 
     # End: keys for dataset names ==============================================
 

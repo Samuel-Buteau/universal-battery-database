@@ -49,7 +49,7 @@ pip3 install -r requirements_nosql.txt
 
 Note: You can pick your own `database`, `user`, `password`, `secret_key`.
 
-`neware_parser/config.ini` should contain:
+`cycling/config.ini` should contain:
 
 ```
 [DEFAULT]

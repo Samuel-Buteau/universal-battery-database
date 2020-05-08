@@ -547,6 +547,103 @@ class DegradationModel(Model):
         self.width = width
         self.n_channels = n_channels
 
+    def call(self, x, training = False):
+
+        cycle = x[0]  # matrix; dim: [batch, 1]
+        constant_current = x[1]  # matrix; dim: [batch, 1]
+        end_current_prev = x[2]  # matrix; dim: [batch, 1]
+        end_voltage_prev = x[3]  # matrix; dim: [batch, 1]
+        end_voltage = x[4]  # matrix; dim: [batch, 1]
+        indices = x[5]  # batch of index; dim: [batch]
+        voltage_tensor = x[6]  # dim: [batch, voltages]
+        current_tensor = x[7]  # dim: [batch, voltages]
+        svit_grid = x[8]
+        count_matrix = x[9]
+
+        feats_cell, _, _ = self.cell_from_indices(
+            indices = indices, training = training, sample = False,
+        )
+
+        # duplicate cycles and others for all the voltages
+        # dimensions are now [batch, voltages, features_cell]
+        batch_count = cycle.shape[0]
+        voltage_count = voltage_tensor.shape[1]
+        current_count = current_tensor.shape[1]
+
+        params = {
+            "batch_count": batch_count,
+            "voltage_count": voltage_count,
+            "current_count": current_count,
+
+            "v": tf.reshape(voltage_tensor, [-1, 1]),
+            "cv_current": tf.reshape(current_tensor, [-1, 1]),
+
+            "cycle": cycle,
+            Key.I_CC: constant_current,
+            Key.I_PREV_END: end_current_prev,
+            Key.V_PREV_END: end_voltage_prev,
+            Key.CELL_FEAT: feats_cell,
+            Key.V_END: end_voltage,
+
+            Key.SVIT_GRID: svit_grid,
+            Key.COUNT_MATRIX: count_matrix,
+        }
+        cc_capacity = self.cc_capacity(params, training = training)
+        pred_cc_capacity = tf.reshape(cc_capacity, [-1, voltage_count])
+
+        cv_capacity = self.cv_capacity(params, training = training)
+        pred_cv_capacity = tf.reshape(cv_capacity, [-1, current_count])
+
+        returns = {
+            "pred_cc_capacity": pred_cc_capacity,
+            "pred_cv_capacity": pred_cv_capacity,
+        }
+
+        if training:
+            (
+                sampled_vs,
+                sampled_qs,
+                sampled_cycles,
+                sampled_constant_current,
+                sampled_feats_cell,
+                sampled_latent,
+                sampled_svit_grid,
+                sampled_count_matrix,
+                sampled_encoded_stress,
+            ) = self.sample(
+                svit_grid, batch_count, count_matrix, n_sample = self.n_sample,
+            )
+
+            q, q_der = create_derivatives(
+                self.q_for_derivative,
+                params = {
+                    "cycle": sampled_cycles,
+                    "encoded_stress": sampled_encoded_stress,
+                    "v": sampled_vs,
+                    Key.CELL_FEAT: sampled_feats_cell,
+                    "current": sampled_constant_current,
+                },
+                der_params = {
+                    "v": 3, Key.CELL_FEAT: 2, "current": 3, "cycle": 3,
+                }
+            )
+
+            q_loss = calculate_q_loss(
+                q, q_der, incentive_coeffs = self.incentive_coeffs
+            )
+
+            _, cell_loss, _ = self.cell_from_indices(
+                indices = tf.range(self.cell_direct.num_keys, dtype = tf.int32),
+                training = True,
+                sample = False,
+                compute_derivatives = True,
+            )
+
+            returns["q_loss"] = q_loss
+            returns["cell_loss"] = cell_loss
+
+        return returns
+
     def cell_from_indices(
         self,
         indices, training = True, sample = False, compute_derivatives = False,
@@ -1129,103 +1226,6 @@ class DegradationModel(Model):
             current = params["current"],
             training = training,
         )
-
-    def call(self, x, training = False):
-
-        cycle = x[0]  # matrix; dim: [batch, 1]
-        constant_current = x[1]  # matrix; dim: [batch, 1]
-        end_current_prev = x[2]  # matrix; dim: [batch, 1]
-        end_voltage_prev = x[3]  # matrix; dim: [batch, 1]
-        end_voltage = x[4]  # matrix; dim: [batch, 1]
-        indices = x[5]  # batch of index; dim: [batch]
-        voltage_tensor = x[6]  # dim: [batch, voltages]
-        current_tensor = x[7]  # dim: [batch, voltages]
-        svit_grid = x[8]
-        count_matrix = x[9]
-
-        feats_cell, _, _ = self.cell_from_indices(
-            indices = indices, training = training, sample = False,
-        )
-
-        # duplicate cycles and others for all the voltages
-        # dimensions are now [batch, voltages, features_cell]
-        batch_count = cycle.shape[0]
-        voltage_count = voltage_tensor.shape[1]
-        current_count = current_tensor.shape[1]
-
-        params = {
-            "batch_count": batch_count,
-            "voltage_count": voltage_count,
-            "current_count": current_count,
-
-            "v": tf.reshape(voltage_tensor, [-1, 1]),
-            "cv_current": tf.reshape(current_tensor, [-1, 1]),
-
-            "cycle": cycle,
-            Key.I_CC: constant_current,
-            Key.I_PREV_END: end_current_prev,
-            Key.V_PREV_END: end_voltage_prev,
-            Key.CELL_FEAT: feats_cell,
-            Key.V_END: end_voltage,
-
-            Key.SVIT_GRID: svit_grid,
-            Key.COUNT_MATRIX: count_matrix,
-        }
-        cc_capacity = self.cc_capacity(params, training = training)
-        pred_cc_capacity = tf.reshape(cc_capacity, [-1, voltage_count])
-
-        cv_capacity = self.cv_capacity(params, training = training)
-        pred_cv_capacity = tf.reshape(cv_capacity, [-1, current_count])
-
-        returns = {
-            "pred_cc_capacity": pred_cc_capacity,
-            "pred_cv_capacity": pred_cv_capacity,
-        }
-
-        if training:
-            (
-                sampled_vs,
-                sampled_qs,
-                sampled_cycles,
-                sampled_constant_current,
-                sampled_feats_cell,
-                sampled_latent,
-                sampled_svit_grid,
-                sampled_count_matrix,
-                sampled_encoded_stress,
-            ) = self.sample(
-                svit_grid, batch_count, count_matrix, n_sample = self.n_sample,
-            )
-
-            q, q_der = create_derivatives(
-                self.q_for_derivative,
-                params = {
-                    "cycle": sampled_cycles,
-                    "encoded_stress": sampled_encoded_stress,
-                    "v": sampled_vs,
-                    Key.CELL_FEAT: sampled_feats_cell,
-                    "current": sampled_constant_current,
-                },
-                der_params = {
-                    "v": 3, Key.CELL_FEAT: 2, "current": 3, "cycle": 3,
-                }
-            )
-
-            q_loss = calculate_q_loss(
-                q, q_der, incentive_coeffs = self.incentive_coeffs
-            )
-
-            _, cell_loss, _ = self.cell_from_indices(
-                indices = tf.range(self.cell_direct.num_keys, dtype = tf.int32),
-                training = True,
-                sample = False,
-                compute_derivatives = True,
-            )
-
-            returns["q_loss"] = q_loss
-            returns["cell_loss"] = cell_loss
-
-        return returns
 
     @tf.function
     def test_all_voltages(

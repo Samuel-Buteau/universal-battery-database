@@ -470,22 +470,22 @@ def initial_processing(
             cell_dict = id_dict_from_id_list(cell_id_list),
             pos_dict = id_dict_from_id_list(pos_id_list),
             neg_dict = id_dict_from_id_list(neg_id_list),
-            electrolyte_dict = id_dict_from_id_list(electrolyte_id_list),
+            lyte_dict = id_dict_from_id_list(electrolyte_id_list),
             molecule_dict = id_dict_from_id_list(molecule_id_list),
             dry_cell_dict = id_dict_from_id_list(dry_cell_id_list),
 
             cell_to_pos = cell_id_to_pos_id,
             cell_to_neg = cell_id_to_neg_id,
-            cell_to_electrolyte = cell_id_to_electrolyte_id,
+            cell_to_lyte = cell_id_to_electrolyte_id,
             cell_to_dry_cell = cell_id_to_dry_cell_id,
             dry_cell_to_meta = dry_cell_id_to_meta,
 
             cell_latent_flags = cell_id_to_latent,
 
-            electrolyte_to_solvent = electrolyte_id_to_solvent_id_weight,
-            electrolyte_to_salt = electrolyte_id_to_salt_id_weight,
-            electrolyte_to_additive = electrolyte_id_to_additive_id_weight,
-            electrolyte_latent_flags = electrolyte_id_to_latent,
+            lyte_to_solvent = electrolyte_id_to_solvent_id_weight,
+            lyte_to_salt = electrolyte_id_to_salt_id_weight,
+            lyte_to_additive = electrolyte_id_to_additive_id_weight,
+            lyte_latent_flags = electrolyte_id_to_latent,
 
             names = (
                 pos_to_pos_name,

@@ -110,6 +110,9 @@ def read_neware(path, last_imported_cycle=-1, CapacityUnits=1.0, VoltageUnits=(1
                 CurrentUnits=1.0):
     print(path)
     """
+    TEMPDOC: 
+    this is a fairly general function to process a neware file no matter which format it has been saved in.
+    
     First, determine which format it is.
     Open the file, see if it is nested or separated.
 
@@ -359,6 +362,17 @@ def read_neware(path, last_imported_cycle=-1, CapacityUnits=1.0, VoltageUnits=(1
 
 
 def import_single_file(database_file, DEBUG=False):
+    """
+    checks based on timestamps if any work is required
+    calls read_neware
+    then pushes the data to the database
+
+    TODO(sam): the demarcation between neware-specific and cycling-general is not clear
+
+    :param database_file:
+    :param DEBUG:
+    :return:
+    """
     time_of_running_script = timezone.now()
     error_message = {}
     if not database_file.is_valid or database_file.deprecated or database_file.valid_metadata is None:
@@ -490,6 +504,12 @@ def import_single_file(database_file, DEBUG=False):
 
 
 def bulk_import(cell_ids=None, DEBUG=False):
+    """
+    mostly just calls import_single_file
+    :param cell_ids:
+    :param DEBUG:
+    :return:
+    """
     if cell_ids is not None:
         neware_files = get_good_neware_files().filter(valid_metadata__cell_id__in=cell_ids)
 
@@ -566,6 +586,13 @@ def average_data(data_source_, val_keys, sort_val, weight_func=None, weight_exp_
 
 
 def default_deprecation(cell_id):
+    """
+    TEMPDOC(sam):
+    this decides which of the duplicate files should be deprecated.
+
+    :param cell_id:
+    :return:
+    """
     with transaction.atomic():
         files = get_good_neware_files().filter(valid_metadata__cell_id=cell_id)
         if files.count() == 0:
@@ -582,14 +609,16 @@ def default_deprecation(cell_id):
             filesize_max = files_start.aggregate(Max("filesize"))[
                                             "filesize__max"]
 
+
+            # the winners are not deprecated
+            # the winners are the simultaneously last_modified and largest files
             winners = files_start.filter(last_modified=last_modified_max, filesize=filesize_max)
             if winners.count() == 0:
+                #no winners means no deprecation
                 continue
             winner_id = winners[0].id
 
-            for f in files_start.exclude(id=winner_id):
-                f.set_deprecated(True)
-                f.save()
+            files_start.exclude(id=winner_id).update(deprecated=True)
 
 
 
@@ -1645,19 +1674,32 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n,voltage_
 
 
 def bulk_process(DEBUG=False, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10, cell_ids = None):
+    """
+    TEMPDOC
+    first calls process_single_file
+
+    then,
+
+    calls process_cell_id
+
+    :param DEBUG:
+    :param NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS:
+    :param cell_ids:
+    :return:
+    """
     if cell_ids is None:
-        #errors = list(map(lambda x: process_single_file(x, DEBUG),
-        #                  CyclingFile.objects.filter(database_file__deprecated=False,
-        #                                             process_time__lte = F("import_time"))))
+        errors = list(map(lambda x: process_single_file(x, DEBUG),
+                         CyclingFile.objects.filter(database_file__deprecated=False,
+                                                    process_time__lte = F("import_time"))))
         all_current_cell_ids = CyclingFile.objects.filter(
             database_file__deprecated=False).values_list(
             "database_file__valid_metadata__cell_id", flat=True).distinct()
 
     else:
-        # errors = list(map(lambda x: process_single_file(x, DEBUG),
-        #                   CyclingFile.objects.filter(database_file__deprecated=False,
-        #                                              database_file__valid_metadata__cell_id__in=cell_ids,
-        #                                              process_time__lte=F("import_time"))))
+        errors = list(map(lambda x: process_single_file(x, DEBUG),
+                          CyclingFile.objects.filter(database_file__deprecated=False,
+                                                     database_file__valid_metadata__cell_id__in=cell_ids,
+                                                     process_time__lte=F("import_time"))))
         all_current_cell_ids = cell_ids
 
     print(list(all_current_cell_ids))
@@ -1666,7 +1708,7 @@ def bulk_process(DEBUG=False, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10, cell_ids
             cell_id,
             NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS)
 
-    return []#list(filter(lambda x: x["error"], errors))
+    return list(filter(lambda x: x["error"], errors))
 
 
 
@@ -1674,13 +1716,13 @@ def bulk_deprecate(cell_ids=None):
     if cell_ids is None:
         all_current_cell_ids = get_good_neware_files().values_list(
             "valid_metadata__cell_id", flat=True).distinct()
-        print(list(all_current_cell_ids))
     else:
         all_current_cell_ids = cell_ids
 
     for cell_id in all_current_cell_ids:
         default_deprecation(
-            cell_id)
+            cell_id
+        )
 
 
 @background(schedule=5)

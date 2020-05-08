@@ -8,7 +8,11 @@ import matplotlib.patches as mpatches
 from matplotlib.axes._axes import _log as matplotlib_axes_logger
 
 from Key import Key
-from cycling.models import compute_from_database, make_file_legends_and_vertical, get_byte_image
+from cycling.models import (
+    compute_from_database,
+    make_file_legends_and_vertical, get_byte_image
+)
+
 matplotlib_axes_logger.setLevel("ERROR")
 from plot_constants import *
 
@@ -19,15 +23,15 @@ def bake_rate(rate_in):
     rate = round(100. * rate_in) / 100.
     return rate
 
+
 def bake_voltage(vol_in):
     vol = round(10. * vol_in) / 10.
     return vol
 
 
 def make_legend_key(key):
-
     constant_rate = bake_rate(key[0])
-    end_rate_prev= bake_rate(key[1])
+    end_rate_prev = bake_rate(key[1])
     end_rate = bake_rate(key[2])
 
     end_voltage = bake_voltage(key[3])
@@ -36,6 +40,7 @@ def make_legend_key(key):
     return (
         end_rate_prev, constant_rate, end_rate, end_voltage_prev, end_voltage
     )
+
 
 def match_legend_key(legend_key, rule):
     match = True
@@ -49,13 +54,15 @@ def match_legend_key(legend_key, rule):
             break
     return match
 
+
 def make_legend(key):
-    end_rate_prev, constant_rate, end_rate, end_voltage_prev, end_voltage = make_legend_key(key)
+    (
+        end_rate_prev, constant_rate, end_rate, end_voltage_prev, end_voltage,
+    ) = make_legend_key(key)
     template = "I {:3.2f}:{:3.2f}:{:3.2f} V {:2.1f}:{:2.1f}"
     return template.format(
-        end_rate_prev, constant_rate, end_rate, end_voltage_prev, end_voltage
+        end_rate_prev, constant_rate, end_rate, end_voltage_prev, end_voltage,
     )
-
 
 
 def get_figsize(target):
@@ -67,20 +74,22 @@ def get_figsize(target):
     return figsize
 
 
-#TODO(sam): make the interface more general
-def plot_engine_direct(data_streams, target, todos, fit_args, filename,
-                       lower_cycle=None, upper_cycle=None,
-                       vertical_barriers=None, list_all_options=None,
-                       show_invalid=False,
-                       figsize = None):
+# TODO(sam): make the interface more general
+def plot_engine_direct(
+    data_streams, target, todos, fit_args, filename,
+    lower_cycle = None, upper_cycle = None, vertical_barriers = None,
+    list_all_options = None, show_invalid = False, figsize = None,
+):
     # open plot
     if figsize is None:
         figsize = get_figsize(target)
 
-    fig, axs = plt.subplots(nrows=len(todos), figsize=figsize, sharex=True)
+    fig, axs = plt.subplots(
+        nrows = len(todos), figsize = figsize, sharex = True,
+    )
     for i, todo in enumerate(todos):
         typ, mode = todo
-        if len(todos) ==1:
+        if len(todos) == 1:
             ax = axs
         else:
             ax = axs[i]
@@ -96,14 +105,10 @@ def plot_engine_direct(data_streams, target, todos, fit_args, filename,
         for source, data, _, max_cyc_n in data_streams:
             list_of_target_data.append(
                 data_engine(
-                    source,
-                    target,
-                    data,
-                    typ,
-                    mode,
+                    source, target, data, typ, mode,
                     max_cyc_n = max_cyc_n,
-                    lower_cycle=lower_cycle,
-                    upper_cycle=upper_cycle,
+                    lower_cycle = lower_cycle,
+                    upper_cycle = upper_cycle,
                 )
             )
             if source == "database":
@@ -121,38 +126,39 @@ def plot_engine_direct(data_streams, target, todos, fit_args, filename,
             generic, _, generic_map = target_data
             # plot
             plot_generic(
-                target,
-                generic, list_of_keys, custom_colors,
-                generic_map, ax,
-                channel=data_streams[j][2],
-                options=options,
+                target, generic, list_of_keys, custom_colors, generic_map, ax,
+                channel = data_streams[j][2], options = options,
             )
 
-        leg = produce_annotations(ax, get_list_of_patches(list_of_keys, custom_colors), options)
+        leg = produce_annotations(
+            ax, get_list_of_patches(list_of_keys, custom_colors), options
+        )
         if source_database:
-            make_file_legends_and_vertical(ax, cell_id, lower_cycle, upper_cycle, show_invalid,
-                                           vertical_barriers, list_all_options, leg)
+            make_file_legends_and_vertical(
+                ax, cell_id, lower_cycle, upper_cycle, show_invalid,
+                vertical_barriers, list_all_options, leg,
+            )
 
     # export
     fig.tight_layout()
-    fig.subplots_adjust(hspace=0)
+    fig.subplots_adjust(hspace = 0)
     if source_database:
-        #TODO(sam):
+        # TODO(sam):
         send_to_file = False
         if vertical_barriers is None:
-            quick=True
+            quick = True
         else:
-            quick=False
+            quick = False
 
         if send_to_file:
             savefig(filename, fit_args)
             plt.close(fig)
         else:
             if quick:
-                dpi=50
+                dpi = 50
             else:
-                dpi=300
-            return get_byte_image(fig,dpi)
+                dpi = 300
+            return get_byte_image(fig, dpi)
 
     if not source_database:
         savefig(filename, fit_args)
@@ -164,10 +170,10 @@ def generate_options(mode, typ, target):
     sign_change = get_sign_change(typ)
 
     if target == 'generic_vs_capacity':
-        #label
+        # label
         x_quantity = "Capacity"
         y_quantity = get_y_quantity(mode)
-        #leg
+        # leg
         leg = {
             ("dchg", "cc"): (.5, 1.),
             ("chg", "cc"): (.5, .5),
@@ -181,20 +187,21 @@ def generate_options(mode, typ, target):
         # leg
         leg = {
             ("dchg", "cc"): (.7, 1.),
-            ("chg", "cc"):  (.7, 1.),
-            ("chg", "cv"):  (.7, 1.),
+            ("chg", "cc"): (.7, 1.),
+            ("chg", "cv"): (.7, 1.),
         }
 
     ylabel = typ + "-" + mode + "\n" + y_quantity
     xlabel = x_quantity
-    x_leg, y_leg = leg[(typ,mode)]
+    x_leg, y_leg = leg[(typ, mode)]
     return {
         "sign_change": sign_change,
         "x_leg": x_leg,
         "y_leg": y_leg,
         "xlabel": xlabel,
-        "ylabel": ylabel
+        "ylabel": ylabel,
     }
+
 
 def fetch_svit_keys_averages(compiled, cell_id):
     svit_and_count = get_svit_and_count(compiled, cell_id)
@@ -203,12 +210,13 @@ def fetch_svit_keys_averages(compiled, cell_id):
     for k in keys:
         view = compiled[Key.ALL_DATA][cell_id][Key.CYC_GRP_DICT][k]
         averages[k] = {}
-        for t in [Key.I_CC_AVG, Key.I_PREV_END_AVG, Key.I_END_AVG, Key.V_PREV_END_AVG, Key.V_END_AVG,
-                  Key.V_CC_LAST_AVG]:
+        for t in [
+            Key.I_CC_AVG, Key.I_PREV_END_AVG, Key.I_END_AVG,
+            Key.V_PREV_END_AVG, Key.V_END_AVG, Key.V_CC_LAST_AVG
+        ]:
             averages[k][t] = view[t]
 
     return svit_and_count, keys, averages
-
 
 
 def get_sign_change(typ):
@@ -218,6 +226,7 @@ def get_sign_change(typ):
         sign_change = 1.
     return sign_change
 
+
 def get_y_quantity(mode):
     if mode == 'cc':
         y_quantity = 'voltage'
@@ -225,13 +234,12 @@ def get_y_quantity(mode):
         y_quantity = 'current'
     return y_quantity
 
+
 def get_generic_map(source, target, mode):
     quantity = get_y_quantity(mode)
     generic_map = {}
     if target == "generic_vs_cycle":
-        generic_map = {
-            'y': "last_{}_capacity".format(mode),
-        }
+        generic_map = {'y': "last_{}_capacity".format(mode)}
     elif target == "generic_vs_capacity":
         generic_map = {
             'x': "{}_capacity_vector".format(mode),
@@ -241,41 +249,32 @@ def get_generic_map(source, target, mode):
             generic_map['mask'] = "{}_mask_vector".format(mode)
     return generic_map
 
+
 def data_engine(
-        source,
-        target,
-        data,
-        typ,
-        mode,
-        max_cyc_n,
-        lower_cycle=None,
-        upper_cycle=None,
-    ):
+    source, target, data, typ, mode, max_cyc_n,
+    lower_cycle = None, upper_cycle = None,
+):
     generic = {}
-    sign_change=get_sign_change(typ)
+    sign_change = get_sign_change(typ)
     generic_map = get_generic_map(source, target, mode)
     if source == "model":
-        degradation_model, cell_id, cycle_m, cycle_v, svit_and_count, keys, averages = data
+        (
+            degradation_model, cell_id, cycle_m, cycle_v,
+            svit_and_count, keys, averages,
+        ) = data
         list_of_keys = get_list_of_keys(keys, typ)
         for k in list_of_keys:
             generic[k] = compute_target(
-                target,
-                degradation_model,
-                cell_id,
-                sign_change,
-                mode,
-                averages[k],
-                generic_map,
-                svit_and_count,
-                cycle_m,
-                cycle_v,
-                max_cyc_n=max_cyc_n,
+                target, degradation_model, cell_id, sign_change, mode,
+                averages[k], generic_map, svit_and_count, cycle_m, cycle_v,
+                max_cyc_n = max_cyc_n,
             )
     elif source == "database":
         if typ != "dchg" or mode != "cc":
             return None, None, None
         cell_id, valid = data
-        generic = compute_from_database(cell_id, lower_cycle, upper_cycle, valid)
+        generic = compute_from_database(cell_id, lower_cycle, upper_cycle,
+                                        valid)
         list_of_keys = get_list_of_keys(generic.keys(), typ)
 
     elif source == "compiled":
@@ -284,17 +283,18 @@ def data_engine(
         for k in list_of_keys:
             actual_n = len(data[k][Key.MAIN])
             if actual_n > max_cyc_n:
-                indecies = np.linspace(0, actual_n - 1, max_cyc_n).astype(dtype=np.int32)
-                generic[k] = data[k][Key.MAIN][needed_fields][indecies]
+                indices = np.linspace(0, actual_n - 1, max_cyc_n).astype(
+                    dtype = np.int32
+                )
+                generic[k] = data[k][Key.MAIN][needed_fields][indices]
             else:
                 generic[k] = data[k][Key.MAIN][needed_fields]
 
     return generic, list_of_keys, generic_map
 
 
-
 def map_legend_to_color(list_of_keys):
-    #TODO: unnecessarily messy
+    # TODO: unnecessarily messy
     legends = Preferred_Legends
     custom_colors = {}
     colors_taken = []
@@ -306,13 +306,16 @@ def map_legend_to_color(list_of_keys):
                 matched = True
                 color_index = legends[legend_rule]
                 if color_index in colors_taken:
-                    possible_colors = [c_i for c_i in range(len(COLORS)) if c_i not in colors_taken]
+                    possible_colors = [
+                        c_i for c_i in range(len(COLORS))
+                        if c_i not in colors_taken
+                    ]
                     if len(possible_colors) == 0:
                         color_index = 0
                     else:
                         color_index = sorted(possible_colors)[0]
 
-                if not color_index in colors_taken:
+                if color_index not in colors_taken:
                     colors_taken.append(color_index)
                 custom_colors[k] = color_index
                 break
@@ -320,18 +323,20 @@ def map_legend_to_color(list_of_keys):
             continue
 
     for color_index in legends.values():
-        if not color_index in colors_taken:
+        if color_index not in colors_taken:
             colors_taken.append(color_index)
 
     for k in list_of_keys:
-        if not k in custom_colors.keys():
-            possible_colors = [c_i for c_i in range(len(COLORS)) if c_i not in colors_taken]
+        if k not in custom_colors.keys():
+            possible_colors = [
+                c_i for c_i in range(len(COLORS)) if c_i not in colors_taken
+            ]
             if len(possible_colors) == 0:
                 color_index = 0
             else:
                 color_index = sorted(possible_colors)[0]
 
-            if not color_index in colors_taken:
+            if color_index not in colors_taken:
                 colors_taken.append(color_index)
             custom_colors[k] = color_index
 
@@ -340,73 +345,66 @@ def map_legend_to_color(list_of_keys):
 
     return custom_colors
 
+
 def get_list_of_patches(list_of_keys, custom_colors):
     list_of_patches = []
     for k in list_of_keys:
         color = custom_colors[k]
         list_of_patches.append(mpatches.Patch(
-            color=color, label=make_legend(k)
+            color = color, label = make_legend(k),
         ))
     return list_of_patches
 
 
-def adjust_color(cyc, color, target_cycle=6000., target_ratio=.5):
-    mult = 1. + (target_ratio-1.)*(float(cyc) / target_cycle)
+def adjust_color(cyc, color, target_cycle = 6000., target_ratio = .5):
+    mult = 1. + (target_ratio - 1.) * (float(cyc) / target_cycle)
     return (
-            mult * color[0],
-            mult * color[1],
-            mult * color[2]
+        mult * color[0],
+        mult * color[1],
+        mult * color[2],
     )
 
 
 def produce_annotations(ax, list_of_patches, options):
     leg = ax.legend(
         handles = list_of_patches, fontsize = "small",
-        bbox_to_anchor = (options["x_leg"], options["y_leg"]), loc = "upper left"
+        bbox_to_anchor = (options["x_leg"], options["y_leg"]),
+        loc = "upper left",
     )
     ax.set_ylabel(options["ylabel"])
     ax.set_xlabel(options["xlabel"])
     return leg
 
-def simple_plot(ax, x,y, color, channel):
-    if channel == 'scatter' or channel == "scatter_valid" or channel == "scatter_invalid":
-        if channel== 'scatter':
-            s=20
-            marker='.'
-        elif channel== "scatter_valid":
-            s=100
-            marker='.'
-        elif channel== "scatter_invalid":
-            s=5
-            marker='x'
 
-        ax.scatter(
-            x,
-            y,
-            c=[list(color)],
-            s=s,
-            marker=marker
-        )
+def simple_plot(ax, x, y, color, channel):
+    if (
+        channel == 'scatter'
+        or channel == "scatter_valid"
+        or channel == "scatter_invalid"
+    ):
+        if channel == 'scatter':
+            s = 20
+            marker = '.'
+        elif channel == "scatter_valid":
+            s = 100
+            marker = '.'
+        elif channel == "scatter_invalid":
+            s = 5
+            marker = 'x'
+
+        ax.scatter(x, y, c = [list(color)], s = s, marker = marker)
     elif channel == 'plot':
-        ax.plot(
-            x,
-            y,
-            c=color,
-        )
+        ax.plot(x, y, c = color, )
     else:
         raise Exception("not yet implemented. channel = {}".format(channel))
 
-def plot_generic(
-        target,
-        groups,list_of_keys,
-        custom_colors, generic_map,
-        ax,
-        channel,
-        options
-    ):
 
+def plot_generic(
+    target, groups, list_of_keys,
+    custom_colors, generic_map, ax, channel, options
+):
     for k in list_of_keys:
-        if not k in groups.keys():
+        if k not in groups.keys():
             continue
         group = groups[k]
         if target == "generic_vs_cycle":
@@ -425,7 +423,7 @@ def plot_generic(
                 else:
                     x = x_
                     y = y_
-                color =  adjust_color(group[Key.N][i], custom_colors[k])
+                color = adjust_color(group[Key.N][i], custom_colors[k])
                 simple_plot(ax, x, y, color, channel)
 
 
@@ -438,45 +436,46 @@ def get_svit_and_count(my_data, cell_id):
     count_matrix = np.reshape(
         my_data[Key.ALL_DATA][cell_id]["all_reference_mats"]
         [Key.COUNT_MATRIX][-1],
-        [n_sign, n_voltage, n_current, n_temperature, 1]
+        [n_sign, n_voltage, n_current, n_temperature, 1],
     )
 
     svit_grid = np.concatenate(
         (
             np.tile(
                 np.reshape(my_data["sign_grid"], [n_sign, 1, 1, 1, 1]),
-                [1, n_voltage, n_current, n_temperature, 1]
+                [1, n_voltage, n_current, n_temperature, 1],
             ),
             np.tile(
                 np.reshape(my_data["voltage_grid"], [1, n_voltage, 1, 1, 1]),
-                [n_sign, 1, n_current, n_temperature, 1]
+                [n_sign, 1, n_current, n_temperature, 1],
             ),
             np.tile(
                 np.reshape(my_data["current_grid"], [1, 1, n_current, 1, 1]),
-                [n_sign, n_voltage, 1, n_temperature, 1]
+                [n_sign, n_voltage, 1, n_temperature, 1],
             ),
             np.tile(
                 np.reshape(
-                    my_data["temperature_grid"],
-                    [1, 1, 1, n_temperature, 1]
+                    my_data["temperature_grid"], [1, 1, 1, n_temperature, 1],
                 ),
                 [n_sign, n_voltage, n_current, 1, 1]
             ),
         ),
-        axis = -1
+        axis = -1,
     )
     return {Key.SVIT_GRID: svit_grid, Key.COUNT_MATRIX: count_matrix}
 
 
-
-def compute_target(target, degradation_model, cell_id, sign_change, mode, averages, generic_map, svit_and_count,
-                   cycle_m, cycle_v, cycle_min = 0, cycle_max = 6000 , max_cyc_n = 3):
+def compute_target(
+    target, degradation_model, cell_id, sign_change, mode, averages,
+    generic_map, svit_and_count,
+    cycle_m, cycle_v, cycle_min = 0, cycle_max = 6000, max_cyc_n = 3
+):
     cycle = np.linspace(cycle_min, cycle_max, max_cyc_n)
     scaled_cyc = (cycle - cycle_m) / tf.sqrt(cycle_v)
 
     if target == 'generic_vs_capacity':
-        v_range = np.ones((1), dtype=np.float32)
-        current_range = np.ones((1), dtype=np.float32)
+        v_range = np.ones(1, dtype = np.float32)
+        current_range = np.ones(1, dtype = np.float32)
         if mode == 'cc':
             v_min = min(averages[Key.V_PREV_END_AVG], averages[Key.V_END_AVG])
             v_max = max(averages[Key.V_PREV_END_AVG], averages[Key.V_END_AVG])
@@ -491,26 +490,24 @@ def compute_target(target, degradation_model, cell_id, sign_change, mode, averag
                 y_n = 1
             else:
                 current_range = sign_change * np.exp(
-                    np.linspace(
-                        np.log(curr_min),
-                        np.log(curr_max),
-                        32
-                    )
+                    np.linspace(np.log(curr_min), np.log(curr_max), 32)
                 )
                 y_n = 32
 
-
         test_results = degradation_model.test_all_voltages(
-            tf.constant(scaled_cyc, dtype=tf.float32),
-            tf.constant(averages[Key.I_CC_AVG], dtype=tf.float32),
-            tf.constant(averages[Key.I_PREV_END_AVG], dtype=tf.float32),
-            tf.constant(averages[Key.V_PREV_END_AVG], dtype=tf.float32),
-            tf.constant(averages[Key.V_END_AVG], dtype=tf.float32),
-            tf.constant(degradation_model.cell_direct.id_dict[cell_id], dtype=tf.int32),
-            tf.constant(v_range, dtype=tf.float32),
-            tf.constant(current_range, dtype=tf.float32),
-            tf.constant(svit_and_count[Key.SVIT_GRID], dtype=tf.float32),
-            tf.constant(svit_and_count[Key.COUNT_MATRIX], dtype=tf.float32),
+            tf.constant(scaled_cyc, dtype = tf.float32),
+            tf.constant(averages[Key.I_CC_AVG], dtype = tf.float32),
+            tf.constant(averages[Key.I_PREV_END_AVG], dtype = tf.float32),
+            tf.constant(averages[Key.V_PREV_END_AVG], dtype = tf.float32),
+            tf.constant(averages[Key.V_END_AVG], dtype = tf.float32),
+            tf.constant(
+                degradation_model.cell_direct.id_dict[cell_id],
+                dtype = tf.int32,
+            ),
+            tf.constant(v_range, dtype = tf.float32),
+            tf.constant(current_range, dtype = tf.float32),
+            tf.constant(svit_and_count[Key.SVIT_GRID], dtype = tf.float32),
+            tf.constant(svit_and_count[Key.COUNT_MATRIX], dtype = tf.float32),
         )
 
         if mode == "cc":
@@ -521,15 +518,15 @@ def compute_target(target, degradation_model, cell_id, sign_change, mode, averag
             pred_capacity_label = Key.Pred.I_CV
 
         cap = tf.reshape(
-            test_results[pred_capacity_label], shape=[max_cyc_n, -1]
+            test_results[pred_capacity_label], shape = [max_cyc_n, -1],
         )
 
         if y_n == 1:
             y_n = (1,)
 
         generic = np.array(
-            [(cyc, cap[i,:], yrange) for i, cyc in enumerate(cycle)],
-            dtype= [
+            [(cyc, cap[i, :], yrange) for i, cyc in enumerate(cycle)],
+            dtype = [
                 (Key.N, 'f4'),
                 (generic_map['x'], 'f4', y_n),
                 (generic_map['y'], 'f4', y_n),
@@ -544,44 +541,47 @@ def compute_target(target, degradation_model, cell_id, sign_change, mode, averag
             target_currents = [averages[Key.I_END_AVG]]
 
         test_results = degradation_model.test_single_voltage(
-            tf.cast(scaled_cyc, dtype=tf.float32),
-            tf.constant(target_voltage, dtype=tf.float32),
-            tf.constant(averages[Key.I_CC_AVG], dtype=tf.float32),
-            tf.constant(averages[Key.I_PREV_END_AVG], dtype=tf.float32),
-            tf.constant(averages[Key.V_PREV_END_AVG], dtype=tf.float32),
-            tf.constant(averages[Key.V_END_AVG], dtype=tf.float32),
-            tf.constant(target_currents, dtype=tf.float32),
-            tf.constant(degradation_model.cell_direct.id_dict[cell_id], dtype=tf.int32),
-            tf.constant(svit_and_count[Key.SVIT_GRID], dtype=tf.float32),
-            tf.constant(svit_and_count[Key.COUNT_MATRIX], dtype=tf.float32)
+            tf.cast(scaled_cyc, dtype = tf.float32),
+            tf.constant(target_voltage, dtype = tf.float32),
+            tf.constant(averages[Key.I_CC_AVG], dtype = tf.float32),
+            tf.constant(averages[Key.I_PREV_END_AVG], dtype = tf.float32),
+            tf.constant(averages[Key.V_PREV_END_AVG], dtype = tf.float32),
+            tf.constant(averages[Key.V_END_AVG], dtype = tf.float32),
+            tf.constant(target_currents, dtype = tf.float32),
+            tf.constant(
+                degradation_model.cell_direct.id_dict[cell_id],
+                dtype = tf.int32,
+            ),
+            tf.constant(svit_and_count[Key.SVIT_GRID], dtype = tf.float32),
+            tf.constant(svit_and_count[Key.COUNT_MATRIX], dtype = tf.float32),
         )
         if mode == "cc":
             pred_cap = tf.reshape(
-                test_results[Key.Pred.I_CC],
-                shape=[-1]
+                test_results[Key.Pred.I_CC], shape = [-1],
             ).numpy()
         elif mode == "cv":
             pred_cap = test_results[Key.Pred.I_CV].numpy()[:, -1]
 
         generic = np.array(
             list(zip(cycle, pred_cap)),
-            dtype= [
+            dtype = [
                 (Key.N, 'f4'),
                 (generic_map['y'], 'f4'),
-            ]
-
+            ],
         )
 
     return generic
 
 
-
-
-def plot_cycling_direct(cell_id, path_to_plots = None, lower_cycle=None, upper_cycle=None, show_invalid=False, vertical_barriers=None, list_all_options=None, figsize = None):
+def plot_cycling_direct(
+    cell_id, path_to_plots = None, lower_cycle = None, upper_cycle = None,
+    show_invalid = False, vertical_barriers = None, list_all_options = None,
+    figsize = None
+):
     if show_invalid:
         data_streams = [
             ('database', (cell_id, True), 'scatter_valid', 100),
-            ('database', (cell_id, False), 'scatter_invalid', 100)
+            ('database', (cell_id, False), 'scatter_invalid', 100),
         ]
     else:
         data_streams = [
@@ -590,35 +590,31 @@ def plot_cycling_direct(cell_id, path_to_plots = None, lower_cycle=None, upper_c
 
     if path_to_plots is None:
         return plot_engine_direct(
-                data_streams=data_streams,
-                target="generic_vs_cycle",
-                todos=[
-                    ("dchg", "cc"),
-                ],
-                fit_args={'path_to_plots':path_to_plots},
-                filename="Initial_{}.png".format(cell_id),
-                lower_cycle = lower_cycle,
-                upper_cycle = upper_cycle,
-                vertical_barriers = vertical_barriers,
-                list_all_options = list_all_options,
-                show_invalid = show_invalid,
-                figsize= figsize,
-            )
+            data_streams = data_streams,
+            target = "generic_vs_cycle",
+            todos = [("dchg", "cc")],
+            fit_args = {'path_to_plots': path_to_plots},
+            filename = "Initial_{}.png".format(cell_id),
+            lower_cycle = lower_cycle,
+            upper_cycle = upper_cycle,
+            vertical_barriers = vertical_barriers,
+            list_all_options = list_all_options,
+            show_invalid = show_invalid,
+            figsize = figsize,
+        )
     else:
         plot_engine_direct(
-            data_streams=data_streams,
-            target="generic_vs_cycle",
-            todos=[
-                ("dchg", "cc"),
-            ],
-            fit_args={'path_to_plots': path_to_plots},
-            filename="Initial_{}.png".format(cell_id),
-            lower_cycle=lower_cycle,
-            upper_cycle=upper_cycle,
-            vertical_barriers=vertical_barriers,
-            list_all_options=list_all_options,
-            show_invalid=show_invalid,
-            figsize=figsize,
+            data_streams = data_streams,
+            target = "generic_vs_cycle",
+            todos = [("dchg", "cc")],
+            fit_args = {'path_to_plots': path_to_plots},
+            filename = "Initial_{}.png".format(cell_id),
+            lower_cycle = lower_cycle,
+            upper_cycle = upper_cycle,
+            vertical_barriers = vertical_barriers,
+            list_all_options = list_all_options,
+            show_invalid = show_invalid,
+            figsize = figsize,
         )
 
 
@@ -632,7 +628,8 @@ def plot_direct(target, plot_params, init_returns):
         model_max_cyc_n = 200
         header = "Cap"
 
-    cell_ids = plot_params["cell_ids"][:plot_params[Key.OPTIONS]["cell_id_show"]]
+    cell_ids\
+        = plot_params["cell_ids"][:plot_params[Key.OPTIONS]["cell_id_show"]]
     count = plot_params["count"]
     fit_args = plot_params[Key.OPTIONS]
 
@@ -643,31 +640,28 @@ def plot_direct(target, plot_params, init_returns):
 
     for cell_id_count, cell_id in enumerate(cell_ids):
         compiled_groups = my_data[Key.ALL_DATA][cell_id][Key.CYC_GRP_DICT]
-        svit_and_count, keys, averages = fetch_svit_keys_averages(my_data, cell_id)
-        model_data = degradation_model, cell_id, cycle_m, cycle_v, svit_and_count, keys, averages
+        svit_and_count, keys, averages = fetch_svit_keys_averages(
+            my_data, cell_id,
+        )
+        model_data = (
+            degradation_model, cell_id, cycle_m, cycle_v,
+            svit_and_count, keys, averages,
+        )
 
         plot_engine_direct(
-            data_streams=[
+            data_streams = [
                 ('compiled', compiled_groups, 'scatter', compiled_max_cyc_n),
-                ('model', model_data, 'plot', model_max_cyc_n)
+                ('model', model_data, 'plot', model_max_cyc_n),
             ],
-            target=target,
-            todos=[
-                ("dchg", "cc"),
-                ("chg", "cc"),
-                ("chg", "cv"),
-            ],
-            fit_args=fit_args,
-            filename=header+"_{}_Count_{}.png".format(cell_id, count)
+            target = target,
+            todos = [("dchg", "cc"), ("chg", "cc"), ("chg", "cv")],
+            fit_args = fit_args,
+            filename = header + "_{}_Count_{}.png".format(cell_id, count)
         )
 
 
-
-
 def savefig(figname, fit_args):
-    plt.savefig(
-        os.path.join(fit_args[Key.PATH_PLOTS], figname), dpi = 300
-    )
+    plt.savefig(os.path.join(fit_args[Key.PATH_PLOTS], figname), dpi = 300)
 
 
 def set_tick_params(ax):
@@ -695,16 +689,12 @@ def get_nearest_point(xys, y):
     return best
 
 
-
-
 def get_list_of_keys(keys, typ):
-    list_of_keys = [
-        key for key in keys if key[-1] == typ
-    ]
+    list_of_keys = [key for key in keys if key[-1] == typ]
     list_of_keys.sort(
         key = lambda k: (
             round(40. * k[0]), round(40. * k[1]), round(40. * k[2]),
-            round(10. * k[3]), round(10. * k[4])
+            round(10. * k[3]), round(10. * k[4]),
         )
     )
     return list_of_keys

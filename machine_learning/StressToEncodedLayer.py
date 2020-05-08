@@ -1,29 +1,32 @@
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
+
 main_activation = "relu"
+
 
 class StressToEncodedLayer(Layer):
     def __init__(self, n_channels):
         super(StressToEncodedLayer, self).__init__()
         self.n_channels = n_channels
         self.input_kernel = self.add_weight(
-            "input_kernel", shape = [1, 1, 1, 4 + 1, self.n_channels]
+            "input_kernel", shape = [1, 1, 1, 4 + 1, self.n_channels],
         )
 
         self.v_i_kernel_1 = self.add_weight(
-            "v_i_kernel_1", shape = [3, 3, 1, self.n_channels, self.n_channels]
+            "v_i_kernel_1", shape = [3, 3, 1, self.n_channels, self.n_channels],
         )
 
         self.v_i_kernel_2 = self.add_weight(
-            "v_i_kernel_2", shape = [3, 3, 1, self.n_channels, self.n_channels]
+            "v_i_kernel_2", shape = [3, 3, 1, self.n_channels, self.n_channels],
         )
 
         self.t_kernel = self.add_weight(
-            "t_kernel", shape = [1, 1, 3, self.n_channels, self.n_channels]
+            "t_kernel", shape = [1, 1, 3, self.n_channels, self.n_channels],
         )
 
         self.output_kernel = self.add_weight(
-            "output_kernel", shape = [1, 1, 1, self.n_channels, self.n_channels]
+            "output_kernel",
+            shape = [1, 1, 1, self.n_channels, self.n_channels],
         )
 
     def __call__(self, input, training = True):

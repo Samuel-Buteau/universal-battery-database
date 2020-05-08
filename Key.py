@@ -113,7 +113,7 @@ class Key:
     BATCH = "batch_size"
 
     PRINT_LOSS = "print_loss_every"
-    VIS = "visualize_fit_every"
+    VIS_FIT = "visualize_fit_every"
     VIS_VQ = "visualize_vq_every"
     STOP = "stop_count"
     BAR_SHOW = "barcode_show"

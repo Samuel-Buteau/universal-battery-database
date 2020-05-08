@@ -548,6 +548,68 @@ class DegradationModel(Model):
         self.n_channels = n_channels
 
     def call(self, x, training = False):
+        """
+        Call function for the Model during training or evaluation.
+
+        Examples:
+
+            training:
+                ```python
+                train_results = degradation_model(
+                    (
+                        tf.expand_dims(cycle, axis = 1),
+                        tf.expand_dims(constant_current, axis = 1),
+                        tf.expand_dims(end_current_prev, axis = 1),
+                        tf.expand_dims(end_voltage_prev, axis = 1),
+                        tf.expand_dims(end_voltage, axis = 1),
+                        cell_indices,
+                        cc_voltage,
+                        cv_current,
+                        svit_grid,
+                        count_matrix,
+                    ),
+                    training = True,
+                )
+                ```
+
+            evaluation:
+                ```python
+                eval_results = degradation_model(
+                    (
+                        tf.constant(cycle, shape = [1, 1]),
+                        tf.constant(constant_current, shape = [1, 1]),
+                        tf.constant(end_current_prev, shape = [1, 1]),
+                        tf.constant(end_voltage_prev, shape = [1, 1]),
+                        tf.constant(end_voltage, shape = [1, 1]),
+                        tf.reshape(barcode_count, [1]),
+                        tf.reshape(voltages, [1, len(voltages)]),
+                        tf.reshape(currents, [1, len(currents)]),
+                        tf.constant([svit_grid]),
+                        tf.constant([count_matrix]),
+                    ),
+                    training = False
+                )
+                ```
+
+        Args:
+            params: Contains -
+                Cycle,
+                Constant current,
+                The end current of the previous step,
+                The end voltage of the previous step,
+                The end voltage of the current step,
+                Indices,
+                Voltage,
+                Current
+                S.V.I.T. grid,
+                Count
+            training: Flag for training or evaluation.
+                True for training; False for evaluation.
+
+        Returns:
+            `{ Key.Pred.I_CC, Key.Pred.I_CV }`. During training, the
+                dictionary also includes `{ "q_loss", "cell_loss" }`.
+        """
 
         cycle = x[0]  # matrix; dim: [batch, 1]
         constant_current = x[1]  # matrix; dim: [batch, 1]

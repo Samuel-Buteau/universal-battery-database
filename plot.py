@@ -199,7 +199,7 @@ def generate_options(mode, typ, target):
         "x_leg": x_leg,
         "y_leg": y_leg,
         "xlabel": xlabel,
-        "ylabel": ylabel
+        "ylabel": ylabel,
     }
 
 
@@ -258,7 +258,10 @@ def data_engine(
     sign_change = get_sign_change(typ)
     generic_map = get_generic_map(source, target, mode)
     if source == "model":
-        degradation_model, cell_id, cycle_m, cycle_v, svit_and_count, keys, averages = data
+        (
+            degradation_model, cell_id, cycle_m, cycle_v,
+            svit_and_count, keys, averages,
+        ) = data
         list_of_keys = get_list_of_keys(keys, typ)
         for k in list_of_keys:
             generic[k] = compute_target(
@@ -312,7 +315,7 @@ def map_legend_to_color(list_of_keys):
                     else:
                         color_index = sorted(possible_colors)[0]
 
-                if not color_index in colors_taken:
+                if color_index not in colors_taken:
                     colors_taken.append(color_index)
                 custom_colors[k] = color_index
                 break
@@ -320,11 +323,11 @@ def map_legend_to_color(list_of_keys):
             continue
 
     for color_index in legends.values():
-        if not color_index in colors_taken:
+        if color_index not in colors_taken:
             colors_taken.append(color_index)
 
     for k in list_of_keys:
-        if not k in custom_colors.keys():
+        if k not in custom_colors.keys():
             possible_colors = [
                 c_i for c_i in range(len(COLORS)) if c_i not in colors_taken
             ]
@@ -333,7 +336,7 @@ def map_legend_to_color(list_of_keys):
             else:
                 color_index = sorted(possible_colors)[0]
 
-            if not color_index in colors_taken:
+            if color_index not in colors_taken:
                 colors_taken.append(color_index)
             custom_colors[k] = color_index
 
@@ -348,7 +351,7 @@ def get_list_of_patches(list_of_keys, custom_colors):
     for k in list_of_keys:
         color = custom_colors[k]
         list_of_patches.append(mpatches.Patch(
-            color = color, label = make_legend(k)
+            color = color, label = make_legend(k),
         ))
     return list_of_patches
 
@@ -358,7 +361,7 @@ def adjust_color(cyc, color, target_cycle = 6000., target_ratio = .5):
     return (
         mult * color[0],
         mult * color[1],
-        mult * color[2]
+        mult * color[2],
     )
 
 
@@ -366,7 +369,7 @@ def produce_annotations(ax, list_of_patches, options):
     leg = ax.legend(
         handles = list_of_patches, fontsize = "small",
         bbox_to_anchor = (options["x_leg"], options["y_leg"]),
-        loc = "upper left"
+        loc = "upper left",
     )
     ax.set_ylabel(options["ylabel"])
     ax.set_xlabel(options["xlabel"])
@@ -374,7 +377,11 @@ def produce_annotations(ax, list_of_patches, options):
 
 
 def simple_plot(ax, x, y, color, channel):
-    if channel == 'scatter' or channel == "scatter_valid" or channel == "scatter_invalid":
+    if (
+        channel == 'scatter'
+        or channel == "scatter_valid"
+        or channel == "scatter_invalid"
+    ):
         if channel == 'scatter':
             s = 20
             marker = '.'
@@ -385,33 +392,19 @@ def simple_plot(ax, x, y, color, channel):
             s = 5
             marker = 'x'
 
-        ax.scatter(
-            x,
-            y,
-            c = [list(color)],
-            s = s,
-            marker = marker
-        )
+        ax.scatter(x, y, c = [list(color)], s = s, marker = marker)
     elif channel == 'plot':
-        ax.plot(
-            x,
-            y,
-            c = color,
-        )
+        ax.plot(x, y, c = color, )
     else:
         raise Exception("not yet implemented. channel = {}".format(channel))
 
 
 def plot_generic(
-    target,
-    groups, list_of_keys,
-    custom_colors, generic_map,
-    ax,
-    channel,
-    options
+    target, groups, list_of_keys,
+    custom_colors, generic_map, ax, channel, options
 ):
     for k in list_of_keys:
-        if not k in groups.keys():
+        if k not in groups.keys():
             continue
         group = groups[k]
         if target == "generic_vs_cycle":
@@ -443,32 +436,31 @@ def get_svit_and_count(my_data, cell_id):
     count_matrix = np.reshape(
         my_data[Key.ALL_DATA][cell_id]["all_reference_mats"]
         [Key.COUNT_MATRIX][-1],
-        [n_sign, n_voltage, n_current, n_temperature, 1]
+        [n_sign, n_voltage, n_current, n_temperature, 1],
     )
 
     svit_grid = np.concatenate(
         (
             np.tile(
                 np.reshape(my_data["sign_grid"], [n_sign, 1, 1, 1, 1]),
-                [1, n_voltage, n_current, n_temperature, 1]
+                [1, n_voltage, n_current, n_temperature, 1],
             ),
             np.tile(
                 np.reshape(my_data["voltage_grid"], [1, n_voltage, 1, 1, 1]),
-                [n_sign, 1, n_current, n_temperature, 1]
+                [n_sign, 1, n_current, n_temperature, 1],
             ),
             np.tile(
                 np.reshape(my_data["current_grid"], [1, 1, n_current, 1, 1]),
-                [n_sign, n_voltage, 1, n_temperature, 1]
+                [n_sign, n_voltage, 1, n_temperature, 1],
             ),
             np.tile(
                 np.reshape(
-                    my_data["temperature_grid"],
-                    [1, 1, 1, n_temperature, 1]
+                    my_data["temperature_grid"], [1, 1, 1, n_temperature, 1],
                 ),
                 [n_sign, n_voltage, n_current, 1, 1]
             ),
         ),
-        axis = -1
+        axis = -1,
     )
     return {Key.SVIT_GRID: svit_grid, Key.COUNT_MATRIX: count_matrix}
 
@@ -482,8 +474,8 @@ def compute_target(
     scaled_cyc = (cycle - cycle_m) / tf.sqrt(cycle_v)
 
     if target == 'generic_vs_capacity':
-        v_range = np.ones((1), dtype = np.float32)
-        current_range = np.ones((1), dtype = np.float32)
+        v_range = np.ones(1, dtype = np.float32)
+        current_range = np.ones(1, dtype = np.float32)
         if mode == 'cc':
             v_min = min(averages[Key.V_PREV_END_AVG], averages[Key.V_END_AVG])
             v_max = max(averages[Key.V_PREV_END_AVG], averages[Key.V_END_AVG])
@@ -498,11 +490,7 @@ def compute_target(
                 y_n = 1
             else:
                 current_range = sign_change * np.exp(
-                    np.linspace(
-                        np.log(curr_min),
-                        np.log(curr_max),
-                        32
-                    )
+                    np.linspace(np.log(curr_min), np.log(curr_max), 32)
                 )
                 y_n = 32
 
@@ -513,7 +501,8 @@ def compute_target(
             tf.constant(averages[Key.V_PREV_END_AVG], dtype = tf.float32),
             tf.constant(averages[Key.V_END_AVG], dtype = tf.float32),
             tf.constant(
-                degradation_model.cell_direct.id_dict[cell_id], dtype = tf.int32
+                degradation_model.cell_direct.id_dict[cell_id],
+                dtype = tf.int32,
             ),
             tf.constant(v_range, dtype = tf.float32),
             tf.constant(current_range, dtype = tf.float32),
@@ -529,7 +518,7 @@ def compute_target(
             pred_capacity_label = Key.Pred.I_CV
 
         cap = tf.reshape(
-            test_results[pred_capacity_label], shape = [max_cyc_n, -1]
+            test_results[pred_capacity_label], shape = [max_cyc_n, -1],
         )
 
         if y_n == 1:
@@ -560,15 +549,15 @@ def compute_target(
             tf.constant(averages[Key.V_END_AVG], dtype = tf.float32),
             tf.constant(target_currents, dtype = tf.float32),
             tf.constant(
-                degradation_model.cell_direct.id_dict[cell_id], dtype = tf.int32
+                degradation_model.cell_direct.id_dict[cell_id],
+                dtype = tf.int32,
             ),
             tf.constant(svit_and_count[Key.SVIT_GRID], dtype = tf.float32),
-            tf.constant(svit_and_count[Key.COUNT_MATRIX], dtype = tf.float32)
+            tf.constant(svit_and_count[Key.COUNT_MATRIX], dtype = tf.float32),
         )
         if mode == "cc":
             pred_cap = tf.reshape(
-                test_results[Key.Pred.I_CC],
-                shape = [-1]
+                test_results[Key.Pred.I_CC], shape = [-1],
             ).numpy()
         elif mode == "cv":
             pred_cap = test_results[Key.Pred.I_CV].numpy()[:, -1]
@@ -578,8 +567,7 @@ def compute_target(
             dtype = [
                 (Key.N, 'f4'),
                 (generic_map['y'], 'f4'),
-            ]
-
+            ],
         )
 
     return generic
@@ -593,7 +581,7 @@ def plot_cycling_direct(
     if show_invalid:
         data_streams = [
             ('database', (cell_id, True), 'scatter_valid', 100),
-            ('database', (cell_id, False), 'scatter_invalid', 100)
+            ('database', (cell_id, False), 'scatter_invalid', 100),
         ]
     else:
         data_streams = [
@@ -604,9 +592,7 @@ def plot_cycling_direct(
         return plot_engine_direct(
             data_streams = data_streams,
             target = "generic_vs_cycle",
-            todos = [
-                ("dchg", "cc"),
-            ],
+            todos = [("dchg", "cc")],
             fit_args = {'path_to_plots': path_to_plots},
             filename = "Initial_{}.png".format(cell_id),
             lower_cycle = lower_cycle,
@@ -620,9 +606,7 @@ def plot_cycling_direct(
         plot_engine_direct(
             data_streams = data_streams,
             target = "generic_vs_cycle",
-            todos = [
-                ("dchg", "cc"),
-            ],
+            todos = [("dchg", "cc")],
             fit_args = {'path_to_plots': path_to_plots},
             filename = "Initial_{}.png".format(cell_id),
             lower_cycle = lower_cycle,
@@ -656,33 +640,28 @@ def plot_direct(target, plot_params, init_returns):
 
     for cell_id_count, cell_id in enumerate(cell_ids):
         compiled_groups = my_data[Key.ALL_DATA][cell_id][Key.CYC_GRP_DICT]
-        svit_and_count, keys, averages = fetch_svit_keys_averages(my_data,
-                                                                  cell_id)
+        svit_and_count, keys, averages = fetch_svit_keys_averages(
+            my_data, cell_id,
+        )
         model_data = (
-            degradation_model, cell_id, cycle_m, cycle_v, svit_and_count, keys,
-            averages
+            degradation_model, cell_id, cycle_m, cycle_v,
+            svit_and_count, keys, averages,
         )
 
         plot_engine_direct(
             data_streams = [
                 ('compiled', compiled_groups, 'scatter', compiled_max_cyc_n),
-                ('model', model_data, 'plot', model_max_cyc_n)
+                ('model', model_data, 'plot', model_max_cyc_n),
             ],
             target = target,
-            todos = [
-                ("dchg", "cc"),
-                ("chg", "cc"),
-                ("chg", "cv"),
-            ],
+            todos = [("dchg", "cc"), ("chg", "cc"), ("chg", "cv")],
             fit_args = fit_args,
             filename = header + "_{}_Count_{}.png".format(cell_id, count)
         )
 
 
 def savefig(figname, fit_args):
-    plt.savefig(
-        os.path.join(fit_args[Key.PATH_PLOTS], figname), dpi = 300
-    )
+    plt.savefig(os.path.join(fit_args[Key.PATH_PLOTS], figname), dpi = 300)
 
 
 def set_tick_params(ax):
@@ -711,13 +690,11 @@ def get_nearest_point(xys, y):
 
 
 def get_list_of_keys(keys, typ):
-    list_of_keys = [
-        key for key in keys if key[-1] == typ
-    ]
+    list_of_keys = [key for key in keys if key[-1] == typ]
     list_of_keys.sort(
         key = lambda k: (
             round(40. * k[0]), round(40. * k[1]), round(40. * k[2]),
-            round(10. * k[3]), round(10. * k[4])
+            round(10. * k[3]), round(10. * k[4]),
         )
     )
     return list_of_keys

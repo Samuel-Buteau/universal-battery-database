@@ -863,7 +863,7 @@ class Command(BaseCommand):
             "--coeff_q_d_cycle": 10.,
         }
 
-        vis = 1
+        vis = 10000
         int_args = {
             "--n_sample": 8 * 16,
 

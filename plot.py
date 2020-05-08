@@ -515,10 +515,10 @@ def compute_target(target, degradation_model, cell_id, sign_change, mode, averag
 
         if mode == "cc":
             yrange = v_range
-            pred_capacity_label = "pred_cc_capacity"
+            pred_capacity_label = Key.Pred.I_CC
         elif mode == "cv":
             yrange = current_range
-            pred_capacity_label = "pred_cv_capacity"
+            pred_capacity_label = Key.Pred.I_CV
 
         cap = tf.reshape(
             test_results[pred_capacity_label], shape=[max_cyc_n, -1]
@@ -557,11 +557,11 @@ def compute_target(target, degradation_model, cell_id, sign_change, mode, averag
         )
         if mode == "cc":
             pred_cap = tf.reshape(
-                test_results["pred_cc_capacity"],
+                test_results[Key.Pred.I_CC],
                 shape=[-1]
             ).numpy()
         elif mode == "cv":
-            pred_cap = test_results["pred_cv_capacity"].numpy()[:, -1]
+            pred_cap = test_results[Key.Pred.I_CV].numpy()[:, -1]
 
         generic = np.array(
             list(zip(cycle, pred_cap)),

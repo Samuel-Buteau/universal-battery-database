@@ -316,7 +316,7 @@ def create_derivatives(
                 derivatives["d2_" + k] = tape_d2.batch_jacobian(
                     source = params[k], target = derivatives["d_" + k]
                 )
-                if k not in [Key.CELL_FEAT, "encoded_stress"]:
+                if k not in [Key.CELL_FEAT, Key.STRESS]:
                     derivatives["d2_" + k] = derivatives["d2_" + k][:, 0, :]
 
         del tape_d2
@@ -326,7 +326,7 @@ def create_derivatives(
             derivatives["d3_" + k] = tape_d3.batch_jacobian(
                 source = params[k], target = derivatives["d2_" + k]
             )
-            if k not in [Key.CELL_FEAT, "encoded_stress"]:
+            if k not in [Key.CELL_FEAT, Key.STRESS]:
                 derivatives["d3_" + k] = derivatives["d3_" + k][:, 0, :]
 
     del tape_d3
@@ -657,8 +657,8 @@ class DegradationModel(Model):
         pred_cv_capacity = tf.reshape(cv_capacity, [-1, current_count])
 
         returns = {
-            "pred_cc_capacity": pred_cc_capacity,
-            "pred_cv_capacity": pred_cv_capacity,
+            Key.Pred.I_CC: pred_cc_capacity,
+            Key.Pred.I_CV: pred_cv_capacity,
         }
 
         if training:
@@ -680,13 +680,13 @@ class DegradationModel(Model):
                 self.q_for_derivative,
                 params = {
                     Key.CYC: sampled_cycles,
-                    "encoded_stress": sampled_encoded_stress,
+                    Key.STRESS: sampled_encoded_stress,
                     Key.V: sampled_vs,
                     Key.CELL_FEAT: sampled_feats_cell,
-                    "current": sampled_constant_current,
+                    Key.I: sampled_constant_current,
                 },
                 der_params = {
-                    Key.V: 3, Key.CELL_FEAT: 2, "current": 3, Key.CYC: 3,
+                    Key.V: 3, Key.CELL_FEAT: 2, Key.I: 3, Key.CYC: 3,
                 }
             )
 
@@ -1281,11 +1281,11 @@ class DegradationModel(Model):
     def q_for_derivative(self, params, training = True):
 
         return self.q_direct(
-            encoded_stress = params["encoded_stress"],
+            encoded_stress = params[Key.STRESS],
             cycle = params[Key.CYC],
             feats_cell = params[Key.CELL_FEAT],
             v = params[Key.V],
-            current = params["current"],
+            current = params[Key.I],
             training = training,
         )
 

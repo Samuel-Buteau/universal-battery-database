@@ -760,8 +760,8 @@ def train_step(neighborhood, params, fit_args):
             training = True,
         )
 
-        pred_cc_capacity = train_results["pred_cc_capacity"]
-        pred_cv_capacity = train_results["pred_cv_capacity"]
+        pred_cc_capacity = train_results[Key.Pred.I_CC]
+        pred_cv_capacity = train_results[Key.Pred.I_CV]
 
         cc_capacity_loss = get_loss(
             cc_capacity, pred_cc_capacity, cc_mask, cc_mask_2,

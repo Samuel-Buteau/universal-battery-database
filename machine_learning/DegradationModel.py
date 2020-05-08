@@ -262,7 +262,7 @@ def create_derivatives(nn, params, der_params, internal_loss = False):
                     source = params[k],
                     target = derivatives["d_" + k]
                 )
-                if not k in ["features", "encoded_stress"]:
+                if not k in ["features", Key.STRESS]:
                     derivatives["d2_" + k] = derivatives["d2_" + k][:, 0, :]
 
         del tape_d2
@@ -273,7 +273,7 @@ def create_derivatives(nn, params, der_params, internal_loss = False):
                 source = params[k],
                 target = derivatives["d2_" + k]
             )
-            if not k in ["features", "encoded_stress"]:
+            if not k in ["features", Key.STRESS]:
                 derivatives["d3_" + k] = derivatives["d3_" + k][:, 0, :]
 
     del tape_d3
@@ -1614,11 +1614,11 @@ class DegradationModel(Model):
         )
 
         v_plus, loss = self.v_plus_direct(
-            encoded_stress = params["encoded_stress"],
+            encoded_stress = params[Key.STRESS],
             norm_cycle = norm_cycle,
             cell_features = get_cell_features(features = params["features"]),
             q = params["q"],
-            current = params["current"],
+            current = params[Key.I],
             training = training
         )
         return v_plus
@@ -1629,11 +1629,11 @@ class DegradationModel(Model):
         )
 
         v_m, loss = self.v_minus_direct(
-            encoded_stress=params["encoded_stress"],
+            encoded_stress=params[Key.STRESS],
             norm_cycle=norm_cycle,
             cell_features = get_cell_features(features = params["features"]),
             q = params["q"],
-            current = params["current"],
+            current = params[Key.I],
             training = training
         )
         return v_m
@@ -1643,12 +1643,12 @@ class DegradationModel(Model):
             params={Key.CYC: params[Key.CYC], "features": params["features"]}
         )
         return self.q_direct(
-            encoded_stress=params["encoded_stress"],
+            encoded_stress=params[Key.STRESS],
             norm_cycle=norm_cycle,
             cell_features = get_cell_features(features = params["features"]),
             v = params[Key.V],
             shift = params["shift"],
-            current = params["current"],
+            current = params[Key.I],
             training = training,
         )
 
@@ -1931,23 +1931,23 @@ class DegradationModel(Model):
                 self.v_plus_for_derivative,
                 params = {
                     Key.CYC:sampled_cycles,
-                    "encoded_stress":sampled_encoded_stress,
+                    Key.STRESS:sampled_encoded_stress,
                     "q": sampled_qs,
                     "features": sampled_features,
-                    "current": sampled_constant_current
+                    Key.I: sampled_constant_current
                 },
-                der_params = {"q": 1, "current": 3, Key.CYC: 3}
+                der_params = {"q": 1, Key.I: 3, Key.CYC: 3}
             )
             v_minus, v_minus_der = create_derivatives(
                 self.v_minus_for_derivative,
                 params = {
                     Key.CYC: sampled_cycles,
-                    "encoded_stress": sampled_encoded_stress,
+                    Key.STRESS: sampled_encoded_stress,
                     "q": sampled_qs,
                     "features": sampled_features,
-                    "current": sampled_constant_current
+                    Key.I: sampled_constant_current
                 },
-                der_params = {"q": 1, "current": 3, Key.CYC: 3}
+                der_params = {"q": 1, Key.I: 3, Key.CYC: 3}
             )
 
 
@@ -1966,13 +1966,13 @@ class DegradationModel(Model):
                 self.q_for_derivative,
                 params = {
                     Key.CYC: sampled_cycles,
-                    "encoded_stress": sampled_encoded_stress,
+                    Key.STRESS: sampled_encoded_stress,
                     Key.V: sampled_vs,
                     "features": sampled_features,
                     "shift": sampled_shift,
-                    "current": sampled_constant_current
+                    Key.I: sampled_constant_current
                 },
-                der_params = {Key.V: 3, "features": 2, "shift": 3, "current": 3, Key.CYC: 3}
+                der_params = {Key.V: 3, "features": 2, "shift": 3, Key.I: 3, Key.CYC: 3}
             )
 
             q_loss = calculate_q_loss(q, q_der,
@@ -2030,8 +2030,8 @@ class DegradationModel(Model):
             )
 
             return {
-                "pred_cc_capacity": pred_cc_capacity,
-                "pred_cv_capacity": pred_cv_capacity,
+                Key.Pred.I_CC: pred_cc_capacity,
+                Key.Pred.I_CV: pred_cv_capacity,
                 "pred_cc_voltage": pred_cc_voltage,
                 "pred_cv_voltage": pred_cv_voltage,
 
@@ -2083,8 +2083,8 @@ class DegradationModel(Model):
 
             return {
 
-                "pred_cc_capacity": pred_cc_capacity,
-                "pred_cv_capacity": pred_cv_capacity,
+                Key.Pred.I_CC: pred_cc_capacity,
+                Key.Pred.I_CV: pred_cv_capacity,
                 "pred_R": resistance,
                 "pred_scale": scale,
                 "pred_shift": shift,

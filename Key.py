@@ -8,6 +8,7 @@ class Key:
     #       Are they different values?
     #           If so, give them different and more descriptive names
 
+    # TODO(harvey): What's the difference between N and CYC?
     N = "cycle_number"
     CYC = "cycle"
     CELL_FEAT = "features_cell"

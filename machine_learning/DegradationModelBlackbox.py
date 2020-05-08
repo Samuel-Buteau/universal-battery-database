@@ -369,10 +369,14 @@ class DegradationModel(Model):
 
         # minimum latent
         self.min_latent = min_latent
+
+        # TODO(harvey): decide the style of "number of x" for the whole project
         # number of samples
         self.n_sample = n_sample
         # incentive coefficients
         self.incentive_coeffs = incentive_coeffs
+
+        # TODO(harvey): decide the style of "number of x" for the whole project
         # number of features
         self.num_feats = width
 

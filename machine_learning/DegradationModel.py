@@ -351,7 +351,7 @@ class DegradationModel(Model):
 
         """ Primitive Dictionary Layer variables """
         self.dry_cell_direct = PrimitiveDictionaryLayer(
-            num_features=6, id_dict=dry_cell_dict
+            num_feats =6, id_dict=dry_cell_dict
         )
 
         self.dry_cell_latent_flags = numpy.ones(
@@ -383,19 +383,19 @@ class DegradationModel(Model):
         self.dry_cell_latent_flags = tf.constant(self.dry_cell_latent_flags)
 
         self.cell_direct = PrimitiveDictionaryLayer(
-            num_features = self.num_features, id_dict = cell_dict
+            num_feats = self.num_features, id_dict = cell_dict
         )
         self.pos_direct = PrimitiveDictionaryLayer(
-            num_features = self.num_features, id_dict = pos_dict
+            num_feats = self.num_features, id_dict = pos_dict
         )
         self.neg_direct = PrimitiveDictionaryLayer(
-            num_features = self.num_features, id_dict = neg_dict
+            num_feats = self.num_features, id_dict = neg_dict
         )
         self.electrolyte_direct = PrimitiveDictionaryLayer(
-            num_features = self.num_features, id_dict = electrolyte_dict
+            num_feats = self.num_features, id_dict = electrolyte_dict
         )
         self.molecule_direct = PrimitiveDictionaryLayer(
-            num_features = self.num_features, id_dict = molecule_dict
+            num_feats = self.num_features, id_dict = molecule_dict
         )
 
         self.num_keys = self.cell_direct.num_keys

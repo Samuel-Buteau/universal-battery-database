@@ -337,53 +337,51 @@ def create_derivatives(
 
 
 class DegradationModel(Model):
-    """ Something
+    """
+    The model responsible for the machine learning aspect of the project.
 
-    Attributes:
-        nn_r (dict): Neural network for R.
+    Notes:
+        This version of Degradation Model has almost no internal structure.
+
+    See Also:
+        See the `call` method in this class for further information on using
+            this class.
     """
 
     def __init__(
         self, depth, width,
-        cell_dict, pos_dict, neg_dict, lyte_dict, molecule_dict,
-        dry_cell_dict,
+        cell_dict, pos_dict, neg_dict, lyte_dict, molecule_dict, dry_cell_dict,
         cell_latent_flags, cell_to_pos, cell_to_neg,
-        cell_to_lyte,
-        cell_to_dry_cell,
-        dry_cell_to_meta,
-
-        lyte_to_solvent, lyte_to_salt, lyte_to_additive,
-        lyte_latent_flags, names,
-
-        n_sample,
-        incentive_coeffs,
-        n_channels = 16,
-        min_latent = 0.1,
+        cell_to_lyte, cell_to_dry_cell, dry_cell_to_meta,
+        lyte_to_solvent, lyte_to_salt, lyte_to_additive, lyte_latent_flags,
+        names, n_sample, incentive_coeffs,
+        n_channels = 16, min_latent = 0.1,
 
     ):
         super(DegradationModel, self).__init__()
 
         print_cell_info(
             cell_latent_flags, cell_to_pos, cell_to_neg, cell_to_lyte,
-            cell_to_dry_cell,
-            dry_cell_to_meta,
-            lyte_to_solvent, lyte_to_salt,
-            lyte_to_additive, lyte_latent_flags, names,
+            cell_to_dry_cell, dry_cell_to_meta,
+            lyte_to_solvent, lyte_to_salt, lyte_to_additive, lyte_latent_flags,
+            names,
         )
 
+        # minimum latent
         self.min_latent = min_latent
-
+        # number of samples
         self.n_sample = n_sample
+        # incentive coefficients
         self.incentive_coeffs = incentive_coeffs
+        # number of features
         self.num_feats = width
 
-        """ feedforward neural networks """
-
+        # feedforward neural network for capacity
         self.nn_q = feedforward_nn_parameters(depth, width, finalize = True)
 
         """ Primitive Dictionary Layer variables """
         self.dry_cell_direct = PrimitiveDictionaryLayer(
-            num_feats = 6, id_dict = dry_cell_dict
+            num_feats = 6, id_dict = dry_cell_dict,
         )
 
         self.dry_cell_latent_flags = numpy.ones(

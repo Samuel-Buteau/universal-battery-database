@@ -547,7 +547,7 @@ class DegradationModel(Model):
         self.width = width
         self.n_channels = n_channels
 
-    def call(self, x, training = False):
+    def call(self, params, training = False):
         """
         Call function for the Model during training or evaluation.
 
@@ -611,16 +611,16 @@ class DegradationModel(Model):
                 dictionary also includes `{ "q_loss", "cell_loss" }`.
         """
 
-        cycle = x[0]  # matrix; dim: [batch, 1]
-        constant_current = x[1]  # matrix; dim: [batch, 1]
-        end_current_prev = x[2]  # matrix; dim: [batch, 1]
-        end_voltage_prev = x[3]  # matrix; dim: [batch, 1]
-        end_voltage = x[4]  # matrix; dim: [batch, 1]
-        indices = x[5]  # batch of index; dim: [batch]
-        voltage_tensor = x[6]  # dim: [batch, voltages]
-        current_tensor = x[7]  # dim: [batch, voltages]
-        svit_grid = x[8]
-        count_matrix = x[9]
+        cycle = params[Key.CYC]  # matrix; dim: [batch, 1]
+        constant_current = params[Key.I_CC]  # matrix; dim: [batch, 1]
+        end_current_prev = params[Key.I_PREV_END]  # matrix; dim: [batch, 1]
+        end_voltage_prev = params[Key.V_PREV_END]  # matrix; dim: [batch, 1]
+        end_voltage = params[Key.V_END]  # matrix; dim: [batch, 1]
+        indices = params[Key.INDICES]  # batch of index; dim: [batch]
+        voltage_tensor = params[Key.V_TENSOR]  # dim: [batch, voltages]
+        current_tensor = params[Key.I_TENSOR]  # dim: [batch, voltages]
+        svit_grid = params[Key.SVIT_GRID]
+        count_matrix = params[Key.COUNT_MATRIX]
 
         feats_cell, _, _ = self.cell_from_indices(
             indices = indices, training = training, sample = False,
@@ -1331,24 +1331,24 @@ class DegradationModel(Model):
         )
 
         return self.call(
-            (
-                expanded_cycle,
-                expanded_constant_current,
-                expanded_end_current_prev,
-                expanded_end_voltage_prev,
-                expanded_end_voltage,
-                indices,
-                tf.tile(
+            {
+                Key.CYC: expanded_cycle,
+                Key.I_CC: expanded_constant_current,
+                Key.I_PREV_END: expanded_end_current_prev,
+                Key.V_PREV_END: expanded_end_voltage_prev,
+                Key.V_END: expanded_end_voltage,
+                Key.INDICES: indices,
+                Key.V_TENSOR: tf.tile(
                     tf.reshape(voltages, [1, -1]),
                     [cycle.shape[0], 1],
                 ),
-                tf.tile(
+                Key.I_TENSOR: tf.tile(
                     tf.reshape(currents, shape = [1, -1]),
                     [cycle.shape[0], 1]
                 ),
-                expanded_svit_grid,
-                expanded_count_matrix,
-            ),
+                Key.SVIT_GRID: expanded_svit_grid,
+                Key.COUNT_MATRIX: expanded_count_matrix,
+            },
             training = False,
         )
 
@@ -1393,20 +1393,20 @@ class DegradationModel(Model):
         )
 
         return self.call(
-            (
-                expanded_cycle,
-                expanded_constant_current,
-                expanded_end_current_prev,
-                expanded_end_voltage_prev,
-                expanded_end_voltage,
-                indices,
-                tf.tile(tf.reshape(v, [1, 1]), [cycle.shape[0], 1]),
-                tf.tile(
+            {
+                Key.CYC: expanded_cycle,
+                Key.I_CC: expanded_constant_current,
+                Key.I_PREV_END: expanded_end_current_prev,
+                Key.V_PREV_END: expanded_end_voltage_prev,
+                Key.V_END: expanded_end_voltage,
+                Key.INDICES: indices,
+                Key.V_TENSOR: tf.tile(tf.reshape(v, [1, 1]), [cycle.shape[0], 1]),
+                Key.I_TENSOR: tf.tile(
                     tf.reshape(currents, shape = [1, -1]),
                     [cycle.shape[0], 1],
                 ),
-                expanded_svit_grid,
-                expanded_count_matrix,
-            ),
+                Key.SVIT_GRID: expanded_svit_grid,
+                Key.COUNT_MATRIX: expanded_count_matrix,
+            },
             training = False
         )

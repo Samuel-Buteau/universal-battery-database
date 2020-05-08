@@ -745,18 +745,18 @@ def train_step(neighborhood, params, fit_args):
 
     with tf.GradientTape() as tape:
         train_results = degradation_model(
-            (
-                tf.expand_dims(cycle, axis = 1),
-                tf.expand_dims(constant_current, axis = 1),
-                tf.expand_dims(end_current_prev, axis = 1),
-                tf.expand_dims(end_voltage_prev, axis = 1),
-                tf.expand_dims(end_voltage, axis = 1),
-                cell_indices,
-                cc_voltage,
-                cv_current,
-                svit_grid,
-                count_matrix,
-            ),
+            {
+                Key.CYC: tf.expand_dims(cycle, axis = 1),
+                Key.I_CC: tf.expand_dims(constant_current, axis = 1),
+                Key.I_PREV_END: tf.expand_dims(end_current_prev, axis = 1),
+                Key.V_PREV_END: tf.expand_dims(end_voltage_prev, axis = 1),
+                Key.V_END: tf.expand_dims(end_voltage, axis = 1),
+                Key.INDICES: cell_indices,
+                Key.V_TENSOR: cc_voltage,
+                Key.I_TENSOR: cv_current,
+                Key.SVIT_GRID: svit_grid,
+                Key.COUNT_MATRIX: count_matrix,
+            },
             training = True,
         )
 

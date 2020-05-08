@@ -60,7 +60,7 @@ def ml_smoothing(fit_args):
         os.makedirs(fit_args[Key.PATH_PLOTS])
 
     with open(
-        os.path.join(fit_args[Key.PATH_PLOTS], "fit_args_log.txt"), "w"
+        os.path.join(fit_args[Key.PATH_PLOTS], "fit_args_log.txt"), "w",
     ) as f:
         my_str = ""
         for k in fit_args:
@@ -77,14 +77,9 @@ def ml_smoothing(fit_args):
         "dataset_ver_{}_names.file".format(fit_args[Key.DATA_VERSION])
     )
 
-
-
     if not os.path.exists(dataset_path):
         print("Path \"" + dataset_path + "\" does not exist.")
         return
-
-
-
 
     with open(dataset_path, "rb") as f:
         my_data = pickle.load(f)
@@ -97,8 +92,7 @@ def ml_smoothing(fit_args):
     cell_ids = list(my_data[Key.ALL_DATA].keys())
 
     if len(fit_args[Key.CELL_IDS]) != 0:
-        cell_ids = list(
-            set(cell_ids).intersection(set(fit_args[Key.CELL_IDS])))
+        cell_ids = list(set(cell_ids).intersection(set(fit_args[Key.CELL_IDS])))
 
     if len(cell_ids) == 0:
         print("no cell_ids")
@@ -120,9 +114,7 @@ def ml_smoothing(fit_args):
 
 def numpy_acc(my_dict, my_key, my_dat):
     if my_key in my_dict.keys():
-        my_dict[my_key] = numpy.concatenate(
-            (my_dict[my_key], my_dat)
-        )
+        my_dict[my_key] = numpy.concatenate((my_dict[my_key], my_dat))
     else:
         my_dict[my_key] = my_dat
 
@@ -175,8 +167,7 @@ def initial_processing(
     # the current grid is adjusted by the max capacity of the cell_id. It is
     # in log space, so I/q becomes log(I) - log(q)
     numpy_acc(
-        compiled_data, Key.I_GRID,
-        numpy.array([my_data[Key.I_GRID]])
+        compiled_data, Key.I_GRID, numpy.array([my_data[Key.I_GRID]]),
     )
 
     # TODO (harvey): simplify the following using loops
@@ -235,12 +226,10 @@ def initial_processing(
         [
             [s[0] for s in siw] for siw in
             electrolyte_id_to_solvent_id_weight.values()
-        ],
-        [
+        ], [
             [s[0] for s in siw] for siw in
             electrolyte_id_to_salt_id_weight.values()
-        ],
-        [
+        ], [
             [s[0] for s in siw] for siw in
             electrolyte_id_to_additive_id_weight.values()
         ],
@@ -280,16 +269,14 @@ def initial_processing(
 
             # normalize capacity_vector with max_cap
             normalize_keys = [
-                Key.Q_CC_VEC, Key.Q_CV_VEC, Key.Q_CC_LAST,
-                Key.Q_CV_LAST, Key.I_CV_VEC, Key.I_CC,
-                Key.I_PREV_END
+                Key.Q_CC_VEC, Key.Q_CV_VEC, Key.Q_CC_LAST, Key.Q_CV_LAST,
+                Key.I_CV_VEC, Key.I_CC, Key.I_PREV_END,
             ]
             for key in normalize_keys:
                 main_data[key] = 1. / max_cap * main_data[key]
 
             normalize_keys = [
-                Key.I_CC_AVG, Key.I_END_AVG,
-                Key.I_PREV_END_AVG
+                Key.I_CC_AVG, Key.I_END_AVG, Key.I_PREV_END_AVG,
             ]
             for key in normalize_keys:
                 cyc_grp_dict[k][key] = 1. / max_cap * cyc_grp_dict[k][key]
@@ -308,10 +295,14 @@ def initial_processing(
             """
             number_of_centers = 10
 
-
             # the centers of neighborhoods we will try to create
-            all_neigh_center_cycles = numpy.linspace(min_cyc, max_cyc, number_of_centers)
-            delta = 1.2*(all_neigh_center_cycles[1] - all_neigh_center_cycles[0]) + 10
+            all_neigh_center_cycles = numpy.linspace(
+                min_cyc, max_cyc, number_of_centers,
+            )
+            delta = (
+                1.2 * (all_neigh_center_cycles[1] - all_neigh_center_cycles[0])
+                + 10
+            )
             # check all tentative neighborhood centers and
             # commit the ones that contain good data to the dataset
             neighborhood_data = []
@@ -319,9 +310,6 @@ def initial_processing(
             valid_cycles = 0
             for cyc in all_neigh_center_cycles:
                 # max_cyc and min_cyc are the limits of existing cycles.
-
-
-
 
                 below_cyc = cyc - delta
                 above_cyc = cyc + delta
@@ -331,7 +319,7 @@ def initial_processing(
                 # [below_cyc, above_cyc] interval
                 mask = numpy.logical_and(
                     below_cyc <= main_data[Key.N],
-                    main_data[Key.N] <= above_cyc
+                    main_data[Key.N] <= above_cyc,
                 )
 
                 # the indices for the cyc_grp_dict[k] array which correspond
@@ -367,10 +355,8 @@ def initial_processing(
 
                 """
 
-
-
                 neighborhood_data_i = numpy.zeros(
-                    NEIGH_TOTAL, dtype = numpy.int32
+                    NEIGH_TOTAL, dtype = numpy.int32,
                 )
 
                 neighborhood_data_i[NEIGH_MIN_CYC] = min_cyc_index
@@ -525,7 +511,7 @@ def initial_processing(
         Key.CYC_M: cycle_m,
         Key.CYC_V: cycle_v,
         Key.OPT: optimizer,
-        Key.DATASET: my_data
+        Key.DATASET: my_data,
     }
 
 
@@ -547,7 +533,7 @@ def train_and_evaluate(init_returns, cell_ids, fit_args):
     def dist_train_step(strategy, neighborhood):
         return strategy.experimental_run_v2(
             lambda neighborhood: train_step(
-                neighborhood, train_step_params, fit_args
+                neighborhood, train_step_params, fit_args,
             ),
             args = (neighborhood,)
         )
@@ -582,12 +568,15 @@ def train_and_evaluate(init_returns, cell_ids, fit_args):
                     }
 
                     if (count % fit_args[Key.VIS]) == 0:
-
                         start = time.time()
                         print("time to simulate: ", start - end)
                         loss_record.plot(count, fit_args)
-                        plot_direct("generic_vs_cycle", plot_params, init_returns)
-                        plot_direct("generic_vs_capacity", plot_params, init_returns)
+                        plot_direct(
+                            "generic_vs_cycle", plot_params, init_returns,
+                        )
+                        plot_direct(
+                            "generic_vs_capacity", plot_params, init_returns,
+                        )
 
                         end = time.time()
                         print("time to plot: ", end - start)
@@ -647,26 +636,25 @@ def train_step(neighborhood, params, fit_args):
     )
 
     sign_grid = tf.gather(
-        sign_grid_tensor,
-        indices = neighborhood[:, NEIGH_SIGN_GRID], axis = 0
+        sign_grid_tensor, indices = neighborhood[:, NEIGH_SIGN_GRID], axis = 0,
     )
     sign_grid_dim = sign_grid.shape[1]
 
     voltage_grid = tf.gather(
         voltage_grid_tensor,
-        indices = neighborhood[:, NEIGH_VOLTAGE_GRID], axis = 0
+        indices = neighborhood[:, NEIGH_VOLTAGE_GRID], axis = 0,
     )
     voltage_grid_dim = voltage_grid.shape[1]
 
     current_grid = tf.gather(
         current_grid_tensor,
-        indices = neighborhood[:, NEIGH_CURRENT_GRID], axis = 0
+        indices = neighborhood[:, NEIGH_CURRENT_GRID], axis = 0,
     )
     current_grid_dim = current_grid.shape[1]
 
     temperature_grid = tf.gather(
         temperature_grid_tensor,
-        indices = neighborhood[:, NEIGH_TEMPERATURE_GRID], axis = 0
+        indices = neighborhood[:, NEIGH_TEMPERATURE_GRID], axis = 0,
     )
     temperature_grid_dim = temperature_grid.shape[1]
 
@@ -674,28 +662,28 @@ def train_step(neighborhood, params, fit_args):
         tf.tile(
             tf.reshape(
                 sign_grid,
-                [batch_size2, sign_grid_dim, 1, 1, 1, 1]
+                [batch_size2, sign_grid_dim, 1, 1, 1, 1],
             ),
             [1, 1, voltage_grid_dim, current_grid_dim, temperature_grid_dim, 1],
         ),
         tf.tile(
             tf.reshape(
                 voltage_grid,
-                [batch_size2, 1, voltage_grid_dim, 1, 1, 1]
+                [batch_size2, 1, voltage_grid_dim, 1, 1, 1],
             ),
             [1, sign_grid_dim, 1, current_grid_dim, temperature_grid_dim, 1],
         ),
         tf.tile(
             tf.reshape(
                 current_grid,
-                [batch_size2, 1, 1, current_grid_dim, 1, 1]
+                [batch_size2, 1, 1, current_grid_dim, 1, 1],
             ),
             [1, sign_grid_dim, voltage_grid_dim, 1, temperature_grid_dim, 1],
         ),
         tf.tile(
             tf.reshape(
                 temperature_grid,
-                [batch_size2, 1, 1, 1, temperature_grid_dim, 1]
+                [batch_size2, 1, 1, 1, temperature_grid_dim, 1],
             ),
             [1, sign_grid_dim, voltage_grid_dim, current_grid_dim, 1, 1],
         ),
@@ -711,22 +699,24 @@ def train_step(neighborhood, params, fit_args):
             ),
             axis = 0,
         ),
-        [batch_size2, sign_grid_dim, voltage_grid_dim, current_grid_dim,
-         temperature_grid_dim, 1],
+        [
+            batch_size2, sign_grid_dim, voltage_grid_dim, current_grid_dim,
+            temperature_grid_dim, 1,
+        ],
     )
 
     cycle = tf.gather(cycle_tensor, indices = cycle_indices, axis = 0)
     constant_current = tf.gather(
-        constant_current_tensor, indices = cycle_indices, axis = 0
+        constant_current_tensor, indices = cycle_indices, axis = 0,
     )
     end_current_prev = tf.gather(
-        end_current_prev_tensor, indices = cycle_indices, axis = 0
+        end_current_prev_tensor, indices = cycle_indices, axis = 0,
     )
     end_voltage_prev = tf.gather(
-        end_voltage_prev_tensor, indices = cycle_indices, axis = 0
+        end_voltage_prev_tensor, indices = cycle_indices, axis = 0,
     )
     end_voltage = tf.gather(
-        end_voltage_tensor, indices = cycle_indices, axis = 0
+        end_voltage_tensor, indices = cycle_indices, axis = 0,
     )
 
     cc_capacity = tf.gather(cc_capacity_tensor, indices = cycle_indices)
@@ -746,7 +736,7 @@ def train_step(neighborhood, params, fit_args):
     cv_mask_2 = tf.tile(
         tf.reshape(
             1. / tf.cast(neighborhood[:, NEIGH_VALID_CYC], tf.float32),
-            [batch_size2, 1]
+            [batch_size2, 1],
         ),
         [1, cv_current.shape[1]],
     )
@@ -767,7 +757,7 @@ def train_step(neighborhood, params, fit_args):
                 svit_grid,
                 count_matrix,
             ),
-            training = True
+            training = True,
         )
 
         pred_cc_capacity = train_results["pred_cc_capacity"]
@@ -781,12 +771,12 @@ def train_step(neighborhood, params, fit_args):
         )
 
         main_losses = (
-                fit_args[Key.Coeff.Q_CV] * cv_capacity_loss
-                + fit_args[Key.Coeff.Q_CC] * cc_capacity_loss
+            fit_args[Key.Coeff.Q_CV] * cv_capacity_loss
+            + fit_args[Key.Coeff.Q_CC] * cc_capacity_loss
         )
         loss = (
             main_losses
-            + tf.stop_gradient(main_losses)* (
+            + tf.stop_gradient(main_losses) * (
                 fit_args[Key.Coeff.Q] * train_results[Key.Loss.Q]
                 + fit_args[Key.Coeff.CELL] * train_results[Key.Loss.CELL]
             )
@@ -798,13 +788,11 @@ def train_step(neighborhood, params, fit_args):
     )
 
     gradients_no_nans = [
-        tf.where(tf.math.is_nan(x), tf.zeros_like(x), x)
-        for x in gradients
+        tf.where(tf.math.is_nan(x), tf.zeros_like(x), x) for x in gradients
     ]
 
     gradients_norm_clipped, _ = tf.clip_by_global_norm(
-        gradients_no_nans,
-        fit_args[Key.GLB_NORM_CLIP],
+        gradients_no_nans, fit_args[Key.GLB_NORM_CLIP],
     )
 
     optimizer.apply_gradients(
@@ -838,7 +826,6 @@ class Command(BaseCommand):
             "--path_to_dataset",
             "--dataset_version",
             "--path_to_plots",
-
         ]
 
         float_args = {
@@ -874,7 +861,6 @@ class Command(BaseCommand):
             "--coeff_q_d3_cycle": 1.,
             "--coeff_q_d_current": 1.,
             "--coeff_q_d_cycle": 10.,
-
         }
 
         vis = 1
@@ -901,22 +887,20 @@ class Command(BaseCommand):
             parser.add_argument(arg, type = int, default = int_args[arg])
 
         cell_ids = [
-            57706, 57707, 57710, 57711, 57714, 57715, 64260, 64268, 83010, 83011,
-            83012, 83013, 83014, 83015, 83016,
-            81602, 81603, 81604, 81605, 81606, 81607, 81608, 81609, 81610,
-            81611, 81612, 81613, 81614, 81615, 81616, 81617, 81618, 81619,
-            81620, 81621, 81622, 81623, 81624, 81625, 81626, 81627, 81712,
-            81713, 82300, 82301, 82302, 82303, 82304, 82305, 82306, 82307,
-            82308, 82309, 82310, 82311, 82406, 82407, 82410, 82411, 82769,
-            82770, 82771, 82775, 82776, 82777, 82779, 82992, 82993, 83083,
-            83092, 83101, 83106, 83107, 83220, 83221, 83222, 83223, 83224,
-            83225, 83226, 83227, 83228, 83229, 83230, 83231, 83232, 83233,
-            83234, 83235, 83236, 83237, 83239, 83240, 83241, 83242, 83243,
-            83310, 83311, 83312, 83317, 83318, 83593, 83594, 83595, 83596,
-            83741, 83742, 83743, 83744, 83745, 83746, 83747, 83748,
-
+            57706, 57707, 57710, 57711, 57714, 57715, 64260, 64268, 83010,
+            83011, 83012, 83013, 83014, 83015, 83016, 81602, 81603, 81604,
+            81605, 81606, 81607, 81608, 81609, 81610, 81611, 81612, 81613,
+            81614, 81615, 81616, 81617, 81618, 81619, 81620, 81621, 81622,
+            81623, 81624, 81625, 81626, 81627, 81712, 81713, 82300, 82301,
+            82302, 82303, 82304, 82305, 82306, 82307, 82308, 82309, 82310,
+            82311, 82406, 82407, 82410, 82411, 82769, 82770, 82771, 82775,
+            82776, 82777, 82779, 82992, 82993, 83083, 83092, 83101, 83106,
+            83107, 83220, 83221, 83222, 83223, 83224, 83225, 83226, 83227,
+            83228, 83229, 83230, 83231, 83232, 83233, 83234, 83235, 83236,
+            83237, 83239, 83240, 83241, 83242, 83243, 83310, 83311, 83312,
+            83317, 83318, 83593, 83594, 83595, 83596, 83741, 83742, 83743,
+            83744, 83745, 83746, 83747, 83748,
         ]
-
 
         parser.add_argument(
             "--wanted_cell_ids", type = int, nargs = "+", default = cell_ids,

@@ -405,7 +405,7 @@ def initial_processing(
                 "reference_cycle": all_data[Key.REF_ALL_MATS][Key.N],
                 Key.COUNT_MATRIX:
                     all_data[Key.REF_ALL_MATS][Key.COUNT_MATRIX],
-                "cycle": main_data[Key.N],
+                Key.CYC: main_data[Key.N],
                 Key.V_CC_VEC: main_data[Key.V_CC_VEC],
                 Key.Q_CC_VEC: main_data[Key.Q_CC_VEC],
                 Key.MASK_CC_VEC: main_data[Key.MASK_CC_VEC],
@@ -426,12 +426,12 @@ def initial_processing(
     compiled_tensors = {}
     # cycles go from 0 to 6000, but nn prefers normally distributed variables
     # so cycle numbers is normalized with mean and variance
-    cycle_tensor = tf.constant(compiled_data["cycle"])
+    cycle_tensor = tf.constant(compiled_data[Key.CYC])
     cycle_m, cycle_v = tf.nn.moments(cycle_tensor, axes = [0])
     cycle_m = 0.  # we shall leave the cycle 0 at 0
     cycle_v = cycle_v.numpy()
     cycle_tensor = (cycle_tensor - cycle_m) / tf.sqrt(cycle_v)
-    compiled_tensors["cycle"] = cycle_tensor
+    compiled_tensors[Key.CYC] = cycle_tensor
 
     labels = [
         Key.V_CC_VEC, Key.Q_CC_VEC, Key.MASK_CC_VEC, Key.Q_CV_VEC, Key.I_CV_VEC,
@@ -457,12 +457,12 @@ def initial_processing(
         molecule_to_molecule_name = {}
 
         if my_names is not None:
-            pos_to_pos_name = my_names[Key.POS_TO_POS]
-            neg_to_neg_name = my_names[Key.NEG_TO_NEG]
+            pos_to_pos_name = my_names[Key.NAME_POS]
+            neg_to_neg_name = my_names[Key.NAME_NEG]
             electrolyte_to_electrolyte_name\
-                = my_names[Key.ELE_TO_ELE]
-            molecule_to_molecule_name = my_names[Key.MOL_TO_MOL]
-            dry_cell_to_dry_cell_name = my_names["dry_to_dry_name"]
+                = my_names[Key.NAME_LYTE]
+            molecule_to_molecule_name = my_names[Key.NAME_MOL]
+            dry_cell_to_dry_cell_name = my_names[Key.NAME_DRY]
 
         degradation_model = DegradationModel(
             width = fit_args[Key.WIDTH],
@@ -470,22 +470,22 @@ def initial_processing(
             cell_dict = id_dict_from_id_list(cell_id_list),
             pos_dict = id_dict_from_id_list(pos_id_list),
             neg_dict = id_dict_from_id_list(neg_id_list),
-            electrolyte_dict = id_dict_from_id_list(electrolyte_id_list),
+            lyte_dict = id_dict_from_id_list(electrolyte_id_list),
             molecule_dict = id_dict_from_id_list(molecule_id_list),
             dry_cell_dict = id_dict_from_id_list(dry_cell_id_list),
 
             cell_to_pos = cell_id_to_pos_id,
             cell_to_neg = cell_id_to_neg_id,
-            cell_to_electrolyte = cell_id_to_electrolyte_id,
+            cell_to_lyte = cell_id_to_electrolyte_id,
             cell_to_dry_cell = cell_id_to_dry_cell_id,
             dry_cell_to_meta = dry_cell_id_to_meta,
 
             cell_latent_flags = cell_id_to_latent,
 
-            electrolyte_to_solvent = electrolyte_id_to_solvent_id_weight,
-            electrolyte_to_salt = electrolyte_id_to_salt_id_weight,
-            electrolyte_to_additive = electrolyte_id_to_additive_id_weight,
-            electrolyte_latent_flags = electrolyte_id_to_latent,
+            lyte_to_solvent = electrolyte_id_to_solvent_id_weight,
+            lyte_to_salt = electrolyte_id_to_salt_id_weight,
+            lyte_to_additive = electrolyte_id_to_additive_id_weight,
+            lyte_latent_flags = electrolyte_id_to_latent,
 
             names = (
                 pos_to_pos_name,
@@ -594,7 +594,7 @@ def train_step(neighborhood, params, fit_args):
 
     count_matrix_tensor = params[Key.TENSORS][Key.COUNT_MATRIX]
 
-    cycle_tensor = params[Key.TENSORS]["cycle"]
+    cycle_tensor = params[Key.TENSORS][Key.CYC]
     constant_current_tensor = params[Key.TENSORS][Key.I_CC]
     end_current_prev_tensor = params[Key.TENSORS][Key.I_PREV_END]
     end_voltage_prev_tensor = params[Key.TENSORS][Key.V_PREV_END]
@@ -745,23 +745,23 @@ def train_step(neighborhood, params, fit_args):
 
     with tf.GradientTape() as tape:
         train_results = degradation_model(
-            (
-                tf.expand_dims(cycle, axis = 1),
-                tf.expand_dims(constant_current, axis = 1),
-                tf.expand_dims(end_current_prev, axis = 1),
-                tf.expand_dims(end_voltage_prev, axis = 1),
-                tf.expand_dims(end_voltage, axis = 1),
-                cell_indices,
-                cc_voltage,
-                cv_current,
-                svit_grid,
-                count_matrix,
-            ),
+            {
+                Key.CYC: tf.expand_dims(cycle, axis = 1),
+                Key.I_CC: tf.expand_dims(constant_current, axis = 1),
+                Key.I_PREV_END: tf.expand_dims(end_current_prev, axis = 1),
+                Key.V_PREV_END: tf.expand_dims(end_voltage_prev, axis = 1),
+                Key.V_END: tf.expand_dims(end_voltage, axis = 1),
+                Key.INDICES: cell_indices,
+                Key.V_TENSOR: cc_voltage,
+                Key.I_TENSOR: cv_current,
+                Key.SVIT_GRID: svit_grid,
+                Key.COUNT_MATRIX: count_matrix,
+            },
             training = True,
         )
 
-        pred_cc_capacity = train_results["pred_cc_capacity"]
-        pred_cv_capacity = train_results["pred_cv_capacity"]
+        pred_cc_capacity = train_results[Key.Pred.I_CC]
+        pred_cv_capacity = train_results[Key.Pred.I_CV]
 
         cc_capacity_loss = get_loss(
             cc_capacity, pred_cc_capacity, cc_mask, cc_mask_2,
@@ -863,7 +863,7 @@ class Command(BaseCommand):
             "--coeff_q_d_cycle": 10.,
         }
 
-        vis = 1
+        vis = 10000
         int_args = {
             "--n_sample": 8 * 16,
 

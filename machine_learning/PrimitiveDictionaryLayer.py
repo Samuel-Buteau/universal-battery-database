@@ -9,9 +9,9 @@ from machine_learning.incentives import *
 # value: feature (matrix)
 class PrimitiveDictionaryLayer(Layer):
 
-    def __init__(self, num_features, id_dict):
+    def __init__(self, num_feats, id_dict):
         super(PrimitiveDictionaryLayer, self).__init__()
-        self.num_features = num_features
+        self.num_features = num_feats
         self.num_keys = 1 + max(id_dict.values())
         self.id_dict = id_dict
         self.kernel = self.add_weight(

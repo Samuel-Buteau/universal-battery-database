@@ -137,7 +137,7 @@ def initial_processing(
                             "flag": {
                                 "cell_id": cell_id,
                                 "group": k,
-                                "cycle": cycs[i],
+                                Key.CYC: cycs[i],
                             },
                             "caps": caps[i],
                             "vols": vols[i],
@@ -161,7 +161,7 @@ def initial_processing(
                             "flag":{
                                 "cell_id": cell_id,
                                 "group": k,
-                                "cycle": cycs[i],
+                                Key.CYC: cycs[i],
                             },
                             "caps": caps[i],
                             "vols": vols[i],

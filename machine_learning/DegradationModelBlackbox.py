@@ -338,7 +338,7 @@ def create_derivatives(
 
 class DegradationModel(Model):
     """
-    The model responsible for the machine learning aspect of the project.
+    The machine learning model of the long-term cycling data in this project.
 
     Notes:
         This version of Degradation Model has almost no internal structure.
@@ -551,45 +551,7 @@ class DegradationModel(Model):
         """
         Call function for the Model during training or evaluation.
 
-        Examples:
-
-            training:
-                ```python
-                train_results = degradation_model(
-                    (
-                        tf.expand_dims(cycle, axis = 1),
-                        tf.expand_dims(constant_current, axis = 1),
-                        tf.expand_dims(end_current_prev, axis = 1),
-                        tf.expand_dims(end_voltage_prev, axis = 1),
-                        tf.expand_dims(end_voltage, axis = 1),
-                        cell_indices,
-                        cc_voltage,
-                        cv_current,
-                        svit_grid,
-                        count_matrix,
-                    ),
-                    training = True,
-                )
-                ```
-
-            evaluation:
-                ```python
-                eval_results = degradation_model(
-                    (
-                        tf.constant(cycle, shape = [1, 1]),
-                        tf.constant(constant_current, shape = [1, 1]),
-                        tf.constant(end_current_prev, shape = [1, 1]),
-                        tf.constant(end_voltage_prev, shape = [1, 1]),
-                        tf.constant(end_voltage, shape = [1, 1]),
-                        tf.reshape(barcode_count, [1]),
-                        tf.reshape(voltages, [1, len(voltages)]),
-                        tf.reshape(currents, [1, len(currents)]),
-                        tf.constant([svit_grid]),
-                        tf.constant([count_matrix]),
-                    ),
-                    training = False
-                )
-                ```
+        Examples: TODO(harvey)
 
         Args:
             params: Contains -

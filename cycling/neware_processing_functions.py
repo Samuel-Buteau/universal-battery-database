@@ -184,7 +184,7 @@ def read_neware(path, last_imported_cycle=-1, CapacityUnits=1.0, VoltageUnits=(1
             if "Vol" in stripped:
                 iter_dat = [
                     ("voltage","Vol"),
-                    (Key.I,"Cur"),
+                    ("current","Cur"),
                     ("capacity","Cap"),
                     ("time","Time"),
                     ("realtime","Realtime"),
@@ -192,7 +192,7 @@ def read_neware(path, last_imported_cycle=-1, CapacityUnits=1.0, VoltageUnits=(1
             elif "Voltage" in stripped:
                 iter_dat = [
                     ("voltage","Voltage"),
-                    (Key.I,Key.I),
+                    ("current","Current"),
                     ("capacity","Capacity"),
                     ("time","Time"),
                     ("realtime","Realtime"),
@@ -251,7 +251,7 @@ def read_neware(path, last_imported_cycle=-1, CapacityUnits=1.0, VoltageUnits=(1
 
             my_extracted_strings = {}
 
-            for i in ["realtime", "capacity", Key.I, "voltage"]:
+            for i in ["realtime", "capacity", "current", "voltage"]:
 
                 if test_occupied_position(stripped, position[i]):
                     my_extracted_strings[i] = stripped[position[i]]
@@ -259,7 +259,7 @@ def read_neware(path, last_imported_cycle=-1, CapacityUnits=1.0, VoltageUnits=(1
                     continue
 
             my_cap_float = CapacityUnits * float(my_extracted_strings["capacity"])
-            my_cur_float = CurrentUnits * float(my_extracted_strings[Key.I])
+            my_cur_float = CurrentUnits * float(my_extracted_strings["current"])
             my_vol_float = VoltageUnits * float(my_extracted_strings["voltage"])
             my_time, second_accuracy = parse_time(my_extracted_strings["realtime"])
 

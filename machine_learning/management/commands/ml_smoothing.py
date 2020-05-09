@@ -471,7 +471,7 @@ def initial_processing(
             pos_dict = id_dict_from_id_list(pos_id_list),
             neg_dict = id_dict_from_id_list(neg_id_list),
             lyte_dict = id_dict_from_id_list(electrolyte_id_list),
-            molecule_dict = id_dict_from_id_list(molecule_id_list),
+            mol_dict = id_dict_from_id_list(molecule_id_list),
             dry_cell_dict = id_dict_from_id_list(dry_cell_id_list),
 
             cell_to_pos = cell_id_to_pos_id,

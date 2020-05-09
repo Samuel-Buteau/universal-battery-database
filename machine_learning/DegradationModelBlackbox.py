@@ -1243,16 +1243,12 @@ class DegradationModel(Model):
 
         return q_1 - add_current_dep(q_0, params)
 
-    """ Stress variable methods """
-
     def stress_to_encoded_direct(
         self, svit_grid, count_matrix, training = True,
     ):
         return self.stress_to_encoded_layer(
             (svit_grid, count_matrix), training = training,
         )
-
-    """ Direct variable methods """
 
     def q_direct(
         self, encoded_stress, cycle, v, feats_cell, current, training = True,
@@ -1265,8 +1261,6 @@ class DegradationModel(Model):
             current,
         )
         return tf.nn.elu(nn_call(self.nn_q, dependencies, training = training))
-
-    """ For derivative variable methods """
 
     def q_for_derivative(self, params, training = True):
 

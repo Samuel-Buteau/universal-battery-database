@@ -175,7 +175,7 @@ class Key:
 
     # Begin: keys inside dataset ===============================================
 
-    """ (dict) Indexed by barcode, each yields a dictionary with keys:
+    """ (dict) Indexed by cell ID, each yields a dictionary with keys:
         [ Key.ALL_REF_MATS, Key.CYC_GRP_DICT ]
     """
     ALL_DATA = "all_data"
@@ -191,13 +191,13 @@ class Key:
     """ (1d array) Signs """
     SIGN_GRID = "sign_grid"
 
-    """ (dict) Indexed by barcode; yields a positive electrode id """
+    """ (dict) Indexed by cell ID; yields a positive electrode id """
     CELL_TO_POS = "cell_id_to_pos_id"
-    """ (dic) Indexed by barcode; yields a negative electrode id """
+    """ (dic) Indexed by cell ID; yields a negative electrode id """
     CELL_TO_NEG = "cell_id_to_neg_id"
-    """ (dic) Indexed by barcode; yields an electrolyte id """
+    """ (dic) Indexed by cell ID; yields an electrolyte id """
     CELL_TO_ELE = "cell_id_to_electrolyte_id"
-    """ (dic) Indexed by barcode; yields
+    """ (dic) Indexed by cell ID; yields
         1 if the cell is latent, 0 if made of known pos, neg, electrolyte.
     """
     CELL_TO_LAT = "cell_id_to_latent"

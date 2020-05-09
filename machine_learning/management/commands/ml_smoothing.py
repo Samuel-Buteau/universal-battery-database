@@ -218,7 +218,7 @@ def initial_processing(
         ],
     ]
 
-    molecule_ids = to_sorted_array(list(three_level_flatten(mess)))
+    mol_ids = to_sorted_array(list(three_level_flatten(mess)))
 
     dry_cell_ids = to_sorted_array(cell_id_to_dry_cell_id.values())
     pos_ids = to_sorted_array(cell_id_to_pos_id.values())
@@ -446,7 +446,7 @@ def initial_processing(
             pos_dict = id_dict_from_id_list(pos_ids),
             neg_dict = id_dict_from_id_list(neg_ids),
             lyte_dict = id_dict_from_id_list(lyte_id_list),
-            mol_dict = id_dict_from_id_list(molecule_ids),
+            mol_dict = id_dict_from_id_list(mol_ids),
             dry_cell_dict = id_dict_from_id_list(dry_cell_ids),
 
             cell_to_pos = cell_id_to_pos_id,

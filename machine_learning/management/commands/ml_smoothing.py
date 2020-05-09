@@ -10,20 +10,6 @@ from cycling.models import *
 from plot import *
 from Key import Key
 
-"""
-Shortened Variable Names:
-    vol -   voltage
-    cap -   capacity
-    dchg -  discharge
-    neigh - neighbourhood
-    der -   derivative
-    pred -  predicted
-    meas -  measured
-    eval -  evaluation
-    eq -    equilibrium
-    res -   result
-"""
-
 # TODO(sam): For each cell_id, needs a multigrid of (S, V, I, T) (current
 #  needs to be adjusted)
 # TODO(sam): Each cycle must have an index mapping to the nearest reference

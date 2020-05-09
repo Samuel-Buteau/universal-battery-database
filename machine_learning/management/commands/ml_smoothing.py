@@ -170,21 +170,22 @@ def initial_processing(
     dry_cell_id_to_meta = {}
     cell_id_to_latent = {}
 
-    electrolyte_id_to_latent = {}
-    electrolyte_id_to_solvent_id_weight = {}
-    electrolyte_id_to_salt_id_weight = {}
-    electrolyte_id_to_additive_id_weight = {}
+    # electrolyte ID to latent ID weight
+    lyte_to_latent = {}
+    # electrolyte ID to solvent ID weight
+    lyte_to_sol_weight = {}
+    # electrolyte ID to salt ID weight
+    lyte_to_salt_weight = {}
+    # electrolyte ID to additive ID weight
+    lyte_to_addi_weight = {}
 
     for cell_id in cell_id_list:
         if cell_id in dataset[Key.CELL_TO_POS].keys():
-            cell_id_to_pos_id[cell_id]\
-                = dataset[Key.CELL_TO_POS][cell_id]
+            cell_id_to_pos_id[cell_id] = dataset[Key.CELL_TO_POS][cell_id]
         if cell_id in dataset[Key.CELL_TO_NEG].keys():
-            cell_id_to_neg_id[cell_id]\
-                = dataset[Key.CELL_TO_NEG][cell_id]
+            cell_id_to_neg_id[cell_id] = dataset[Key.CELL_TO_NEG][cell_id]
         if cell_id in dataset[Key.CELL_TO_ELE].keys():
-            cell_id_to_lyte_id[cell_id]\
-                = dataset[Key.CELL_TO_ELE][cell_id]
+            cell_id_to_lyte_id[cell_id] = dataset[Key.CELL_TO_ELE][cell_id]
         if cell_id in dataset["cell_to_dry"].keys():
             dry_cell_id = dataset["cell_to_dry"][cell_id]
             cell_id_to_dry_cell_id[cell_id] = dry_cell_id
@@ -194,35 +195,26 @@ def initial_processing(
                     = dataset["dry_to_meta"][dry_cell_id]
 
         if cell_id in dataset[Key.CELL_TO_LAT].keys():
-            cell_id_to_latent[cell_id]\
-                = dataset[Key.CELL_TO_LAT][cell_id]
+            cell_id_to_latent[cell_id] = dataset[Key.CELL_TO_LAT][cell_id]
 
         if cell_id_to_latent[cell_id] < 0.5:
-            electrolyte_id = cell_id_to_lyte_id[cell_id]
-            if electrolyte_id in dataset[Key.ELE_TO_SOL].keys():
-                electrolyte_id_to_solvent_id_weight[electrolyte_id]\
-                    = dataset[Key.ELE_TO_SOL][electrolyte_id]
-            if electrolyte_id in dataset[Key.ELE_TO_SALT].keys():
-                electrolyte_id_to_salt_id_weight[electrolyte_id]\
-                    = dataset[Key.ELE_TO_SALT][electrolyte_id]
-            if electrolyte_id in dataset[Key.ELE_TO_ADD].keys():
-                electrolyte_id_to_additive_id_weight[electrolyte_id]\
-                    = dataset[Key.ELE_TO_ADD][electrolyte_id]
-
-            if electrolyte_id in dataset[Key.ELE_TO_LAT].keys():
-                electrolyte_id_to_latent[electrolyte_id]\
-                    = dataset[Key.ELE_TO_LAT][electrolyte_id]
+            lyte_id = cell_id_to_lyte_id[cell_id]
+            if lyte_id in dataset[Key.ELE_TO_SOL].keys():
+                lyte_to_sol_weight[lyte_id] = dataset[Key.ELE_TO_SOL][lyte_id]
+            if lyte_id in dataset[Key.ELE_TO_SALT].keys():
+                lyte_to_salt_weight[lyte_id] = dataset[Key.ELE_TO_SALT][lyte_id]
+            if lyte_id in dataset[Key.ELE_TO_ADD].keys():
+                lyte_to_addi_weight[lyte_id] = dataset[Key.ELE_TO_ADD][lyte_id]
+            if lyte_id in dataset[Key.ELE_TO_LAT].keys():
+                lyte_to_latent[lyte_id] = dataset[Key.ELE_TO_LAT][lyte_id]
 
     mess = [
         [
-            [s[0] for s in siw] for siw in
-            electrolyte_id_to_solvent_id_weight.values()
+            [s[0] for s in siw] for siw in lyte_to_sol_weight.values()
         ], [
-            [s[0] for s in siw] for siw in
-            electrolyte_id_to_salt_id_weight.values()
+            [s[0] for s in siw] for siw in lyte_to_salt_weight.values()
         ], [
-            [s[0] for s in siw] for siw in
-            electrolyte_id_to_additive_id_weight.values()
+            [s[0] for s in siw] for siw in lyte_to_addi_weight.values()
         ],
     ]
 
@@ -437,15 +429,14 @@ def initial_processing(
         dry_cell_to_dry_cell_name = {}
         pos_to_pos_name = {}
         neg_to_neg_name = {}
-        electrolyte_to_electrolyte_name = {}
-        molecule_to_molecule_name = {}
+        lyte_to_lyte_name = {}
+        mol_to_mol_name = {}
 
         if dataset_names is not None:
             pos_to_pos_name = dataset_names[Key.NAME_POS]
             neg_to_neg_name = dataset_names[Key.NAME_NEG]
-            electrolyte_to_electrolyte_name\
-                = dataset_names[Key.NAME_LYTE]
-            molecule_to_molecule_name = dataset_names[Key.NAME_MOL]
+            lyte_to_lyte_name = dataset_names[Key.NAME_LYTE]
+            mol_to_mol_name = dataset_names[Key.NAME_MOL]
             dry_cell_to_dry_cell_name = dataset_names[Key.NAME_DRY]
 
         degradation_model = DegradationModel(
@@ -466,16 +457,16 @@ def initial_processing(
 
             cell_latent_flags = cell_id_to_latent,
 
-            lyte_to_solvent = electrolyte_id_to_solvent_id_weight,
-            lyte_to_salt = electrolyte_id_to_salt_id_weight,
-            lyte_to_additive = electrolyte_id_to_additive_id_weight,
-            lyte_latent_flags = electrolyte_id_to_latent,
+            lyte_to_solvent = lyte_to_sol_weight,
+            lyte_to_salt = lyte_to_salt_weight,
+            lyte_to_additive = lyte_to_addi_weight,
+            lyte_latent_flags = lyte_to_latent,
 
             names = (
                 pos_to_pos_name,
                 neg_to_neg_name,
-                electrolyte_to_electrolyte_name,
-                molecule_to_molecule_name,
+                lyte_to_lyte_name,
+                mol_to_mol_name,
                 dry_cell_to_dry_cell_name,
             ),
             n_sample = options[Key.N_SAMPLE],

@@ -34,7 +34,18 @@ NEIGH_REFERENCE = 11
 NEIGH_TOTAL = 12
 
 
-def ml_smoothing(fit_args):
+def ml_smoothing(options):
+    """
+    The main function to carry out the machine learning training and evaluation
+    procedure.
+
+    Todo(harvey): Add more description about what this does.
+
+    Args:
+        options: Dictionary defining various fitting-related arguments.
+
+    Returns: None
+    """
     if len(tf.config.experimental.list_physical_devices("GPU")) == 1:
         strategy = tf.distribute.OneDeviceStrategy(device = "/gpu:0")
     elif len(tf.config.experimental.list_physical_devices("GPU")) > 1:
@@ -42,25 +53,25 @@ def ml_smoothing(fit_args):
     else:
         strategy = tf.distribute.OneDeviceStrategy("/cpu:0")
 
-    if not os.path.exists(fit_args[Key.PATH_PLOTS]):
-        os.makedirs(fit_args[Key.PATH_PLOTS])
+    if not os.path.exists(options[Key.PATH_PLOTS]):
+        os.makedirs(options[Key.PATH_PLOTS])
 
     with open(
-        os.path.join(fit_args[Key.PATH_PLOTS], "fit_args_log.txt"), "w",
+        os.path.join(options[Key.PATH_PLOTS], "fit_args_log.txt"), "w",
     ) as f:
         my_str = ""
-        for k in fit_args:
-            my_str = "{} \n {}: {}".format(my_str, k, str(fit_args[k]))
+        for k in options:
+            my_str = "{} \n {}: {}".format(my_str, k, str(options[k]))
         f.write(my_str)
 
     dataset_path = os.path.join(
-        fit_args[Key.PATH_DATASET],
-        "dataset_ver_{}.file".format(fit_args[Key.DATA_VERSION])
+        options[Key.PATH_DATASET],
+        "dataset_ver_{}.file".format(options[Key.DATA_VERSION])
     )
 
     dataset_names_path = os.path.join(
-        fit_args[Key.PATH_DATASET],
-        "dataset_ver_{}_names.file".format(fit_args[Key.DATA_VERSION])
+        options[Key.PATH_DATASET],
+        "dataset_ver_{}_names.file".format(options[Key.DATA_VERSION])
     )
 
     if not os.path.exists(dataset_path):
@@ -68,17 +79,17 @@ def ml_smoothing(fit_args):
         return
 
     with open(dataset_path, "rb") as f:
-        my_data = pickle.load(f)
+        dataset = pickle.load(f)
 
-    my_names = None
+    dataset_names = None
     if os.path.exists(dataset_names_path):
         with open(dataset_names_path, "rb") as f:
-            my_names = pickle.load(f)
+            dataset_names = pickle.load(f)
 
-    cell_ids = list(my_data[Key.ALL_DATA].keys())
+    cell_ids = list(dataset[Key.ALL_DATA].keys())
 
-    if len(fit_args[Key.CELL_IDS]) != 0:
-        cell_ids = list(set(cell_ids).intersection(set(fit_args[Key.CELL_IDS])))
+    if len(options[Key.CELL_IDS]) != 0:
+        cell_ids = list(set(cell_ids).intersection(set(options[Key.CELL_IDS])))
 
     if len(cell_ids) == 0:
         print("no cell_ids")
@@ -86,25 +97,22 @@ def ml_smoothing(fit_args):
 
     train_and_evaluate(
         initial_processing(
-            my_data, my_names, cell_ids,
-            fit_args, strategy = strategy,
+            dataset, dataset_names, cell_ids, options, strategy = strategy,
         ),
         cell_ids,
-        fit_args
+        options,
     )
 
 
 # TODO(sam): these huge tensors would be much easier to understand with
-#  ragged tensors.
-# right now, I am just flattening everything.
-
-def numpy_acc(my_dict, my_key, my_dat):
-    if my_key in my_dict.keys():
-        my_dict[my_key] = numpy.concatenate((my_dict[my_key], my_dat))
+#  ragged tensors. Right now, I am just flattening everything.
+def numpy_acc(dict, key, data):
+    if key in dict.keys():
+        dict[key] = numpy.concatenate((dict[key], data))
     else:
-        my_dict[my_key] = my_dat
+        dict[key] = data
 
-    return my_dict
+    return dict
 
 
 def three_level_flatten(iterables):
@@ -115,52 +123,49 @@ def three_level_flatten(iterables):
 
 
 def initial_processing(
-    my_data: dict, my_names, cell_ids,
-    fit_args, strategy
+    dataset: dict, dataset_names, cell_ids, options: dict, strategy,
 ) -> dict:
     """ Handle the initial data processing
 
     Args:
-        my_data (dictionary).
-        my_names: TODO(harvey)
+        dataset: Contains the quantities given in the dataset.
+        dataset_names: TODO(harvey)
         cell_ids: TODO(harvey)
-        fit_args: TODO(harvey)
+        options: Parameters used to tune the machine learning fitting process.
         strategy: TODO(harvey)
 
     Returns:
-        {
-           Key.STRAT, Key.MODEL, Key.TENSORS, Key.TRAIN_DS, Key.CYC_M,
-           Key.CYC_V, Key.OPT, Key.MY_DATA
-        }
+        { Key.STRAT, Key.MODEL, Key.TENSORS, Key.TRAIN_DS, Key.CYC_M,
+          Key.CYC_V, Key.OPT, Key.MY_DATA }
 
     """
     # TODO (harvey): Cleanup Docstring, maybe put detailed description elsewhere
-    #                An appropriate place might be in the docstring for
-    #                classes inside cycling.Key
+    #   An appropriate place might be in the docstring for
+    #   classes inside cycling.Key
 
     compiled_data = {}
     number_of_compiled_cycles = 0
     number_of_reference_cycles = 0
 
-    my_data[Key.Q_MAX] = 250
-    max_cap = my_data[Key.Q_MAX]
+    dataset[Key.Q_MAX] = 250
+    max_cap = dataset[Key.Q_MAX]
 
     keys = [Key.V_GRID, Key.TEMP_GRID, Key.SIGN_GRID]
     for key in keys:
-        numpy_acc(compiled_data, key, numpy.array([my_data[key]]))
+        numpy_acc(compiled_data, key, numpy.array([dataset[key]]))
 
-    my_data[Key.I_GRID] = my_data[Key.I_GRID] - numpy.log(max_cap)
+    dataset[Key.I_GRID] = dataset[Key.I_GRID] - numpy.log(max_cap)
     # the current grid is adjusted by the max capacity of the cell_id. It is
     # in log space, so I/q becomes log(I) - log(q)
     numpy_acc(
-        compiled_data, Key.I_GRID, numpy.array([my_data[Key.I_GRID]]),
+        compiled_data, Key.I_GRID, numpy.array([dataset[Key.I_GRID]]),
     )
 
     # TODO (harvey): simplify the following using loops
     cell_id_list = numpy.array(cell_ids)
     cell_id_to_pos_id = {}
     cell_id_to_neg_id = {}
-    cell_id_to_electrolyte_id = {}
+    cell_id_to_lyte_id = {}
     cell_id_to_dry_cell_id = {}
     dry_cell_id_to_meta = {}
     cell_id_to_latent = {}
@@ -171,42 +176,42 @@ def initial_processing(
     electrolyte_id_to_additive_id_weight = {}
 
     for cell_id in cell_id_list:
-        if cell_id in my_data[Key.CELL_TO_POS].keys():
+        if cell_id in dataset[Key.CELL_TO_POS].keys():
             cell_id_to_pos_id[cell_id]\
-                = my_data[Key.CELL_TO_POS][cell_id]
-        if cell_id in my_data[Key.CELL_TO_NEG].keys():
+                = dataset[Key.CELL_TO_POS][cell_id]
+        if cell_id in dataset[Key.CELL_TO_NEG].keys():
             cell_id_to_neg_id[cell_id]\
-                = my_data[Key.CELL_TO_NEG][cell_id]
-        if cell_id in my_data[Key.CELL_TO_ELE].keys():
-            cell_id_to_electrolyte_id[cell_id]\
-                = my_data[Key.CELL_TO_ELE][cell_id]
-        if cell_id in my_data["cell_to_dry"].keys():
-            dry_cell_id = my_data["cell_to_dry"][cell_id]
+                = dataset[Key.CELL_TO_NEG][cell_id]
+        if cell_id in dataset[Key.CELL_TO_ELE].keys():
+            cell_id_to_lyte_id[cell_id]\
+                = dataset[Key.CELL_TO_ELE][cell_id]
+        if cell_id in dataset["cell_to_dry"].keys():
+            dry_cell_id = dataset["cell_to_dry"][cell_id]
             cell_id_to_dry_cell_id[cell_id] = dry_cell_id
 
-            if dry_cell_id in my_data["dry_to_meta"].keys():
+            if dry_cell_id in dataset["dry_to_meta"].keys():
                 dry_cell_id_to_meta[dry_cell_id]\
-                    = my_data["dry_to_meta"][dry_cell_id]
+                    = dataset["dry_to_meta"][dry_cell_id]
 
-        if cell_id in my_data[Key.CELL_TO_LAT].keys():
+        if cell_id in dataset[Key.CELL_TO_LAT].keys():
             cell_id_to_latent[cell_id]\
-                = my_data[Key.CELL_TO_LAT][cell_id]
+                = dataset[Key.CELL_TO_LAT][cell_id]
 
         if cell_id_to_latent[cell_id] < 0.5:
-            electrolyte_id = cell_id_to_electrolyte_id[cell_id]
-            if electrolyte_id in my_data[Key.ELE_TO_SOL].keys():
+            electrolyte_id = cell_id_to_lyte_id[cell_id]
+            if electrolyte_id in dataset[Key.ELE_TO_SOL].keys():
                 electrolyte_id_to_solvent_id_weight[electrolyte_id]\
-                    = my_data[Key.ELE_TO_SOL][electrolyte_id]
-            if electrolyte_id in my_data[Key.ELE_TO_SALT].keys():
+                    = dataset[Key.ELE_TO_SOL][electrolyte_id]
+            if electrolyte_id in dataset[Key.ELE_TO_SALT].keys():
                 electrolyte_id_to_salt_id_weight[electrolyte_id]\
-                    = my_data[Key.ELE_TO_SALT][electrolyte_id]
-            if electrolyte_id in my_data[Key.ELE_TO_ADD].keys():
+                    = dataset[Key.ELE_TO_SALT][electrolyte_id]
+            if electrolyte_id in dataset[Key.ELE_TO_ADD].keys():
                 electrolyte_id_to_additive_id_weight[electrolyte_id]\
-                    = my_data[Key.ELE_TO_ADD][electrolyte_id]
+                    = dataset[Key.ELE_TO_ADD][electrolyte_id]
 
-            if electrolyte_id in my_data[Key.ELE_TO_LAT].keys():
+            if electrolyte_id in dataset[Key.ELE_TO_LAT].keys():
                 electrolyte_id_to_latent[electrolyte_id]\
-                    = my_data[Key.ELE_TO_LAT][electrolyte_id]
+                    = dataset[Key.ELE_TO_LAT][electrolyte_id]
 
     mess = [
         [
@@ -221,23 +226,16 @@ def initial_processing(
         ],
     ]
 
-    molecule_id_list = numpy.array(
-        # flatten, remove duplicates, then sort
-        sorted(list(set(list(three_level_flatten(mess)))))
-    )
+    molecule_ids = to_sorted_array(list(three_level_flatten(mess)))
 
-    dry_cell_id_list = numpy.array(
-        sorted(list(set(cell_id_to_dry_cell_id.values())))
-    )
-    pos_id_list = numpy.array(sorted(list(set(cell_id_to_pos_id.values()))))
-    neg_id_list = numpy.array(sorted(list(set(cell_id_to_neg_id.values()))))
-    electrolyte_id_list = numpy.array(
-        sorted(list(set(cell_id_to_electrolyte_id.values())))
-    )
+    dry_cell_ids = to_sorted_array(cell_id_to_dry_cell_id.values())
+    pos_ids = to_sorted_array(cell_id_to_pos_id.values())
+    neg_ids = to_sorted_array(cell_id_to_neg_id.values())
+    lyte_id_list = to_sorted_array(cell_id_to_lyte_id.values())
 
     for cell_id_count, cell_id in enumerate(cell_ids):
 
-        all_data = my_data[Key.ALL_DATA][cell_id]
+        all_data = dataset[Key.ALL_DATA][cell_id]
         cyc_grp_dict = all_data[Key.CYC_GRP_DICT]
 
         for k_count, k in enumerate(cyc_grp_dict.keys()):
@@ -427,7 +425,7 @@ def initial_processing(
     for label in labels:
         compiled_tensors[label] = tf.constant(compiled_data[label])
 
-    batch_size = fit_args[Key.BATCH]
+    batch_size = options[Key.BATCH]
 
     with strategy.scope():
         train_ds_ = tf.data.Dataset.from_tensor_slices(
@@ -442,27 +440,27 @@ def initial_processing(
         electrolyte_to_electrolyte_name = {}
         molecule_to_molecule_name = {}
 
-        if my_names is not None:
-            pos_to_pos_name = my_names[Key.NAME_POS]
-            neg_to_neg_name = my_names[Key.NAME_NEG]
+        if dataset_names is not None:
+            pos_to_pos_name = dataset_names[Key.NAME_POS]
+            neg_to_neg_name = dataset_names[Key.NAME_NEG]
             electrolyte_to_electrolyte_name\
-                = my_names[Key.NAME_LYTE]
-            molecule_to_molecule_name = my_names[Key.NAME_MOL]
-            dry_cell_to_dry_cell_name = my_names[Key.NAME_DRY]
+                = dataset_names[Key.NAME_LYTE]
+            molecule_to_molecule_name = dataset_names[Key.NAME_MOL]
+            dry_cell_to_dry_cell_name = dataset_names[Key.NAME_DRY]
 
         degradation_model = DegradationModel(
-            width = fit_args[Key.WIDTH],
-            depth = fit_args[Key.DEPTH],
+            width = options[Key.WIDTH],
+            depth = options[Key.DEPTH],
             cell_dict = id_dict_from_id_list(cell_id_list),
-            pos_dict = id_dict_from_id_list(pos_id_list),
-            neg_dict = id_dict_from_id_list(neg_id_list),
-            lyte_dict = id_dict_from_id_list(electrolyte_id_list),
-            mol_dict = id_dict_from_id_list(molecule_id_list),
-            dry_cell_dict = id_dict_from_id_list(dry_cell_id_list),
+            pos_dict = id_dict_from_id_list(pos_ids),
+            neg_dict = id_dict_from_id_list(neg_ids),
+            lyte_dict = id_dict_from_id_list(lyte_id_list),
+            mol_dict = id_dict_from_id_list(molecule_ids),
+            dry_cell_dict = id_dict_from_id_list(dry_cell_ids),
 
             cell_to_pos = cell_id_to_pos_id,
             cell_to_neg = cell_id_to_neg_id,
-            cell_to_lyte = cell_id_to_electrolyte_id,
+            cell_to_lyte = cell_id_to_lyte_id,
             cell_to_dry_cell = cell_id_to_dry_cell_id,
             dry_cell_to_meta = dry_cell_id_to_meta,
 
@@ -480,13 +478,13 @@ def initial_processing(
                 molecule_to_molecule_name,
                 dry_cell_to_dry_cell_name,
             ),
-            n_sample = fit_args[Key.N_SAMPLE],
-            incentive_coeffs = fit_args,
-            min_latent = fit_args[Key.MIN_LAT]
+            n_sample = options[Key.N_SAMPLE],
+            incentive_coeffs = options,
+            min_latent = options[Key.MIN_LAT]
         )
 
         optimizer = tf.keras.optimizers.Adam(
-            learning_rate = fit_args[Key.LRN_RATE]
+            learning_rate = options[Key.LRN_RATE]
         )
 
     return {
@@ -497,8 +495,20 @@ def initial_processing(
         Key.CYC_M: cycle_m,
         Key.CYC_V: cycle_v,
         Key.OPT: optimizer,
-        Key.DATASET: my_data,
+        Key.DATASET: dataset,
     }
+
+
+def to_sorted_array(unsorted) -> numpy.array:
+    """ Turns a list or a view object (of a dictionary) to a sorted array
+
+    Args:
+        unsorted: Unsorted list or view object (of a dictionary).
+
+    Returns:
+        Sorted array of `unsorted`.
+    """
+    return numpy.array(sorted(list(set(unsorted))))
 
 
 def train_and_evaluate(init_returns, cell_ids, fit_args):

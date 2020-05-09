@@ -310,7 +310,7 @@ def create_derivatives(
         for k in der_params.keys():
             if der_params[k] >= 2:
                 derivatives["d2_" + k] = tape_d2.batch_jacobian(
-                    source = params[k], target = derivatives["d_" + k]
+                    source = params[k], target = derivatives["d_" + k],
                 )
                 if k not in [Key.CELL_FEAT, Key.STRESS]:
                     derivatives["d2_" + k] = derivatives["d2_" + k][:, 0, :]
@@ -435,8 +435,7 @@ class DegradationModel(Model):
         # cell_latent_flags is a dict with cell_ids as keys.
         # latent_flags is a numpy array such that the indecies match cell_dict
         latent_flags = numpy.ones(
-            (self.cell_direct.num_keys, 1),
-            dtype = numpy.float32
+            (self.cell_direct.num_keys, 1), dtype = numpy.float32,
         )
 
         for cell_id in self.cell_direct.id_dict.keys():
@@ -477,9 +476,7 @@ class DegradationModel(Model):
         self.n_solvent_max = numpy.max(
             [len(v) for v in lyte_to_solvent.values()]
         )
-        self.n_salt_max = numpy.max(
-            [len(v) for v in lyte_to_salt.values()]
-        )
+        self.n_salt_max = numpy.max([len(v) for v in lyte_to_salt.values()])
         self.n_additive_max = numpy.max(
             [len(v) for v in lyte_to_additive.values()]
         )
@@ -647,9 +644,7 @@ class DegradationModel(Model):
                     Key.CELL_FEAT: sampled_feats_cell,
                     Key.I: sampled_constant_current,
                 },
-                der_params = {
-                    Key.V: 3, Key.CELL_FEAT: 2, Key.I: 3, Key.CYC: 3,
-                }
+                der_params = {Key.V: 3, Key.CELL_FEAT: 2, Key.I: 3, Key.CYC: 3}
             )
 
             q_loss = calculate_q_loss(
@@ -811,9 +806,7 @@ class DegradationModel(Model):
             )
             loss_salt = tf.reduce_sum(
                 fetched_mol_loss_weights[
-                :,
-                self.n_solvent_max:self.n_solvent_max + self.n_salt_max,
-                :,
+                :, self.n_solvent_max:self.n_solvent_max + self.n_salt_max, :,
                 ],
                 axis = 1,
             )
@@ -824,7 +817,7 @@ class DegradationModel(Model):
                 self.n_solvent_max + self.n_salt_max + self.n_additive_max,
                 :
                 ],
-                axis = 1
+                axis = 1,
             )
 
         derivatives = {}

@@ -191,13 +191,13 @@ def initial_processing(
             cell_id_to_neg_id[cell_id] = dataset[Key.CELL_TO_NEG][cell_id]
         if cell_id in dataset[Key.CELL_TO_LYTE].keys():
             cell_id_to_lyte_id[cell_id] = dataset[Key.CELL_TO_LYTE][cell_id]
-        if cell_id in dataset["cell_to_dry"].keys():
-            dry_cell_id = dataset["cell_to_dry"][cell_id]
+        if cell_id in dataset[Key.CELL_TO_DRY].keys():
+            dry_cell_id = dataset[Key.CELL_TO_DRY][cell_id]
             cell_id_to_dry_cell_id[cell_id] = dry_cell_id
 
-            if dry_cell_id in dataset["dry_to_meta"].keys():
+            if dry_cell_id in dataset[Key.DRY_TO_META].keys():
                 dry_cell_id_to_meta[dry_cell_id]\
-                    = dataset["dry_to_meta"][dry_cell_id]
+                    = dataset[Key.DRY_TO_META][dry_cell_id]
 
         if cell_id in dataset[Key.CELL_TO_LAT].keys():
             cell_id_to_latent[cell_id] = dataset[Key.CELL_TO_LAT][cell_id]

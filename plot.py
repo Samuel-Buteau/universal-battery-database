@@ -1,4 +1,5 @@
 import os
+import sys
 
 import numpy as np
 import tensorflow as tf
@@ -9,9 +10,9 @@ from matplotlib.axes._axes import _log as matplotlib_axes_logger
 
 from Key import Key
 from cycling.models import (
-    compute_from_database,
-    make_file_legends_and_vertical, get_byte_image
+    compute_from_database, make_file_legends_and_vertical, get_byte_image,
 )
+from machine_learning.DegradationModelBlackbox import DegradationModel
 
 matplotlib_axes_logger.setLevel("ERROR")
 from plot_constants import *
@@ -76,7 +77,7 @@ def get_figsize(target):
 
 # TODO(sam): make the interface more general
 def plot_engine_direct(
-    data_streams, target, todos, fit_args, filename,
+    data_streams, target: str, todos, fit_args, filename,
     lower_cycle = None, upper_cycle = None, vertical_barriers = None,
     list_all_options = None, show_invalid = False, figsize = None,
 ):
@@ -106,8 +107,7 @@ def plot_engine_direct(
             list_of_target_data.append(
                 data_engine(
                     source, target, data, typ, mode,
-                    max_cyc_n = max_cyc_n,
-                    lower_cycle = lower_cycle,
+                    max_cyc_n = max_cyc_n, lower_cycle = lower_cycle,
                     upper_cycle = upper_cycle,
                 )
             )
@@ -219,7 +219,13 @@ def fetch_svit_keys_averages(compiled, cell_id):
     return svit_and_count, keys, averages
 
 
-def get_sign_change(typ):
+def get_sign_change(typ: str) -> float:
+    """ Get the sign change based on charge or discharge.
+    Args:
+        typ: Specifies charge ("chg") or discharge ("dchg").
+    Returns:
+        1 if type is charge, -1 if type is discharge.
+    """
     if typ == "dchg":
         sign_change = -1.
     else:
@@ -227,11 +233,20 @@ def get_sign_change(typ):
     return sign_change
 
 
-def get_y_quantity(mode):
+def get_y_quantity(mode: str) -> str:
+    """ Get the dependent variable based on charge/discharge mode.
+    Args:
+        mode: Specifies the mode of charge/discharge - constant-current ("cc")
+            or constant-voltage ("cv").
+    Returns:
+        "voltage" if mode is "cc", "current" if mode is "cv".
+    """
     if mode == 'cc':
         y_quantity = 'voltage'
     elif mode == 'cv':
         y_quantity = 'current'
+    else:
+        sys.exit("Unknown `mode` in `get_y_quantity`!")
     return y_quantity
 
 
@@ -251,9 +266,15 @@ def get_generic_map(source, target, mode):
 
 
 def data_engine(
-    source, target, data, typ, mode, max_cyc_n,
+    source: str, target: str, data, typ, mode, max_cyc_n,
     lower_cycle = None, upper_cycle = None,
 ):
+    """
+    Args:
+        source: Specifies the source of the data to be plot: "model",
+            "database", or "compiled".
+        target: Target plot - "generic_vs_capacity" or "generic_vs_cycle".
+    """
     generic = {}
     sign_change = get_sign_change(typ)
     generic_map = get_generic_map(source, target, mode)
@@ -273,8 +294,9 @@ def data_engine(
         if typ != "dchg" or mode != "cc":
             return None, None, None
         cell_id, valid = data
-        generic = compute_from_database(cell_id, lower_cycle, upper_cycle,
-                                        valid)
+        generic = compute_from_database(
+            cell_id, lower_cycle, upper_cycle, valid,
+        )
         list_of_keys = get_list_of_keys(generic.keys(), typ)
 
     elif source == "compiled":
@@ -289,6 +311,8 @@ def data_engine(
                 generic[k] = data[k][Key.MAIN][needed_fields][indices]
             else:
                 generic[k] = data[k][Key.MAIN][needed_fields]
+    else:
+        sys.exit("Unknown `source` in `data_engine`!")
 
     return generic, list_of_keys, generic_map
 
@@ -466,10 +490,17 @@ def get_svit_and_count(my_data, cell_id):
 
 
 def compute_target(
-    target, degradation_model, cell_id, sign_change, mode, averages,
-    generic_map, svit_and_count,
-    cycle_m, cycle_v, cycle_min = 0, cycle_max = 6000, max_cyc_n = 3
+    target: str, degradation_model: DegradationModel, cell_id, sign_change,
+    mode: str, averages, generic_map, svit_and_count, cycle_m, cycle_v,
+    cycle_min = 0, cycle_max = 6000, max_cyc_n = 3
 ):
+    """
+    Args:
+        target: Target plot - "generic_vs_capacity" or "generic_vs_cycle".
+        degradation_model: Machine learning model.
+        mode: Charge/discharge mode - constant-current ("cc") or
+            constant-voltage ("cv").
+    """
     cycle = np.linspace(cycle_min, cycle_max, max_cyc_n)
     scaled_cyc = (cycle - cycle_m) / tf.sqrt(cycle_v)
 
@@ -493,6 +524,8 @@ def compute_target(
                     np.linspace(np.log(curr_min), np.log(curr_max), 32)
                 )
                 y_n = 32
+        else:
+            sys.exit("Unknown `mode` in `compute_target`!")
 
         test_results = degradation_model.test_all_voltages(
             tf.constant(scaled_cyc, dtype = tf.float32),
@@ -516,6 +549,8 @@ def compute_target(
         elif mode == "cv":
             yrange = current_range
             pred_capacity_label = Key.Pred.I_CV
+        else:
+            sys.exit("Unknown `mode` in `compute_target`!")
 
         cap = tf.reshape(
             test_results[pred_capacity_label], shape = [max_cyc_n, -1],
@@ -539,6 +574,8 @@ def compute_target(
         elif mode == "cv":
             target_voltage = averages[Key.V_END_AVG]
             target_currents = [averages[Key.I_END_AVG]]
+        else:
+            sys.exit("Unknown `mode` in `compute_target`!")
 
         test_results = degradation_model.test_single_voltage(
             tf.cast(scaled_cyc, dtype = tf.float32),
@@ -569,6 +606,8 @@ def compute_target(
                 (generic_map['y'], 'f4'),
             ],
         )
+    else:
+        sys.exit("Unknown `target` in `compute_target`!")
 
     return generic
 
@@ -618,7 +657,11 @@ def plot_cycling_direct(
         )
 
 
-def plot_direct(target, plot_params, init_returns):
+def plot_direct(target: str, plot_params, init_returns):
+    """
+    Args:
+        target: Target plot - "generic_vs_capacity" or "generic_vs_cycle".
+    """
     if target == "generic_vs_capacity":
         compiled_max_cyc_n = 8
         model_max_cyc_n = 3
@@ -627,6 +670,8 @@ def plot_direct(target, plot_params, init_returns):
         compiled_max_cyc_n = 2000
         model_max_cyc_n = 200
         header = "Cap"
+    else:
+        sys.exit("Unknown `target` in `plot_direct`!")
 
     cell_ids\
         = plot_params["cell_ids"][:plot_params[Key.OPTIONS][Key.CELL_ID_SHOW]]

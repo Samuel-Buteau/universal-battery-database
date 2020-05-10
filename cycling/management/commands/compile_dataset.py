@@ -295,15 +295,11 @@ def initial_processing(my_cell_ids, fit_args, flags):
 
         min_cycle = numpy.min(all_mats[Key.N])
         max_cycle = numpy.max(all_mats[Key.N])
+        delta_cycle = (max_cycle - min_cycle) / float(fit_args[Key.REF_CYC_N])
 
-        cycle_span = max_cycle - min_cycle
-
-        delta_cycle = cycle_span / float(fit_args[Key.REF_CYC])
-
-        reference_cycles = [
-            min_cycle + i * delta_cycle for i in
-            numpy.arange(1, fit_args[Key.REF_CYC] + 1)
-        ]
+        reference_cycles = numpy.linspace(
+            min_cycle + delta_cycle, max_cycle, float(fit_args[Key.REF_CYC_N]),
+        )
 
         all_reference_mats = []
         # then for reference cycle,
@@ -571,14 +567,14 @@ def initial_processing(my_cell_ids, fit_args, flags):
                Key.SIGN_GRID: sign_grid,
                Key.CELL_TO_POS: cell_id_to_pos_id,
                Key.CELL_TO_NEG: cell_id_to_neg_id,
-               Key.CELL_TO_ELE: cell_id_to_electrolyte_id,
-               "cell_to_dry": cell_id_to_dry_cell_id,
-               "dry_to_meta": dry_cell_id_to_meta,
+               Key.CELL_TO_LYTE: cell_id_to_electrolyte_id,
+               Key.CELL_TO_DRY: cell_id_to_dry_cell_id,
+               Key.DRY_TO_META: dry_cell_id_to_meta,
                Key.CELL_TO_LAT: cell_id_to_latent,
-               Key.ELE_TO_LAT: electrolyte_id_to_latent,
-               Key.ELE_TO_SOL: electrolyte_id_to_solvent_id_weight,
-               Key.ELE_TO_SALT: electrolyte_id_to_salt_id_weight,
-               Key.ELE_TO_ADD: electrolyte_id_to_additive_id_weight,
+               Key.LYTE_TO_LAT: electrolyte_id_to_latent,
+               Key.LYTE_TO_SOL: electrolyte_id_to_solvent_id_weight,
+               Key.LYTE_TO_SALT: electrolyte_id_to_salt_id_weight,
+               Key.LYTE_TO_ADD: electrolyte_id_to_additive_id_weight,
            }, {
                Key.NAME_POS: pos_to_pos_name,
                Key.NAME_NEG: neg_to_neg_name,

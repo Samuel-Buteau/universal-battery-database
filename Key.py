@@ -13,6 +13,9 @@ class Key:
     CYC = "cycle"
     CELL_FEAT = "features_cell"
 
+    REF_CYC = "reference_cycle"
+    NEIGH_DATA = "neighborhood_data"
+
     COUNT_BATCH = "batch_count"
     COUNT_V = "voltage_count"
     COUNT_I = "current_count"
@@ -113,12 +116,12 @@ class Key:
     BATCH = "batch_size"
 
     PRINT_LOSS = "print_loss_every"
-    VIS = "visualize_fit_every"
+    VIS_FIT = "visualize_fit_every"
     VIS_VQ = "visualize_vq_every"
     STOP = "stop_count"
-    BAR_SHOW = "barcode_show"
+    CELL_ID_SHOW = "cell_id_show"
 
-    REF_CYC = "reference_cycles_n"
+    REF_CYC_N = "reference_cycles_n"
     V_N_GRID = "voltage_grid_n_samples"
     I_N_GRID = "current_grid_n_samples"
     I_MAX = "current_max_n"
@@ -175,7 +178,7 @@ class Key:
 
     # Begin: keys inside dataset ===============================================
 
-    """ (dict) Indexed by barcode, each yields a dictionary with keys:
+    """ (dict) Indexed by cell ID, each yields a dictionary with keys:
         [ Key.ALL_REF_MATS, Key.CYC_GRP_DICT ]
     """
     ALL_DATA = "all_data"
@@ -191,13 +194,13 @@ class Key:
     """ (1d array) Signs """
     SIGN_GRID = "sign_grid"
 
-    """ (dict) Indexed by barcode; yields a positive electrode id """
+    """ (dict) Indexed by cell ID; yields a positive electrode id """
     CELL_TO_POS = "cell_id_to_pos_id"
-    """ (dic) Indexed by barcode; yields a negative electrode id """
+    """ (dic) Indexed by cell ID; yields a negative electrode id """
     CELL_TO_NEG = "cell_id_to_neg_id"
-    """ (dic) Indexed by barcode; yields an electrolyte id """
-    CELL_TO_ELE = "cell_id_to_electrolyte_id"
-    """ (dic) Indexed by barcode; yields
+    """ (dic) Indexed by cell ID; yields an electrolyte id """
+    CELL_TO_LYTE = "cell_id_to_electrolyte_id"
+    """ (dic) Indexed by cell ID; yields
         1 if the cell is latent, 0 if made of known pos, neg, electrolyte.
     """
     CELL_TO_LAT = "cell_id_to_latent"
@@ -205,10 +208,10 @@ class Key:
 
     DRY_TO_META = "dry_to_meta"
 
-    ELE_TO_SOL = "electrolyte_id_to_solvent_id_weight"
-    ELE_TO_SALT = "electrolyte_id_to_salt_id_weight"
-    ELE_TO_ADD = "electrolyte_id_to_additive_id_weight"
-    ELE_TO_LAT = "electrolyte_id_to_latent"
+    LYTE_TO_SOL = "electrolyte_id_to_solvent_id_weight"
+    LYTE_TO_SALT = "electrolyte_id_to_salt_id_weight"
+    LYTE_TO_ADD = "electrolyte_id_to_additive_id_weight"
+    LYTE_TO_LAT = "electrolyte_id_to_latent"
 
     # Begin: keys for dataset names ============================================
 

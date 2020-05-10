@@ -1,12 +1,18 @@
-import numpy
+import numpy as np
 import tensorflow as tf
+
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Dense
 
+from Key import Key
+
 from machine_learning.PrimitiveDictionaryLayer import PrimitiveDictionaryLayer
 from machine_learning.StressToEncodedLayer import StressToEncodedLayer
-from machine_learning.loss_calculator_blackbox import *
-from Key import Key
+from machine_learning.loss_calculator_blackbox import calculate_q_loss
+from machine_learning.incentives import (
+    Inequality, Level, Target,
+    incentive_inequality, incentive_magnitude, incentive_combine,
+)
 
 main_activation = tf.keras.activations.relu
 
@@ -350,10 +356,14 @@ class DegradationModel(Model):
         cell_latent_flags, cell_to_pos, cell_to_neg,
         cell_to_lyte, cell_to_dry_cell, dry_cell_to_meta,
         lyte_to_solvent, lyte_to_salt, lyte_to_additive, lyte_latent_flags,
-        names, n_sample, incentive_coeffs,
+        names, n_sample, options,
         n_channels = 16, min_latent = 0.1,
 
     ):
+        """
+        Args:
+            options: Used to access the incentive coefficients.
+        """
         super(DegradationModel, self).__init__()
 
         print_cell_info(
@@ -370,7 +380,7 @@ class DegradationModel(Model):
         # number of samples
         self.n_sample = n_sample
         # incentive coefficients
-        self.incentive_coeffs = incentive_coeffs
+        self.options = options
 
         # TODO(harvey): decide the style of "number of x" for the whole project
         # number of features
@@ -384,11 +394,11 @@ class DegradationModel(Model):
             num_feats = 6, id_dict = dry_cell_dict,
         )
 
-        self.dry_cell_latent_flags = numpy.ones(
-            (self.dry_cell_direct.num_keys, 6), dtype = numpy.float32,
+        self.dry_cell_latent_flags = np.ones(
+            (self.dry_cell_direct.num_keys, 6), dtype = np.float32,
         )
-        self.dry_cell_given = numpy.zeros(
-            (self.dry_cell_direct.num_keys, 6), dtype = numpy.float32,
+        self.dry_cell_given = np.zeros(
+            (self.dry_cell_direct.num_keys, 6), dtype = np.float32,
         )
 
         for dry_cell_id in self.dry_cell_direct.id_dict.keys():
@@ -434,8 +444,8 @@ class DegradationModel(Model):
 
         # cell_latent_flags is a dict with cell_ids as keys.
         # latent_flags is a numpy array such that the indecies match cell_dict
-        latent_flags = numpy.ones(
-            (self.cell_direct.num_keys, 1), dtype = numpy.float32,
+        latent_flags = np.ones(
+            (self.cell_direct.num_keys, 1), dtype = np.float32,
         )
 
         for cell_id in self.cell_direct.id_dict.keys():
@@ -446,8 +456,8 @@ class DegradationModel(Model):
 
         self.cell_latent_flags = tf.constant(latent_flags)
 
-        cell_pointers = numpy.zeros(
-            shape = (self.cell_direct.num_keys, 4), dtype = numpy.int32
+        cell_pointers = np.zeros(
+            shape = (self.cell_direct.num_keys, 4), dtype = np.int32
         )
 
         for cell_id in self.cell_direct.id_dict.keys():
@@ -473,17 +483,15 @@ class DegradationModel(Model):
             depth, width, last = self.num_feats,
         )
 
-        self.n_solvent_max = numpy.max(
-            [len(v) for v in lyte_to_solvent.values()]
-        )
-        self.n_salt_max = numpy.max([len(v) for v in lyte_to_salt.values()])
-        self.n_additive_max = numpy.max(
+        self.n_solvent_max = np.max([len(v) for v in lyte_to_solvent.values()])
+        self.n_salt_max = np.max([len(v) for v in lyte_to_salt.values()])
+        self.n_additive_max = np.max(
             [len(v) for v in lyte_to_additive.values()]
         )
 
         # electrolyte latent flags
-        latent_flags = numpy.ones(
-            (self.lyte_direct.num_keys, 1), dtype = numpy.float32,
+        latent_flags = np.ones(
+            (self.lyte_direct.num_keys, 1), dtype = np.float32,
         )
 
         for lyte_id in self.lyte_direct.id_dict.keys():
@@ -496,19 +504,19 @@ class DegradationModel(Model):
 
         # electrolyte pointers and weights
 
-        pointers = numpy.zeros(
+        pointers = np.zeros(
             shape = (
                 self.lyte_direct.num_keys,
                 self.n_solvent_max + self.n_salt_max + self.n_additive_max,
             ),
-            dtype = numpy.int32,
+            dtype = np.int32,
         )
-        weights = numpy.zeros(
+        weights = np.zeros(
             shape = (
                 self.lyte_direct.num_keys,
                 self.n_solvent_max + self.n_salt_max + self.n_additive_max,
             ),
-            dtype = numpy.float32,
+            dtype = np.float32,
         )
 
         for lyte_id in self.lyte_direct.id_dict.keys():
@@ -648,7 +656,7 @@ class DegradationModel(Model):
             )
 
             q_loss = calculate_q_loss(
-                q, q_der, incentive_coeffs = self.incentive_coeffs
+                q, q_der, options = self.options
             )
 
             _, cell_loss, _ = self.cell_from_indices(
@@ -993,13 +1001,13 @@ class DegradationModel(Model):
                 loss_der_lyte_indirect = 0.
 
             loss_lyte = (
-                self.incentive_coeffs["coeff_electrolyte_output"]
+                self.options["coeff_electrolyte_output"]
                 * loss_output_lyte
-                + self.incentive_coeffs["coeff_electrolyte_input"]
+                + self.options["coeff_electrolyte_input"]
                 * loss_input_lyte_indirect
-                + self.incentive_coeffs["coeff_electrolyte_derivative"]
+                + self.options["coeff_electrolyte_derivative"]
                 * loss_der_lyte_indirect
-                + self.incentive_coeffs["coeff_electrolyte_eq"]
+                + self.options["coeff_electrolyte_eq"]
                 * loss_lyte_eq
             )
 
@@ -1008,7 +1016,7 @@ class DegradationModel(Model):
                 (1. - fetched_latent_cell) * loss_neg +
                 (1. - fetched_latent_cell) * loss_dry_cell +
                 (1. - fetched_latent_cell) *
-                self.incentive_coeffs["coeff_electrolyte"] * loss_lyte
+                self.options["coeff_electrolyte"] * loss_lyte
             )
 
             if compute_derivatives:
@@ -1045,16 +1053,16 @@ class DegradationModel(Model):
         if training:
             loss = incentive_combine([
                 (
-                    self.incentive_coeffs["coeff_cell_output"],
+                    self.options["coeff_cell_output"],
                     loss_output_cell,
                 ), (
-                    self.incentive_coeffs["coeff_cell_input"],
+                    self.options["coeff_cell_input"],
                     loss_input_cell_indirect,
                 ), (
-                    self.incentive_coeffs["coeff_cell_derivative"],
+                    self.options["coeff_cell_derivative"],
                     loss_derivative_cell_indirect,
                 ), (
-                    self.incentive_coeffs["coeff_cell_eq"],
+                    self.options["coeff_cell_eq"],
                     loss_cell_eq,
                 )
             ])

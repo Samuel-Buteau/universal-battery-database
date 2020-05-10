@@ -127,7 +127,20 @@ class Key:
     I_MAX = "current_max_n"
     TEMP_GRID_N = "temperature_grid_n_samples"
 
-    # Begin: Keys in options (ml_smoothing and compile_dataset =================
+    # End: Keys in options (ml_smoothing and compile_dataset ===================
+
+    # Begin: Keys in derivatives ===============================================
+
+    D_V = "d_v"
+    D3_V = "d3_v"
+    d_I = "d_current"
+    D3_I = "d3_current"
+    D_CYC = "d_cycle"
+    D3_CYC = "d3_cycle"
+    D_CELL_FEAT = "d_features_cell"
+    D2_CELL_FEAT = "d2_features_cell"
+
+    # End: Keys in derivatives =================================================
 
     """ Structured array with dtype:
         [

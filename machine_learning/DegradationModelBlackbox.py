@@ -42,7 +42,7 @@ def feedforward_nn_parameters(
                 width,
                 activation = activation,
                 use_bias = True,
-                bias_initializer = "zeros"
+                bias_initializer = "zeros",
             ) for activation in ["relu", None]
         ]
         for _ in range(depth)
@@ -82,8 +82,7 @@ def nn_call(nn_func: dict, dependencies: tuple, training = True):
         The output of the neural network.
     """
     centers = nn_func["initial"](
-        tf.concat(dependencies, axis = 1),
-        training = training,
+        tf.concat(dependencies, axis = 1), training = training,
     )
 
     for dd in nn_func["bulk"]:
@@ -96,9 +95,6 @@ def nn_call(nn_func: dict, dependencies: tuple, training = True):
     return nn_func["final"](centers, training = training)
 
 
-# TODO(harvey): rename
-#   - "electrolyte" to "lyte"
-#   - "molecule" to "mol"
 def print_cell_info(
     cell_latent_flags, cell_to_pos, cell_to_neg, cell_to_lyte,
     cell_to_dry_cell, dry_cell_to_meta,
@@ -110,7 +106,7 @@ def print_cell_info(
     # TODO: names being a tuple is really dumb. use some less error prone way.
     pos_to_pos_name, neg_to_neg_name = names[0], names[1]
     lyte_to_lyte_name = names[2]
-    molecule_to_molecule_name = names[3]
+    mol_to_mol_name = names[3]
     dry_cell_to_dry_cell_name = names[4]
 
     print("\ncell_id: Known Components (Y/N):\n")
@@ -181,9 +177,9 @@ def print_cell_info(
                     print("\t{}:".format(st))
                     components = lyte_to[lyte_id]
                     for s, w in components:
-                        if s in molecule_to_molecule_name.keys():
+                        if s in mol_to_mol_name.keys():
                             print("\t\t{} {}".format(
-                                w, molecule_to_molecule_name[s])
+                                w, mol_to_mol_name[s])
                             )
                         else:
                             print("\t\t{} id {}".format(w, s))
@@ -314,7 +310,7 @@ def create_derivatives(
         for k in der_params.keys():
             if der_params[k] >= 2:
                 derivatives["d2_" + k] = tape_d2.batch_jacobian(
-                    source = params[k], target = derivatives["d_" + k]
+                    source = params[k], target = derivatives["d_" + k],
                 )
                 if k not in [Key.CELL_FEAT, Key.STRESS]:
                     derivatives["d2_" + k] = derivatives["d2_" + k][:, 0, :]
@@ -350,7 +346,7 @@ class DegradationModel(Model):
 
     def __init__(
         self, depth, width,
-        cell_dict, pos_dict, neg_dict, lyte_dict, molecule_dict, dry_cell_dict,
+        cell_dict, pos_dict, neg_dict, lyte_dict, mol_dict, dry_cell_dict,
         cell_latent_flags, cell_to_pos, cell_to_neg,
         cell_to_lyte, cell_to_dry_cell, dry_cell_to_meta,
         lyte_to_solvent, lyte_to_salt, lyte_to_additive, lyte_latent_flags,
@@ -430,8 +426,8 @@ class DegradationModel(Model):
         self.lyte_direct = PrimitiveDictionaryLayer(
             num_feats = self.num_feats, id_dict = lyte_dict,
         )
-        self.molecule_direct = PrimitiveDictionaryLayer(
-            num_feats = self.num_feats, id_dict = molecule_dict,
+        self.mol_direct = PrimitiveDictionaryLayer(
+            num_feats = self.num_feats, id_dict = mol_dict,
         )
 
         self.num_keys = self.cell_direct.num_keys
@@ -439,8 +435,7 @@ class DegradationModel(Model):
         # cell_latent_flags is a dict with cell_ids as keys.
         # latent_flags is a numpy array such that the indecies match cell_dict
         latent_flags = numpy.ones(
-            (self.cell_direct.num_keys, 1),
-            dtype = numpy.float32
+            (self.cell_direct.num_keys, 1), dtype = numpy.float32,
         )
 
         for cell_id in self.cell_direct.id_dict.keys():
@@ -481,9 +476,7 @@ class DegradationModel(Model):
         self.n_solvent_max = numpy.max(
             [len(v) for v in lyte_to_solvent.values()]
         )
-        self.n_salt_max = numpy.max(
-            [len(v) for v in lyte_to_salt.values()]
-        )
+        self.n_salt_max = numpy.max([len(v) for v in lyte_to_salt.values()])
         self.n_additive_max = numpy.max(
             [len(v) for v in lyte_to_additive.values()]
         )
@@ -527,11 +520,11 @@ class DegradationModel(Model):
                 if lyte_id in lyte_to.keys():
                     my_components = lyte_to[lyte_id]
                     for i in range(len(my_components)):
-                        molecule_id, weight = my_components[i]
+                        mol_id, weight = my_components[i]
                         pointers[
                             self.lyte_direct.id_dict[lyte_id],
                             i + reference_index,
-                        ] = molecule_dict[molecule_id]
+                        ] = mol_dict[mol_id]
                         weights[
                             self.lyte_direct.id_dict[lyte_id],
                             i + reference_index,
@@ -651,9 +644,7 @@ class DegradationModel(Model):
                     Key.CELL_FEAT: sampled_feats_cell,
                     Key.I: sampled_constant_current,
                 },
-                der_params = {
-                    Key.V: 3, Key.CELL_FEAT: 2, Key.I: 3, Key.CYC: 3,
-                }
+                der_params = {Key.V: 3, Key.CELL_FEAT: 2, Key.I: 3, Key.CYC: 3}
             )
 
             q_loss = calculate_q_loss(
@@ -749,7 +740,7 @@ class DegradationModel(Model):
             fetched_pointers_lyte, [-1],
         )
 
-        feats_mol, loss_molecule = self.molecule_direct(
+        feats_mol, loss_mol = self.mol_direct(
             fetched_pointers_lyte_reshaped,
             training = training, sample = sample
         )
@@ -758,13 +749,13 @@ class DegradationModel(Model):
             [
                 -1,
                 self.n_solvent_max + self.n_salt_max + self.n_additive_max,
-                self.molecule_direct.num_features,
+                self.mol_direct.num_features,
             ],
         )
 
         if training:
-            loss_molecule_reshaped = tf.reshape(
-                loss_molecule,
+            loss_mol_reshaped = tf.reshape(
+                loss_mol,
                 [
                     -1,
                     self.n_solvent_max + self.n_salt_max + self.n_additive_max,
@@ -772,7 +763,7 @@ class DegradationModel(Model):
                 ],
             )
 
-        fetched_molecule_weights = tf.reshape(
+        fetched_mol_weights = tf.reshape(
             fetched_weights_lyte,
             [-1, self.n_solvent_max + self.n_salt_max + self.n_additive_max, 1],
         ) * feats_mol_reshaped
@@ -782,16 +773,16 @@ class DegradationModel(Model):
         ))
 
         feats_solvent = tf.reshape(total_solvent, [-1, 1]) * tf.reduce_sum(
-            fetched_molecule_weights[:, 0:self.n_solvent_max, :], axis = 1,
+            fetched_mol_weights[:, 0:self.n_solvent_max, :], axis = 1,
         )
         feats_salt = tf.reduce_sum(
-            fetched_molecule_weights[
+            fetched_mol_weights[
             :, self.n_solvent_max:self.n_solvent_max + self.n_salt_max, :,
             ],
             axis = 1,
         )
         feats_additive = tf.reduce_sum(
-            fetched_molecule_weights[
+            fetched_mol_weights[
             :,
             self.n_solvent_max + self.n_salt_max:
             self.n_solvent_max + self.n_salt_max + self.n_additive_max,
@@ -801,34 +792,32 @@ class DegradationModel(Model):
         )
 
         if training:
-            fetched_molecule_loss_weights = tf.reshape(
+            fetched_mol_loss_weights = tf.reshape(
                 fetched_weights_lyte,
                 [
                     -1,
                     self.n_solvent_max + self.n_salt_max + self.n_additive_max,
                     1,
                 ],
-            ) * loss_molecule_reshaped
+            ) * loss_mol_reshaped
             loss_solvent = tf.reshape(total_solvent, [-1, 1]) * tf.reduce_sum(
-                fetched_molecule_loss_weights[:, 0:self.n_solvent_max, :],
+                fetched_mol_loss_weights[:, 0:self.n_solvent_max, :],
                 axis = 1,
             )
             loss_salt = tf.reduce_sum(
-                fetched_molecule_loss_weights[
-                :,
-                self.n_solvent_max:self.n_solvent_max + self.n_salt_max,
-                :,
+                fetched_mol_loss_weights[
+                :, self.n_solvent_max:self.n_solvent_max + self.n_salt_max, :,
                 ],
                 axis = 1,
             )
             loss_additive = tf.reduce_sum(
-                fetched_molecule_loss_weights[
+                fetched_mol_loss_weights[
                 :,
                 self.n_solvent_max + self.n_salt_max:
                 self.n_solvent_max + self.n_salt_max + self.n_additive_max,
                 :
                 ],
-                axis = 1
+                axis = 1,
             )
 
         derivatives = {}

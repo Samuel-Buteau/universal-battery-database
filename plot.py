@@ -629,7 +629,7 @@ def plot_direct(target, plot_params, init_returns):
         header = "Cap"
 
     cell_ids\
-        = plot_params["cell_ids"][:plot_params[Key.OPTIONS]["cell_id_show"]]
+        = plot_params["cell_ids"][:plot_params[Key.OPTIONS][Key.CELL_ID_SHOW]]
     count = plot_params["count"]
     fit_args = plot_params[Key.OPTIONS]
 

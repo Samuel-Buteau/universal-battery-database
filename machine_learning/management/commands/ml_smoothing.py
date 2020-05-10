@@ -464,7 +464,7 @@ def initial_processing(
                 dry_cell_to_dry_cell_name,
             ),
             n_sample = options[Key.N_SAMPLE],
-            incentive_coeffs = options,
+            options = options,
             min_latent = options[Key.MIN_LAT]
         )
 

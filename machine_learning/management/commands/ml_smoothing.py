@@ -575,31 +575,40 @@ def train_and_evaluate(
                     return
 
 
-def train_step(neigh, params, options):
-    sign_grid_tensor = params[Key.TENSORS][Key.SIGN_GRID]
-    voltage_grid_tensor = params[Key.TENSORS][Key.V_GRID]
-    current_grid_tensor = params[Key.TENSORS][Key.I_GRID]
-    tmp_grid_tensor = params[Key.TENSORS][Key.TEMP_GRID]
+def train_step(neigh, params: dict, options: dict):
+    """ One training step.
 
-    count_matrix_tensor = params[Key.TENSORS][Key.COUNT_MATRIX]
-
-    cycle_tensor = params[Key.TENSORS][Key.CYC]
-    constant_current_tensor = params[Key.TENSORS][Key.I_CC]
-    end_current_prev_tensor = params[Key.TENSORS][Key.I_PREV_END]
-    end_voltage_prev_tensor = params[Key.TENSORS][Key.V_PREV_END]
-    end_voltage_tensor = params[Key.TENSORS][Key.V_END]
+    Args:
+        neigh: Neighbourhood.
+        params: Contains all necessary parameters.
+        options: Options for `ml_smoothing`.
+    """
+    # need to split the range
+    batch_size2 = neigh.shape[0]
 
     degradation_model = params[Key.MODEL]
     optimizer = params[Key.OPT]
+    compiled_tensors = params[Key.TENSORS]
 
-    cc_voltage_tensor = params[Key.TENSORS][Key.V_CC_VEC]
-    cc_capacity_tensor = params[Key.TENSORS][Key.Q_CC_VEC]
-    cc_mask_tensor = params[Key.TENSORS][Key.MASK_CC_VEC]
-    cv_capacity_tensor = params[Key.TENSORS][Key.Q_CV_VEC]
-    cv_current_tensor = params[Key.TENSORS][Key.I_CV_VEC]
-    cv_mask_tensor = params[Key.TENSORS][Key.MASK_CV_VEC]
-    # need to split the range
-    batch_size2 = neigh.shape[0]
+    sign_grid_tensor = compiled_tensors[Key.SIGN_GRID]
+    voltage_grid_tensor = compiled_tensors[Key.V_GRID]
+    current_grid_tensor = compiled_tensors[Key.I_GRID]
+    tmp_grid_tensor = compiled_tensors[Key.TEMP_GRID]
+
+    count_matrix_tensor = compiled_tensors[Key.COUNT_MATRIX]
+
+    cycle_tensor = compiled_tensors[Key.CYC]
+    constant_current_tensor = compiled_tensors[Key.I_CC]
+    end_current_prev_tensor = compiled_tensors[Key.I_PREV_END]
+    end_voltage_prev_tensor = compiled_tensors[Key.V_PREV_END]
+    end_voltage_tensor = compiled_tensors[Key.V_END]
+
+    cc_voltage_tensor = compiled_tensors[Key.V_CC_VEC]
+    cc_capacity_tensor = compiled_tensors[Key.Q_CC_VEC]
+    cc_mask_tensor = compiled_tensors[Key.MASK_CC_VEC]
+    cv_capacity_tensor = compiled_tensors[Key.Q_CV_VEC]
+    cv_current_tensor = compiled_tensors[Key.I_CV_VEC]
+    cv_mask_tensor = compiled_tensors[Key.MASK_CV_VEC]
 
     """
     if you have the minimum cycle and maximum cycle for a neighborhood,
@@ -610,7 +619,8 @@ def train_step(neigh, params, options):
     """
 
     cyc_indices_lerp = tf.random.uniform(
-        [batch_size2], minval = 0., maxval = 1., dtype = tf.float32)
+        [batch_size2], minval = 0., maxval = 1., dtype = tf.float32,
+    )
     cyc_indices = tf.cast(
         (1. - cyc_indices_lerp) * tf.cast(
             neigh[:, NEIGH_MIN_CYC] + neigh[:, NEIGH_ABSOLUTE_CYC],

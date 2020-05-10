@@ -522,10 +522,8 @@ def train_and_evaluate(
     @tf.function
     def dist_train_step(strategy, neigh):
         return strategy.experimental_run_v2(
-            lambda neighborhood: train_step(
-                neighborhood, train_step_params, options,
-            ),
-            args = (neigh,)
+            lambda neigh: train_step(neigh, train_step_params, options),
+            args = (neigh,),
         )
 
     # TODO(harvey, confusion): what is `l`?
@@ -534,11 +532,11 @@ def train_and_evaluate(
     with strategy.scope():
         for epoch in range(epochs):
             sub_count = 0
-            for neighborhood in init_returns[Key.TRAIN_DS]:
+            for neigh in init_returns[Key.TRAIN_DS]:
                 count += 1
                 sub_count += 1
 
-                l_ = dist_train_step(strategy, neighborhood)
+                l_ = dist_train_step(strategy, neigh)
                 if l is None:
                     l = l_
                 else:

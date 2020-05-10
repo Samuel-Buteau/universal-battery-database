@@ -2,13 +2,15 @@ import time
 
 import numpy as np
 import tensorflow as tf
+
 from django.core.management.base import BaseCommand
 
+from Key import Key
+from plot import *
+
+from cycling.models import *
 from machine_learning.DegradationModelBlackbox import DegradationModel
 from machine_learning.LossRecordBlackbox import LossRecord
-from cycling.models import *
-from plot import *
-from Key import Key
 
 # TODO(sam): For each cell_id, needs a multigrid of (S, V, I, T) (current
 #  needs to be adjusted)

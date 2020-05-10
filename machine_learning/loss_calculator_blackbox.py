@@ -1,5 +1,6 @@
-from machine_learning.incentives import *
 from Key import Key
+
+from machine_learning.incentives import *
 
 
 def calculate_q_loss(q, q_der, options):

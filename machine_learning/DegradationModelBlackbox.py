@@ -1,12 +1,14 @@
 import numpy
 import tensorflow as tf
+
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Dense
+
+from Key import Key
 
 from machine_learning.PrimitiveDictionaryLayer import PrimitiveDictionaryLayer
 from machine_learning.StressToEncodedLayer import StressToEncodedLayer
 from machine_learning.loss_calculator_blackbox import *
-from Key import Key
 
 main_activation = tf.keras.activations.relu
 

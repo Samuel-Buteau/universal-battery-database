@@ -1,14 +1,18 @@
 import time
+import os
+import pickle
 
 import numpy as np
 import tensorflow as tf
+
 from django.core.management.base import BaseCommand
 
+from Key import Key
+from plot import plot_direct
+
+from cycling.models import id_dict_from_id_list
 from machine_learning.DegradationModelBlackbox import DegradationModel
 from machine_learning.LossRecordBlackbox import LossRecord
-from cycling.models import *
-from plot import *
-from Key import Key
 
 # TODO(sam): For each cell_id, needs a multigrid of (S, V, I, T) (current
 #  needs to be adjusted)
@@ -464,12 +468,12 @@ def initial_processing(
                 dry_cell_to_dry_cell_name,
             ),
             n_sample = options[Key.N_SAMPLE],
-            incentive_coeffs = options,
-            min_latent = options[Key.MIN_LAT]
+            options = options,
+            min_latent = options[Key.MIN_LAT],
         )
 
         optimizer = tf.keras.optimizers.Adam(
-            learning_rate = options[Key.LRN_RATE]
+            learning_rate = options[Key.LRN_RATE],
         )
 
     return {

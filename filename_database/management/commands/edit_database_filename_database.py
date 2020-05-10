@@ -70,18 +70,15 @@ def add_files(options):
 
 
 def parse_database_files(options):
-    for my_file in (DatabaseFile.objects.all()):
+    for my_file in DatabaseFile.objects.all():
         if my_file.valid_metadata is None:
             res = guess_exp_type(my_file.filename, my_file.root)
-
             if res:
                 meta, valid = deterministic_parser(
                     my_file.filename,
                     res)
                 my_file.set_valid_metadata(valid_metadata=meta)
                 my_file.save()
-            #else:
-            #    print('unknown experiment', ' root: ', my_file.root , ' filename: ',my_file.filename)
 
 class Command(BaseCommand):
     def add_arguments(self, parser):
@@ -100,7 +97,7 @@ class Command(BaseCommand):
         parser.add_argument('--visuals', dest='visuals', action='store_true')
         parser.add_argument('--no-visuals', dest='visuals', action='store_false')
         parser.set_defaults(visuals=False)
-        parser.add_argument('--data_dir', default="/DB/srv/samba/share/DATA")
+        parser.add_argument('--data_dir', default='')
 
 
     def handle(self, *args, **options):

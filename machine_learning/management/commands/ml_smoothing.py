@@ -157,17 +157,22 @@ def initial_processing(
     dataset[Key.I_GRID] = dataset[Key.I_GRID] - numpy.log(max_cap)
     # the current grid is adjusted by the max capacity of the cell_id. It is
     # in log space, so I/q becomes log(I) - log(q)
-    numpy_acc(
-        compiled_data, Key.I_GRID, numpy.array([dataset[Key.I_GRID]]),
-    )
+    numpy_acc(compiled_data, Key.I_GRID, numpy.array([dataset[Key.I_GRID]]))
 
     # TODO (harvey): simplify the following using loops
+    # cell ID array
     cell_id_list = numpy.array(cell_ids)
+    # cell ID to positive electrode ID
     cell_id_to_pos_id = {}
+    # cell ID to negative electrode ID
     cell_id_to_neg_id = {}
+    # cell ID to electrolyte ID
     cell_id_to_lyte_id = {}
+    # cell ID to dry cell ID
     cell_id_to_dry_cell_id = {}
+    # dry cell ID to meta
     dry_cell_id_to_meta = {}
+    # cell ID to latent
     cell_id_to_latent = {}
 
     # electrolyte ID to latent ID weight

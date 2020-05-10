@@ -1,6 +1,6 @@
 import time
 
-import numpy
+import numpy as np
 import tensorflow as tf
 from django.core.management.base import BaseCommand
 
@@ -108,7 +108,7 @@ def ml_smoothing(options):
 #  ragged tensors. Right now, I am just flattening everything.
 def numpy_acc(dict, key, data):
     if key in dict.keys():
-        dict[key] = numpy.concatenate((dict[key], data))
+        dict[key] = np.concatenate((dict[key], data))
     else:
         dict[key] = data
 
@@ -152,16 +152,16 @@ def initial_processing(
 
     keys = [Key.V_GRID, Key.TEMP_GRID, Key.SIGN_GRID]
     for key in keys:
-        numpy_acc(compiled_data, key, numpy.array([dataset[key]]))
+        numpy_acc(compiled_data, key, np.array([dataset[key]]))
 
-    dataset[Key.I_GRID] = dataset[Key.I_GRID] - numpy.log(max_cap)
+    dataset[Key.I_GRID] = dataset[Key.I_GRID] - np.log(max_cap)
     # the current grid is adjusted by the max capacity of the cell_id. It is
     # in log space, so I/q becomes log(I) - log(q)
-    numpy_acc(compiled_data, Key.I_GRID, numpy.array([dataset[Key.I_GRID]]))
+    numpy_acc(compiled_data, Key.I_GRID, np.array([dataset[Key.I_GRID]]))
 
     # TODO (harvey): simplify the following using loops
     # cell ID array
-    cell_id_array = numpy.array(cell_ids)
+    cell_id_array = np.array(cell_ids)
     # cell ID to positive electrode ID
     cell_id_to_pos_id = {}
     # cell ID to negative electrode ID
@@ -277,7 +277,7 @@ def initial_processing(
             number_of_centers = 10
 
             # the centers of neighborhoods we will try to create
-            all_neigh_center_cycles = numpy.linspace(
+            all_neigh_center_cycles = np.linspace(
                 min_cyc, max_cyc, number_of_centers,
             )
             delta = (
@@ -298,14 +298,14 @@ def initial_processing(
                 # numpy array of True and False; same length as cyc_grp_dict[k]
                 # False when cycle_number falls outside out of
                 # [below_cyc, above_cyc] interval
-                mask = numpy.logical_and(
+                mask = np.logical_and(
                     below_cyc <= main_data[Key.N],
                     main_data[Key.N] <= above_cyc,
                 )
 
                 # the indices for the cyc_grp_dict[k] array which correspond
                 # to a True mask
-                all_valid_indices = numpy.arange(len(mask))[mask]
+                all_valid_indices = np.arange(len(mask))[mask]
 
                 # if there are less than 1 valid cycles, skip that neighborhood
                 if len(all_valid_indices) == 0:
@@ -336,8 +336,8 @@ def initial_processing(
 
                 """
 
-                neighborhood_data_i = numpy.zeros(
-                    NEIGH_TOTAL, dtype = numpy.int32,
+                neighborhood_data_i = np.zeros(
+                    NEIGH_TOTAL, dtype = np.int32,
                 )
 
                 neighborhood_data_i[NEIGH_MIN_CYC] = min_cyc_index
@@ -356,7 +356,7 @@ def initial_processing(
                 center_cycle = float(cyc)
                 reference_cycles = all_data[Key.REF_ALL_MATS][Key.N]
 
-                index_of_closest_reference = numpy.argmin(
+                index_of_closest_reference = np.argmin(
                     abs(center_cycle - reference_cycles)
                 )
 
@@ -368,8 +368,8 @@ def initial_processing(
                 neighborhood_data.append(neighborhood_data_i)
 
             if valid_cycles != 0:
-                neighborhood_data = numpy.array(
-                    neighborhood_data, dtype = numpy.int32,
+                neighborhood_data = np.array(
+                    neighborhood_data, dtype = np.int32,
                 )
 
                 # the empty slot becomes the count of added neighborhoods, which
@@ -495,7 +495,7 @@ def initial_processing(
     }
 
 
-def to_sorted_array(unsorted) -> numpy.array:
+def to_sorted_array(unsorted) -> np.array:
     """ Turns a list or a view object (of a dictionary) to a sorted array
 
     Args:
@@ -504,7 +504,7 @@ def to_sorted_array(unsorted) -> numpy.array:
     Returns:
         Sorted array of `unsorted`.
     """
-    return numpy.array(sorted(list(set(unsorted))))
+    return np.array(sorted(list(set(unsorted))))
 
 
 def train_and_evaluate(init_returns, cell_ids, fit_args):
@@ -855,7 +855,7 @@ class Command(BaseCommand):
             Key.COEFF_Q_DER_N: 10.,
         }
 
-        vis = 10000
+        vis = 1
         int_args = {
             Key.N_SAMPLE: 8 * 16,
 

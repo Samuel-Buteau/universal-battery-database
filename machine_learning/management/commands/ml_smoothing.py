@@ -369,16 +369,15 @@ def initial_processing(
                 # are used to counterbalance the bias toward longer cycle life
                 neighborhood_data[:, NEIGH_VALID_CYC] = valid_cycs
 
-                numpy_acc(compiled_data, "neighborhood_data", neighborhood_data)
+                numpy_acc(compiled_data, Key.NEIGH_DATA, neighborhood_data)
 
             number_of_compiled_cycs += len(main_data[Key.N])
             number_of_reference_cycs\
                 += len(all_data[Key.REF_ALL_MATS][Key.N])
 
             dict_to_acc = {
-                "reference_cycle": all_data[Key.REF_ALL_MATS][Key.N],
-                Key.COUNT_MATRIX:
-                    all_data[Key.REF_ALL_MATS][Key.COUNT_MATRIX],
+                Key.REF_CYC: all_data[Key.REF_ALL_MATS][Key.N],
+                Key.COUNT_MATRIX: all_data[Key.REF_ALL_MATS][Key.COUNT_MATRIX],
                 Key.CYC: main_data[Key.N],
                 Key.V_CC_VEC: main_data[Key.V_CC_VEC],
                 Key.Q_CC_VEC: main_data[Key.Q_CC_VEC],
@@ -395,7 +394,7 @@ def initial_processing(
             for key in dict_to_acc:
                 numpy_acc(compiled_data, key, dict_to_acc[key])
 
-    neighborhood_data = tf.constant(compiled_data["neighborhood_data"])
+    neighborhood_data = tf.constant(compiled_data[Key.NEIGH_DATA])
 
     compiled_tensors = {}
     # cycles go from 0 to 6000, but nn prefers normally distributed variables

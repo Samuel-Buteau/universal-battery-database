@@ -13,6 +13,9 @@ class Key:
     CYC = "cycle"
     CELL_FEAT = "features_cell"
 
+    REF_CYC = "reference_cycle"
+    NEIGH_DATA = "neighborhood_data"
+
     COUNT_BATCH = "batch_count"
     COUNT_V = "voltage_count"
     COUNT_I = "current_count"

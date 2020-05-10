@@ -133,7 +133,7 @@ class Key:
 
     D_V = "d_v"
     D3_V = "d3_v"
-    d_I = "d_current"
+    D_I = "d_current"
     D3_I = "d3_current"
     D_CYC = "d_cycle"
     D3_CYC = "d3_cycle"

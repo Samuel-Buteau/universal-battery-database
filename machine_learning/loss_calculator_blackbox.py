@@ -1,6 +1,9 @@
 from Key import Key
 
-from machine_learning.incentives import *
+from machine_learning.incentives import (
+    Inequality, Level, Target,
+    incentive_inequality, incentive_magnitude, incentive_combine,
+)
 
 
 def calculate_q_loss(q, q_der, options):

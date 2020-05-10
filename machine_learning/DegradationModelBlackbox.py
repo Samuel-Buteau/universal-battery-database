@@ -8,7 +8,11 @@ from Key import Key
 
 from machine_learning.PrimitiveDictionaryLayer import PrimitiveDictionaryLayer
 from machine_learning.StressToEncodedLayer import StressToEncodedLayer
-from machine_learning.loss_calculator_blackbox import *
+from machine_learning.loss_calculator_blackbox import calculate_q_loss
+from machine_learning.incentives import (
+    Inequality, Level, Target,
+    incentive_inequality, incentive_magnitude, incentive_combine,
+)
 
 main_activation = tf.keras.activations.relu
 

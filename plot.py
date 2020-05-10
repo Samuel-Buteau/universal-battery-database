@@ -81,6 +81,10 @@ def plot_engine_direct(
     lower_cycle = None, upper_cycle = None, vertical_barriers = None,
     list_all_options = None, show_invalid = False, figsize = None,
 ):
+    """
+    Args:
+        target: Plot type - "generic_vs_capacity" or "generic_vs_cycle".
+    """
     # open plot
     if figsize is None:
         figsize = get_figsize(target)
@@ -250,9 +254,12 @@ def get_y_quantity(mode: str) -> str:
     return y_quantity
 
 
-def get_generic_map(source, target, mode):
+def get_generic_map(source, target: str, mode):
+    """
+    Args:
+        target: Plot type - "generic_vs_capacity" or "generic_vs_cycle".
+    """
     quantity = get_y_quantity(mode)
-    generic_map = {}
     if target == "generic_vs_cycle":
         generic_map = {'y': "last_{}_capacity".format(mode)}
     elif target == "generic_vs_capacity":
@@ -262,6 +269,8 @@ def get_generic_map(source, target, mode):
         }
         if source == "compiled":
             generic_map['mask'] = "{}_mask_vector".format(mode)
+    else:
+        sys.exit("Unknown `target` in `get_generic_map`!")
     return generic_map
 
 
@@ -273,7 +282,7 @@ def data_engine(
     Args:
         source: Specifies the source of the data to be plot: "model",
             "database", or "compiled".
-        target: Target plot - "generic_vs_capacity" or "generic_vs_cycle".
+        target: Plot type - "generic_vs_capacity" or "generic_vs_cycle".
     """
     generic = {}
     sign_change = get_sign_change(typ)
@@ -412,7 +421,7 @@ def simple_plot(ax, x, y, color, channel):
         elif channel == "scatter_valid":
             s = 100
             marker = '.'
-        elif channel == "scatter_invalid":
+        else:
             s = 5
             marker = 'x'
 
@@ -496,7 +505,7 @@ def compute_target(
 ):
     """
     Args:
-        target: Target plot - "generic_vs_capacity" or "generic_vs_cycle".
+        target: Plot type - "generic_vs_capacity" or "generic_vs_cycle".
         degradation_model: Machine learning model.
         mode: Charge/discharge mode - constant-current ("cc") or
             constant-voltage ("cv").
@@ -598,6 +607,8 @@ def compute_target(
             ).numpy()
         elif mode == "cv":
             pred_cap = test_results[Key.Pred.I_CV].numpy()[:, -1]
+        else:
+            sys.exit("Unknown `mode` in `compute_target`!")
 
         generic = np.array(
             list(zip(cycle, pred_cap)),
@@ -657,10 +668,12 @@ def plot_cycling_direct(
         )
 
 
-def plot_direct(target: str, plot_params, init_returns):
+def plot_direct(target: str, plot_params: dict, init_returns: dict) -> None:
     """
     Args:
-        target: Target plot - "generic_vs_capacity" or "generic_vs_cycle".
+        target: Plot type - "generic_vs_capacity" or "generic_vs_cycle".
+        plot_params: Parameters for plotting.
+        init_returns: Return value of `ml_smoothing.initial_processing`.
     """
     if target == "generic_vs_capacity":
         compiled_max_cyc_n = 8
@@ -705,8 +718,8 @@ def plot_direct(target: str, plot_params, init_returns):
         )
 
 
-def savefig(figname, fit_args):
-    plt.savefig(os.path.join(fit_args[Key.PATH_PLOTS], figname), dpi = 300)
+def savefig(figname, options: dict):
+    plt.savefig(os.path.join(options[Key.PATH_PLOTS], figname), dpi = 300)
 
 
 def set_tick_params(ax):

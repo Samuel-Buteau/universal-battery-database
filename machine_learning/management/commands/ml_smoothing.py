@@ -758,18 +758,12 @@ def train_step(neigh, params, options):
             options[Key.Coeff.Q_CV] * cv_capacity_loss
             + options[Key.Coeff.Q_CC] * cc_capacity_loss
         )
-        loss = (
-            main_losses
-            + tf.stop_gradient(main_losses) * (
-                options[Key.Coeff.Q] * train_results[Key.Loss.Q]
-                + options[Key.Coeff.CELL] * train_results[Key.Loss.CELL]
-            )
+        loss = main_losses + tf.stop_gradient(main_losses) * (
+            options[Key.Coeff.Q] * train_results[Key.Loss.Q]
+            + options[Key.Coeff.CELL] * train_results[Key.Loss.CELL]
         )
 
-    gradients = tape.gradient(
-        loss,
-        degradation_model.trainable_variables,
-    )
+    gradients = tape.gradient(loss, degradation_model.trainable_variables)
 
     gradients_no_nans = [
         tf.where(tf.math.is_nan(x), tf.zeros_like(x), x) for x in gradients
@@ -780,10 +774,7 @@ def train_step(neigh, params, options):
     )
 
     optimizer.apply_gradients(
-        zip(
-            gradients_norm_clipped,
-            degradation_model.trainable_variables,
-        )
+        zip(gradients_norm_clipped, degradation_model.trainable_variables)
     )
 
     return tf.stack(
@@ -889,7 +880,7 @@ class Command(BaseCommand):
         ]
 
         parser.add_argument(
-            "--wanted_cell_ids", type = int, nargs = "+", default = cell_ids,
+            "--" + Key.CELL_IDS, type = int, nargs = "+", default = cell_ids,
         )
 
     def handle(self, *args, **options):

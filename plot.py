@@ -101,8 +101,7 @@ def plot_engine_direct(
         for axis in ["top", "bottom", "left", "right"]:
             ax.spines[axis].set_linewidth(3.)
 
-        # options
-        options = generate_options(mode, typ, target)
+        plot_options = generate_plot_options(mode, typ, target)
         list_of_target_data = []
 
         source_database = False
@@ -128,14 +127,14 @@ def plot_engine_direct(
 
         for j, target_data in enumerate(list_of_target_data):
             generic, _, generic_map = target_data
-            # plot
+            
             plot_generic(
                 target, generic, list_of_keys, custom_colors, generic_map, ax,
-                channel = data_streams[j][2], options = options,
+                channel = data_streams[j][2], plot_options = plot_options,
             )
 
         leg = produce_annotations(
-            ax, get_list_of_patches(list_of_keys, custom_colors), options
+            ax, get_list_of_patches(list_of_keys, custom_colors), plot_options
         )
         if source_database:
             make_file_legends_and_vertical(
@@ -164,12 +163,12 @@ def plot_engine_direct(
                 dpi = 300
             return get_byte_image(fig, dpi)
 
-    if not source_database:
+    else:
         savefig(filename, fit_args)
     plt.close(fig)
 
 
-def generate_options(mode, typ, target):
+def generate_plot_options(mode: str, typ: str, target: str) -> dict:
     # sign_change
     sign_change = get_sign_change(typ)
 
@@ -195,15 +194,18 @@ def generate_options(mode, typ, target):
             ("chg", "cv"): (.7, 1.),
         }
 
-    ylabel = typ + "-" + mode + "\n" + y_quantity
-    xlabel = x_quantity
+    else:
+        sys.exit("Unknown `target` in `generate_options`!")
+
+    y_label = typ + "-" + mode + "\n" + y_quantity
+    x_label = x_quantity
     x_leg, y_leg = leg[(typ, mode)]
     return {
         "sign_change": sign_change,
         "x_leg": x_leg,
         "y_leg": y_leg,
-        "xlabel": xlabel,
-        "ylabel": ylabel,
+        "xlabel": x_label,
+        "ylabel": y_label,
     }
 
 
@@ -398,14 +400,14 @@ def adjust_color(cyc, color, target_cycle = 6000., target_ratio = .5):
     )
 
 
-def produce_annotations(ax, list_of_patches, options):
+def produce_annotations(ax, list_of_patches, plot_options):
     leg = ax.legend(
         handles = list_of_patches, fontsize = "small",
-        bbox_to_anchor = (options["x_leg"], options["y_leg"]),
+        bbox_to_anchor = (plot_options["x_leg"], plot_options["y_leg"]),
         loc = "upper left",
     )
-    ax.set_ylabel(options["ylabel"])
-    ax.set_xlabel(options["xlabel"])
+    ax.set_ylabel(plot_options["ylabel"])
+    ax.set_xlabel(plot_options["xlabel"])
     return leg
 
 
@@ -434,7 +436,7 @@ def simple_plot(ax, x, y, color, channel):
 
 def plot_generic(
     target, groups, list_of_keys,
-    custom_colors, generic_map, ax, channel, options
+    custom_colors, generic_map, ax, channel, plot_options
 ):
     for k in list_of_keys:
         if k not in groups.keys():
@@ -442,12 +444,12 @@ def plot_generic(
         group = groups[k]
         if target == "generic_vs_cycle":
             x = group[Key.N]
-            y = options["sign_change"] * group[generic_map['y']]
+            y = plot_options["sign_change"] * group[generic_map['y']]
             color = custom_colors[k]
             simple_plot(ax, x, y, color, channel)
         elif target == "generic_vs_capacity":
             for i in range(len(group)):
-                x_ = options["sign_change"] * group[generic_map['x']][i]
+                x_ = plot_options["sign_change"] * group[generic_map['x']][i]
                 y_ = group[generic_map['y']][i]
                 if 'mask' in generic_map.keys():
                     valids = group[generic_map['mask']][i] > .5

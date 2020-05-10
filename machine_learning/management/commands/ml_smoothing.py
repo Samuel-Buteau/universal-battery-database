@@ -22,7 +22,7 @@ NEIGH_MIN_CYC = 0
 NEIGH_MAX_CYC = 1
 NEIGH_RATE = 2
 NEIGH_CELL_ID = 3
-NEIGH_ABSOLUTE_CYCLE = 4
+NEIGH_ABSOLUTE_CYC = 4
 NEIGH_VALID_CYC = 5
 NEIGH_SIGN_GRID = 6
 NEIGH_VOLTAGE_GRID = 7
@@ -144,8 +144,8 @@ def initial_processing(
     #   classes inside cycling.Key
 
     compiled_data = {}
-    number_of_compiled_cycles = 0
-    number_of_reference_cycles = 0
+    number_of_compiled_cycs = 0
+    number_of_reference_cycs = 0
 
     dataset[Key.Q_MAX] = 250
     max_cap = dataset[Key.Q_MAX]
@@ -207,7 +207,8 @@ def initial_processing(
             if lyte_id in dataset[Key.LYTE_TO_SOL].keys():
                 lyte_to_sol_weight[lyte_id] = dataset[Key.LYTE_TO_SOL][lyte_id]
             if lyte_id in dataset[Key.LYTE_TO_SALT].keys():
-                lyte_to_salt_weight[lyte_id] = dataset[Key.LYTE_TO_SALT][lyte_id]
+                lyte_to_salt_weight[lyte_id] = dataset[Key.LYTE_TO_SALT][
+                    lyte_id]
             if lyte_id in dataset[Key.LYTE_TO_ADD].keys():
                 lyte_to_addi_weight[lyte_id] = dataset[Key.LYTE_TO_ADD][lyte_id]
             if lyte_id in dataset[Key.LYTE_TO_LAT].keys():
@@ -224,7 +225,6 @@ def initial_processing(
     ]
 
     mol_ids = to_sorted_array(list(three_level_flatten(mess)))
-
     dry_cell_ids = to_sorted_array(cell_id_to_dry_cell_id.values())
     pos_ids = to_sorted_array(cell_id_to_pos_id.values())
     neg_ids = to_sorted_array(cell_id_to_neg_id.values())
@@ -256,9 +256,7 @@ def initial_processing(
             for key in normalize_keys:
                 main_data[key] = 1. / max_cap * main_data[key]
 
-            normalize_keys = [
-                Key.I_CC_AVG, Key.I_END_AVG, Key.I_PREV_END_AVG,
-            ]
+            normalize_keys = [Key.I_CC_AVG, Key.I_END_AVG, Key.I_PREV_END_AVG]
             for key in normalize_keys:
                 cyc_grp_dict[k][key] = 1. / max_cap * cyc_grp_dict[k][key]
 
@@ -277,19 +275,18 @@ def initial_processing(
             number_of_centers = 10
 
             # the centers of neighborhoods we will try to create
-            all_neigh_center_cycles = np.linspace(
+            all_neigh_center_cycs = np.linspace(
                 min_cyc, max_cyc, number_of_centers,
             )
             delta = (
-                1.2 * (all_neigh_center_cycles[1] - all_neigh_center_cycles[0])
-                + 10
+                1.2 * (all_neigh_center_cycs[1] - all_neigh_center_cycs[0]) + 10
             )
             # check all tentative neighborhood centers and
             # commit the ones that contain good data to the dataset
             neighborhood_data = []
 
-            valid_cycles = 0
-            for cyc in all_neigh_center_cycles:
+            valid_cycs = 0
+            for cyc in all_neigh_center_cycs:
                 # max_cyc and min_cyc are the limits of existing cycles.
 
                 below_cyc = cyc - delta
@@ -319,7 +316,7 @@ def initial_processing(
                 min_cyc_index = all_valid_indices[0]
                 max_cyc_index = all_valid_indices[-1]
 
-                valid_cycles += 1
+                valid_cycs += 1
 
                 """
                 this commits the neighborhood to the dataset
@@ -336,50 +333,46 @@ def initial_processing(
 
                 """
 
-                neighborhood_data_i = np.zeros(
-                    NEIGH_TOTAL, dtype = np.int32,
-                )
+                neigh_data_i = np.zeros(NEIGH_TOTAL, dtype = np.int32)
 
-                neighborhood_data_i[NEIGH_MIN_CYC] = min_cyc_index
-                neighborhood_data_i[NEIGH_MAX_CYC] = max_cyc_index
-                neighborhood_data_i[NEIGH_RATE] = k_count
-                neighborhood_data_i[NEIGH_CELL_ID] = cell_id_count
-                neighborhood_data_i[NEIGH_ABSOLUTE_CYCLE]\
-                    = number_of_compiled_cycles
+                neigh_data_i[NEIGH_MIN_CYC] = min_cyc_index
+                neigh_data_i[NEIGH_MAX_CYC] = max_cyc_index
+                neigh_data_i[NEIGH_RATE] = k_count
+                neigh_data_i[NEIGH_CELL_ID] = cell_id_count
+                neigh_data_i[NEIGH_ABSOLUTE_CYC] = number_of_compiled_cycs
                 # a weight based on prevalence. Set later
-                neighborhood_data_i[NEIGH_VALID_CYC] = 0
-                neighborhood_data_i[NEIGH_SIGN_GRID] = 0
-                neighborhood_data_i[NEIGH_VOLTAGE_GRID] = 0
-                neighborhood_data_i[NEIGH_CURRENT_GRID] = 0
-                neighborhood_data_i[NEIGH_TEMPERATURE_GRID] = 0
+                neigh_data_i[NEIGH_VALID_CYC] = 0
+                neigh_data_i[NEIGH_SIGN_GRID] = 0
+                neigh_data_i[NEIGH_VOLTAGE_GRID] = 0
+                neigh_data_i[NEIGH_CURRENT_GRID] = 0
+                neigh_data_i[NEIGH_TEMPERATURE_GRID] = 0
 
-                center_cycle = float(cyc)
-                reference_cycles = all_data[Key.REF_ALL_MATS][Key.N]
+                center_cyc = float(cyc)
+                reference_cycs = all_data[Key.REF_ALL_MATS][Key.N]
 
                 index_of_closest_reference = np.argmin(
-                    abs(center_cycle - reference_cycles)
+                    abs(center_cyc - reference_cycs)
                 )
 
-                neighborhood_data_i[NEIGH_ABSOLUTE_REFERENCE]\
-                    = number_of_reference_cycles
-                neighborhood_data_i[NEIGH_REFERENCE]\
-                    = index_of_closest_reference
+                neigh_data_i[NEIGH_ABSOLUTE_REFERENCE]\
+                    = number_of_reference_cycs
+                neigh_data_i[NEIGH_REFERENCE] = index_of_closest_reference
 
-                neighborhood_data.append(neighborhood_data_i)
+                neighborhood_data.append(neigh_data_i)
 
-            if valid_cycles != 0:
+            if valid_cycs != 0:
                 neighborhood_data = np.array(
                     neighborhood_data, dtype = np.int32,
                 )
 
                 # the empty slot becomes the count of added neighborhoods, which
                 # are used to counterbalance the bias toward longer cycle life
-                neighborhood_data[:, NEIGH_VALID_CYC] = valid_cycles
+                neighborhood_data[:, NEIGH_VALID_CYC] = valid_cycs
 
                 numpy_acc(compiled_data, "neighborhood_data", neighborhood_data)
 
-            number_of_compiled_cycles += len(main_data[Key.N])
-            number_of_reference_cycles\
+            number_of_compiled_cycs += len(main_data[Key.N])
+            number_of_reference_cycs\
                 += len(all_data[Key.REF_ALL_MATS][Key.N])
 
             dict_to_acc = {
@@ -617,11 +610,11 @@ def train_step(neighborhood, params, fit_args):
     cycle_indices = tf.cast(
         (1. - cycle_indices_lerp) * tf.cast(
             neighborhood[:, NEIGH_MIN_CYC]
-            + neighborhood[:, NEIGH_ABSOLUTE_CYCLE],
+            + neighborhood[:, NEIGH_ABSOLUTE_CYC],
             tf.float32
         ) + cycle_indices_lerp * tf.cast(
             neighborhood[:, NEIGH_MAX_CYC]
-            + neighborhood[:, NEIGH_ABSOLUTE_CYCLE],
+            + neighborhood[:, NEIGH_ABSOLUTE_CYC],
             tf.float32
         ),
         tf.int32

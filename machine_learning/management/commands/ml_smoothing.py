@@ -189,8 +189,8 @@ def initial_processing(
             cell_id_to_pos_id[cell_id] = dataset[Key.CELL_TO_POS][cell_id]
         if cell_id in dataset[Key.CELL_TO_NEG].keys():
             cell_id_to_neg_id[cell_id] = dataset[Key.CELL_TO_NEG][cell_id]
-        if cell_id in dataset[Key.CELL_TO_ELE].keys():
-            cell_id_to_lyte_id[cell_id] = dataset[Key.CELL_TO_ELE][cell_id]
+        if cell_id in dataset[Key.CELL_TO_LYTE].keys():
+            cell_id_to_lyte_id[cell_id] = dataset[Key.CELL_TO_LYTE][cell_id]
         if cell_id in dataset["cell_to_dry"].keys():
             dry_cell_id = dataset["cell_to_dry"][cell_id]
             cell_id_to_dry_cell_id[cell_id] = dry_cell_id
@@ -204,14 +204,14 @@ def initial_processing(
 
         if cell_id_to_latent[cell_id] < 0.5:
             lyte_id = cell_id_to_lyte_id[cell_id]
-            if lyte_id in dataset[Key.ELE_TO_SOL].keys():
-                lyte_to_sol_weight[lyte_id] = dataset[Key.ELE_TO_SOL][lyte_id]
-            if lyte_id in dataset[Key.ELE_TO_SALT].keys():
-                lyte_to_salt_weight[lyte_id] = dataset[Key.ELE_TO_SALT][lyte_id]
-            if lyte_id in dataset[Key.ELE_TO_ADD].keys():
-                lyte_to_addi_weight[lyte_id] = dataset[Key.ELE_TO_ADD][lyte_id]
-            if lyte_id in dataset[Key.ELE_TO_LAT].keys():
-                lyte_to_latent[lyte_id] = dataset[Key.ELE_TO_LAT][lyte_id]
+            if lyte_id in dataset[Key.LYTE_TO_SOL].keys():
+                lyte_to_sol_weight[lyte_id] = dataset[Key.LYTE_TO_SOL][lyte_id]
+            if lyte_id in dataset[Key.LYTE_TO_SALT].keys():
+                lyte_to_salt_weight[lyte_id] = dataset[Key.LYTE_TO_SALT][lyte_id]
+            if lyte_id in dataset[Key.LYTE_TO_ADD].keys():
+                lyte_to_addi_weight[lyte_id] = dataset[Key.LYTE_TO_ADD][lyte_id]
+            if lyte_id in dataset[Key.LYTE_TO_LAT].keys():
+                lyte_to_latent[lyte_id] = dataset[Key.LYTE_TO_LAT][lyte_id]
 
     mess = [
         [

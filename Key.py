@@ -196,7 +196,7 @@ class Key:
     """ (dic) Indexed by cell ID; yields a negative electrode id """
     CELL_TO_NEG = "cell_id_to_neg_id"
     """ (dic) Indexed by cell ID; yields an electrolyte id """
-    CELL_TO_ELE = "cell_id_to_electrolyte_id"
+    CELL_TO_LYTE = "cell_id_to_electrolyte_id"
     """ (dic) Indexed by cell ID; yields
         1 if the cell is latent, 0 if made of known pos, neg, electrolyte.
     """
@@ -205,10 +205,10 @@ class Key:
 
     DRY_TO_META = "dry_to_meta"
 
-    ELE_TO_SOL = "electrolyte_id_to_solvent_id_weight"
-    ELE_TO_SALT = "electrolyte_id_to_salt_id_weight"
-    ELE_TO_ADD = "electrolyte_id_to_additive_id_weight"
-    ELE_TO_LAT = "electrolyte_id_to_latent"
+    LYTE_TO_SOL = "electrolyte_id_to_solvent_id_weight"
+    LYTE_TO_SALT = "electrolyte_id_to_salt_id_weight"
+    LYTE_TO_ADD = "electrolyte_id_to_additive_id_weight"
+    LYTE_TO_LAT = "electrolyte_id_to_latent"
 
     # Begin: keys for dataset names ============================================
 

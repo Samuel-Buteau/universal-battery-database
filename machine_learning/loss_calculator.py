@@ -84,42 +84,42 @@ def calculate_reciprocal_loss(
         ), (
             incentive_coeffs["coeff_reciprocal_d3_current"],
             incentive_magnitude(
-                v_plus_der["d3_current"], Target.Small, Level.Proportional,
+                v_plus_der[Key.D3_I], Target.Small, Level.Proportional,
             ),
         ), (
             incentive_coeffs["coeff_reciprocal_d3_current"],
             incentive_magnitude(
-                v_minus_der["d3_current"], Target.Small, Level.Proportional,
+                v_minus_der[Key.D3_I], Target.Small, Level.Proportional,
             ),
         ), (
             incentive_coeffs["coeff_reciprocal_d3_cycle"],
             incentive_magnitude(
-                v_plus_der["d3_cycle"], Target.Small, Level.Proportional,
+                v_plus_der[Key.D3_CYC], Target.Small, Level.Proportional,
             ),
         ), (
             incentive_coeffs["coeff_reciprocal_d_cycle"],
             incentive_magnitude(
-                v_plus_der["d_cycle"], Target.Small, Level.Proportional,
+                v_plus_der[Key.D_CYC], Target.Small, Level.Proportional,
             ),
         ), (
             incentive_coeffs["coeff_reciprocal_d3_cycle"],
             incentive_magnitude(
-                v_minus_der["d3_cycle"], Target.Small, Level.Proportional,
+                v_minus_der[Key.D3_CYC], Target.Small, Level.Proportional,
             ),
         ), (
             incentive_coeffs["coeff_reciprocal_d_cycle"],
             incentive_magnitude(
-                v_minus_der["d_cycle"], Target.Small, Level.Proportional,
+                v_minus_der[Key.D_CYC], Target.Small, Level.Proportional,
             ),
         ), (
             incentive_coeffs["coeff_reciprocal_d_current_minus"],
             incentive_magnitude(
-                v_minus_der["d_current"], Target.Small, Level.Proportional,
+                v_minus_der[Key.D_I], Target.Small, Level.Proportional,
             ),
         ), (
             incentive_coeffs["coeff_reciprocal_d_current_plus"],
             incentive_magnitude(
-                v_plus_der["d_current"], Target.Small, Level.Proportional,
+                v_plus_der[Key.D_I], Target.Small, Level.Proportional,
             ),
         ), (
             incentive_coeffs["coeff_reciprocal_v_geq"],
@@ -152,12 +152,12 @@ def calculate_q_loss(q, q_der, incentive_coeffs):
         ), (
             incentive_coeffs[Key.COEFF_Q_V_MONO],
             incentive_inequality(
-                q_der["d_v"], Inequality.GreaterThan, 0, Level.Strong,
+                q_der[Key.D_V], Inequality.GreaterThan, 0, Level.Strong,
             ),
         ), (
             incentive_coeffs[Key.COEFF_Q_DER3_V],
             incentive_magnitude(
-                q_der["d3_v"], Target.Small, Level.Proportional,
+                q_der[Key.D3_V], Target.Small, Level.Proportional,
             ),
         ), (
             incentive_coeffs["coeff_q_d3_shift"],
@@ -167,22 +167,22 @@ def calculate_q_loss(q, q_der, incentive_coeffs):
         ), (
             incentive_coeffs[Key.COEFF_Q_DER3_I],
             incentive_magnitude(
-                q_der["d3_current"], Target.Small, Level.Proportional,
+                q_der[Key.D3_I], Target.Small, Level.Proportional,
             ),
         ), (
             incentive_coeffs[Key.COEFF_Q_DER3_N],
             incentive_magnitude(
-                q_der["d3_cycle"], Target.Small, Level.Proportional,
+                q_der[Key.D3_CYC], Target.Small, Level.Proportional,
             ),
         ), (
             incentive_coeffs[Key.COEFF_Q_DER_I],
             incentive_magnitude(
-                q_der["d_current"], Target.Small, Level.Proportional,
+                q_der[Key.D_I], Target.Small, Level.Proportional,
             ),
         ), (
             incentive_coeffs[Key.COEFF_Q_DER_N],
             incentive_magnitude(
-                q_der["d_cycle"], Target.Small, Level.Proportional,
+                q_der[Key.D_CYC], Target.Small, Level.Proportional,
             ),
         ), (
             incentive_coeffs["coeff_d_features"],
@@ -216,13 +216,13 @@ def calculate_scale_loss(scale, scale_der, incentive_coeffs):
         ), (
             incentive_coeffs["coeff_scale_mono"],
             incentive_inequality(
-                scale_der["d_cycle"], Inequality.LessThan, 0,
+                scale_der[Key.D_CYC], Inequality.LessThan, 0,
                 Level.Proportional,
             ),
         ), (
             incentive_coeffs["coeff_scale_d3_cycle"],
             incentive_magnitude(
-                scale_der["d3_cycle"], Target.Small, Level.Proportional,
+                scale_der[Key.D3_CYC], Target.Small, Level.Proportional,
             ),
         ), (
             incentive_coeffs["coeff_d_features"],
@@ -252,7 +252,7 @@ def calculate_shift_loss(shift, shift_der, incentive_coeffs):
         # (
         #     incentive_coeffs["coeff_shift_mono"],
         #     incentive_inequality(
-        #         shift_der["d_cycle"], Inequality.GreaterThan, 0.,
+        #         shift_der[Key.D_CYC], Inequality.GreaterThan, 0.,
         #         Level.Strong
         #     )
         # ),
@@ -262,7 +262,7 @@ def calculate_shift_loss(shift, shift_der, incentive_coeffs):
         ), (
             incentive_coeffs["coeff_shift_d3_cycle"],
             incentive_magnitude(
-                shift_der["d3_cycle"], Target.Small, Level.Proportional,
+                shift_der[Key.D3_CYC], Target.Small, Level.Proportional,
             ),
         ), (
             incentive_coeffs["coeff_d_features"],
@@ -289,7 +289,7 @@ def calculate_r_loss(r, r_der, incentive_coeffs):
         ), (
             incentive_coeffs["coeff_r_d3_cycle"],
             incentive_magnitude(
-                r_der["d3_cycle"], Target.Small, Level.Proportional,
+                r_der[Key.D3_CYC], Target.Small, Level.Proportional,
             ),
         ), (
             incentive_coeffs["coeff_d_features"],

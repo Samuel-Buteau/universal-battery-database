@@ -485,7 +485,8 @@ def initial_processing(
 
 
 def to_sorted_array(unsorted) -> np.array:
-    """ Turn a list or a view object (of a dictionary) to a sorted array
+    """ Remove duplicates from a list or a view object (of a dictionary) and
+        turn it into to a sorted array.
 
     Args:
         unsorted: Unsorted list or view object (of a dictionary).

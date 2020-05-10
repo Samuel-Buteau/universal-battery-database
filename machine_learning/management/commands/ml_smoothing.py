@@ -27,7 +27,7 @@ NEIGH_VALID_CYC = 5
 NEIGH_SIGN_GRID = 6
 NEIGH_VOLTAGE_GRID = 7
 NEIGH_CURRENT_GRID = 8
-NEIGH_TEMPERATURE_GRID = 9
+NEIGH_TMP_GRID = 9
 NEIGH_ABSOLUTE_REFERENCE = 10
 NEIGH_REFERENCE = 11
 
@@ -345,7 +345,7 @@ def initial_processing(
                 neigh_data_i[NEIGH_SIGN_GRID] = 0
                 neigh_data_i[NEIGH_VOLTAGE_GRID] = 0
                 neigh_data_i[NEIGH_CURRENT_GRID] = 0
-                neigh_data_i[NEIGH_TEMPERATURE_GRID] = 0
+                neigh_data_i[NEIGH_TMP_GRID] = 0
 
                 center_cyc = float(cyc)
                 reference_cycs = all_data[Key.REF_ALL_MATS][Key.N]
@@ -581,7 +581,7 @@ def train_step(neigh, params, options):
     sign_grid_tensor = params[Key.TENSORS][Key.SIGN_GRID]
     voltage_grid_tensor = params[Key.TENSORS][Key.V_GRID]
     current_grid_tensor = params[Key.TENSORS][Key.I_GRID]
-    temperature_grid_tensor = params[Key.TENSORS][Key.TEMP_GRID]
+    tmp_grid_tensor = params[Key.TENSORS][Key.TEMP_GRID]
 
     count_matrix_tensor = params[Key.TENSORS][Key.COUNT_MATRIX]
 
@@ -639,38 +639,33 @@ def train_step(neigh, params, options):
     )
     current_grid_dim = current_grid.shape[1]
 
-    temperature_grid = tf.gather(
-        temperature_grid_tensor,
-        indices = neigh[:, NEIGH_TEMPERATURE_GRID], axis = 0,
+    tmp_grid = tf.gather(
+        tmp_grid_tensor, indices = neigh[:, NEIGH_TMP_GRID], axis = 0,
     )
-    temperature_grid_dim = temperature_grid.shape[1]
+    tmp_grid_dim = tmp_grid.shape[1]
 
     svit_tuple = (
         tf.tile(
             tf.reshape(
-                sign_grid,
-                [batch_size2, sign_grid_dim, 1, 1, 1, 1],
+                sign_grid, [batch_size2, sign_grid_dim, 1, 1, 1, 1],
             ),
-            [1, 1, voltage_grid_dim, current_grid_dim, temperature_grid_dim, 1],
+            [1, 1, voltage_grid_dim, current_grid_dim, tmp_grid_dim, 1],
         ),
         tf.tile(
             tf.reshape(
-                voltage_grid,
-                [batch_size2, 1, voltage_grid_dim, 1, 1, 1],
+                voltage_grid, [batch_size2, 1, voltage_grid_dim, 1, 1, 1],
             ),
-            [1, sign_grid_dim, 1, current_grid_dim, temperature_grid_dim, 1],
+            [1, sign_grid_dim, 1, current_grid_dim, tmp_grid_dim, 1],
         ),
         tf.tile(
             tf.reshape(
-                current_grid,
-                [batch_size2, 1, 1, current_grid_dim, 1, 1],
+                current_grid, [batch_size2, 1, 1, current_grid_dim, 1, 1],
             ),
-            [1, sign_grid_dim, voltage_grid_dim, 1, temperature_grid_dim, 1],
+            [1, sign_grid_dim, voltage_grid_dim, 1, tmp_grid_dim, 1],
         ),
         tf.tile(
             tf.reshape(
-                temperature_grid,
-                [batch_size2, 1, 1, 1, temperature_grid_dim, 1],
+                tmp_grid, [batch_size2, 1, 1, 1, tmp_grid_dim, 1],
             ),
             [1, sign_grid_dim, voltage_grid_dim, current_grid_dim, 1, 1],
         ),
@@ -685,7 +680,7 @@ def train_step(neigh, params, options):
         ),
         [
             batch_size2, sign_grid_dim, voltage_grid_dim, current_grid_dim,
-            temperature_grid_dim, 1,
+            tmp_grid_dim, 1,
         ],
     )
 

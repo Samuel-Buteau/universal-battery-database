@@ -611,13 +611,13 @@ def train_step(neigh, params, options):
     then cycle numbers and vq curves are gathered
     """
 
-    cycle_indices_lerp = tf.random.uniform(
+    cyc_indices_lerp = tf.random.uniform(
         [batch_size2], minval = 0., maxval = 1., dtype = tf.float32)
-    cycle_indices = tf.cast(
-        (1. - cycle_indices_lerp) * tf.cast(
+    cyc_indices = tf.cast(
+        (1. - cyc_indices_lerp) * tf.cast(
             neigh[:, NEIGH_MIN_CYC] + neigh[:, NEIGH_ABSOLUTE_CYC],
             tf.float32,
-        ) + cycle_indices_lerp * tf.cast(
+        ) + cyc_indices_lerp * tf.cast(
             neigh[:, NEIGH_MAX_CYC] + neigh[:, NEIGH_ABSOLUTE_CYC],
             tf.float32,
         ),
@@ -630,14 +630,12 @@ def train_step(neigh, params, options):
     sign_grid_dim = sign_grid.shape[1]
 
     voltage_grid = tf.gather(
-        voltage_grid_tensor,
-        indices = neigh[:, NEIGH_VOLTAGE_GRID], axis = 0,
+        voltage_grid_tensor, indices = neigh[:, NEIGH_VOLTAGE_GRID], axis = 0,
     )
     voltage_grid_dim = voltage_grid.shape[1]
 
     current_grid = tf.gather(
-        current_grid_tensor,
-        indices = neigh[:, NEIGH_CURRENT_GRID], axis = 0,
+        current_grid_tensor, indices = neigh[:, NEIGH_CURRENT_GRID], axis = 0,
     )
     current_grid_dim = current_grid.shape[1]
 
@@ -682,10 +680,7 @@ def train_step(neigh, params, options):
     count_matrix = tf.reshape(
         tf.gather(
             count_matrix_tensor,
-            (
-                neigh[:, NEIGH_ABSOLUTE_REFERENCE]
-                + neigh[:, NEIGH_REFERENCE]
-            ),
+            neigh[:, NEIGH_ABSOLUTE_REFERENCE] + neigh[:, NEIGH_REFERENCE],
             axis = 0,
         ),
         [
@@ -694,23 +689,23 @@ def train_step(neigh, params, options):
         ],
     )
 
-    cycle = tf.gather(cycle_tensor, indices = cycle_indices, axis = 0)
+    cycle = tf.gather(cycle_tensor, indices = cyc_indices, axis = 0)
     constant_current = tf.gather(
-        constant_current_tensor, indices = cycle_indices, axis = 0,
+        constant_current_tensor, indices = cyc_indices, axis = 0,
     )
     end_current_prev = tf.gather(
-        end_current_prev_tensor, indices = cycle_indices, axis = 0,
+        end_current_prev_tensor, indices = cyc_indices, axis = 0,
     )
     end_voltage_prev = tf.gather(
-        end_voltage_prev_tensor, indices = cycle_indices, axis = 0,
+        end_voltage_prev_tensor, indices = cyc_indices, axis = 0,
     )
     end_voltage = tf.gather(
-        end_voltage_tensor, indices = cycle_indices, axis = 0,
+        end_voltage_tensor, indices = cyc_indices, axis = 0,
     )
 
-    cc_capacity = tf.gather(cc_capacity_tensor, indices = cycle_indices)
-    cc_voltage = tf.gather(cc_voltage_tensor, indices = cycle_indices)
-    cc_mask = tf.gather(cc_mask_tensor, indices = cycle_indices)
+    cc_capacity = tf.gather(cc_capacity_tensor, indices = cyc_indices)
+    cc_voltage = tf.gather(cc_voltage_tensor, indices = cyc_indices)
+    cc_mask = tf.gather(cc_mask_tensor, indices = cyc_indices)
     cc_mask_2 = tf.tile(
         tf.reshape(
             1. / tf.cast(neigh[:, NEIGH_VALID_CYC], tf.float32),
@@ -719,9 +714,9 @@ def train_step(neigh, params, options):
         [1, cc_voltage.shape[1]],
     )
 
-    cv_capacity = tf.gather(cv_capacity_tensor, indices = cycle_indices)
-    cv_current = tf.gather(cv_current_tensor, indices = cycle_indices)
-    cv_mask = tf.gather(cv_mask_tensor, indices = cycle_indices)
+    cv_capacity = tf.gather(cv_capacity_tensor, indices = cyc_indices)
+    cv_current = tf.gather(cv_current_tensor, indices = cyc_indices)
+    cv_mask = tf.gather(cv_mask_tensor, indices = cyc_indices)
     cv_mask_2 = tf.tile(
         tf.reshape(
             1. / tf.cast(neigh[:, NEIGH_VALID_CYC], tf.float32),

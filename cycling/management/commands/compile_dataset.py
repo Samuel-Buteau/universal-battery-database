@@ -298,11 +298,11 @@ def initial_processing(my_cell_ids, fit_args, flags):
 
         cycle_span = max_cycle - min_cycle
 
-        delta_cycle = cycle_span / float(fit_args[Key.REF_CYC])
+        delta_cycle = cycle_span / float(fit_args[Key.REF_CYC_N])
 
         reference_cycles = [
             min_cycle + i * delta_cycle for i in
-            numpy.arange(1, fit_args[Key.REF_CYC] + 1)
+            numpy.arange(1, fit_args[Key.REF_CYC_N] + 1)
         ]
 
         all_reference_mats = []

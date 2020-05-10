@@ -118,7 +118,7 @@ class Key:
     STOP = "stop_count"
     CELL_ID_SHOW = "cell_id_show"
 
-    REF_CYC = "reference_cycles_n"
+    REF_CYC_N = "reference_cycles_n"
     V_N_GRID = "voltage_grid_n_samples"
     I_N_GRID = "current_grid_n_samples"
     I_MAX = "current_max_n"

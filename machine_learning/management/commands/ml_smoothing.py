@@ -465,11 +465,11 @@ def initial_processing(
             ),
             n_sample = options[Key.N_SAMPLE],
             options = options,
-            min_latent = options[Key.MIN_LAT]
+            min_latent = options[Key.MIN_LAT],
         )
 
         optimizer = tf.keras.optimizers.Adam(
-            learning_rate = options[Key.LRN_RATE]
+            learning_rate = options[Key.LRN_RATE],
         )
 
     return {

@@ -283,7 +283,7 @@ def initial_processing(
             )
             # check all tentative neighborhood centers and
             # commit the ones that contain good data to the dataset
-            neighborhood_data = []
+            neigh_data = []
 
             valid_cycs = 0
             for cyc in all_neigh_center_cycs:
@@ -358,22 +358,19 @@ def initial_processing(
                     = number_of_reference_cycs
                 neigh_data_i[NEIGH_REFERENCE] = index_of_closest_reference
 
-                neighborhood_data.append(neigh_data_i)
+                neigh_data.append(neigh_data_i)
 
             if valid_cycs != 0:
-                neighborhood_data = np.array(
-                    neighborhood_data, dtype = np.int32,
-                )
+                neigh_data = np.array(neigh_data, dtype = np.int32)
 
                 # the empty slot becomes the count of added neighborhoods, which
                 # are used to counterbalance the bias toward longer cycle life
-                neighborhood_data[:, NEIGH_VALID_CYC] = valid_cycs
+                neigh_data[:, NEIGH_VALID_CYC] = valid_cycs
 
-                numpy_acc(compiled_data, Key.NEIGH_DATA, neighborhood_data)
+                numpy_acc(compiled_data, Key.NEIGH_DATA, neigh_data)
 
             number_of_compiled_cycs += len(main_data[Key.N])
-            number_of_reference_cycs\
-                += len(all_data[Key.REF_ALL_MATS][Key.N])
+            number_of_reference_cycs += len(all_data[Key.REF_ALL_MATS][Key.N])
 
             dict_to_acc = {
                 Key.REF_CYC: all_data[Key.REF_ALL_MATS][Key.N],
@@ -394,7 +391,7 @@ def initial_processing(
             for key in dict_to_acc:
                 numpy_acc(compiled_data, key, dict_to_acc[key])
 
-    neighborhood_data = tf.constant(compiled_data[Key.NEIGH_DATA])
+    neigh_data = tf.constant(compiled_data[Key.NEIGH_DATA])
 
     compiled_tensors = {}
     # cycles go from 0 to 6000, but nn prefers normally distributed variables
@@ -418,7 +415,7 @@ def initial_processing(
 
     with strategy.scope():
         train_ds_ = tf.data.Dataset.from_tensor_slices(
-            neighborhood_data
+            neigh_data
         ).repeat(2).shuffle(100000).batch(batch_size)
 
         train_ds = strategy.experimental_distribute_dataset(train_ds_)
@@ -488,7 +485,7 @@ def initial_processing(
 
 
 def to_sorted_array(unsorted) -> np.array:
-    """ Turns a list or a view object (of a dictionary) to a sorted array
+    """ Turn a list or a view object (of a dictionary) to a sorted array
 
     Args:
         unsorted: Unsorted list or view object (of a dictionary).
@@ -499,7 +496,16 @@ def to_sorted_array(unsorted) -> np.array:
     return np.array(sorted(list(set(unsorted))))
 
 
-def train_and_evaluate(init_returns, cell_ids, fit_args):
+def train_and_evaluate(
+    init_returns: dict, cell_ids: list, options: dict,
+) -> None:
+    """
+
+    Args:
+        init_returns: Return value of `initial_processing`.
+        cell_ids: Specified cell IDs (identifiers for different cells).
+        options:
+    """
     strategy = init_returns[Key.STRAT]
 
     epochs = 100000
@@ -514,14 +520,15 @@ def train_and_evaluate(init_returns, cell_ids, fit_args):
     }
 
     @tf.function
-    def dist_train_step(strategy, neighborhood):
+    def dist_train_step(strategy, neigh):
         return strategy.experimental_run_v2(
             lambda neighborhood: train_step(
-                neighborhood, train_step_params, fit_args,
+                neighborhood, train_step_params, options,
             ),
-            args = (neighborhood,)
+            args = (neigh,)
         )
 
+    # TODO(harvey, confusion): what is `l`?
     l = None
     loss_record = LossRecord()
     with strategy.scope():
@@ -538,23 +545,23 @@ def train_and_evaluate(init_returns, cell_ids, fit_args):
                     l += l_
 
                 if count != 0:
-                    if (count % fit_args[Key.PRINT_LOSS]) == 0:
+                    if (count % options[Key.PRINT_LOSS]) == 0:
                         tot = l / tf.cast(sub_count, dtype = tf.float32)
                         l = None
                         sub_count = 0
                         loss_record.record(count, tot.numpy())
-                        loss_record.print_recent(fit_args)
+                        loss_record.print_recent(options)
 
                     plot_params = {
                         "cell_ids": cell_ids,
                         "count": count,
-                        Key.OPTIONS: fit_args,
+                        Key.OPTIONS: options,
                     }
 
-                    if (count % fit_args[Key.VIS_FIT]) == 0:
+                    if (count % options[Key.VIS_FIT]) == 0:
                         start = time.time()
                         print("time to simulate: ", start - end)
-                        loss_record.plot(count, fit_args)
+                        loss_record.plot(count, options)
                         plot_direct(
                             "generic_vs_cycle", plot_params, init_returns,
                         )
@@ -566,11 +573,11 @@ def train_and_evaluate(init_returns, cell_ids, fit_args):
                         print("time to plot: ", end - start)
                         print()
 
-                if count >= fit_args[Key.STOP]:
+                if count >= options[Key.STOP]:
                     return
 
 
-def train_step(neighborhood, params, fit_args):
+def train_step(neigh, params, options):
     sign_grid_tensor = params[Key.TENSORS][Key.SIGN_GRID]
     voltage_grid_tensor = params[Key.TENSORS][Key.V_GRID]
     current_grid_tensor = params[Key.TENSORS][Key.I_GRID]
@@ -594,7 +601,7 @@ def train_step(neighborhood, params, fit_args):
     cv_current_tensor = params[Key.TENSORS][Key.I_CV_VEC]
     cv_mask_tensor = params[Key.TENSORS][Key.MASK_CV_VEC]
     # need to split the range
-    batch_size2 = neighborhood.shape[0]
+    batch_size2 = neigh.shape[0]
 
     """
     if you have the minimum cycle and maximum cycle for a neighborhood,
@@ -608,37 +615,35 @@ def train_step(neighborhood, params, fit_args):
         [batch_size2], minval = 0., maxval = 1., dtype = tf.float32)
     cycle_indices = tf.cast(
         (1. - cycle_indices_lerp) * tf.cast(
-            neighborhood[:, NEIGH_MIN_CYC]
-            + neighborhood[:, NEIGH_ABSOLUTE_CYC],
-            tf.float32
+            neigh[:, NEIGH_MIN_CYC] + neigh[:, NEIGH_ABSOLUTE_CYC],
+            tf.float32,
         ) + cycle_indices_lerp * tf.cast(
-            neighborhood[:, NEIGH_MAX_CYC]
-            + neighborhood[:, NEIGH_ABSOLUTE_CYC],
-            tf.float32
+            neigh[:, NEIGH_MAX_CYC] + neigh[:, NEIGH_ABSOLUTE_CYC],
+            tf.float32,
         ),
-        tf.int32
+        tf.int32,
     )
 
     sign_grid = tf.gather(
-        sign_grid_tensor, indices = neighborhood[:, NEIGH_SIGN_GRID], axis = 0,
+        sign_grid_tensor, indices = neigh[:, NEIGH_SIGN_GRID], axis = 0,
     )
     sign_grid_dim = sign_grid.shape[1]
 
     voltage_grid = tf.gather(
         voltage_grid_tensor,
-        indices = neighborhood[:, NEIGH_VOLTAGE_GRID], axis = 0,
+        indices = neigh[:, NEIGH_VOLTAGE_GRID], axis = 0,
     )
     voltage_grid_dim = voltage_grid.shape[1]
 
     current_grid = tf.gather(
         current_grid_tensor,
-        indices = neighborhood[:, NEIGH_CURRENT_GRID], axis = 0,
+        indices = neigh[:, NEIGH_CURRENT_GRID], axis = 0,
     )
     current_grid_dim = current_grid.shape[1]
 
     temperature_grid = tf.gather(
         temperature_grid_tensor,
-        indices = neighborhood[:, NEIGH_TEMPERATURE_GRID], axis = 0,
+        indices = neigh[:, NEIGH_TEMPERATURE_GRID], axis = 0,
     )
     temperature_grid_dim = temperature_grid.shape[1]
 
@@ -678,8 +683,8 @@ def train_step(neighborhood, params, fit_args):
         tf.gather(
             count_matrix_tensor,
             (
-                neighborhood[:, NEIGH_ABSOLUTE_REFERENCE]
-                + neighborhood[:, NEIGH_REFERENCE]
+                neigh[:, NEIGH_ABSOLUTE_REFERENCE]
+                + neigh[:, NEIGH_REFERENCE]
             ),
             axis = 0,
         ),
@@ -708,7 +713,7 @@ def train_step(neighborhood, params, fit_args):
     cc_mask = tf.gather(cc_mask_tensor, indices = cycle_indices)
     cc_mask_2 = tf.tile(
         tf.reshape(
-            1. / tf.cast(neighborhood[:, NEIGH_VALID_CYC], tf.float32),
+            1. / tf.cast(neigh[:, NEIGH_VALID_CYC], tf.float32),
             [batch_size2, 1],
         ),
         [1, cc_voltage.shape[1]],
@@ -719,13 +724,13 @@ def train_step(neighborhood, params, fit_args):
     cv_mask = tf.gather(cv_mask_tensor, indices = cycle_indices)
     cv_mask_2 = tf.tile(
         tf.reshape(
-            1. / tf.cast(neighborhood[:, NEIGH_VALID_CYC], tf.float32),
+            1. / tf.cast(neigh[:, NEIGH_VALID_CYC], tf.float32),
             [batch_size2, 1],
         ),
         [1, cv_current.shape[1]],
     )
 
-    cell_indices = neighborhood[:, NEIGH_CELL_ID]
+    cell_indices = neigh[:, NEIGH_CELL_ID]
 
     with tf.GradientTape() as tape:
         train_results = degradation_model(
@@ -755,14 +760,14 @@ def train_step(neighborhood, params, fit_args):
         )
 
         main_losses = (
-            fit_args[Key.Coeff.Q_CV] * cv_capacity_loss
-            + fit_args[Key.Coeff.Q_CC] * cc_capacity_loss
+            options[Key.Coeff.Q_CV] * cv_capacity_loss
+            + options[Key.Coeff.Q_CC] * cc_capacity_loss
         )
         loss = (
             main_losses
             + tf.stop_gradient(main_losses) * (
-                fit_args[Key.Coeff.Q] * train_results[Key.Loss.Q]
-                + fit_args[Key.Coeff.CELL] * train_results[Key.Loss.CELL]
+                options[Key.Coeff.Q] * train_results[Key.Loss.Q]
+                + options[Key.Coeff.CELL] * train_results[Key.Loss.CELL]
             )
         )
 
@@ -776,7 +781,7 @@ def train_step(neighborhood, params, fit_args):
     ]
 
     gradients_norm_clipped, _ = tf.clip_by_global_norm(
-        gradients_no_nans, fit_args[Key.GLB_NORM_CLIP],
+        gradients_no_nans, options[Key.GLB_NORM_CLIP],
     )
 
     optimizer.apply_gradients(

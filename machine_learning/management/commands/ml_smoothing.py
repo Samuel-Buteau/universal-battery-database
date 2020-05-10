@@ -161,7 +161,7 @@ def initial_processing(
 
     # TODO (harvey): simplify the following using loops
     # cell ID array
-    cell_id_list = numpy.array(cell_ids)
+    cell_id_array = numpy.array(cell_ids)
     # cell ID to positive electrode ID
     cell_id_to_pos_id = {}
     # cell ID to negative electrode ID
@@ -184,7 +184,7 @@ def initial_processing(
     # electrolyte ID to additive ID weight
     lyte_to_addi_weight = {}
 
-    for cell_id in cell_id_list:
+    for cell_id in cell_id_array:
         if cell_id in dataset[Key.CELL_TO_POS].keys():
             cell_id_to_pos_id[cell_id] = dataset[Key.CELL_TO_POS][cell_id]
         if cell_id in dataset[Key.CELL_TO_NEG].keys():
@@ -447,7 +447,7 @@ def initial_processing(
         degradation_model = DegradationModel(
             width = options[Key.WIDTH],
             depth = options[Key.DEPTH],
-            cell_dict = id_dict_from_id_list(cell_id_list),
+            cell_dict = id_dict_from_id_list(cell_id_array),
             pos_dict = id_dict_from_id_list(pos_ids),
             neg_dict = id_dict_from_id_list(neg_ids),
             lyte_dict = id_dict_from_id_list(lyte_id_list),

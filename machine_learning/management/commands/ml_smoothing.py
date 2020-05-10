@@ -1,4 +1,6 @@
 import time
+import os
+import pickle
 
 import numpy as np
 import tensorflow as tf
@@ -6,9 +8,9 @@ import tensorflow as tf
 from django.core.management.base import BaseCommand
 
 from Key import Key
-from plot import *
+from plot import plot_direct
 
-from cycling.models import *
+from cycling.models import id_dict_from_id_list
 from machine_learning.DegradationModelBlackbox import DegradationModel
 from machine_learning.LossRecordBlackbox import LossRecord
 

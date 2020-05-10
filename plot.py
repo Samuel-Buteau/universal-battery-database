@@ -21,16 +21,19 @@ FIGSIZE = [6, 5]
 
 
 def bake_rate(rate_in):
+    """ TODO(harvey) """
     rate = round(100. * rate_in) / 100.
     return rate
 
 
 def bake_voltage(vol_in):
+    """ TODO(harvey) """
     vol = round(10. * vol_in) / 10.
     return vol
 
 
 def make_legend_key(key):
+    """ TODO(harvey) """
     constant_rate = bake_rate(key[0])
     end_rate_prev = bake_rate(key[1])
     end_rate = bake_rate(key[2])
@@ -44,6 +47,7 @@ def make_legend_key(key):
 
 
 def match_legend_key(legend_key, rule):
+    """ TODO(harvey) """
     match = True
     for i in range(len(legend_key)):
         if rule[i] is None:
@@ -57,6 +61,7 @@ def match_legend_key(legend_key, rule):
 
 
 def make_legend(key):
+    """ TODO(harvey) """
     (
         end_rate_prev, constant_rate, end_rate, end_voltage_prev, end_voltage,
     ) = make_legend_key(key)
@@ -67,6 +72,7 @@ def make_legend(key):
 
 
 def get_figsize(target):
+    """ TODO(harvey) """
     figsize = None
     if target == "generic_vs_capacity":
         figsize = [5, 10]
@@ -81,9 +87,10 @@ def plot_engine_direct(
     lower_cycle = None, upper_cycle = None, vertical_barriers = None,
     list_all_options = None, show_invalid = False, figsize = None,
 ):
-    """
-    Args:
+    """ TODO(harvey)
+    Args: TODO(harvey)
         target: Plot type - "generic_vs_capacity" or "generic_vs_cycle".
+    Returns: TODO(harvey)
     """
     # open plot
     if figsize is None:
@@ -127,7 +134,7 @@ def plot_engine_direct(
 
         for j, target_data in enumerate(list_of_target_data):
             generic, _, generic_map = target_data
-            
+
             plot_generic(
                 target, generic, list_of_keys, custom_colors, generic_map, ax,
                 channel = data_streams[j][2], plot_options = plot_options,
@@ -169,6 +176,12 @@ def plot_engine_direct(
 
 
 def generate_plot_options(mode: str, typ: str, target: str) -> dict:
+    """ TODO(harvey)
+    Args:
+        mode: Specifies the mode of charge/discharge - constant-current ("cc")
+            or constant-voltage ("cv").
+    Returns: TODO(harvey)
+    """
     # sign_change
     sign_change = get_sign_change(typ)
 
@@ -256,10 +269,13 @@ def get_y_quantity(mode: str) -> str:
     return y_quantity
 
 
-def get_generic_map(source, target: str, mode):
-    """
-    Args:
+def get_generic_map(source, target: str, mode: str) -> dict:
+    """ TODO(harvey)
+    Args: TODO(harvey)
         target: Plot type - "generic_vs_capacity" or "generic_vs_cycle".
+        mode: Specifies the mode of charge/discharge - constant-current ("cc")
+            or constant-voltage ("cv").
+    Returns: TODO(harvey)
     """
     quantity = get_y_quantity(mode)
     if target == "generic_vs_cycle":
@@ -280,14 +296,14 @@ def data_engine(
     source: str, target: str, data, typ, mode, max_cyc_n,
     lower_cycle = None, upper_cycle = None,
 ):
-    """
-    Args:
+    """ TODO(harvey)
+    Args: TODO(harvey)
         source: Specifies the source of the data to be plot: "model",
             "database", or "compiled".
         target: Plot type - "generic_vs_capacity" or "generic_vs_cycle".
+    Returns: TODO(harvey)
     """
     generic = {}
-    sign_change = get_sign_change(typ)
     generic_map = get_generic_map(source, target, mode)
     if source == "model":
         (
@@ -297,9 +313,9 @@ def data_engine(
         list_of_keys = get_list_of_keys(keys, typ)
         for k in list_of_keys:
             generic[k] = compute_target(
-                target, degradation_model, cell_id, sign_change, mode,
-                averages[k], generic_map, svit_and_count, cycle_m, cycle_v,
-                max_cyc_n = max_cyc_n,
+                target, degradation_model, cell_id, get_sign_change(typ),
+                mode, averages[k], generic_map, svit_and_count,
+                cycle_m, cycle_v, max_cyc_n = max_cyc_n,
             )
     elif source == "database":
         if typ != "dchg" or mode != "cc":
@@ -501,14 +517,15 @@ def get_svit_and_count(my_data, cell_id):
 
 
 def compute_target(
-    target: str, degradation_model: DegradationModel, cell_id, sign_change,
-    mode: str, averages, generic_map, svit_and_count, cycle_m, cycle_v,
-    cycle_min = 0, cycle_max = 6000, max_cyc_n = 3
+    target: str, degradation_model: DegradationModel, cell_id,
+    sign_change: float, mode: str, averages, generic_map, svit_and_count,
+    cycle_m, cycle_v, cycle_min = 0, cycle_max = 6000, max_cyc_n = 3
 ):
     """
-    Args:
+    Args: TODO(harvey)
         target: Plot type - "generic_vs_capacity" or "generic_vs_cycle".
         degradation_model: Machine learning model.
+        sign_change: 1 if charge, -1 if discharge.
         mode: Charge/discharge mode - constant-current ("cc") or
             constant-voltage ("cv").
     """

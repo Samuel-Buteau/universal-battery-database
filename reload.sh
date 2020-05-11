@@ -3,17 +3,17 @@ echo drop database $1;
 echo create database $1 with owner $2;
 echo \q
 ) | psql -U postgres
-rm -f cell_database\migrations\*
-touch cell_database\migrations\__init__.py
+rm -f cell_database/migrations/*
+touch cell_database/migrations/__init__.py
 
-rm -f cycling\migrations\*
-touch cycling\migrations\__init__.py
+rm -f cycling/migrations/*
+touch cycling/migrations/__init__.py
 
-rm -f filename_database\migrations\*
-touch filename_database\migrations\__init__.py
+rm -f filename_database/migrations/*
+touch filename_database/migrations/__init__.py
 
-rm -f machine_learning\migrations\*
-touch machine_learning\migrations\__init__.py
+rm -f machine_learning/migrations/*
+touch machine_learning/migrations/__init__.py
 
 python3 manage.py makemigrations
 python3 manage.py migrate

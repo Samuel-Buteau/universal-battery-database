@@ -6,7 +6,12 @@ from cell_database.models import *
 from Key import Key
 
 
-def get_dry_cell_meta_from_cell_id(cell_id):
+def get_dry_cell_metadata(cell_id):
+    """ TODO(harvey)
+    Args:
+        cell_id: TODO(harvey)
+    Returns: TODO(harvey)
+    """
     wet_cells = WetCell.objects.filter(cell_id = cell_id)
     if wet_cells.exists():
         wet_cell = wet_cells[0]
@@ -17,7 +22,7 @@ def get_dry_cell_meta_from_cell_id(cell_id):
         if dry_cell is None:
             return None, None, None
 
-        meta = {}
+        meta = {}  # metadata
         dry_cell_id = dry_cell.id
         dry_cell_str = str(dry_cell)
         if dry_cell.proprietary:
@@ -46,8 +51,12 @@ def get_dry_cell_meta_from_cell_id(cell_id):
     return None, None, None
 
 
-# TODO (harvey): add docstring
-def get_pos_id_from_cell_id(cell_id):
+def get_cathod_id(cell_id):
+    """ TODO(harvey)
+    Args:
+        cell_id: TODO(harvey)
+    Returns: TODO(harvey)
+    """
     wet_cells = WetCell.objects.filter(cell_id = cell_id)
     if wet_cells.exists():
         wet_cell = wet_cells[0]
@@ -66,8 +75,12 @@ def get_pos_id_from_cell_id(cell_id):
     return None, None
 
 
-# TODO (harvey): add docstring
-def get_neg_id_from_cell_id(cell_id):
+def get_anode_id(cell_id):
+    """ TODO(harvey)
+    Args:
+        cell_id: TODO(harvey)
+    Returns: TODO(harvey)
+    """
     wet_cells = WetCell.objects.filter(cell_id = cell_id)
     if wet_cells.exists():
         wet_cell = wet_cells[0]
@@ -86,8 +99,12 @@ def get_neg_id_from_cell_id(cell_id):
     return None, None
 
 
-# TODO (harvey): add docstring
 def get_electrolyte_id_from_cell_id(cell_id):
+    """ TODO(harvey)
+    Args:
+        cell_id: TODO(harvey)
+    Returns: TODO(harvey)
+    """
     wet_cells = WetCell.objects.filter(cell_id = cell_id)
     if wet_cells.exists():
         wet_cell = wet_cells[0]
@@ -100,8 +117,12 @@ def get_electrolyte_id_from_cell_id(cell_id):
     return None, None
 
 
-# TODO (harvey): add docstring
 def get_component_from_electrolyte(electrolyte):
+    """ TODO(harvey)
+    Args:
+        electrolyte: TODO(harvey)
+    Returns: TODO(harvey)
+    """
     weight_dict = {"solvent": {}, "salt": {}, "additive": {}}
     name_dict = {"solvent": {}, "salt": {}, "additive": {}}
     electrolyte_lots = CompositeLot.objects.filter(id = electrolyte)
@@ -124,8 +145,12 @@ def get_component_from_electrolyte(electrolyte):
     return weight_dict, name_dict
 
 
-# TODO (harvey): add docstring
-def make_my_cell_ids(fit_args):
+def make_my_cell_ids(options):
+    """ TODO(harvey)
+    Args:
+        options: TODO(harvey)
+    Returns: TODO(harvey)
+    """
     my_cell_ids = CyclingFile.objects.filter(
         database_file__deprecated = False,
         database_file__is_valid = True
@@ -145,102 +170,49 @@ def make_my_cell_ids(fit_args):
         ):
             used_cell_ids.append(b)
 
-    if len(fit_args[Key.CELL_IDS]) == 0:
+    if len(options[Key.CELL_IDS]) == 0:
         return used_cell_ids
     else:
         return list(
-            set(used_cell_ids).intersection(set(fit_args[Key.CELL_IDS]))
+            set(used_cell_ids).intersection(set(options[Key.CELL_IDS]))
         )
 
 
 # TODO (harvey): reformat docstring
-def initial_processing(my_cell_ids, fit_args, flags):
+def initial_processing(cell_ids, options, flags):
     """
 
     Returns:
-        Two dictionaries.
-        The first dictionary contains
-            Key.V_GRID (1D array): voltages
-            Key.Q_GRID (1D array): log currents
-            Key.TEMP_GRID (1D array): temperatures
-            Key.SIGN_GRID (1D array): signs
-            Key.CELL_TO_POS (dict):
-                Indexed by cell_id yielding a positive electrode id.
-            Key.CELL_TO_NEG (dict):
-                Indexed by cell_id yielding a positive electrode id.
-            Key.CELL_TO_ELE (dic):
-                Indexed by cell_id yielding a positive electrode id.
-            Key.CELL_TO_LAT (dict):
-                Indexed by cell_id yielding
-                    1 if the cell is latent,
-                    0 if made of known pos, neg, electrolyte
-            Key.ALL_DATA (dict): Indexed by cell_id. Each cell_id yields:
-                Key.ALL_REF_MATS (structured array):
-                    dtype = [
-                        (Key.N, "f4"),
-                        (
-                            Key.COUNT_MATRIX, "f4",
-                            (
-                                len(sign_grid), len(voltage_grid_degradation),
-                                len(current_grid), len(temperature_grid),
-                            )
-                        ),
-                    ]
-
-                Key.CYC_GRP_DICT: Groups of steps indexed by group averages of
-                    (
-                        end_current_prev, constant_current, end_current,
-                        end_voltage_prev, end_voltage, sign,
-                    )
-                    Each group is a dictionary indexed by various quantities:
-                        Key.MAIN:  a numpy structured array with dtype:
-                            [
-                                (Key.N, "f4"),
-                                (Key.V_CC, "f4", len(voltage_grid)),
-                                (Key.Q_CC, "f4", len(voltage_grid)),
-                                (Key.MASK_CC, "f4", len(voltage_grid)),
-                                (Key.I_CV, "f4", fit_args[Key.I_MAX]),
-                                (Key.Q_CV, "f4", fit_args[Key.I_MAX]),
-                                (Key.MASK_CV, "f4", fit_args[Key.I_MAX]),
-                                (Key.I_CC, "f4"),
-                                (Key.I_PREV, "f4"),
-                                (Key.I_END, "f4"),
-                                (Key.V_PREV_END, "f4"),
-                                (Key.V_END, "f4"),
-                                (Key.V_CC_LAST, "f4"),
-                                (Key.Q_CC_LAST, "f4"),
-                                (Key.Q_CV_LAST, "f4"),
-                                (Key.TEMP, "f4"),
-                            ]
-                        Key.I_CC_AVG
-                        Key.I_PREV_END_AVG
-                        Key.Q_END_AVG
-                        Key.V_PREV_END_AVG
-                        Key.V_END_AVG
-                        Key.V_CC_LAST_AVG
+        Two dictionaries with the following sets of keys
+        { Key.Q_MAX, Key.ALL_DATA, Key.V_GRID, Key.I_GRID, Key.TEMP_GRID,
+          Key.SIGN_GRID, Key.CELL_TO_POS, Key.CELL_TO_NEG, Key.CELL_TO_LYTE,
+          Key.CELL_TO_DRY, Key.DRY_TO_META, Key.CELL_TO_LAT, Key.LYTE_TO_LAT,
+          Key.LYTE_TO_SOL, Key.LYTE_TO_SALT, Key.LYTE_TO_ADD },
+        { Key.NAME_POS, Key.NAME_NEG, Key.NAME_LYTE, Key.NAME_MOL,
+          Key.NAME_DRY }
     """
 
     all_data = {}
 
     voltage_grid_degradation = make_voltage_grid(
-        fit_args[Key.V_MIN_GRID],
-        fit_args[Key.V_MAX_GRID],
-        int(fit_args[Key.V_N_GRID] / 4),
-        my_cell_ids
+        options[Key.V_MIN_GRID],
+        options[Key.V_MAX_GRID],
+        int(options[Key.V_N_GRID] / 4),
+        cell_ids
     )
 
     current_grid = make_current_grid(
-        fit_args[Key.I_MIN_GRID],
-        fit_args[Key.I_MAX_GRID],
-        fit_args[Key.I_N_GRID],
-        my_cell_ids
+        options[Key.I_MIN_GRID],
+        options[Key.I_MAX_GRID],
+        options[Key.I_N_GRID],
+        cell_ids
     )
 
     temperature_grid = make_temperature_grid(
-        fit_args[Key.TEMP_GRID_MIN_V],
-        fit_args[Key.TEMP_GRID_MAX_V],
-        fit_args[Key.TEMP_GRID_N],
-        my_cell_ids
+        options[Key.TEMP_GRID_MIN_V],
+        options[Key.TEMP_GRID_MAX_V],
+        options[Key.TEMP_GRID_N],
+        cell_ids
     )
     sign_grid = make_sign_grid()
     """
@@ -249,7 +221,7 @@ def initial_processing(my_cell_ids, fit_args, flags):
     - things are split up this way to sample each group equally
     - each cell_id corresponds to a single cell
     """
-    for cell_id in my_cell_ids:
+    for cell_id in cell_ids:
         """
         - dictionary indexed by charging and discharging rate (i.e. cycle group)
         - contains structured arrays of
@@ -297,10 +269,10 @@ def initial_processing(my_cell_ids, fit_args, flags):
 
         min_cycle = numpy.min(all_mats[Key.N])
         max_cycle = numpy.max(all_mats[Key.N])
-        delta_cycle = (max_cycle - min_cycle) / float(fit_args[Key.REF_CYC_N])
+        delta_cycle = (max_cycle - min_cycle) / float(options[Key.REF_CYC_N])
 
         reference_cycles = numpy.linspace(
-            min_cycle + delta_cycle, max_cycle, float(fit_args[Key.REF_CYC_N]),
+            min_cycle + delta_cycle, max_cycle, float(options[Key.REF_CYC_N]),
         )
 
         all_reference_mats = []
@@ -342,19 +314,20 @@ def initial_processing(my_cell_ids, fit_args, flags):
             for cyc_group in groups:
                 result = []
 
-                future_key = (cyc_group.constant_rate, cyc_group.end_rate_prev,
-                              cyc_group.end_rate, cyc_group.end_voltage,
-                              cyc_group.end_voltage_prev, typ)
+                future_key = (
+                    cyc_group.constant_rate, cyc_group.end_rate_prev,
+                    cyc_group.end_rate, cyc_group.end_voltage,
+                    cyc_group.end_voltage_prev, typ,
+                )
 
                 if any([
                     abs(cyc_group.end_rate_prev) < 1e-5,
                     abs(cyc_group.constant_rate) < 1e-5,
                     abs(cyc_group.end_rate) < 1e-5,
-                    fit_args["voltage_grid_min_v"] > cyc_group.end_voltage,
-                    fit_args["voltage_grid_max_v"] < cyc_group.end_voltage,
-                    fit_args["voltage_grid_min_v"] > cyc_group.end_voltage_prev,
-                    fit_args["voltage_grid_max_v"] < cyc_group.end_voltage_prev,
-
+                    options["voltage_grid_min_v"] > cyc_group.end_voltage,
+                    options["voltage_grid_max_v"] < cyc_group.end_voltage,
+                    options["voltage_grid_min_v"] > cyc_group.end_voltage_prev,
+                    options["voltage_grid_max_v"] < cyc_group.end_voltage_prev,
                 ]):
                     continue
 
@@ -393,11 +366,11 @@ def initial_processing(my_cell_ids, fit_args, flags):
                             break
 
                         post_process_results = ml_post_process_cycle(
-                            cyc, fit_args[Key.V_N_GRID], typ,
-                            current_max_n = fit_args[Key.I_MAX],
-                            voltage_grid_min_v = fit_args["voltage_grid_min_v"],
-                            voltage_grid_max_v = fit_args["voltage_grid_max_v"],
-                            flagged = flagged
+                            cyc, options[Key.V_N_GRID], typ,
+                            current_max_n = options[Key.I_MAX],
+                            voltage_grid_min_v = options["voltage_grid_min_v"],
+                            voltage_grid_max_v = options["voltage_grid_max_v"],
+                            flagged = flagged,
                         )
 
                         if post_process_results is None:
@@ -419,7 +392,7 @@ def initial_processing(my_cell_ids, fit_args, flags):
                             post_process_results[Key.V_CC_LAST],
                             post_process_results[Key.Q_CC_LAST],
                             post_process_results[Key.Q_CV_LAST],
-                            cyc.get_temperature()
+                            cyc.get_temperature(),
                         ))
 
                 res = numpy.array(
@@ -427,13 +400,13 @@ def initial_processing(my_cell_ids, fit_args, flags):
                     dtype = [
                         (Key.N, "f4"),
 
-                        (Key.V_CC_VEC, "f4", fit_args[Key.V_N_GRID]),
-                        (Key.Q_CC_VEC, "f4", fit_args[Key.V_N_GRID]),
-                        (Key.MASK_CC_VEC, "f4", fit_args[Key.V_N_GRID]),
+                        (Key.V_CC_VEC, "f4", options[Key.V_N_GRID]),
+                        (Key.Q_CC_VEC, "f4", options[Key.V_N_GRID]),
+                        (Key.MASK_CC_VEC, "f4", options[Key.V_N_GRID]),
 
-                        (Key.I_CV_VEC, "f4", fit_args[Key.I_MAX]),
-                        (Key.Q_CV_VEC, "f4", fit_args[Key.I_MAX]),
-                        (Key.MASK_CV_VEC, "f4", fit_args[Key.I_MAX]),
+                        (Key.I_CV_VEC, "f4", options[Key.I_MAX]),
+                        (Key.Q_CV_VEC, "f4", options[Key.I_MAX]),
+                        (Key.MASK_CV_VEC, "f4", options[Key.I_MAX]),
 
                         (Key.I_CC, "f4"),
                         (Key.I_PREV_END, "f4"),
@@ -480,11 +453,16 @@ def initial_processing(my_cell_ids, fit_args, flags):
         positive electrode id.
     """
 
-    cell_id_to_pos_id = {}
-    cell_id_to_neg_id = {}
-    cell_id_to_electrolyte_id = {}
-    cell_id_to_dry_cell_id = {}
-    dry_cell_id_to_meta = {}
+    # cell ID to cathode ID
+    cell_to_cath_id = {}
+    # cell ID to anode ID
+    cell_to_an_id = {}
+    # cell ID to electrolyte ID
+    cell_to_lyte_id = {}
+    # cell ID to dry cell ID
+    cell_to_dry_cell_id = {}
+    # dry cell ID to metadata
+    dry_cell_to_meta = {}
 
     cell_id_to_latent = {}
     electrolyte_id_to_latent = {}
@@ -498,31 +476,31 @@ def initial_processing(my_cell_ids, fit_args, flags):
     dry_cell_to_dry_cell_name = {}
     molecule_to_molecule_name = {}
 
-    for cell_id in my_cell_ids:
-        pos, pos_name = get_pos_id_from_cell_id(cell_id)
-        neg, neg_name = get_neg_id_from_cell_id(cell_id)
+    for cell_id in cell_ids:
+        cathode, cathode_name = get_cathod_id(cell_id)
+        anode, anode_name = get_anode_id(cell_id)
         electrolyte, electrolyte_name = get_electrolyte_id_from_cell_id(cell_id)
         dry_cell_id, dry_cell_meta, dry_cell_name\
-            = get_dry_cell_meta_from_cell_id(cell_id)
+            = get_dry_cell_metadata(cell_id)
 
         if (
-            pos is None or neg is None
+            cathode is None or anode is None
             or electrolyte is None or dry_cell_id is None
         ):
             cell_id_to_latent[cell_id] = 1.
         else:
-            pos_to_pos_name[pos] = pos_name
-            neg_to_neg_name[neg] = neg_name
+            pos_to_pos_name[cathode] = cathode_name
+            neg_to_neg_name[anode] = anode_name
             electrolyte_to_electrolyte_name[electrolyte] = electrolyte_name
             dry_cell_to_dry_cell_name[dry_cell_id] = dry_cell_name
 
             cell_id_to_latent[cell_id] = 0.
-            cell_id_to_pos_id[cell_id] = pos
-            cell_id_to_neg_id[cell_id] = neg
-            cell_id_to_dry_cell_id[cell_id] = dry_cell_id
-            dry_cell_id_to_meta[dry_cell_id] = dry_cell_meta
+            cell_to_cath_id[cell_id] = cathode
+            cell_to_an_id[cell_id] = anode
+            cell_to_dry_cell_id[cell_id] = dry_cell_id
+            dry_cell_to_meta[dry_cell_id] = dry_cell_meta
 
-            cell_id_to_electrolyte_id[cell_id] = electrolyte
+            cell_to_lyte_id[cell_id] = electrolyte
 
             component_weight, component_name\
                 = get_component_from_electrolyte(electrolyte)
@@ -580,11 +558,11 @@ def initial_processing(my_cell_ids, fit_args, flags):
                Key.I_GRID: current_grid,
                Key.TEMP_GRID: temperature_grid,
                Key.SIGN_GRID: sign_grid,
-               Key.CELL_TO_POS: cell_id_to_pos_id,
-               Key.CELL_TO_NEG: cell_id_to_neg_id,
-               Key.CELL_TO_LYTE: cell_id_to_electrolyte_id,
-               Key.CELL_TO_DRY: cell_id_to_dry_cell_id,
-               Key.DRY_TO_META: dry_cell_id_to_meta,
+               Key.CELL_TO_POS: cell_to_cath_id,
+               Key.CELL_TO_NEG: cell_to_an_id,
+               Key.CELL_TO_LYTE: cell_to_lyte_id,
+               Key.CELL_TO_DRY: cell_to_dry_cell_id,
+               Key.DRY_TO_META: dry_cell_to_meta,
                Key.CELL_TO_LAT: cell_id_to_latent,
                Key.LYTE_TO_LAT: electrolyte_id_to_latent,
                Key.LYTE_TO_SOL: electrolyte_id_to_solvent_id_weight,
@@ -599,23 +577,23 @@ def initial_processing(my_cell_ids, fit_args, flags):
            }
 
 
-def compile_dataset(fit_args):
-    if not os.path.exists(fit_args[Key.PATH_DATASET]):
-        os.mkdir(fit_args[Key.PATH_DATASET])
-    my_cell_ids = make_my_cell_ids(fit_args)
+def compile_dataset(options):
+    if not os.path.exists(options[Key.PATH_DATASET]):
+        os.mkdir(options[Key.PATH_DATASET])
+    my_cell_ids = make_my_cell_ids(options)
 
     flags = {}
-    if fit_args["path_to_flags"] != '':
-        flag_filename = os.path.join(fit_args["path_to_flags"], "FLAGS.file")
+    if options["path_to_flags"] != '':
+        flag_filename = os.path.join(options["path_to_flags"], "FLAGS.file")
         if os.path.exists(flag_filename):
             with open(flag_filename, 'rb') as file:
                 flags = pickle.load(file)
 
-    pick, pick_names = initial_processing(my_cell_ids, fit_args, flags)
+    pick, pick_names = initial_processing(my_cell_ids, options, flags)
     with open(
         os.path.join(
-            fit_args[Key.PATH_DATASET],
-            "dataset_ver_{}.file".format(fit_args[Key.DATA_VERSION])
+            options[Key.PATH_DATASET],
+            "dataset_ver_{}.file".format(options[Key.DATA_VERSION])
         ),
         "wb"
     ) as f:
@@ -623,8 +601,8 @@ def compile_dataset(fit_args):
 
     with open(
         os.path.join(
-            fit_args[Key.PATH_DATASET],
-            "dataset_ver_{}_names.file".format(fit_args[Key.DATA_VERSION])
+            options[Key.PATH_DATASET],
+            "dataset_ver_{}_names.file".format(options[Key.DATA_VERSION])
         ),
         "wb"
     ) as f:

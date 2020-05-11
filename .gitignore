@@ -277,3 +277,6 @@ compile_dataset_shortcut.bat
 flags*
 cycling/config.ini
 
+cycling/config_new.ini
+log_reload.txt
+reload_private.bat

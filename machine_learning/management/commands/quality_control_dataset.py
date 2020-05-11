@@ -1,4 +1,3 @@
-
 import pickle
 
 from django.core.management.base import BaseCommand
@@ -44,7 +43,6 @@ NEIGH_TOTAL = 12
 
 
 def quality_control(fit_args):
-
     if not os.path.exists(fit_args[Key.PATH_PLOTS]):
         os.makedirs(fit_args[Key.PATH_PLOTS])
 
@@ -56,19 +54,14 @@ def quality_control(fit_args):
         "dataset_ver_{}.file".format(fit_args[Key.DATA_VERSION])
     )
 
-
     if not os.path.exists(dataset_path):
         print("Path \"" + dataset_path + "\" does not exist.")
         return
 
-
     with open(dataset_path, "rb") as f:
         my_data = pickle.load(f)
 
-
     cell_ids = list(my_data[Key.ALL_DATA].keys())
-
-
 
     initial_processing(
         my_data, cell_ids,
@@ -76,16 +69,10 @@ def quality_control(fit_args):
     )
 
 
-def initial_processing(
-    my_data: dict, cell_ids,
-    fit_args
-) -> dict:
-
-
+def initial_processing(my_data: dict, cell_ids, fit_args) -> dict:
     errors = []
 
     max_cap = my_data[Key.Q_MAX]
-
 
     for cell_id_count, cell_id in enumerate(cell_ids):
         all_data = my_data[Key.ALL_DATA][cell_id]
@@ -98,7 +85,7 @@ def initial_processing(
                 if k[-1] == typ:
                     legend = make_legend(k)
                     if legend in legends.keys():
-                        legends[legend] +=1
+                        legends[legend] += 1
                     else:
                         legends[legend] = 1
 
@@ -107,7 +94,7 @@ def initial_processing(
                 if legends[legend] > 1:
                     dual_legends_typ.append(legend)
 
-            if len(dual_legends_typ) >0:
+            if len(dual_legends_typ) > 0:
                 dual_legends[typ] = dual_legends_typ
 
         for k_count, k in enumerate(cyc_grp_dict.keys()):
@@ -124,10 +111,14 @@ def initial_processing(
                 abs(cyc_grp_dict[k][Key.I_PREV_END_AVG]) < 1e-5,
                 abs(cyc_grp_dict[k][Key.I_CC_AVG]) < 1e-5,
                 abs(cyc_grp_dict[k][Key.I_END_AVG]) < 1e-5,
-                fit_args["voltage_grid_min_v"] > cyc_grp_dict[k][Key.V_PREV_END_AVG],
-                fit_args["voltage_grid_max_v"] < cyc_grp_dict[k][Key.V_PREV_END_AVG],
-                fit_args["voltage_grid_min_v"] > cyc_grp_dict[k][Key.V_END_AVG],
-                fit_args["voltage_grid_max_v"] < cyc_grp_dict[k][Key.V_END_AVG],
+                fit_args["voltage_grid_min_v"]
+                > cyc_grp_dict[k][Key.V_PREV_END_AVG],
+                fit_args["voltage_grid_max_v"]
+                < cyc_grp_dict[k][Key.V_PREV_END_AVG],
+                fit_args["voltage_grid_min_v"]
+                > cyc_grp_dict[k][Key.V_END_AVG],
+                fit_args["voltage_grid_max_v"]
+                < cyc_grp_dict[k][Key.V_END_AVG],
 
             ]):
                 for i in range(len(cycs)):
@@ -158,7 +149,7 @@ def initial_processing(
                     errors.append(
                         {
                             "type": 'opposite_polarity',
-                            "flag":{
+                            "flag": {
                                 "cell_id": cell_id,
                                 "group": k,
                                 Key.CYC: cycs[i],
@@ -181,7 +172,9 @@ def initial_processing(
         if len(flags) > 0:
             print('Only the flags')
             print(flags)
-        with open(os.path.join(fit_args["path_to_flags"], "FLAGS.file"), 'wb') as file:
+        with open(
+            os.path.join(fit_args["path_to_flags"], "FLAGS.file"), 'wb',
+        ) as file:
             pickle.dump(flags, file, pickle.HIGHEST_PROTOCOL)
 
         plot_engine_direct(
@@ -193,25 +186,22 @@ def initial_processing(
                 ("chg", "cv"),
             ],
             fit_args = fit_args,
-            filename= "voltage_dependence_{}.png".format(cell_id),
+            filename = "voltage_dependence_{}.png".format(cell_id),
 
         )
 
         plot_engine_direct(
-            data_streams=[('compiled', cyc_grp_dict, 'scatter', 20000)],
-            target='generic_vs_cycle',
-            todos=[
+            data_streams = [('compiled', cyc_grp_dict, 'scatter', 20000)],
+            target = 'generic_vs_cycle',
+            todos = [
                 ("dchg", "cc"),
                 ("chg", "cc"),
                 ("chg", "cv"),
             ],
-            fit_args=fit_args,
-            filename="cycle_dependence_{}.png".format(cell_id),
+            fit_args = fit_args,
+            filename = "cycle_dependence_{}.png".format(cell_id),
 
         )
-
-
-
 
 
 class Command(BaseCommand):
@@ -231,12 +221,10 @@ class Command(BaseCommand):
 
         }
 
-
-
         for arg in required_args:
             parser.add_argument(arg, required = True)
         for arg in float_args:
-            parser.add_argument(arg, type=float, default=float_args[arg])
+            parser.add_argument(arg, type = float, default = float_args[arg])
 
         # cell_ids = [
         #     81602, 81603, 81604, 81605, 81606, 81607, 81608, 81609, 81610,

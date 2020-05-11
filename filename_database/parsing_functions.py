@@ -412,7 +412,7 @@ def deterministic_parser(filename, exp_type):
         else:
             metadata.version_number = version_number
 
-    print(metadata)
+    print("\t\tEXTRACTED METADATA: {}".format(metadata))
     return metadata, valid
 
 

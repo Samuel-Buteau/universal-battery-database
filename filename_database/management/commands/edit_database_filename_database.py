@@ -31,32 +31,43 @@ def get_drive_profiles():
 
 
 def add_files(options):
+    for _ in range(5):
+        print("")
+    print("ADD FILES TO REGISTRY:")
+
+
     path_to_files = options['data_dir']
     file_list = []
 
     for root, dirs, filenames in os.walk(path_to_files):
-
         for name in filenames:
             full_path = os.path.join(root, name)
             time_origin = halifax_timezone.localize(
                 datetime.datetime.fromtimestamp(os.path.getmtime(full_path)))
             filesize = os.path.getsize(full_path)
             file_list.append({'root': root, 'filename': name, 'last_modified':time_origin, 'filesize':filesize})
-
-            print('ROOT= {}, FILE= {}, TIME= {}, SIZE= {}'.format(root, name, time_origin, filesize))
+            print("\tAPPENDED FILE:")
+            print("\t\tROOT= {}\n\t\tFILE= {}\n\t\tTIME= {}\n\t\tSIZE= {}".format(root, name, time_origin, filesize))
 
     already_created_data = []
     not_created_data = []
     for data in file_list:
         if DatabaseFile.objects.filter(filename=data['filename'], root=data['root']).exists():
+            print("\tALREADY IN REGISTRY:")
+            for k in data.keys():
+                print("\t\t{}: {}".format(k, data[k]))
             my_file = DatabaseFile.objects.get(filename=data['filename'], root=data['root'])
             if  not my_file.last_modified == data['last_modified'] or not my_file.filesize == data['filesize']:
+                print("\t\tSOMETHING CHANGED.")
                 my_file.last_modified = data['last_modified']
                 my_file.filesize = data['filesize']
                 already_created_data.append(
                     my_file
                 )
         else:
+            print("\tNOT ALREADY IN REGISTRY:")
+            for k in data.keys():
+                print("\t\t{}: {}".format(k, data[k]))
             not_created_data.append(DatabaseFile(
                 filename=data['filename'],
                 root=data['root'],
@@ -70,15 +81,23 @@ def add_files(options):
 
 
 def parse_database_files(options):
+    for _ in range(5):
+        print("")
+    print("PARSE FILES IN REGISTRY:")
+
+
     for my_file in DatabaseFile.objects.all():
         if my_file.valid_metadata is None:
+            print("\tPARSIING FILE {} FOR WHICH THERE WAS NO VALID METADATA:".format(my_file))
             res = guess_exp_type(my_file.filename, my_file.root)
+            print("\t\tEXPERIMENT TYPE GUESSED: {}".format(res))
             if res:
                 meta, valid = deterministic_parser(
                     my_file.filename,
                     res)
                 my_file.set_valid_metadata(valid_metadata=meta)
                 my_file.save()
+                print("\t\t\tSAVED.")
 
 class Command(BaseCommand):
     def add_arguments(self, parser):

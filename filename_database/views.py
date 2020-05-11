@@ -265,14 +265,14 @@ def main_page(request):
                         continue
 
                     if to_be_deprecated:
-                        file.set_deprecated(True)
+                        file.deprecated = True
                         file.save()
                         print('deprecated')
                         continue
 
                     if validation_step:
                         if not to_be_deprecated:
-                            file.set_deprecated(False)
+                            file.deprecated = False
 
                         if 'make_changes_to_metadata' in request.POST:
                             charID = None

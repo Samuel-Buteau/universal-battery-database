@@ -108,7 +108,7 @@ def test_occupied_position(separated, pos):
 
 def read_neware(path, last_imported_cycle=-1, CapacityUnits=1.0, VoltageUnits=(1.0 / 1000.0),
                 CurrentUnits=1.0):
-    print(path)
+    print("\tREADING FILE AS NEWARE FORMAT. {}".format(path))
     """
     TEMPDOC: 
     this is a fairly general function to process a neware file no matter which format it has been saved in.
@@ -128,10 +128,10 @@ def read_neware(path, last_imported_cycle=-1, CapacityUnits=1.0, VoltageUnits=(1
         separated = this_line.split("\n")[0].split("\t")
         if len(separated) == 1:
             nested = False
-            print("NOT nested", separated)
+            # print("NOT nested", separated)
         elif separated[0]:
             nested = True
-            print("nested", separated)
+            # print("nested", separated)
         else:
             raise Exception("This format is unknown. {}".format(this_line))
 
@@ -292,7 +292,7 @@ def read_neware(path, last_imported_cycle=-1, CapacityUnits=1.0, VoltageUnits=(1
                         continue
                     imported_data[current_cycle] = collections.OrderedDict([])
                     if (current_cycle % 100) == 0:
-                        print("cyc: ", current_cycle)
+                        print("\t\tREAD CYCLES UP TO {}".format(current_cycle))
                 else:
                     if current_cycle <= last_imported_cycle:
                         continue
@@ -373,6 +373,7 @@ def import_single_file(database_file, DEBUG=False):
     :param DEBUG:
     :return:
     """
+    print("IMPORTING FILE {}".format(database_file))
     time_of_running_script = timezone.now()
     error_message = {}
     if not database_file.is_valid or database_file.deprecated or database_file.valid_metadata is None:
@@ -413,7 +414,7 @@ def import_single_file(database_file, DEBUG=False):
             return last_imported_cycle
 
         last_imported_cycle = get_last_cycle()
-        print(last_imported_cycle)
+        print("\tLAST CYCLE ALREADY IMPORTED: {}".format(last_imported_cycle))
 
 
 
@@ -625,7 +626,7 @@ def default_deprecation(cell_id):
 
 def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
     #TODO(sam): incorporate resting steps properly.
-    print(cell_id)
+    print("\tPROCESSING CELL ID: {}".format(cell_id))
     with transaction.atomic():
         fs = get_files_for_cell_id(cell_id)
         for f in fs:
@@ -883,7 +884,7 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
 
 def process_single_file(f,DEBUG=False):
     error_message = {"filename": f.database_file.filename}
-    print(f.database_file.filename)
+    print("\tPROCESSING SINGLE FILE: {}".format(f.database_file.filename))
 
     def thing_to_try():
         with transaction.atomic():
@@ -1560,7 +1561,7 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n,voltage_
     if flagged:
         print("sorted: v: {}, q: {}".format(v, q))
 
-    #print(v, q)
+
     if step_type == "dchg":
 
         last_cc_voltage = v[0]
@@ -1702,7 +1703,6 @@ def bulk_process(DEBUG=False, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10, cell_ids
                                                      process_time__lte=F("import_time"))))
         all_current_cell_ids = cell_ids
 
-    print(list(all_current_cell_ids))
     for cell_id in all_current_cell_ids:
         process_cell_id(
             cell_id,
@@ -1720,6 +1720,7 @@ def bulk_deprecate(cell_ids=None):
         all_current_cell_ids = cell_ids
 
     for cell_id in all_current_cell_ids:
+        print("\tDEFAULT DEPRECATION OF CELL ID:{}".format(cell_id))
         default_deprecation(
             cell_id
         )

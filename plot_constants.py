@@ -19,9 +19,9 @@ COLORS = [
 
 C_OVER_TWENTY_RULE = (0.038,0.062)
 C_OVER_TWO_RULE = (0.38,0.62)
-C_RULE = (0.85,1.3)
+C_RULE = (0.8,1.4)
 TWO_C_RULE = (1.6,2.4)
-THREE_C_RULE = (2.5,3.5)
+THREE_C_RULE = (2.4,3.6)
 
 
 #TODO(sam): keep track of these in the database and allow users to modify.

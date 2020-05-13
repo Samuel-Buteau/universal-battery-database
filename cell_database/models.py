@@ -1348,14 +1348,13 @@ class CompositeLot(models.Model):
 
 
 
-
 class DryCellGeometry(models.Model):
     UNITS_LENGTH = 'Millimeters (mm)'
     POUCH = 'po'
     CYLINDER = 'cy'
     STACK = 'st'
     COIN = 'co'
-    GEO_TYPES = [(POUCH, 'pouch'), (CYLINDER, 'cylinder'), (STACK, 'stack'),(COIN, 'coin')]
+    GEO_TYPES = [(POUCH, 'pouch'), (CYLINDER, 'cylinder'), (STACK, 'stack'), (COIN, 'coin')]
 
     geometry_category = models.CharField(max_length=2, choices=GEO_TYPES, blank=True)
     geometry_category_name = models.BooleanField(default=False, blank=True)

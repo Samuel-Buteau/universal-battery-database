@@ -7,17 +7,13 @@ from django import forms
 import re
 
 
-#TODO(sam): condense the code!!!
-'''
-DONE - remove all the fields that I don't currently care about.
-DONE - good name generation
-DONE - good uniqueness check.(library)
-DONE - good uniqueness check (view)
-DONE - test uniqueness check
-DONE - streamline the various definitions into much simpler and unique flows.
-- make the processing specific to machine learning optional.
-- bake a tensor instead of having to use the database all the time.
-'''
+
+def conditional_register(ar, name, content):
+    if name not in ar.keys():
+        ar[name] = content
+
+
+
 def define_page(request, mode=None):
     ar = {'mode':mode}
     def define_simple(post, content=None):
@@ -516,10 +512,6 @@ def define_page(request, mode=None):
 
 
 
-    def conditional_register(name, content):
-        if name not in ar.keys():
-            ar[name] = content
-
     if mode == 'electrode':
         ActiveMaterialCompositionFormset = formset_factory(
             ElectrodeMaterialStochiometryForm,
@@ -544,46 +536,46 @@ def define_page(request, mode=None):
         )
 
     if mode=='electrode':
-        conditional_register(
+        conditional_register(ar,
             'active_material_composition_formset',
             ActiveMaterialCompositionFormset(
                 prefix='active-material-composition-formset')
         )
 
-        conditional_register(
+        conditional_register(ar,
             'electrode_composition_formset',
             ElectrodeCompositionFormset(prefix='electrode-composition-formset')
         )
 
-        conditional_register(
+        conditional_register(ar,
             'define_coating_form',
             CoatingForm(prefix='coating-form')
         )
 
 
-        conditional_register(
+        conditional_register(ar,
             'define_coating_lot_form',
             CoatingLotForm(prefix='coating-lot-form')
         )
 
 
-        conditional_register(
+        conditional_register(ar,
             'define_material_form',
             ElectrodeMaterialForm(prefix='electrode-material-form')
         )
 
-        conditional_register(
+        conditional_register(ar,
             'define_material_lot_form',
             ElectrodeMaterialLotForm(
                 prefix='electrode-material-lot-form')
         )
 
-        conditional_register(
+        conditional_register(ar,
             'define_electrode_form',
             ElectrodeForm(prefix='electrode-form')
         )
 
-        conditional_register(
+        conditional_register(ar,
             'define_electrode_lot_form',
             ElectrodeLotForm(prefix='electrode-lot-form')
         )
@@ -592,82 +584,80 @@ def define_page(request, mode=None):
 
     if mode =='electrolyte':
 
-        conditional_register(
+        conditional_register(ar,
             'electrolyte_composition_formset',
             ElectrolyteCompositionFormset(prefix='electrolyte-composition-formset')
         )
 
-        conditional_register(
+        conditional_register(ar,
             'define_molecule_form',
             ElectrolyteMoleculeForm(prefix='electrolyte-molecule-form')
         )
 
-        conditional_register(
+        conditional_register(ar,
             'define_molecule_lot_form',
             ElectrolyteMoleculeLotForm(prefix='electrolyte-molecule-lot-form')
         )
 
-        conditional_register(
+        conditional_register(ar,
             'define_electrolyte_form',
             ElectrolyteForm(prefix='electrolyte-form')
         )
-        conditional_register(
+        conditional_register(ar,
             'define_electrolyte_lot_form',
             ElectrolyteLotForm(prefix='electrolyte-lot-form')
         )
 
     if mode == 'separator':
 
-        conditional_register(
+        conditional_register(ar,
             'separator_composition_formset',
             SeparatorCompositionFormset(prefix='separator-composition-formset')
         )
-        conditional_register(
+        conditional_register(ar,
             'define_separator_material_form',
             SeparatorMaterialForm(prefix='separator-material-form')
         )
-        conditional_register(
+        conditional_register(ar,
             'define_separator_material_lot_form',
             SeparatorMaterialLotForm(prefix='separator-material-lot-form')
         )
-        conditional_register(
+        conditional_register(ar,
             'define_separator_form',
             SeparatorForm(prefix='separator-form')
         )
-        conditional_register(
+        conditional_register(ar,
             'define_separator_lot_form',
             SeparatorLotForm(prefix='separator-lot-form')
         )
 
 
     if mode == 'dry_cell':
-        conditional_register(
+        conditional_register(ar,
             'define_dry_cell_form',
             DryCellForm(prefix='dry-cell-form')
         )
-        conditional_register(
+        conditional_register(ar,
             'define_dry_cell_lot_form',
             DryCellLotForm(prefix='dry-cell-lot-form')
         )
-        conditional_register(
+        conditional_register(ar,
             'define_dry_cell_geometry_form',
             DryCellGeometryForm(prefix='dry-cell-geometry-form')
         )
-        conditional_register(
+        conditional_register(ar,
             'define_separator_geometry_form',
             SeparatorGeometryForm(prefix='separator-geometry-form')
         )
 
-        conditional_register(
+        conditional_register(ar,
             'define_cathode_geometry_form',
             ElectrodeGeometryForm(prefix='cathode-geometry-form')
         )
-        conditional_register(
+        conditional_register(ar,
             'define_anode_geometry_form',
             ElectrodeGeometryForm(prefix='anode-geometry-form')
         )
-
-
     return render(request, 'cell_database/define_page.html', ar)
 
 def define_wet_cell_bulk(request, predefined=None):
@@ -879,13 +869,14 @@ def get_preview_electrolytes(search_electrolyte_form, electrolyte_composition_fo
     complete_additive = search_electrolyte_form.cleaned_data['complete_additive']
     relative_tolerance = search_electrolyte_form.cleaned_data['relative_tolerance']
     proprietary_flag = search_electrolyte_form.cleaned_data['proprietary_flag']
-    proprietary_search = search_electrolyte_form.cleaned_data['proprietary_search']
+    notes = search_electrolyte_form.cleaned_data['notes']
+    q = Q(composite_type=ELECTROLYTE)
+    if notes is not None and len(notes) > 0:
+        q = q & Q(notes__icontains=notes)
+
     if proprietary_flag:
         print('search for proprietary flag')
-        q = Q(composite_type=ELECTROLYTE,
-              proprietary=True)
-        if proprietary_search is not None and len(proprietary_search) > 0:
-            q = q & Q(name__icontains=proprietary_search)
+        q = q & Q(proprietary=True)
 
         total_query = Composite.objects.filter(q)
     else:
@@ -1000,32 +991,194 @@ def get_preview_electrolytes(search_electrolyte_form, electrolyte_composition_fo
 
     return total_query
 
+
+def get_electrolyte_forms(ar, ElectrolyteCompositionFormset, post):
+    electrolyte_composition_formset = ElectrolyteCompositionFormset(post, prefix='electrolyte-composition')
+    electrolyte_composition_formset_is_valid = electrolyte_composition_formset.is_valid()
+    if electrolyte_composition_formset_is_valid:
+        ar['electrolyte_composition_formset'] = electrolyte_composition_formset
+
+    search_electrolyte_form = SearchElectrolyteForm(post, prefix='search-electrolyte')
+    search_electrolyte_form_is_valid = search_electrolyte_form.is_valid()
+    if search_electrolyte_form_is_valid:
+        ar['electrolyte_form'] = search_electrolyte_form
+
+    return electrolyte_composition_formset, search_electrolyte_form, electrolyte_composition_formset_is_valid and search_electrolyte_form_is_valid
+
 def search_page(request):
     ElectrolyteCompositionFormset = formset_factory(
         SearchElectrolyteComponentForm,
         extra=10
     )
-    electrolyte_composition_formset = ElectrolyteCompositionFormset(prefix='electrolyte_composition')
+    DryCellScalarsFormset = formset_factory(
+        SearchGenericNamedScalarForm,
+        extra=0
+    )
+    def set_scalars(ar):
+        dry_cell_scalars_initial = [
+            {
+                'name': "Cathode Loading",
+            },
+            {
+                'name': "Cathode Density",
+            },
+            {
+                'name': "Cathode Thickness",
+            },
+            {
+                'name': "Cathode Loading",
+            },
+            {
+                'name': "Cathode Density",
+            },
+            {
+                'name': "Cathode Thickness",
+            },
+            {
+                'name': "Separator Thickness",
+            },
+            {
+                'name': "Separator Width",
+            },
+            {
+                'name': "Cell Width",
+            },
+            {
+                'name': "Cell Length",
+            },
+            {
+                'name': "Cell Thickness",
+            },
+        ]
+        ar['dry_cell_scalars'] = DryCellScalarsFormset(
+            initial=dry_cell_scalars_initial,
+            prefix='dry_cell_scalars'
+        )
+
     ar = {}
-    ar['electrolyte_composition_formset'] = electrolyte_composition_formset
-    ar['electrolyte_form'] = SearchElectrolyteForm()
+    if request.method == 'GET':
+        set_scalars(ar)
 
     if request.method == 'POST':
-        electrolyte_composition_formset = ElectrolyteCompositionFormset(request.POST,prefix='electrolyte_composition')
-        electrolyte_composition_formset_is_valid = electrolyte_composition_formset.is_valid()
-        if electrolyte_composition_formset_is_valid:
-            ar['electrolyte_composition_formset'] = electrolyte_composition_formset
 
-        search_electrolyte_form = SearchElectrolyteForm(request.POST)
-        search_electrolyte_form_is_valid = search_electrolyte_form.is_valid()
-        if search_electrolyte_form_is_valid:
-            print('valid2')
-            ar['electrolyte_form'] = search_electrolyte_form
+        # electrolyte
+        electrolyte_composition_formset, search_electrolyte_form, proceed_electrolyte = get_electrolyte_forms(ar, ElectrolyteCompositionFormset, request.POST)
+
+        # dry cell
+        search_dry_cell = SearchDryCellForm(request.POST, prefix="search_dry_cell")
+        dry_cell_notes = ""
+        dry_cell_proprietary = False
+        geometry_category = []
+        relative_tolerance = 5.
+
+        if search_dry_cell.is_valid():
+            ar["search_dry_cell"] = search_dry_cell
+            dry_cell_notes = search_dry_cell.cleaned_data["notes"]
+            dry_cell_proprietary = search_dry_cell.cleaned_data["proprietary"]
+            # TODO(sam): deal with geometry category.
+            geometry_category = search_dry_cell.cleaned_data.get("geometry_category")
+
+        dry_cell_scalars = DryCellScalarsFormset(
+            request.POST,
+            prefix='dry_cell_scalars'
+        )
+        if not dry_cell_scalars.is_valid():
+            set_scalars(ar)
+        else:
+            ar["dry_cell_scalars"] = dry_cell_scalars
+
+        dry_cell_scalar_dict = {}
+        for dry_cell_scalar in dry_cell_scalars:
+            if dry_cell_scalar.is_valid():
+                if "name" in dry_cell_scalar.cleaned_data.keys() and dry_cell_scalar.cleaned_data["name"] != "":
+                    name = dry_cell_scalar.cleaned_data["name"]
+                    if "scalar" in dry_cell_scalar.cleaned_data.keys() and dry_cell_scalar.cleaned_data["scalar"] is not None:
+                        scalar = dry_cell_scalar["scalar"]
+                        if "tolerance" in dry_cell_scalar.cleaned_data.keys() and dry_cell_scalar.cleaned_data[
+                            "tolerance"] is not None:
+                            tolerance = dry_cell_scalar["tolerance"]
+                        else:
+                            tolerance = scalar * relative_tolerance/100.
+
+                        exclude_missing = False
+                        if "exclude_missing" in dry_cell_scalar.cleaned_data.keys():
+                            exclude_missing = dry_cell_scalar.cleaned_data["exclude_missing"]
+                        dry_cell_scalar_dict[name] = (scalar, tolerance, exclude_missing)
+
+        q = Q()
+        if dry_cell_notes is not None and len(dry_cell_notes) > 0:
+            q = q & Q(notes__icontains=dry_cell_notes)
+
+        if dry_cell_proprietary:
+            q = q & Q(proprietary=True)
+            total_query = DryCell.objects.filter(q)
+        else:
+            if len(geometry_category) > 0:
+                q = q & Q(geometry__geometry_category__in=geometry_category)
+            total_query = DryCell.objects.filter(q)
+
+
+        # dry_cell_geometry = DryCellGeometry(
+        #     geometry_category=define_dry_cell_geometry_form.cleaned_data['geometry_category'],
+        #     proprietary=simple_form.cleaned_data['proprietary'],
+        #     notes=simple_form.cleaned_data['notes'],
+
+        # Cathode
+        #TODO(sam): look at delete_page and make this multiplechoice
+
+        # my_id, lot_type = decode_lot_string(
+        #     dry_cell_form.cleaned_data['cathode']
+        # )
+        # cathode = None
+        # if lot_type == LotTypes.no_lot:
+        #     cathode = get_lot(
+        #         Composite.objects.get(id=my_id),
+        #         None,
+        #         type='composite'
+        #     )
+        # elif lot_type == LotTypes.lot:
+        #     cathode = CompositeLot.objects.get(id=my_id)
+
+        # Anode
+        # my_id, lot_type = decode_lot_string(
+        #     simple_form.cleaned_data['anode']
+        # )
+        # anode = None
+        # if lot_type == LotTypes.no_lot:
+        #     anode = get_lot(
+        #         Composite.objects.get(id=my_id),
+        #         None,
+        #         type='composite'
+        #     )
+        # elif lot_type == LotTypes.lot:
+        #     anode = CompositeLot.objects.get(id=my_id)
+
+        # Separator
+        # my_id, lot_type = decode_lot_string(
+        #     simple_form.cleaned_data['separator']
+        # )
+        # separator = None
+        # if lot_type == LotTypes.no_lot:
+        #     separator = get_lot(
+        #         Composite.objects.get(id=my_id),
+        #         None,
+        #         type='composite'
+        #     )
+        # elif lot_type == LotTypes.lot:
+        #     separator = CompositeLot.objects.get(id=my_id)
+
+
+        if 'preview_dry_cell' in request.POST:
+            if True:
+                max_n = 25
+                preview_dry_cells =  [dry_cell.__str__() for dry_cell in total_query[:max_n]]
+                if total_query.count() > max_n:
+                    preview_dry_cells.append("... (more than {} found) ...".format(max_n))
+                ar['preview_dry_cells'] = preview_dry_cells
 
         if 'preview_electrolyte' in request.POST:
-            if electrolyte_composition_formset_is_valid and search_electrolyte_form_is_valid:
+            if proceed_electrolyte:
                 total_query = get_preview_electrolytes(search_electrolyte_form, electrolyte_composition_formset)
-
 
                 max_n = 25
                 preview_electrolytes =  [electrolyte.__str__() for electrolyte in total_query[:max_n]]
@@ -1033,7 +1186,7 @@ def search_page(request):
                     preview_electrolytes.append("... (more than {} found) ...".format(max_n))
                 ar['preview_electrolytes'] = preview_electrolytes
         if 'preview_wet_cell' in request.POST:
-            if electrolyte_composition_formset_is_valid and search_electrolyte_form_is_valid:
+            if proceed_electrolyte:
                 electrolyte_query = get_preview_electrolytes(search_electrolyte_form, electrolyte_composition_formset)
 
                 wet_cell_query = WetCell.objects.filter(electrolyte__composite__in=electrolyte_query)
@@ -1045,6 +1198,23 @@ def search_page(request):
                 ar['preview_wet_cells'] = preview_wet_cells
 
 
+
+    # electrolyte
+    conditional_register(ar,
+                         'electrolyte_composition_formset',
+                         ElectrolyteCompositionFormset(prefix='electrolyte-composition')
+                         )
+    conditional_register(ar,
+                         'electrolyte_form',
+                         SearchElectrolyteForm(prefix='search-electrolyte')
+                         )
+
+    # dry cell
+    conditional_register(ar,
+                         "search_dry_cell",
+                         SearchDryCellForm(prefix="search_dry_cell")
+                         )
+  
 
     return render(request, 'cell_database/search_page.html', ar)
 

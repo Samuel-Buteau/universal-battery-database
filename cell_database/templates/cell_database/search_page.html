@@ -22,7 +22,9 @@ table, th, td {
 
 <form action="{% url 'cell_database:search_page' %}" method="post">
     {% csrf_token %}
+    <table>
         {% if electrolyte_form %}
+            <td valign="top">
             <h2>Electrolyte</h2>
                 <table>{{ electrolyte_form.as_table }}</table>
                 {% if electrolyte_composition_formset %}
@@ -70,11 +72,48 @@ table, th, td {
                         </table>
                     {% endif %}
                 {% endif %}
-
+            </td>
         {% endif %}
 
 
+        {% if search_dry_cell %}
+            <td valign="top">
+            <h2>Dry Cell</h2>
+                <table>{{ search_dry_cell.as_table }}</table>
+                {% if dry_cell_scalars %}
+                    {% csrf_token %}
+                    {{ dry_cell_scalars.management_form }}
+                    <table>
+                        <tr>
+                            <th>Field Name</th><th>Amount</th><th>Tolerance</th><th>Exclude Missing Values</th>
+                        </tr>
+                        {% for form in dry_cell_scalars%}
+                            <tr>
+                                <td>{{ form.name}}</td><td>{{form.scalar}}</td><td>{{ form.tolerance}}</td><td>{{ form.exclude_missing}}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                {% endif %}
+                <input type="submit" name = 'preview_dry_cell' value="Preview Dry Cell">
+                {%if preview_dry_cells %}
+                    {% if not preview_dry_cells|length == 0%}
+                        <table>
+                            <tr>
+                                <th>Preview Dry Cells</th>
+                            </tr>
+                            {% for dry_cell in preview_dry_cells %}
+                                <tr>
+                                    <td>{{dry_cell}}</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    {% endif %}
+                {% endif %}
+            </td>
+        {% endif %}
 
+
+    </table>
 
 </form>
 

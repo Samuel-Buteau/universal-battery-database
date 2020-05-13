@@ -490,17 +490,20 @@ class SearchElectrolyteForm(Form):
     complete_additive = forms.BooleanField(initial=False, required=False)
     relative_tolerance = forms.FloatField(initial=5., help_text='the default tolerance in percentage.')
     proprietary_flag = forms.BooleanField(initial=False, required=False)
-    proprietary_search = forms.CharField(required=False)
+    notes = forms.CharField(required=False)
+
+
+MANDATORY = 'ma'
+PROHIBITED = 'pr'
+ALLOWED = 'al'
+MUST_TYPES = [
+    (MANDATORY, 'mandatory'),
+    (PROHIBITED, 'prohibited'),
+    (ALLOWED, 'allowed'),
+]
 
 class SearchElectrolyteComponentForm(Form):
-    MANDATORY = 'ma'
-    PROHIBITED = 'pr'
-    ALLOWED = 'al'
-    MUST_TYPES = [
-        (MANDATORY, 'mandatory'),
-        (PROHIBITED, 'prohibited'),
-        (ALLOWED, 'allowed'),
-    ]
+
     molecule = forms.ChoiceField(choices=molecule_choices, required=False)
     must_type = forms.ChoiceField(choices=MUST_TYPES, initial = MANDATORY)
     ratio = forms.FloatField(required=False)
@@ -511,3 +514,16 @@ class ElectrolytePreviewForm(Form):
     electrolyte = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly', 'size': 200}), required=True)
     electrolyte_id = forms.IntegerField(widget=forms.HiddenInput(), required=True)
     exclude = forms.BooleanField(required=True)
+
+class SearchGenericNamedScalarForm(Form):
+    name = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly', 'size': 50}), required=True)
+    scalar = forms.FloatField(required=False)
+    tolerance = forms.FloatField(required=False)
+    exclude_missing = forms.BooleanField(initial=False,required=False)
+
+class SearchDryCellForm(Form):
+    notes = forms.CharField(required=False)
+    relative_tolerance = forms.FloatField(initial=5., help_text='the default tolerance in percentage.')
+    proprietary = forms.BooleanField(initial=False, required=False)
+    geometry_category = forms.MultipleChoiceField(choices=DryCellGeometry.GEO_TYPES, required=False)
+

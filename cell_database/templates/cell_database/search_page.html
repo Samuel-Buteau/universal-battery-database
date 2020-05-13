@@ -30,19 +30,30 @@ table, th, td {
             {%endif%}
             <input type="submit" name = 'preview_wet_cell' value="Preview Wet Cell">
 
-            {%if preview_wet_cells %}
-                {% if not preview_wet_cells|length == 0%}
+
+            {%if wet_cell_preview_formset %}
+                {% csrf_token %}
+                {{ wet_cell_preview_formset.management_form }}
+
+                {% if not wet_cell_preview_formset|length == 0%}
                     Showing page {{page_number}}/{{max_page_number}}.
                     <table>
                         <tr>
-                            <th>Preview Wet Cells</th>
+                            <th>Wet Cell</th> <th>Exclude ?</th>
                         </tr>
-                        {% for wet_cell in preview_wet_cells %}
-                            <tr>
-                                <td>{{wet_cell}}</td>
-                            </tr>
+                    {% for form in wet_cell_preview_formset %}
+                        {% for hidden in form.hidden_fields %}
+                            {{hidden}}
                         {% endfor %}
+                        <tr>
+                            <td>{{ form.wet_cell}}</td><td>{{ form.exclude}}</td>
+                        </tr>
+                    {% endfor %}
                     </table>
+                    {% if dataset_form %}
+                        {{ dataset_form }}
+                    {% endif %}
+                    <input type="submit" name = 'register_wet_cells_to_dataset' value="Register to Dataset">
                 {% endif %}
             {% endif %}
 

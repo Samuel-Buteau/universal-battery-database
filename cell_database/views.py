@@ -882,7 +882,6 @@ def get_preview_electrolytes(search_electrolyte_form, electrolyte_composition_fo
             if form.is_valid:
                 if 'molecule' in form.cleaned_data.keys() and form.cleaned_data['molecule'] is not None and \
                         form.cleaned_data['molecule'] != '':
-                    print("molecule exists: {}".format(form.cleaned_data['molecule']))
                     all_data.append(form.cleaned_data)
 
         prohibited = filter(
@@ -1174,7 +1173,6 @@ def get_preview_dry_cells( search_dry_cell, dry_cell_scalars):
 
 #TODO(sam): share across applications
 def focus_on_page(search_form, n, number_per_page = 10):
-    number_per_page = 10
     pn = search_form.cleaned_data["page_number"]
     if pn is None:
         pn = 1
@@ -1203,6 +1201,11 @@ def search_page(request):
         SearchGenericNamedScalarForm,
         extra=0
     )
+    WetCellPreviewFormset = formset_factory(
+        WetCellPreviewForm,
+        extra=0
+    )
+
     def set_scalars(ar):
         dry_cell_scalars_initial = [
             {
@@ -1253,7 +1256,6 @@ def search_page(request):
         dry_cell_scalars_is_valid = dry_cell_scalars.is_valid()
         search_dry_cell_is_valid = search_dry_cell.is_valid()
         if not dry_cell_scalars_is_valid:
-            print(search_dry_cell)
             set_scalars(ar)
         else:
             ar["dry_cell_scalars"] = dry_cell_scalars
@@ -1261,8 +1263,7 @@ def search_page(request):
         if search_dry_cell_is_valid:
             ar["search_dry_cell"] = search_dry_cell
 
-        print("dry_cell_scalars was valid: ", dry_cell_scalars_is_valid)
-        print("search_dry_cell was valid: ", search_dry_cell_is_valid)
+
         return search_dry_cell, dry_cell_scalars, dry_cell_scalars_is_valid and search_dry_cell_is_valid
 
     def get_electrolyte_forms(ar, post):
@@ -1290,9 +1291,7 @@ def search_page(request):
         search_dry_cell, dry_cell_scalars, proceed_dry_cell = get_dry_cell_forms(ar, request.POST)
 
         if 'preview_dry_cell' in request.POST:
-            print('preview_dry_cell')
             if proceed_dry_cell:
-                print('proceeded')
                 total_query = get_preview_dry_cells(search_dry_cell, dry_cell_scalars)
                 max_n = 25
                 preview_dry_cells =  [dry_cell.__str__() for dry_cell in total_query[:max_n]]
@@ -1310,9 +1309,8 @@ def search_page(request):
                     preview_electrolytes.append("... (more than {} found) ...".format(max_n))
                 ar['preview_electrolytes'] = preview_electrolytes
         if 'preview_wet_cell' in request.POST:
-            print('preview_wet_cell')
             if proceed_electrolyte and proceed_dry_cell:
-                print('proceeded')
+
                 electrolyte_query = get_preview_electrolytes(
                     search_electrolyte_form,
                     electrolyte_composition_formset
@@ -1333,11 +1331,52 @@ def search_page(request):
                     ar["max_page_number"] = max_page_number
                     ar["page_number"] = page_number
                     ar['search_wet_cell_form']=search_wet_cell_form
-                    preview_wet_cells =  [wet_cell.__str__() for wet_cell in wet_cell_query[min_i:max_i]]
-                    ar['preview_wet_cells'] = preview_wet_cells
+                    initial = []
+                    for wet_cell in wet_cell_query[min_i:max_i]:
+                        my_initial = {
+                            "wet_cell": wet_cell.__str__(),
+                            "cell_id": wet_cell.cell_id,
+                            "exclude": True,
+                        }
+
+                        initial.append(my_initial)
+
+                    wet_cell_preview_formset = WetCellPreviewFormset(
+                        initial=initial,
+                        prefix='wet-cell-preview-formset')
+                    ar['wet_cell_preview_formset'] = wet_cell_preview_formset
+                    ar['dataset_form'] = DatasetForm(prefix='dataset-form')
+                    # preview_wet_cells =  [wet_cell.__str__() for wet_cell in wet_cell_query[min_i:max_i]]
+                    # ar['preview_wet_cells'] = preview_wet_cells
+
+        if 'register_wet_cells_to_dataset' in request.POST:
+
+            wet_cell_preview_formset = WetCellPreviewFormset(request.POST, prefix='wet-cell-preview-formset')
+
+            dataset_form =DatasetForm(request.POST, prefix='dataset-form')
+            if dataset_form.is_valid():
+
+                dataset = dataset_form.cleaned_data["dataset"]
+                if wet_cell_preview_formset.is_valid():
+
+                    for form in wet_cell_preview_formset:
+                        if not form.is_valid():
+                            continue
+                        if "exclude" not in form.cleaned_data.keys():
+                            continue
+                        if form.cleaned_data["exclude"]:
+                            continue
+
+                        cell_id = form.cleaned_data["cell_id"]
+
+                        if WetCell.objects.filter(cell_id = cell_id).exists():
+                            wet_cell = WetCell.objects.get(cell_id = cell_id)
+
+                            dataset.wet_cells.add(wet_cell)
 
 
-
+                    ar['wet_cell_preview_formset'] = wet_cell_preview_formset
+                ar["dataset_form"] = dataset_form
     # electrolyte
     conditional_register(ar,
                          'electrolyte_composition_formset',
@@ -1358,6 +1397,10 @@ def search_page(request):
                          SearchWetCellForm(prefix='search_wet_cell_form')
                          )
 
+    conditional_register(ar,
+                         'wet_cell_preview_formset',
+                         WetCellPreviewFormset(prefix='wet_cell_preview_formset')
+                         )
     return render(request, 'cell_database/search_page.html', ar)
 
 

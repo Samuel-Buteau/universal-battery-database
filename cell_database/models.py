@@ -1769,13 +1769,10 @@ def get_lot(content, lot, type=None):
 
 
 
-
 class WetCell(models.Model):
     cell_id = models.IntegerField(primary_key=True, blank=True)
     electrolyte = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True, blank=True)
     dry_cell = models.ForeignKey(DryCellLot, on_delete=models.SET_NULL, null=True, blank=True)
-
-
     def __str__(self):
         cell_id_str = 'No Barcode'
         if self.cell_id is not None:
@@ -1788,3 +1785,11 @@ class WetCell(models.Model):
             dry_cell_str = '{}'.format(self.dry_cell)
 
         return 'BARCODE: {}, ELECTROLYTE: {}, DRY CELL: {}'.format(cell_id_str, electrolyte_str, dry_cell_str)
+
+
+
+class Dataset(models.Model):
+    name = models.CharField(primary_key=True, blank=True, max_length=200)
+    wet_cells = models.ManyToManyField(WetCell)
+    def __str__(self):
+        return self.name

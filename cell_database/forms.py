@@ -562,9 +562,10 @@ class SearchWetCellForm(Form):
         data["page_number"] = page_number
         self.data = data
 
-
+class DatasetForm(Form):
+    dataset = forms.ModelChoiceField(queryset=Dataset.objects.all())
 
 class WetCellPreviewForm(Form):
-    cell_show = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly', 'size': 200}), required=True)
-    cell_id = forms.IntegerField(widget=forms.HiddenInput(), required=True)
-    exclude = forms.BooleanField(required=True)
+    wet_cell = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly', 'size': 200}), required=False)
+    cell_id = forms.IntegerField(widget=forms.HiddenInput(), required=False)
+    exclude = forms.BooleanField(required=False)

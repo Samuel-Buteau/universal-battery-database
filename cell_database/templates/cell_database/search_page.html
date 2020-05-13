@@ -30,37 +30,47 @@ table, th, td {
                     {{ electrolyte_composition_formset.management_form }}
                     <table>
                         <tr>
-                            <th>Molecule</th><th>Lot</th><th>Must have?</th><th>Amount</th><th>Tolerance</th>
+                            <th>Molecule</th><th>Must have?</th><th>Amount</th><th>Tolerance</th>
                         </tr>
                         {% for form in electrolyte_composition_formset%}
                             <tr>
-                                <td>{{ form.molecule}}</td><td>{{ form.molecule_lot}}</td><td>{{form.must_type}}</td><td>{{ form.ratio}}</td><td>{{ form.tolerance}}</td>
+                                <td>{{ form.molecule}}</td><td>{{form.must_type}}</td><td>{{ form.ratio}}</td><td>{{ form.tolerance}}</td>
                             </tr>
                         {% endfor %}
                     </table>
                 {% endif %}
                 <input type="submit" name = 'preview_electrolyte' value="Preview Electrolyte">
-
-                {%if electrolyte_preview_formset %}
-                    {% csrf_token %}
-                    {{ electrolyte_preview_formset.management_form }}
-                    {% if not electrolyte_preview_formset|length == 0%}
-                        <h3>Preview</h3>
-                            <table>
+                <input type="submit" name = 'preview_wet_cell' value="Preview Wet Cell">
+                {%if preview_electrolytes %}
+                    {% if not preview_electrolytes|length == 0%}
+                        <table>
+                            <tr>
+                                <th>Preview Electrolytes</th>
+                            </tr>
+                            {% for electrolyte in preview_electrolytes %}
                                 <tr>
-                                    <th>Electrolyte</th><th>Exclude</th>
+                                    <td>{{electrolyte}}</td>
                                 </tr>
-                                {% for form in electrolyte_preview_formset %}
-                                    {% for hidden in form.hidden_fields %}
-                                        {{hidden}}
-                                    {% endfor %}
-                                    <tr>
-                                        <td>{{ form.electrolyte}}</td><td>{{ form.exclude}}</td>
-                                    </tr>
-                                {% endfor %}
-                            </table>
+                            {% endfor %}
+                        </table>
                     {% endif %}
                 {% endif %}
+
+               {%if preview_wet_cells %}
+                    {% if not preview_wet_cells|length == 0%}
+                        <table>
+                            <tr>
+                                <th>Preview Wet Cells</th>
+                            </tr>
+                            {% for wet_cell in preview_wet_cells %}
+                                <tr>
+                                    <td>{{wet_cell}}</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    {% endif %}
+                {% endif %}
+
         {% endif %}
 
 

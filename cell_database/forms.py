@@ -485,9 +485,9 @@ class ElectrolyteBulkSingleEntryForm(ElectrolyteForm):
 
 
 class SearchElectrolyteForm(Form):
-    complete_salt = forms.BooleanField(initial=True, required=False)
-    complete_solvent = forms.BooleanField(initial=True, required=False)
-    complete_additive = forms.BooleanField(initial=True, required=False)
+    complete_salt = forms.BooleanField(initial=False, required=False)
+    complete_solvent = forms.BooleanField(initial=False, required=False)
+    complete_additive = forms.BooleanField(initial=False, required=False)
     relative_tolerance = forms.FloatField(initial=5., help_text='the default tolerance in percentage.')
     proprietary_flag = forms.BooleanField(initial=False, required=False)
     proprietary_search = forms.CharField(required=False)

@@ -18,16 +18,8 @@ DONE - streamline the various definitions into much simpler and unique flows.
 - make the processing specific to machine learning optional.
 - bake a tensor instead of having to use the database all the time.
 '''
-
-
-
-
-
 def define_page(request, mode=None):
     ar = {'mode':mode}
-
-
-
     def define_simple(post, content=None):
         if content in ['electrolyte', 'electrode', 'separator']:
             components = None
@@ -166,8 +158,6 @@ def define_page(request, mode=None):
                     component_type = SEPARATOR_MATERIAL
                     component_type_name = False
 
-
-
                 my_component = Component(
                     proprietary = simple_form.cleaned_data['proprietary'],
                     proprietary_name=simple_form.cleaned_data['proprietary_name'],
@@ -219,8 +209,10 @@ def define_page(request, mode=None):
                 my_component.smiles_name = simple_form.cleaned_data['smiles_name']
 
                 if not my_component.proprietary and content=='material':
-                    active_material_composition_formset = ActiveMaterialCompositionFormset(request.POST,
-                                                                                           prefix='active-material-composition-formset')
+                    active_material_composition_formset = ActiveMaterialCompositionFormset(
+                        request.POST,
+                        prefix='active-material-composition-formset'
+                    )
                     atoms = []
                     for form in active_material_composition_formset:
                         validation_step = form.is_valid()
@@ -266,7 +258,6 @@ def define_page(request, mode=None):
                     notes=simple_form.cleaned_data['notes'],
                     description=simple_form.cleaned_data['description'],
                     description_name=simple_form.cleaned_data['description_name'],
-
                 )
 
 
@@ -882,32 +873,147 @@ def define_wet_cell_bulk(request, predefined=None):
     return render(request, 'cell_database/define_wet_cell_bulk.html', ar)
 
 
+def get_preview_electrolytes(search_electrolyte_form, electrolyte_composition_formset):
+    complete_salt = search_electrolyte_form.cleaned_data['complete_salt']
+    complete_solvent = search_electrolyte_form.cleaned_data['complete_solvent']
+    complete_additive = search_electrolyte_form.cleaned_data['complete_additive']
+    relative_tolerance = search_electrolyte_form.cleaned_data['relative_tolerance']
+    proprietary_flag = search_electrolyte_form.cleaned_data['proprietary_flag']
+    proprietary_search = search_electrolyte_form.cleaned_data['proprietary_search']
+    if proprietary_flag:
+        print('search for proprietary flag')
+        q = Q(composite_type=ELECTROLYTE,
+              proprietary=True)
+        if proprietary_search is not None and len(proprietary_search) > 0:
+            q = q & Q(name__icontains=proprietary_search)
 
+        total_query = Composite.objects.filter(q)
+    else:
+        all_data = []
+        for form in electrolyte_composition_formset:
+            if form.is_valid:
+                print("\t was valid.{}".format(form.cleaned_data))
+                if 'molecule' in form.cleaned_data.keys() and form.cleaned_data['molecule'] is not None and \
+                        form.cleaned_data['molecule'] != '':
+                    print("molecule exists: {}".format(form.cleaned_data['molecule']))
+                    all_data.append(form.cleaned_data)
+
+        prohibited = filter(
+            lambda x: x['must_type'] == SearchElectrolyteComponentForm.PROHIBITED,
+            all_data
+        )
+
+        prohibited_lots = []
+        prohibited_molecules = []
+        for pro in prohibited:
+            if pro['molecule'] is not None:
+                prohibited_molecules.append(pro['molecule'])
+            elif pro['molecule_lot'] is not None:
+                prohibited_lots.append(pro['molecule_lot'])
+
+        q = Q(composite_type=ELECTROLYTE, proprietary=False)
+        # prohibit molecules
+
+        q = q & ~Q(components__component_lot__in=prohibited_lots)
+        q = q & ~Q(components__component_lot__component__in=prohibited_molecules)
+
+        allowed_molecules = []
+        allowed_molecules_lot = []
+        not_prohibited = filter(
+            lambda x: x['must_type'] != SearchElectrolyteComponentForm.PROHIBITED,
+            all_data
+        )
+        for pro in not_prohibited:
+            if pro['molecule'] is not None:
+                allowed_molecules.append(pro['molecule'])
+            elif pro['molecule_lot'] is not None:
+                allowed_molecules_lot.append(pro['molecule_lot'])
+
+        total_query = Composite.objects.filter(q)
+        completes = []
+        if complete_solvent:
+            completes.append(SOLVENT)
+        if complete_salt:
+            completes.append(SALT)
+        if complete_additive:
+            completes.append(ADDITIVE)
+
+        if len(completes) != 0:
+            total_query = total_query.annotate(
+                has_extra=Exists(RatioComponent.objects.filter(
+                    Q(composite=OuterRef('pk')) &
+                    Q(component_lot__component__component_type__in=completes) &
+                    ~Q(component_lot__component__in=allowed_molecules) &
+                    ~Q(component_lot__in=allowed_molecules_lot)
+                ))
+            ).filter(has_extra=False)
+
+        mandatory_molecules = []
+        mandatory_molecules_lot = []
+        mandatory = filter(
+            lambda x: x['must_type'] == SearchElectrolyteComponentForm.MANDATORY,
+            all_data
+        )
+        for pro in mandatory:
+            if pro['molecule'] is not None:
+                mandatory_molecules.append(pro)
+            elif pro['molecule_lot'] is not None:
+                mandatory_molecules_lot.append(pro)
+
+        for mol in mandatory_molecules:
+            if mol['ratio'] is None:
+                total_query = total_query.annotate(
+                    checked_molecule=Exists(RatioComponent.objects.filter(
+                        composite=OuterRef('pk'),
+                        component_lot__component=mol['molecule']))
+                ).filter(checked_molecule=True)
+            else:
+                tolerance = relative_tolerance / 100. * mol['ratio']
+                if mol['tolerance'] is not None:
+                    tolerance = mol['tolerance']
+
+                total_query = total_query.annotate(
+                    checked_molecule=Exists(RatioComponent.objects.filter(
+                        composite=OuterRef('pk'),
+                        component_lot__component=mol['molecule'],
+                        ratio__range=(mol['ratio'] - tolerance, mol['ratio'] + tolerance)))
+                ).filter(checked_molecule=True)
+
+        for mol in mandatory_molecules_lot:
+            if mol['ratio'] is None:
+                total_query = total_query.annotate(
+                    checked_molecule=Exists(RatioComponent.objects.filter(
+                        composite=OuterRef('pk'),
+                        component_lot=mol['molecule_lot']))
+                ).filter(checked_molecule=True)
+            else:
+                tolerance = relative_tolerance / 100. * mol['ratio']
+                if mol['tolerance'] is not None:
+                    tolerance = mol['tolerance']
+
+                total_query = total_query.annotate(
+                    checked_molecule=Exists(RatioComponent.objects.filter(
+                        composite=OuterRef('pk'),
+                        component_lot=mol['molecule_lot'],
+                        ratio__range=(mol['ratio'] - tolerance, mol['ratio'] + tolerance)))
+                ).filter(checked_molecule=True)
+
+    return total_query
 
 def search_page(request):
     ElectrolyteCompositionFormset = formset_factory(
         SearchElectrolyteComponentForm,
         extra=10
     )
-
-
-    ElectrolytePreviewFormset = formset_factory(
-        ElectrolytePreviewForm,
-        extra=0
-    )
-
     electrolyte_composition_formset = ElectrolyteCompositionFormset(prefix='electrolyte_composition')
-    electrolyte_preview_formset = ElectrolytePreviewFormset( prefix='electrolyte_preview')
     ar = {}
     ar['electrolyte_composition_formset'] = electrolyte_composition_formset
-    ar['electrolyte_preview_formset'] = electrolyte_preview_formset
     ar['electrolyte_form'] = SearchElectrolyteForm()
 
     if request.method == 'POST':
         electrolyte_composition_formset = ElectrolyteCompositionFormset(request.POST,prefix='electrolyte_composition')
         electrolyte_composition_formset_is_valid = electrolyte_composition_formset.is_valid()
         if electrolyte_composition_formset_is_valid:
-            print('valid1')
             ar['electrolyte_composition_formset'] = electrolyte_composition_formset
 
         search_electrolyte_form = SearchElectrolyteForm(request.POST)
@@ -916,152 +1022,28 @@ def search_page(request):
             print('valid2')
             ar['electrolyte_form'] = search_electrolyte_form
 
-        electrolyte_preview_formset = ElectrolytePreviewFormset(request.POST,prefix='electrolyte_preview')
-        if electrolyte_preview_formset.is_valid():
-            print(
-                'valid3'
-            )
-            for form in electrolyte_preview_formset:
-                if not form.is_valid():
-                    continue
-                print(form.cleaned_data)
-            ar['electrolyte_preview_formset'] = electrolyte_preview_formset
-
         if 'preview_electrolyte' in request.POST:
-
             if electrolyte_composition_formset_is_valid and search_electrolyte_form_is_valid:
-                complete_salt = search_electrolyte_form.cleaned_data['complete_salt']
-                complete_solvent = search_electrolyte_form.cleaned_data['complete_solvent']
-                complete_additive = search_electrolyte_form.cleaned_data['complete_additive']
-                relative_tolerance = search_electrolyte_form.cleaned_data['relative_tolerance']
-                proprietary_flag = search_electrolyte_form.cleaned_data['proprietary_flag']
-                proprietary_search = search_electrolyte_form.cleaned_data['proprietary_search']
-                if proprietary_flag:
-                    print('search for proprietary flag')
-                    q = Q(composite_type=ELECTROLYTE,
-                          proprietary=True)
-                    if proprietary_search is not None and len(proprietary_search) > 0:
-                        q = q & Q(name__icontains=proprietary_search)
+                total_query = get_preview_electrolytes(search_electrolyte_form, electrolyte_composition_formset)
 
-                    total_query = Composite.objects.filter(q)
-                else:
-                    all_data = []
-                    for form in electrolyte_composition_formset:
-                        if form.is_valid:
-                            if 'molecule' in form.cleaned_data.keys() and 'molecule_lot' in form.cleaned_data.keys() and (form.cleaned_data['molecule'] is not None or form.cleaned_data['molecule_lot'] is not None):
-                              all_data.append(form.cleaned_data)
 
-                    # TODO(sam): search electrolyte database
-                    prohibited = filter(
-                        lambda x: x['must_type'] == SearchElectrolyteComponentForm.PROHIBITED,
-                        all_data
-                    )
+                max_n = 25
+                preview_electrolytes =  [electrolyte.__str__() for electrolyte in total_query[:max_n]]
+                if total_query.count() > max_n:
+                    preview_electrolytes.append("... (more than {} found) ...".format(max_n))
+                ar['preview_electrolytes'] = preview_electrolytes
+        if 'preview_wet_cell' in request.POST:
+            if electrolyte_composition_formset_is_valid and search_electrolyte_form_is_valid:
+                electrolyte_query = get_preview_electrolytes(search_electrolyte_form, electrolyte_composition_formset)
 
-                    prohibited_lots = []
-                    prohibited_molecules = []
-                    for pro in prohibited:
-                        if pro['molecule'] is not None:
-                            prohibited_molecules.append(pro['molecule'])
-                        elif pro['molecule_lot'] is not None:
-                            prohibited_lots.append(pro['molecule_lot'])
+                wet_cell_query = WetCell.objects.filter(electrolyte__composite__in=electrolyte_query)
 
-                    q = Q(composite_type=ELECTROLYTE, proprietary=False)
-                    # prohibit molecules
+                max_n = 25
+                preview_wet_cells =  [wet_cell.__str__() for wet_cell in wet_cell_query[:max_n]]
+                if wet_cell_query.count() > max_n:
+                    preview_wet_cells.append("... (more than {} found) ...".format(max_n))
+                ar['preview_wet_cells'] = preview_wet_cells
 
-                    q = q & ~Q(components__component_lot__in=prohibited_lots)
-                    q = q & ~Q(components__component_lot__component__in=prohibited_molecules)
-
-                    allowed_molecules = []
-                    allowed_molecules_lot = []
-                    not_prohibited = filter(
-                        lambda x: x['must_type'] != SearchElectrolyteComponentForm.PROHIBITED,
-                        all_data
-                    )
-                    for pro in not_prohibited:
-                        if pro['molecule'] is not None:
-                            allowed_molecules.append(pro['molecule'])
-                        elif pro['molecule_lot'] is not None:
-                            allowed_molecules_lot.append(pro['molecule_lot'])
-
-                    total_query = Composite.objects.filter(q)
-                    completes = []
-                    if complete_solvent:
-                        completes.append(SOLVENT)
-                    if complete_salt:
-                        completes.append(SALT)
-                    if complete_additive:
-                        completes.append(ADDITIVE)
-
-                    if len(completes) !=0:
-                        total_query = total_query.annotate(
-                            has_extra = Exists(RatioComponent.objects.filter(Q(composite=OuterRef('pk'))&
-                                                          Q(component_lot__component__component_type__in=completes)&
-                                                          ~Q(component_lot__component__in=allowed_molecules) &
-                                                          ~Q(component_lot__in=allowed_molecules_lot)
-                                                         ))
-                        ).filter(has_extra=False)
-
-                    mandatory_molecules = []
-                    mandatory_molecules_lot = []
-                    mandatory = filter(
-                        lambda x: x['must_type'] == SearchElectrolyteComponentForm.MANDATORY,
-                        all_data
-                    )
-                    for pro in mandatory:
-                        if pro['molecule'] is not None:
-                            mandatory_molecules.append(pro)
-                        elif pro['molecule_lot'] is not None:
-                            mandatory_molecules_lot.append(pro)
-
-                    for mol in mandatory_molecules:
-                        if mol['ratio'] is None:
-                            total_query = total_query.annotate(
-                                checked_molecule=Exists(RatioComponent.objects.filter(
-                                    composite=OuterRef('pk'),
-                                    component_lot__component=mol['molecule']))
-                            ).filter(checked_molecule=True)
-                        else:
-                            tolerance = relative_tolerance/100. * mol['ratio']
-                            if mol['tolerance'] is not None:
-                                tolerance = mol['tolerance']
-
-                            total_query = total_query.annotate(
-                                checked_molecule=Exists(RatioComponent.objects.filter(
-                                    composite=OuterRef('pk'),
-                                    component_lot__component=mol['molecule'],
-                                    ratio__range=(mol['ratio']-tolerance, mol['ratio']+tolerance)))
-                            ).filter(checked_molecule=True)
-
-                    for mol in mandatory_molecules_lot:
-                        if mol['ratio'] is None:
-                            total_query = total_query.annotate(
-                                checked_molecule=Exists(RatioComponent.objects.filter(
-                                    composite=OuterRef('pk'),
-                                    component_lot=mol['molecule_lot']))
-                            ).filter(checked_molecule=True)
-                        else:
-                            tolerance = relative_tolerance / 100. * mol['ratio']
-                            if mol['tolerance'] is not None:
-                                tolerance = mol['tolerance']
-
-                            total_query = total_query.annotate(
-                                checked_molecule=Exists(RatioComponent.objects.filter(
-                                    composite=OuterRef('pk'),
-                                    component_lot=mol['molecule_lot'],
-                                    ratio__range=(mol['ratio'] - tolerance, mol['ratio'] + tolerance)))
-                            ).filter(checked_molecule=True)
-
-                initial = []
-                for electrolyte in total_query[:100]:
-                    my_initial = {
-                        "electrolyte": electrolyte.__str__(),
-                        "electrolyte_id": electrolyte.id,
-                        "exclude": True,
-                    }
-
-                    initial.append(my_initial)
-                electrolyte_preview_formset = ElectrolytePreviewFormset(initial=initial,prefix='electrolyte_preview')
-                ar['electrolyte_preview_formset'] = electrolyte_preview_formset
 
 
     return render(request, 'cell_database/search_page.html', ar)

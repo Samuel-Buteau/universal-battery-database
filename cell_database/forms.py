@@ -493,16 +493,15 @@ class SearchElectrolyteForm(Form):
     notes = forms.CharField(required=False)
 
 
-MANDATORY = 'ma'
-PROHIBITED = 'pr'
-ALLOWED = 'al'
-MUST_TYPES = [
-    (MANDATORY, 'mandatory'),
-    (PROHIBITED, 'prohibited'),
-    (ALLOWED, 'allowed'),
-]
-
 class SearchElectrolyteComponentForm(Form):
+    MANDATORY = 'ma'
+    PROHIBITED = 'pr'
+    ALLOWED = 'al'
+    MUST_TYPES = [
+        (MANDATORY, 'mandatory'),
+        (PROHIBITED, 'prohibited'),
+        (ALLOWED, 'allowed'),
+    ]
 
     molecule = forms.ChoiceField(choices=molecule_choices, required=False)
     must_type = forms.ChoiceField(choices=MUST_TYPES, initial = MANDATORY)
@@ -516,7 +515,7 @@ class ElectrolytePreviewForm(Form):
     exclude = forms.BooleanField(required=True)
 
 class SearchGenericNamedScalarForm(Form):
-    name = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly', 'size': 50}), required=True)
+    name = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly', 'size': 20}), required=False)
     scalar = forms.FloatField(required=False)
     tolerance = forms.FloatField(required=False)
     exclude_missing = forms.BooleanField(initial=False,required=False)
@@ -526,4 +525,46 @@ class SearchDryCellForm(Form):
     relative_tolerance = forms.FloatField(initial=5., help_text='the default tolerance in percentage.')
     proprietary = forms.BooleanField(initial=False, required=False)
     geometry_category = forms.MultipleChoiceField(choices=DryCellGeometry.GEO_TYPES, required=False)
+    geometry_category_exclude_missing = forms.BooleanField(initial=False, required=False)
+    cathode = forms.MultipleChoiceField(
+        choices=lambda : make_choices(
+            no_lots=Composite.objects.filter(composite_type=CATHODE),
+            lots=[],
+            none=False,
+        ),
+        required=False,
+        widget=forms.SelectMultiple(attrs = {'size':10})
+    )
+    cathode_exclude_missing = forms.BooleanField(initial=False, required=False)
+    anode = forms.MultipleChoiceField(
+        choices=lambda: make_choices(
+            no_lots=Composite.objects.filter(composite_type=ANODE),
+            lots=[],
+            none=False,
+        ),
+        required=False
+    )
+    anode_exclude_missing = forms.BooleanField(initial=False, required=False)
+    separator = forms.MultipleChoiceField(
+        choices=lambda: make_choices(
+            no_lots=Composite.objects.filter(composite_type=SEPARATOR),
+            lots=[],
+            none=False,
+        ),
+        required=False
+    )
+    separator_exclude_missing = forms.BooleanField(initial=False, required=False)
 
+class SearchWetCellForm(Form):
+    page_number = forms.IntegerField(required=False)
+    def set_page_number(self, page_number):
+        data = self.data.copy()
+        data["page_number"] = page_number
+        self.data = data
+
+
+
+class WetCellPreviewForm(Form):
+    cell_show = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly', 'size': 200}), required=True)
+    cell_id = forms.IntegerField(widget=forms.HiddenInput(), required=True)
+    exclude = forms.BooleanField(required=True)

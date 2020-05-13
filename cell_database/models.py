@@ -15,7 +15,7 @@ class LotTypes(Enum):
 
 
 def decode_lot_string(s):
-    print(s)
+
     if s is None or s == '':
         return (None, LotTypes.none)
     if s == '?':
@@ -41,26 +41,25 @@ def encode_lot_string(ob, lot_type):
 
 def make_choices(no_lots=None, lots=None, none=False, unknown=False):
     res = []
-    print(res)
+
     if none:
         res.append((encode_lot_string(None, LotTypes.none), '-----'))
-    print(res)
+
 
     if unknown:
         res.append((encode_lot_string(None, LotTypes.unknown), 'UNKNOWN'))
-    print(res)
+
 
     if no_lots is not None:
         res = res + [(encode_lot_string(c, LotTypes.no_lot), c.__str__()) for c in no_lots]
 
-    print(res)
+
 
     if lots is not None:
         res = res + [(encode_lot_string(c, LotTypes.lot), c.__str__()) for c in lots]
 
-    print(res)
-
-    return res
+    return sorted(res, key=lambda x: x[1])
+    # return res
 
 def unknown_numerical(num_string):
     if num_string is None or num_string == '':
@@ -582,9 +581,8 @@ def helper_return(
         if my_ratio_components is not None:
             my_self.components.set(my_ratio_components)
         if my_stochiometry_components is not None:
-            print(my_stochiometry_components)
             my_self.stochiometry.set(my_stochiometry_components)
-            print(my_self.stochiometry)
+
         return my_self
 
     else:
@@ -1169,11 +1167,10 @@ class Composite(models.Model):
             if total_complete == 0.:
                 total_complete = 100.
 
-            print(total_extra, total_complete)
 
             if total_extra < 100. and total_extra >= 0. and total_complete > 0.:
                 # create or get each RatioComponent.
-                print(components)
+
                 my_ratio_components = []
                 for ms, kind in [(components, 'component'), (components_lot, 'component_lot')]:
                     for component in ms:
@@ -1226,7 +1223,7 @@ class Composite(models.Model):
 
                         my_ratio_components.append(selected_ratio_component)
 
-                print(my_ratio_components)
+
 
                 target_object = None
                 if target is None:
@@ -1571,11 +1568,11 @@ class DryCell(models.Model):
             string_equality_query = string_equality_query & Q(proprietary_name=False)
 
         if self.anode_name:
-            print('anode_name', anode)
+
             string_equality_query = string_equality_query & Q(anode=anode,
                                                               anode_name=True)
         else:
-            print('not anode_name')
+
             string_equality_query = string_equality_query & Q(anode_name=False)
 
         if anode_geometry.loading_name:
@@ -1603,11 +1600,11 @@ class DryCell(models.Model):
 
 
         if self.cathode_name:
-            print('cathode_name', cathode)
+
             string_equality_query = string_equality_query & Q(cathode=cathode,
                                                               cathode_name=True)
         else:
-            print('not cathode_name')
+
             string_equality_query = string_equality_query & Q(cathode_name=False)
 
         if cathode_geometry.loading_name:
@@ -1687,9 +1684,9 @@ class DryCell(models.Model):
                 target_object = DryCell.objects.get(id=target)
 
         set_of_object_equal = dry_cell_set.filter(object_equality_query)
-        print('set objects equal: ', set_of_object_equal)
+
         string_equals = dry_cell_set.filter(string_equality_query).exists()
-        print('set of string equal: ', dry_cell_set.filter(string_equality_query))
+
 
         if (not set_of_object_equal.exists()) and string_equals:
             self.proprietary_name = True

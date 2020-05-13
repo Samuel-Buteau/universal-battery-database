@@ -254,7 +254,6 @@ def main_page(request):
 
     }
 
-
     if request.method == "POST":
 
 

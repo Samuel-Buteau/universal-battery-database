@@ -88,7 +88,7 @@ def define_page(request, mode=None):
                     for form in composition_formset:
                         validation_step = form.is_valid()
                         if validation_step:
-                            print(form.cleaned_data)
+
                             if not component_string in form.cleaned_data.keys():
                                 continue
                             mol_s = form.cleaned_data[component_string]
@@ -213,7 +213,7 @@ def define_page(request, mode=None):
                     for form in active_material_composition_formset:
                         validation_step = form.is_valid()
                         if validation_step:
-                            print(form.cleaned_data)
+
                             if not 'atom' in form.cleaned_data.keys():
                                 continue
                             if form.cleaned_data['atom'] is not None:
@@ -227,7 +227,7 @@ def define_page(request, mode=None):
                                             'stochiometry': value
                                         }
                                     )
-                    print(atoms)
+
 
                 my_target = simple_form.cleaned_data['override_target']
 
@@ -506,7 +506,7 @@ def define_page(request, mode=None):
             if context == mode:
                 if ('define_{}'.format(m) in request.POST) or ('define_{}_lot'.format(m) in request.POST):
                     if 'define_{}'.format(m) in request.POST:
-                        print(define_simple(request.POST, content=m))
+                        define_simple(request.POST, content=m)
                     if 'define_{}_lot'.format(m) in request.POST:
                         define_lot(request.POST, content=m)
 
@@ -769,7 +769,7 @@ def define_wet_cell_bulk(request, predefined=None):
                                             continue
                                         else:
                                             if 'molecule' in h.keys():
-                                                print('recognised molecule')
+
                                                 components.append(
                                                     {
                                                         'component': h['molecule'],
@@ -777,7 +777,7 @@ def define_wet_cell_bulk(request, predefined=None):
                                                     }
                                                 )
                                             elif 'molecule_lot' in h.keys():
-                                                print('recognised lot')
+
                                                 components_lot.append(
                                                     {
                                                         'component_lot':h['molecule_lot'],
@@ -831,10 +831,8 @@ def define_wet_cell_bulk(request, predefined=None):
 
                             my_cell_id = entry.cleaned_data['cell_id']
 
-                            print('!!!!creating a wet cell!!!!')
-                            print(my_cell_id)
-                            print(my_electrolyte_lot)
-                            print(my_dry_cell)
+
+
 
 
                             if not WetCell.objects.filter(cell_id=my_cell_id).exists():
@@ -875,7 +873,6 @@ def get_preview_electrolytes(search_electrolyte_form, electrolyte_composition_fo
         q = q & Q(notes__icontains=notes)
 
     if proprietary_flag:
-        print('search for proprietary flag')
         q = q & Q(proprietary=True)
 
         total_query = Composite.objects.filter(q)
@@ -883,7 +880,6 @@ def get_preview_electrolytes(search_electrolyte_form, electrolyte_composition_fo
         all_data = []
         for form in electrolyte_composition_formset:
             if form.is_valid:
-                print("\t was valid.{}".format(form.cleaned_data))
                 if 'molecule' in form.cleaned_data.keys() and form.cleaned_data['molecule'] is not None and \
                         form.cleaned_data['molecule'] != '':
                     print("molecule exists: {}".format(form.cleaned_data['molecule']))
@@ -991,19 +987,212 @@ def get_preview_electrolytes(search_electrolyte_form, electrolyte_composition_fo
 
     return total_query
 
+def get_preview_dry_cells( search_dry_cell, dry_cell_scalars):
+    dry_cell_notes = ""
+    dry_cell_proprietary = False
+    geometry_category = []
+    cathode_id = []
+    anode_id = []
+    separator_id = []
 
-def get_electrolyte_forms(ar, ElectrolyteCompositionFormset, post):
-    electrolyte_composition_formset = ElectrolyteCompositionFormset(post, prefix='electrolyte-composition')
-    electrolyte_composition_formset_is_valid = electrolyte_composition_formset.is_valid()
-    if electrolyte_composition_formset_is_valid:
-        ar['electrolyte_composition_formset'] = electrolyte_composition_formset
+    relative_tolerance = 5.
 
-    search_electrolyte_form = SearchElectrolyteForm(post, prefix='search-electrolyte')
-    search_electrolyte_form_is_valid = search_electrolyte_form.is_valid()
-    if search_electrolyte_form_is_valid:
-        ar['electrolyte_form'] = search_electrolyte_form
+    if search_dry_cell.is_valid():
+        dry_cell_notes = search_dry_cell.cleaned_data["notes"]
+        dry_cell_proprietary = search_dry_cell.cleaned_data["proprietary"]
+        # TODO(sam): deal with geometry category.
+        geometry_category = search_dry_cell.cleaned_data.get("geometry_category")
+        geometry_category_exclude_missing = search_dry_cell.cleaned_data["geometry_category_exclude_missing"]
 
-    return electrolyte_composition_formset, search_electrolyte_form, electrolyte_composition_formset_is_valid and search_electrolyte_form_is_valid
+        cathode_strings = search_dry_cell.cleaned_data.get("cathode")
+        cathode_exclude_missing = search_dry_cell.cleaned_data["cathode_exclude_missing"]
+
+        anode_strings = search_dry_cell.cleaned_data.get("anode")
+        anode_exclude_missing = search_dry_cell.cleaned_data["anode_exclude_missing"]
+
+        separator_strings = search_dry_cell.cleaned_data.get("separator")
+        separator_exclude_missing = search_dry_cell.cleaned_data["separator_exclude_missing"]
+
+        def extract_ids(things):
+            all_id = []
+            for thing_s in things:
+                my_id, lot_type = decode_lot_string(thing_s)
+                if lot_type == LotTypes.no_lot:
+                    all_id.append(my_id)
+            return all_id
+
+        cathode_id = extract_ids(cathode_strings)
+        anode_id = extract_ids(anode_strings)
+        separator_id = extract_ids(separator_strings)
+
+    dry_cell_scalar_dict = {}
+    for dry_cell_scalar in dry_cell_scalars:
+        if dry_cell_scalar.is_valid():
+            if "name" in dry_cell_scalar.cleaned_data.keys() and dry_cell_scalar.cleaned_data["name"] != "":
+                name = dry_cell_scalar.cleaned_data["name"]
+                if "scalar" in dry_cell_scalar.cleaned_data.keys() and dry_cell_scalar.cleaned_data[
+                    "scalar"] is not None:
+                    scalar = dry_cell_scalar.cleaned_data["scalar"]
+                    if "tolerance" in dry_cell_scalar.cleaned_data.keys() and dry_cell_scalar.cleaned_data[
+                        "tolerance"] is not None:
+                        tolerance = dry_cell_scalar.cleaned_data["tolerance"]
+                    else:
+                        tolerance = scalar * relative_tolerance / 100.
+
+                    exclude_missing = False
+                    if "exclude_missing" in dry_cell_scalar.cleaned_data.keys():
+                        exclude_missing = dry_cell_scalar.cleaned_data["exclude_missing"]
+                    dry_cell_scalar_dict[name] = (scalar, tolerance, exclude_missing)
+
+    q = Q()
+    if dry_cell_notes is not None and len(dry_cell_notes) > 0:
+        q = q & Q(notes__icontains=dry_cell_notes)
+
+    q = q & Q(proprietary=dry_cell_proprietary)
+
+    todos = [
+        (
+            geometry_category,
+            geometry_category_exclude_missing,
+            Q(geometry__geometry_category=None),
+            Q(geometry__geometry_category__in=geometry_category),
+        ),
+        (
+            cathode_id,
+            cathode_exclude_missing,
+            Q(cathode__composite=None),
+            Q(cathode__composite__id__in=cathode_id),
+        ),
+        (
+            anode_id,
+            anode_exclude_missing,
+            Q(anode__composite=None),
+            Q(anode__composite__id__in=anode_id),
+        ),
+        (
+            separator_id,
+            separator_exclude_missing,
+            Q(separator__composite=None),
+            Q(separator__composite__id__in=separator_id),
+        ),
+    ]
+    for list_of_things, exclude_missing, none_q, contained_q in todos:
+        if len(list_of_things) > 0:
+            if exclude_missing:
+                q = q & (~none_q & contained_q)
+            else:
+                q = q & (none_q | contained_q)
+        elif exclude_missing:
+            q = q & ~none_q
+
+    todos = [
+        (
+            "Cathode Loading",
+            lambda: Q(cathode_geometry__loading=None),
+            lambda scalar, tolerance: Q(cathode_geometry__loading__range=(scalar - tolerance, scalar + tolerance))
+        ),
+        (
+            "Cathode Density",
+            lambda: Q(cathode_geometry__density=None),
+            lambda scalar, tolerance: Q(
+                cathode_geometry__density__range=(scalar - tolerance, scalar + tolerance))
+        ),
+        (
+            "Cathode Thickness",
+            lambda: Q(cathode_geometry__thickness=None),
+            lambda scalar, tolerance: Q(
+                cathode_geometry__thickness__range=(scalar - tolerance, scalar + tolerance))
+        ),
+
+        (
+            "Anode Loading",
+            lambda: Q(anode_geometry__loading=None),
+            lambda scalar, tolerance: Q(
+                anode_geometry__loading__range=(scalar - tolerance, scalar + tolerance))
+        ),
+        (
+            "Anode Density",
+            lambda: Q(anode_geometry__density=None),
+            lambda scalar, tolerance: Q(
+                anode_geometry__density__range=(scalar - tolerance, scalar + tolerance))
+        ),
+        (
+            "Anode Thickness",
+            lambda: Q(anode_geometry__thickness=None),
+            lambda scalar, tolerance: Q(
+                anode_geometry__thickness__range=(scalar - tolerance, scalar + tolerance))
+        ),
+
+        (
+            "Separator Thickness",
+            lambda: Q(separator_geometry__thickness=None),
+            lambda scalar, tolerance: Q(
+                separator_geometry__thickness__range=(scalar - tolerance, scalar + tolerance))
+        ),
+
+        (
+            "Separator Width",
+            lambda: Q(separator_geometry__width=None),
+            lambda scalar, tolerance: Q(
+                separator_geometry__width__range=(scalar - tolerance, scalar + tolerance))
+        ),
+        (
+            "Cell Width",
+            lambda: Q(geometry__width=None),
+            lambda scalar, tolerance: Q(
+                geometry__width__range=(scalar - tolerance, scalar + tolerance))
+        ),
+        (
+            "Cell Length",
+            lambda: Q(geometry__length=None),
+            lambda scalar, tolerance: Q(
+                geometry__length__range=(scalar - tolerance, scalar + tolerance))
+        ),
+        (
+            "Cell Thickness",
+            lambda: Q(geometry__thickness=None),
+            lambda scalar, tolerance: Q(
+                geometry__thickness__range=(scalar - tolerance, scalar + tolerance))
+        ),
+
+    ]
+
+    for name, get_none_q, get_range_q in todos:
+        if name in dry_cell_scalar_dict.keys():
+            scalar, tolerance, exclude_missing = dry_cell_scalar_dict[name]
+            none_q = get_none_q()
+            range_q = get_range_q(scalar, tolerance)
+
+            if exclude_missing:
+                q = q & (~none_q & range_q)
+            else:
+                q = q & (none_q | range_q)
+
+    total_query = DryCell.objects.filter(q)
+
+    return total_query
+
+#TODO(sam): share across applications
+def focus_on_page(search_form, n, number_per_page = 10):
+    number_per_page = 10
+    pn = search_form.cleaned_data["page_number"]
+    if pn is None:
+        pn = 1
+        search_form.set_page_number(pn)
+    max_page = int(n / number_per_page)
+    if (n % number_per_page) != 0:
+        max_page += 1
+
+    if pn > max_page:
+        pn = max_page
+        search_form.set_page_number(pn)
+
+    if pn < 1:
+        pn = 1
+        search_form.set_page_number(pn)
+
+    return (pn - 1) * number_per_page, min(n, (pn) * number_per_page), max_page, pn
+
 
 def search_page(request):
     ElectrolyteCompositionFormset = formset_factory(
@@ -1026,13 +1215,13 @@ def search_page(request):
                 'name': "Cathode Thickness",
             },
             {
-                'name': "Cathode Loading",
+                'name': "Anode Loading",
             },
             {
-                'name': "Cathode Density",
+                'name': "Anode Density",
             },
             {
-                'name': "Cathode Thickness",
+                'name': "Anode Thickness",
             },
             {
                 'name': "Separator Thickness",
@@ -1055,6 +1244,40 @@ def search_page(request):
             prefix='dry_cell_scalars'
         )
 
+    def get_dry_cell_forms(ar, post):
+        search_dry_cell = SearchDryCellForm(post, prefix="search_dry_cell")
+        dry_cell_scalars = DryCellScalarsFormset(
+            post,
+            prefix='dry_cell_scalars'
+        )
+        dry_cell_scalars_is_valid = dry_cell_scalars.is_valid()
+        search_dry_cell_is_valid = search_dry_cell.is_valid()
+        if not dry_cell_scalars_is_valid:
+            print(search_dry_cell)
+            set_scalars(ar)
+        else:
+            ar["dry_cell_scalars"] = dry_cell_scalars
+
+        if search_dry_cell_is_valid:
+            ar["search_dry_cell"] = search_dry_cell
+
+        print("dry_cell_scalars was valid: ", dry_cell_scalars_is_valid)
+        print("search_dry_cell was valid: ", search_dry_cell_is_valid)
+        return search_dry_cell, dry_cell_scalars, dry_cell_scalars_is_valid and search_dry_cell_is_valid
+
+    def get_electrolyte_forms(ar, post):
+        electrolyte_composition_formset = ElectrolyteCompositionFormset(post, prefix='electrolyte-composition')
+        electrolyte_composition_formset_is_valid = electrolyte_composition_formset.is_valid()
+        if electrolyte_composition_formset_is_valid:
+            ar['electrolyte_composition_formset'] = electrolyte_composition_formset
+
+        search_electrolyte_form = SearchElectrolyteForm(post, prefix='search-electrolyte')
+        search_electrolyte_form_is_valid = search_electrolyte_form.is_valid()
+        if search_electrolyte_form_is_valid:
+            ar['electrolyte_form'] = search_electrolyte_form
+
+        return electrolyte_composition_formset, search_electrolyte_form, electrolyte_composition_formset_is_valid and search_electrolyte_form_is_valid
+
     ar = {}
     if request.method == 'GET':
         set_scalars(ar)
@@ -1062,114 +1285,15 @@ def search_page(request):
     if request.method == 'POST':
 
         # electrolyte
-        electrolyte_composition_formset, search_electrolyte_form, proceed_electrolyte = get_electrolyte_forms(ar, ElectrolyteCompositionFormset, request.POST)
-
+        electrolyte_composition_formset, search_electrolyte_form, proceed_electrolyte = get_electrolyte_forms(ar, request.POST)
         # dry cell
-        search_dry_cell = SearchDryCellForm(request.POST, prefix="search_dry_cell")
-        dry_cell_notes = ""
-        dry_cell_proprietary = False
-        geometry_category = []
-        relative_tolerance = 5.
-
-        if search_dry_cell.is_valid():
-            ar["search_dry_cell"] = search_dry_cell
-            dry_cell_notes = search_dry_cell.cleaned_data["notes"]
-            dry_cell_proprietary = search_dry_cell.cleaned_data["proprietary"]
-            # TODO(sam): deal with geometry category.
-            geometry_category = search_dry_cell.cleaned_data.get("geometry_category")
-
-        dry_cell_scalars = DryCellScalarsFormset(
-            request.POST,
-            prefix='dry_cell_scalars'
-        )
-        if not dry_cell_scalars.is_valid():
-            set_scalars(ar)
-        else:
-            ar["dry_cell_scalars"] = dry_cell_scalars
-
-        dry_cell_scalar_dict = {}
-        for dry_cell_scalar in dry_cell_scalars:
-            if dry_cell_scalar.is_valid():
-                if "name" in dry_cell_scalar.cleaned_data.keys() and dry_cell_scalar.cleaned_data["name"] != "":
-                    name = dry_cell_scalar.cleaned_data["name"]
-                    if "scalar" in dry_cell_scalar.cleaned_data.keys() and dry_cell_scalar.cleaned_data["scalar"] is not None:
-                        scalar = dry_cell_scalar["scalar"]
-                        if "tolerance" in dry_cell_scalar.cleaned_data.keys() and dry_cell_scalar.cleaned_data[
-                            "tolerance"] is not None:
-                            tolerance = dry_cell_scalar["tolerance"]
-                        else:
-                            tolerance = scalar * relative_tolerance/100.
-
-                        exclude_missing = False
-                        if "exclude_missing" in dry_cell_scalar.cleaned_data.keys():
-                            exclude_missing = dry_cell_scalar.cleaned_data["exclude_missing"]
-                        dry_cell_scalar_dict[name] = (scalar, tolerance, exclude_missing)
-
-        q = Q()
-        if dry_cell_notes is not None and len(dry_cell_notes) > 0:
-            q = q & Q(notes__icontains=dry_cell_notes)
-
-        if dry_cell_proprietary:
-            q = q & Q(proprietary=True)
-            total_query = DryCell.objects.filter(q)
-        else:
-            if len(geometry_category) > 0:
-                q = q & Q(geometry__geometry_category__in=geometry_category)
-            total_query = DryCell.objects.filter(q)
-
-
-        # dry_cell_geometry = DryCellGeometry(
-        #     geometry_category=define_dry_cell_geometry_form.cleaned_data['geometry_category'],
-        #     proprietary=simple_form.cleaned_data['proprietary'],
-        #     notes=simple_form.cleaned_data['notes'],
-
-        # Cathode
-        #TODO(sam): look at delete_page and make this multiplechoice
-
-        # my_id, lot_type = decode_lot_string(
-        #     dry_cell_form.cleaned_data['cathode']
-        # )
-        # cathode = None
-        # if lot_type == LotTypes.no_lot:
-        #     cathode = get_lot(
-        #         Composite.objects.get(id=my_id),
-        #         None,
-        #         type='composite'
-        #     )
-        # elif lot_type == LotTypes.lot:
-        #     cathode = CompositeLot.objects.get(id=my_id)
-
-        # Anode
-        # my_id, lot_type = decode_lot_string(
-        #     simple_form.cleaned_data['anode']
-        # )
-        # anode = None
-        # if lot_type == LotTypes.no_lot:
-        #     anode = get_lot(
-        #         Composite.objects.get(id=my_id),
-        #         None,
-        #         type='composite'
-        #     )
-        # elif lot_type == LotTypes.lot:
-        #     anode = CompositeLot.objects.get(id=my_id)
-
-        # Separator
-        # my_id, lot_type = decode_lot_string(
-        #     simple_form.cleaned_data['separator']
-        # )
-        # separator = None
-        # if lot_type == LotTypes.no_lot:
-        #     separator = get_lot(
-        #         Composite.objects.get(id=my_id),
-        #         None,
-        #         type='composite'
-        #     )
-        # elif lot_type == LotTypes.lot:
-        #     separator = CompositeLot.objects.get(id=my_id)
-
+        search_dry_cell, dry_cell_scalars, proceed_dry_cell = get_dry_cell_forms(ar, request.POST)
 
         if 'preview_dry_cell' in request.POST:
-            if True:
+            print('preview_dry_cell')
+            if proceed_dry_cell:
+                print('proceeded')
+                total_query = get_preview_dry_cells(search_dry_cell, dry_cell_scalars)
                 max_n = 25
                 preview_dry_cells =  [dry_cell.__str__() for dry_cell in total_query[:max_n]]
                 if total_query.count() > max_n:
@@ -1186,16 +1310,31 @@ def search_page(request):
                     preview_electrolytes.append("... (more than {} found) ...".format(max_n))
                 ar['preview_electrolytes'] = preview_electrolytes
         if 'preview_wet_cell' in request.POST:
-            if proceed_electrolyte:
-                electrolyte_query = get_preview_electrolytes(search_electrolyte_form, electrolyte_composition_formset)
+            print('preview_wet_cell')
+            if proceed_electrolyte and proceed_dry_cell:
+                print('proceeded')
+                electrolyte_query = get_preview_electrolytes(
+                    search_electrolyte_form,
+                    electrolyte_composition_formset
+                )
 
-                wet_cell_query = WetCell.objects.filter(electrolyte__composite__in=electrolyte_query)
+                dry_cell_query = get_preview_dry_cells(
+                    search_dry_cell,
+                    dry_cell_scalars
+                )
 
-                max_n = 25
-                preview_wet_cells =  [wet_cell.__str__() for wet_cell in wet_cell_query[:max_n]]
-                if wet_cell_query.count() > max_n:
-                    preview_wet_cells.append("... (more than {} found) ...".format(max_n))
-                ar['preview_wet_cells'] = preview_wet_cells
+                wet_cell_query = WetCell.objects.filter(
+                    electrolyte__composite__in=electrolyte_query,
+                    dry_cell__dry_cell__in=dry_cell_query
+                )
+                search_wet_cell_form = SearchWetCellForm(request.POST, prefix='search-wet-cell-form')
+                if search_wet_cell_form.is_valid():
+                    min_i, max_i, max_page_number, page_number = focus_on_page(search_wet_cell_form, wet_cell_query.count(),number_per_page=20)
+                    ar["max_page_number"] = max_page_number
+                    ar["page_number"] = page_number
+                    ar['search_wet_cell_form']=search_wet_cell_form
+                    preview_wet_cells =  [wet_cell.__str__() for wet_cell in wet_cell_query[min_i:max_i]]
+                    ar['preview_wet_cells'] = preview_wet_cells
 
 
 
@@ -1214,7 +1353,10 @@ def search_page(request):
                          "search_dry_cell",
                          SearchDryCellForm(prefix="search_dry_cell")
                          )
-  
+    conditional_register(ar,
+                         'search_wet_cell_form',
+                         SearchWetCellForm(prefix='search_wet_cell_form')
+                         )
 
     return render(request, 'cell_database/search_page.html', ar)
 

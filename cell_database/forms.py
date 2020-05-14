@@ -20,9 +20,8 @@ def coating_choices(unknown=True):
 
 def material_choices(none=True):
     return make_choices(
-            no_lots= Component.objects.filter(Q(composite_type=ANODE) | Q(composite_type=CATHODE)),
-            lots= ComponentLot.objects.filter(
-            Q(component__composite_type=ANODE) | Q(component__composite_type=CATHODE)).exclude(lot_info__isnull=True),
+            no_lots= Component.objects.filter(composite_type=ELECTRODE ),
+            lots= ComponentLot.objects.filter(component__composite_type=ELECTRODE).exclude(lot_info__isnull=True),
             none=none,
         )
 

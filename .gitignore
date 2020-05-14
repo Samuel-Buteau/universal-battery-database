@@ -284,4 +284,5 @@ reload_private.bat
 log_reload.txt
 reload_private.bat
 /reload_private.sh
+*.ini
 

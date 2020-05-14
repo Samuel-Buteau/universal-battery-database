@@ -266,12 +266,17 @@ def main_page(request):
             ar["search_form"] = search_form
 
             if "search_validated_cycling_data" in request.POST:
+
                 exp_type = filename_database.models.ExperimentType.objects.get(
                     category=filename_database.models.Category.objects.get(name="cycling"),
                     subcategory=filename_database.models.SubCategory.objects.get(name="neware")
                 )
 
                 q = Q(is_valid=True) & ~Q(valid_metadata=None) & Q(valid_metadata__experiment_type=exp_type)
+                dataset = search_form.cleaned_data["dataset"]
+                if dataset is not None:
+                    cell_ids = [wet_cell.cell_id for wet_cell in dataset.wet_cells.order_by("cell_id")]
+                    q = q & Q(valid_metadata__cell_id__in=cell_ids)
 
                 if search_form.cleaned_data["filename1_search"]:
                     q = q & Q(filename__icontains=search_form.cleaned_data["filename1"])

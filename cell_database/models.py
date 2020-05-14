@@ -1789,7 +1789,7 @@ class WetCell(models.Model):
 
 
 class Dataset(models.Model):
-    name = models.CharField(primary_key=True, blank=True, max_length=200)
+    name = models.CharField(unique=True, blank=True, max_length=200)
     wet_cells = models.ManyToManyField(WetCell)
     def __str__(self):
         return self.name

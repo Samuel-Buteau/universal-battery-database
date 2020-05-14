@@ -563,9 +563,24 @@ class SearchWetCellForm(Form):
         self.data = data
 
 class DatasetForm(Form):
-    dataset = forms.ModelChoiceField(queryset=Dataset.objects.all())
+    dataset = forms.ModelChoiceField(queryset=Dataset.objects.all(), required=False)
 
 class WetCellPreviewForm(Form):
     wet_cell = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly', 'size': 200}), required=False)
     cell_id = forms.IntegerField(widget=forms.HiddenInput(), required=False)
     exclude = forms.BooleanField(required=False)
+
+class CreateDatasetForm(Form):
+    name = forms.CharField(required=False)
+
+
+#TODO(sam): create a superclass that has all of this stuff instead of duplicating
+class DatasetVisualsForm(Form):
+    page_number = forms.IntegerField(initial=1, required=False)
+    per_page = forms.IntegerField(initial=25, required=False)
+    rows = forms.IntegerField(initial=5, required=False)
+
+    def set_page_number(self, page_number):
+        data = self.data.copy()
+        data["page_number"] = page_number
+        self.data = data

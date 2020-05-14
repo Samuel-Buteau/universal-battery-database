@@ -16,13 +16,13 @@
   <a href="{% url 'cell_database:define_page' mode='separator' %}"> Define Separator.</a>
   <br>
   <a href="{% url 'cell_database:define_wet_cell_bulk' predefined='False' %}"> Register Cells in Bulk (Electrolyte Definition).</a>
-  <a href="{% url 'cell_database:define_wet_cell_bulk' predefined='True' %}"> Register Cells in Bulk (Predefined Electrolyte).</a>
 
   <br>
   <a href="{% url 'cell_database:search_page' %}"> Search Stuff.</a>
   <br>
   <a href="{% url 'cell_database:delete_page' %}"> Delete Stuff.</a>
-
+  <a href="{% url 'cell_database:dataset_overview' %}"> Datasets.</a>
+  <br>
   {% block sidebar %}<!-- insert default navigation text for every page -->{% endblock %}
   {% block content %}<!-- default content text (typically empty) -->{% endblock %}
 </body>

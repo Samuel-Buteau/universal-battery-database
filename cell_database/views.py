@@ -3,6 +3,7 @@ from django.forms import modelformset_factory, formset_factory
 from django.db.models import Q, F, Func, Count,Exists, OuterRef
 from .forms import *
 from .models import *
+from plot import plot_cycling_direct
 from django import forms
 import re
 
@@ -1346,36 +1347,35 @@ def search_page(request):
                         prefix='wet-cell-preview-formset')
                     ar['wet_cell_preview_formset'] = wet_cell_preview_formset
                     ar['dataset_form'] = DatasetForm(prefix='dataset-form')
-                    # preview_wet_cells =  [wet_cell.__str__() for wet_cell in wet_cell_query[min_i:max_i]]
+                    # preview_wet_cells = [wet_cell.__str__() for wet_cell in wet_cell_query[min_i:max_i]]
                     # ar['preview_wet_cells'] = preview_wet_cells
 
         if 'register_wet_cells_to_dataset' in request.POST:
-
             wet_cell_preview_formset = WetCellPreviewFormset(request.POST, prefix='wet-cell-preview-formset')
-
             dataset_form =DatasetForm(request.POST, prefix='dataset-form')
             if dataset_form.is_valid():
 
                 dataset = dataset_form.cleaned_data["dataset"]
-                if wet_cell_preview_formset.is_valid():
+                if dataset is not None:
+                    if wet_cell_preview_formset.is_valid():
 
-                    for form in wet_cell_preview_formset:
-                        if not form.is_valid():
-                            continue
-                        if "exclude" not in form.cleaned_data.keys():
-                            continue
-                        if form.cleaned_data["exclude"]:
-                            continue
+                        for form in wet_cell_preview_formset:
+                            if not form.is_valid():
+                                continue
+                            if "exclude" not in form.cleaned_data.keys():
+                                continue
+                            if form.cleaned_data["exclude"]:
+                                continue
 
-                        cell_id = form.cleaned_data["cell_id"]
+                            cell_id = form.cleaned_data["cell_id"]
 
-                        if WetCell.objects.filter(cell_id = cell_id).exists():
-                            wet_cell = WetCell.objects.get(cell_id = cell_id)
+                            if WetCell.objects.filter(cell_id = cell_id).exists():
+                                wet_cell = WetCell.objects.get(cell_id = cell_id)
 
-                            dataset.wet_cells.add(wet_cell)
+                                dataset.wet_cells.add(wet_cell)
 
 
-                    ar['wet_cell_preview_formset'] = wet_cell_preview_formset
+                        ar['wet_cell_preview_formset'] = wet_cell_preview_formset
                 ar["dataset_form"] = dataset_form
     # electrolyte
     conditional_register(ar,
@@ -1484,3 +1484,58 @@ def delete_page(request):
 
     ar['form'] =form
     return render(request, 'cell_database/delete_page.html', ar)
+
+
+def view_dataset(request, pk):
+    dataset = Dataset.objects.get(id=pk)
+
+    wet_cells = dataset.wet_cells.order_by('cell_id')
+    zipped_data = zip(wet_cells, [wet_cell.__str__() for wet_cell in wet_cells])
+    ar = {}
+    ar["zipped_data"] = zipped_data
+    ar["dataset"] = dataset
+
+    if request.method == 'POST':
+        if 'plot_cells' in request.POST:
+            visuals_form = DatasetVisualsForm(request.POST, prefix='visuals-form')
+            if visuals_form.is_valid():
+                number_per_page = visuals_form.cleaned_data["per_page"]
+                rows = visuals_form.cleaned_data["rows"]
+                min_i, max_i, max_page_number, page_number = focus_on_page(visuals_form, len(wet_cells), number_per_page=number_per_page)
+                datas = [(wet_cell.cell_id, plot_cycling_direct(wet_cell.cell_id, path_to_plots=None, figsize=[5., 4.])) for wet_cell in wet_cells[min_i:max_i]]
+                split_datas = [datas[i:min(len(datas), i + rows)] for i in range(0, len(datas), rows)]
+
+                ar["visual_data"] = split_datas
+                ar["visuals_form"] = visuals_form
+                ar["page_number"] = page_number
+                ar["max_page_number"] = max_page_number
+
+    conditional_register(ar,
+                         "visuals_form",
+                         DatasetVisualsForm(prefix='visuals-form')
+                         )
+    return render(request, 'cell_database/view_dataset.html',ar)
+
+
+
+def dataset_overview(request):
+    ar = {}
+    if request.method == 'GET':
+        ar['create_dataset_form'] = CreateDatasetForm(prefix='create-dataset-form')
+    if request.method == 'POST':
+        create_dataset_form = CreateDatasetForm(request.POST, prefix='create-dataset-form')
+        success = False
+        name = ''
+        if create_dataset_form.is_valid():
+            name = create_dataset_form.cleaned_data['name']
+            success = not Dataset.objects.filter(name=name).exists()
+        if success:
+            Dataset.objects.create(name=name)
+            ar['message'] = "SUCCESS: created dataset with name {}".format(name)
+        else:
+            ar['message'] = "FAIL: dataset with name {} already existed".format(name)
+    datasets = Dataset.objects.order_by('name')
+    counts = [dataset.wet_cells.count() for dataset in datasets]
+    zipped_data = zip(datasets, counts)
+    ar['zipped_data'] = zipped_data
+    return render(request, 'cell_database/dataset_overview.html', ar)

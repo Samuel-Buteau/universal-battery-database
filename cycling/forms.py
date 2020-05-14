@@ -2,7 +2,7 @@ from django import forms
 from filename_database.models import *
 from datetime import date
 from django.forms import BaseModelFormSet, formset_factory
-
+from cell_database.models import Dataset
 
 class SearchForm(forms.Form):
 
@@ -49,6 +49,8 @@ class SearchForm(forms.Form):
 
     page_number = forms.IntegerField(required=False)
     show_visuals = forms.BooleanField(required=False)
+
+    dataset = forms.ModelChoiceField(queryset=Dataset.objects.all(), required=False)
 
     def set_page_number(self, page_number):
         data = self.data.copy()

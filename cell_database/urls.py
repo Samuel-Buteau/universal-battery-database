@@ -12,6 +12,8 @@ urlpatterns = [
     path('search/', views.search_page, name='search_page'),
     url(r'^define_wet_cell_bulk/(?P<predefined>\w+)/$', views.define_wet_cell_bulk, name='define_wet_cell_bulk'),
     path('delete/', views.delete_page, name='delete_page'),
+    path('dataset_overview/', views.dataset_overview, name='dataset_overview'),
+    url(r'^view_dataset/(?P<pk>\d+)/$', views.view_dataset, name='view_dataset'),
 
 ]
 

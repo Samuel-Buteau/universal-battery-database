@@ -1,0 +1,64 @@
+{% extends "base_generic.html" %}
+
+{% load static %}
+{% block content %}
+
+
+<style>
+table {
+    border-collapse:collapse;
+
+}
+table, th, td {
+    border:1px solid black;}
+
+
+</style>
+{% if zipped_data %}
+<h1> Dataset: {{ dataset.name }} </h1>
+    <table>
+        <tr>
+            <th>Cell</th>
+        </tr>
+        {% for wet_cell, name in zipped_data %}
+        <tr>
+            <td>{{ name }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p>This dataset ({{ dataset.name }}) is empty.</p>
+{% endif %}
+
+<form action="{% url 'cell_database:view_dataset' pk=dataset.id%}" method="post">
+    {% csrf_token %}
+    Display Page: {{visuals_form.page_number}}
+    Cells per Page: {{visuals_form.per_page}}
+    Cells per Row: {{visuals_form.rows}}
+    <input type="submit" name = 'plot_cells' value="Plot Cells">
+</form>
+
+{% if visual_data %}
+    Showing page {{page_number}}/{{max_page_number}}.
+        <table border="1">
+            {% for zd in visual_data %}
+                <tr valign="top">
+                    {% for cell_id, image64 in zd %}
+                        <td valign="top">
+
+                            <a href="{% url 'view_cell_id'  cell_id  '' %}">
+                                <img src="data:image/png;base64,{{image64}}" alt="If you see this, there was an error. Send email to Samuel.Buteau@dal.ca" width=200 height=auto />
+                            </a>
+
+                                 <font size="+2">{{cell_id}}</font>
+
+
+                        </td>
+                    {% endfor %}
+                </tr>
+
+            {% endfor %}
+        </table>
+{% endif %}
+
+{% endblock %}

@@ -136,12 +136,12 @@ in a separate terminal to allow background tasks (such as parsing data files). T
 ### ML Smoothing
 cmd (Windows)
 ```cmd
->ml_smoothing.bat path-figures
+>smoothing.bat path-figures dataset-version
 ````
 
 Bash (macOS and Linux)
 ```Bash
-$ sh ml_smoothing.sh path-figures dataset-version "optional-note-to-self"
+$ sh smoothing.sh path-figures dataset-version
 ```
 
 ## Theoretical Physics and Computer Science Behind the Software

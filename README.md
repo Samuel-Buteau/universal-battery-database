@@ -45,7 +45,7 @@ You should run all the given commands in Command Prompt (Windows) or Terminal (B
 pip3 install -r requirements_nosql.txt
 ```
 
-#### 3. Create `neware_parser/config.ini`.
+#### 3. Create `cycling/config.ini`.
 
 Note: You can pick your own `database`, `user`, `password`, `secret_key`.
 
@@ -100,11 +100,11 @@ CREATE USER user WITH PASSWORD ‘password’;
 GRANT ALL PRIVILEGES ON DATABASE database TO user;
 ```
 
-#### 7. Create `neware_parser/config.ini`.
+#### 7. Create `cycling/config.ini`.
 
 Note:  `database`, `user`, and `password` should be changed to match those in Step 6. Choosing a good `secret_key` is crucial if you care about data security.
 
-`neware_parser/config.ini` should contain the following:
+`cycling/config.ini` should contain the following:
 
 ```
 [DEFAULT]

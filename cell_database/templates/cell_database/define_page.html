@@ -1,0 +1,205 @@
+{% extends "base_generic.html" %}
+
+{% load static %}
+{% block content %}
+
+
+<style>
+table {
+    border-collapse:collapse;
+
+}
+table, th, td {
+    border:1px solid black;}
+
+
+</style>
+
+
+<form action="{% url 'cell_database:define_page' mode=mode %}" method="post">
+    {% csrf_token %}
+
+
+
+    <table>
+
+    {% if define_coating_form %}
+        <td valign="top">
+        <h1>Coating</h1>
+            {% include "cell_database/coating.html"  %}
+        <input type="submit" name = 'define_coating' value="Define Coating">
+
+        {% if define_coating_lot_form %}
+            {% include "cell_database/lot_info.html" with lot_info_form=define_coating_lot_form predefined=define_coating_lot_form.predefined_coating predefined_label="Predefined Coating" %}
+            <input type="submit" name = 'define_coating_lot' value="Define Coating Lot">
+        {% endif %}
+        </td>
+    {% endif %}
+
+
+
+
+
+
+        {% if define_molecule_form %}
+            <td valign="top">
+            <h1>Molecule</h1>
+                {% include "cell_database/molecule.html"  %}
+            <input type="submit" name = 'define_molecule' value="Define Electrolyte Molecule">
+
+            {% if define_molecule_lot_form %}
+                {% include "cell_database/lot_info.html" with lot_info_form=define_molecule_lot_form predefined=define_molecule_lot_form.predefined_molecule predefined_label="Predefined Molecule" %}
+            <input type="submit" name = 'define_molecule_lot' value="Define Electrolyte Molecule Lot">
+            {% endif %}
+            </td>
+        {% endif %}
+
+
+        {% if define_electrolyte_form %}
+            <td valign="top">
+            <h1>Electrolyte</h1>
+                {% include "cell_database/electrolyte.html"  %}
+            {% if electrolyte_composition_formset %}
+                {% csrf_token %}
+                {{ electrolyte_composition_formset.management_form }}
+                <table>
+                    <tr>
+                        <td>Molecule</td><td>Amount</td>
+                    </tr>
+                    {% for form in electrolyte_composition_formset%}
+                        {% for hid in form.hidden_fields %}
+                            {{ hid }}
+                        {% endfor %}
+                        <tr>
+                            <td>{{ form.molecule}}</td><td>{{ form.ratio}}</td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            {% endif %}
+            <input type="submit" name = 'define_electrolyte' value="Define Electrolyte">
+            {% if define_electrolyte_lot_form %}
+            {% include "cell_database/lot_info.html" with lot_info_form=define_electrolyte_lot_form predefined=define_electrolyte_lot_form.predefined_electrolyte predefined_label="Predefined Electrolyte" %}
+            <input type="submit" name = 'define_electrolyte_lot' value="Define Electrolyte Lot">
+        {% endif %}
+            </td>
+        {% endif %}
+
+        {% if define_material_form %}
+        <td valign="top">
+        <h1>Material</h1>
+            {% include "cell_database/material.html" %}
+                {% if active_material_composition_formset %}
+                    {% csrf_token %}
+                    {{ active_material_composition_formset.management_form }}
+                    <table>
+                        <tr>
+                            <td>Atom</td><td>Stochiometry</td>
+                        </tr>
+                        {% for form in active_material_composition_formset%}
+                            <tr>
+                                <td>{{ form.atom}}</td><td>{{ form.stochiometry}}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                {% endif %}
+            <input type="submit" name = 'define_material' value="Define Material">
+            {% if define_material_lot_form %}
+            {% include "cell_database/lot_info.html" with lot_info_form=define_material_lot_form predefined=define_material_lot_form.predefined_material predefined_label="Predefined Material" %}
+            <input type="submit" name = 'define_material_lot' value="Define Material Lot">
+            {% endif %}
+        </td>
+        {% endif %}
+
+
+
+
+        {% if define_electrode_form%}
+        <td valign="top">
+        <h1>Electrode</h1>
+            {% include "cell_database/electrode.html" %}
+            {% if electrode_composition_formset %}
+                {% csrf_token %}
+                {{ electrode_composition_formset.management_form }}
+                <table>
+                    <tr>
+                        <td>Material</td><td>Amount</td>
+                    </tr>
+                    {% for form in electrode_composition_formset%}
+                        <tr>
+                            <td>{{ form.material}}</td><td>{{ form.ratio}}</td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            {% endif %}
+            <input type="submit" name = 'define_electrode' value="Define Electrode">
+            {% if define_electrode_lot_form %}
+            {% include "cell_database/lot_info.html" with lot_info_form=define_electrode_lot_form predefined=define_electrode_lot_form.predefined_electrode predefined_label="Predefined Electrode" %}
+
+                <input type="submit" name = 'define_electrode_lot' value="Define Electrode Lot">
+            {% endif %}
+        </td>
+        {% endif %}
+
+
+        {% if define_separator_material_form %}
+        <td valign="top">
+        <h3>Separator Material</h3>
+                {% include "cell_database/separator_material.html" %}
+            <input type="submit" name = 'define_separator_material' value="Define Separator Material">
+            {% if define_separator_material_lot_form %}
+            {% include "cell_database/lot_info.html" with lot_info_form=define_separator_material_lot_form predefined=define_separator_material_lot_form.predefined_separator_material predefined_label="Predefined Separator Material" %}
+
+            <input type="submit" name = 'define_separator_material_lot' value="Define Separator Material Lot">
+            {% endif %}
+        </td>
+            {% endif %}
+
+
+        {% if define_separator_form  %}
+        <td valign="top">
+        <h3>Separator</h3>
+            {% include "cell_database/separator.html" %}
+            {% if separator_composition_formset %}
+                {% csrf_token %}
+                {{ separator_composition_formset.management_form }}
+                <table>
+                    <tr>
+                        <td>Material</td><td>Amount</td>
+                    </tr>
+                    {% for form in separator_composition_formset%}
+                        <tr>
+                            <td>{{ form.material}}</td><td>{{ form.ratio}}</td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            {% endif %}
+            <input type="submit" name = 'define_separator' value="Define Separator">
+            {% if define_separator_lot_form %}
+
+                {% include "cell_database/lot_info.html" with lot_info_form=define_separator_lot_form predefined=define_separator_lot_form.predefined_separator predefined_label="Predefined Separator" %}
+                <input type="submit" name = 'define_separator_lot' value="Define Separator Lot">
+            {% endif %}
+        </td>
+        {% endif %}
+
+    {% if define_dry_cell_form and define_dry_cell_geometry_form and define_cathode_geometry_form and define_anode_geometry_form and define_separator_geometry_form%}
+        <td valign="top">
+        <h1>Dry Cell</h1>
+            {% include "cell_database/dry_cell.html" %}
+            <input type="submit" name = 'define_dry_cell' value="Define Dry Cell">
+            {% if define_dry_cell_lot_form %}
+            {% include "cell_database/lot_info.html" with lot_info_form=define_dry_cell_lot_form predefined=define_dry_cell_lot_form.predefined_dry_cell predefined_label="Predefined Dry Cell" %}
+
+                <input type="submit" name = 'define_dry_cell_lot' value="Define Dry Cell Lot (AKA Box)">
+            {% endif %}
+        </td>
+        {% endif %}
+
+
+    </table>
+
+</form>
+
+
+
+{% endblock %}

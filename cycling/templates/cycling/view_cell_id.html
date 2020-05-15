@@ -1,0 +1,94 @@
+{% extends "base_generic.html" %}
+
+{% load static %}
+{% block content %}
+
+<style>
+table {
+    border-collapse:collapse;
+
+}
+table, th, td {
+    border:1px solid black;}
+
+
+</style>
+
+
+<h1>Fix Bad Cycles for Cell ID: {{ cell_id }}</h1>
+
+<form action="{% url 'view_cell_id' cell_id cursor %}" method="post" >
+    {% csrf_token %}
+
+    {{my_form}} <br>
+
+    <input type="submit" name = 'zoom' value="Zoom" /> <br>
+    <input type="submit" name = 'back' value="One step back" /> <br>
+    <input type="submit" name = 'start' value="All the way back" /> <br>
+    <input type="submit" name = 'curse' value="Curse Selected Section" /> <br>
+    <input type="submit" name = 'bless' value="Bless Selected Section" /> <br>
+
+</form>
+
+
+<img src="data:image/png;base64,{{image_base64}}" alt="There was no data to display." width=1200 height=auto />
+
+
+
+{% if active_files %}
+<h2>Active Files</h2>
+<table>
+    <tr>
+        <th>Filename</th> <th>start cycle</th> <th>File was last modified</th> <th>Size of file (KB)</th>
+    </tr>
+    {% for filename, start_cycle, datestring, size in active_files %}
+        <tr>
+            <td>{{filename}}</td> <td>{{start_cycle}}</td> <td>{{datestring}}</td> <td>{{size}}</td>
+        </tr>
+    {%endfor%}
+
+    </table>
+
+
+{% endif %}
+
+{% if deprecated_files %}
+<h2>Deprecated Files</h2>
+<table>
+    <tr>
+        <th>Filename</th> <th>start cycle</th> <th>File was last modified</th> <th>Size of file (KB)</th>
+
+    </tr>
+    {% for filename, start_cycle, datestring, size in deprecated_files %}
+        <tr>
+            <td>{{filename}}</td> <td>{{start_cycle}}</td> <td>{{datestring}}</td> <td>{{size}}</td>
+        </tr>
+
+    {% endfor %}
+    </table>
+
+
+{% endif %}
+
+
+{% if needs_importing_files %}
+<h2>Files that need importing</h2>
+<table>
+    <tr>
+        <th>Filename</th> <th>start cycle</th> <th>File was last modified</th> <th>Size of file (KB)</th> <th>File was last imported</th>
+    </tr>
+
+    {% for filename, start_cycle, datestring, size, importstring in needs_importing_files %}
+        <tr>
+            <td>{{filename}}</td> <td>{{start_cycle}}</td> <td>{{datestring}}</td> <td>{{size}}</td><td>{{importstring}}</td>
+        </tr>
+    {% endfor %}
+
+    </table>
+
+
+{% endif %}
+
+
+
+{% endblock %}

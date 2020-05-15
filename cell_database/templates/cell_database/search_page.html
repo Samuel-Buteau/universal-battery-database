@@ -1,0 +1,146 @@
+{% extends "base_generic.html" %}
+
+{% load static %}
+{% block content %}
+
+
+<style>
+table {
+    border-collapse:collapse;
+
+}
+table, th, td {
+    border:1px solid black;}
+
+
+</style>
+
+
+<h1>Search Stuff</h1>
+
+
+
+<form action="{% url 'cell_database:search_page' %}" method="post">
+    {% csrf_token %}
+    <table>
+        <tr>
+
+            {%if search_wet_cell_form %}
+                Display Page: {{search_wet_cell_form.page_number}}
+            {%endif%}
+            <input type="submit" name = 'preview_wet_cell' value="Preview Wet Cell">
+
+
+            {%if wet_cell_preview_formset %}
+                {% csrf_token %}
+                {{ wet_cell_preview_formset.management_form }}
+
+                {% if not wet_cell_preview_formset|length == 0%}
+                    Showing page {{page_number}}/{{max_page_number}}.
+                    <table>
+                        <tr>
+                            <th>Wet Cell</th> <th>Exclude ?</th>
+                        </tr>
+                    {% for form in wet_cell_preview_formset %}
+                        {% for hidden in form.hidden_fields %}
+                            {{hidden}}
+                        {% endfor %}
+                        <tr>
+                            <td>{{ form.wet_cell}}</td><td>{{ form.exclude}}</td>
+                        </tr>
+                    {% endfor %}
+                    </table>
+                    {% if dataset_form %}
+                        {{ dataset_form }}
+                    {% endif %}
+                    <input type="submit" name = 'register_wet_cells_to_dataset' value="Register to Dataset">
+                {% endif %}
+            {% endif %}
+
+        </tr>
+        <tr>
+            <table>
+            {% if electrolyte_form %}
+            <td valign="top">
+            <h2>Electrolyte</h2>
+                <input type="submit" name = 'preview_electrolyte' value="Preview Electrolyte">
+                {%if preview_electrolytes %}
+                    {% if not preview_electrolytes|length == 0%}
+                        <table>
+                            <tr>
+                                <th>Preview Electrolytes</th>
+                            </tr>
+                            {% for electrolyte in preview_electrolytes %}
+                                <tr>
+                                    <td>{{electrolyte}}</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    {% endif %}
+                {% endif %}
+
+                <table>{{ electrolyte_form.as_table }}</table>
+                {% if electrolyte_composition_formset %}
+                    {% csrf_token %}
+                    {{ electrolyte_composition_formset.management_form }}
+                    <table>
+                        <tr>
+                            <th>Molecule</th><th>Must have?</th><th>Amount</th><th>Tolerance</th>
+                        </tr>
+                        {% for form in electrolyte_composition_formset%}
+                            <tr>
+                                <td>{{ form.molecule}}</td><td>{{form.must_type}}</td><td>{{ form.ratio}}</td><td>{{ form.tolerance}}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                {% endif %}
+
+            </td>
+        {% endif %}
+
+
+        {% if search_dry_cell %}
+            <td valign="top">
+            <h2>Dry Cell</h2>
+                 <input type="submit" name = 'preview_dry_cell' value="Preview Dry Cell">
+                {%if preview_dry_cells %}
+                    {% if not preview_dry_cells|length == 0%}
+                        <table>
+                            <tr>
+                                <th>Preview Dry Cells</th>
+                            </tr>
+                            {% for dry_cell in preview_dry_cells %}
+                                <tr>
+                                    <td>{{dry_cell}}</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    {% endif %}
+                {% endif %}
+                <table>{{ search_dry_cell.as_table }}</table>
+                {% if dry_cell_scalars %}
+                    {% csrf_token %}
+                    {{ dry_cell_scalars.management_form }}
+                    <table>
+                        <tr>
+                            <th>Field Name</th><th>Amount</th><th>Tolerance</th><th>Exclude Missing Values</th>
+                        </tr>
+                        {% for form in dry_cell_scalars%}
+                            <tr>
+                                <td>{{ form.name}}</td><td>{{form.scalar}}</td><td>{{ form.tolerance}}</td><td>{{ form.exclude_missing}}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                {% endif %}
+
+            </td>
+        {% endif %}
+        </table>
+        </tr>
+    </table>
+
+</form>
+
+
+
+{% endblock %}

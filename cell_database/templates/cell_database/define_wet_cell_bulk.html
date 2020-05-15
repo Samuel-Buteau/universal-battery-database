@@ -1,0 +1,119 @@
+{% extends "base_generic.html" %}
+
+{% load static %}
+{% block content %}
+
+{% load my_tags %}
+
+<style>
+table {
+    border-collapse:collapse;
+
+}
+table, th, td {
+    border:1px solid black;}
+
+
+</style>
+
+
+<form action="{% url 'cell_database:define_wet_cell_bulk' predefined=predefined %}" method="post">
+    {% csrf_token %}
+
+
+    {% if bulk_parameters_form %}
+        <input type="submit" name = 'bulk_parameters_update' value="Change Defaults">
+        {% if bulk_entries_formset %}
+            <input type="submit" name = 'bulk_process_entries' value="Register These Cells">
+        {% endif %}
+        <br>
+        Start Cell ID: {{bulk_parameters_form.start_cell_id}} End Cell ID: {{bulk_parameters_form.end_cell_id}} Number of Cell IDs: {{bulk_parameters_form.number_of_cell_ids}}
+        Override Existing Registration: {{bulk_parameters_form.override_existing}}
+        <br>
+        <table>
+            <tr>
+                <th></th>
+                <th>Dry Cell Model</th>
+                <th></th>
+                {% if predefined == 'True' %}
+                    <th>Electrolyte</th>
+                {% endif %}
+                {% if predefined == 'False' %}
+
+                    <th>Molecules:</th>
+                    {% for molecule in bulk_parameters_form.get_molecule_fields %}
+                        <th>{{ molecule }}
+                        </th>
+                    {% endfor %}
+                    <th>Proprietary?</th>
+                    <th>Use Proprietary in Name?</th>
+                    <th>Notes</th>
+                {% endif %}
+            </tr>
+            <tr>
+
+                <th>Defaults:</th>
+                <td>{{bulk_parameters_form.dry_cell}}</td>
+                {% if predefined == 'True' %}
+                    <td>{{bulk_parameters_form.electrolyte}}</td>
+                {% endif %}
+                <th></th>
+                {% if predefined == 'False' %}
+
+                    <th>Default Amounts:</th>
+
+                    {% for value in bulk_parameters_form.get_value_fields %}
+                        <td>{{ value }}
+                        </td>
+                    {% endfor %}
+                    <td>{{bulk_parameters_form.proprietary}}</td>
+                    <td>{{bulk_parameters_form.proprietary_name}}</td>
+                    <td>{{bulk_parameters_form.notes}}</td>
+                {% endif %}
+            </tr>
+
+            {% if bulk_entries_formset %}
+                {% csrf_token %}
+                {{ bulk_entries_formset.management_form }}
+                <th>Result</th>
+                {% if predefined == 'False' %}
+                    <th></th><th>Cell ID:<th></th><th></th><th></th><th>Electrolytes:</th></th>
+                {% endif %}
+
+                {%for entry in bulk_entries_formset %}
+                    <tr>
+                        <td>
+                            {% if messages %}
+                                {{ messages|index:forloop.counter0 }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if predefined == 'False' %}
+                                {{entry.dry_cell}}
+                            {% endif %}
+                        </td>
+                        <td>{{entry.cell_id}}</td>
+                        {% if predefined == 'True' %}
+                            <td>{{entry.electrolyte}}</td>
+                        {% endif %}
+
+                        {% if predefined == 'False' %}
+                            <td></td>
+                            {% for value in entry.get_value_fields %}
+                                <td>{{ value }}
+                                </td>
+                            {% endfor %}
+                            <td>{{entry.proprietary}}</td>
+                            <td>{{entry.proprietary_name}}</td>
+                            <td>{{entry.notes}}</td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+            {% endif %}
+
+        </table>
+
+    {% endif %}
+
+</form>
+{% endblock %}

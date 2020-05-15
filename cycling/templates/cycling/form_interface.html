@@ -1,0 +1,165 @@
+{% extends "base_generic.html" %}
+
+{% load static %}
+{% block content %}
+
+
+<style>
+table {
+    border-collapse:collapse;
+
+}
+table, th, td {
+    border:1px solid black;}
+
+
+</style>
+
+
+
+<h1>Validated Cycling Files</h1>
+
+<!-- First step: Selecting drive profile and experiment type-->
+
+
+
+<form action="{% url 'main_page' %}" method="post">
+    {% csrf_token %}
+
+    <table>
+    <tr>
+        <th> </th> <th>Use in search?</th> <th>Value to search</th>
+    <tr>
+        <th>Keyword in Filename</th> <td>{{search_form.filename1_search}}</td> <td>{{search_form.filename1}}</td>
+    </tr>
+    <tr>
+        <th>Keyword in Filename</th> <td>{{search_form.filename2_search}}</td> <td>{{search_form.filename2}}</td>
+    </tr>
+    <tr>
+        <th>Keyword in Filename</th> <td>{{search_form.filename3_search}}</td> <td>{{search_form.filename3}}</td>
+    </tr>
+
+
+    <tr>
+        <th>Keyword in Root</th> <td>{{ search_form.root1_search }}</td><td>{{ search_form.root1 }}</td>
+    </tr>
+    <tr>
+        <th>Keyword in Root</th> <td>{{ search_form.root2_search }}</td><td>{{ search_form.root2 }}</td>
+    </tr>
+    <tr>
+        <th>Keyword in Root</th> <td>{{ search_form.root3_search }}</td><td>{{ search_form.root3 }}</td>
+    </tr>
+
+    <tr>
+        <th> </th> <th>Use in search?</th> <th>Exact Match</th> <th>Minimum</th> <th>Maximum</th>
+    <tr>
+
+    <tr>
+        <th>Char ID </th> <td>{{ search_form.charID_search }}</td><td>{{ search_form.charID_exact }}</td>  <td></td><td></td>
+    </tr>
+    <tr>
+        <th>Cell ID</th> <td>{{ search_form.cell_id_search }}</td><td>{{ search_form.cell_id_exact }}</td><td>{{ search_form.cell_id_minimum }}</td><td>{{ search_form.cell_id_maximum }}</td>
+    </tr>
+
+    <tr>
+        <th>Upper Cutoff Voltage</th> <td>{{ search_form.voltage_search }}</td><td>{{ search_form.voltage_exact }}</td><td>{{ search_form.voltage_minimum }}</td><td>{{ search_form.voltage_maximum }}</td>
+    </tr>
+    <tr>
+        <th>Temperature</th> <td>{{ search_form.temperature_search }}</td><td>{{ search_form.temperature_exact }}</td><td>{{ search_form.temperature_minimum }}</td><td>{{ search_form.temperature_maximum }}</td>
+    </tr>
+    <tr>
+        <th>Date</th> <td>{{ search_form.date_search }}</td><td>{{ search_form.date_exact }}</td><td>{{ search_form.date_minimum }}</td><td>{{ search_form.date_maximum }}</td>
+    </tr>
+    <tr>
+        <th>Dataset</th> <td>{{search_form.dataset}}</td>
+    </tr>
+    </table>
+
+<tr>
+    <th>Show Visuals: </th> <td>{{search_form.show_visuals}}</td>
+</tr>
+<tr>
+    <th>Display Page: </th> <td>{{search_form.page_number}}</td>
+</tr>
+<input type="submit" name = 'search_validated_cycling_data' value="Search Validated Cycling Data">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{% if cell_id_overview_formset %}
+{% csrf_token %}
+{{ cell_id_overview_formset.management_form }}
+
+Showing page {{page_number}}/{{max_page_number}}.
+    <table>
+    <col width = "200">
+    <col width = "5">
+
+            <tr>
+                <th>Cell ID</th>
+                <th>Exclude</th>
+                <th>Number of Active Files</th>
+                <th>Number of Imported But Deprecated Files</th>
+                <th>Number which Needs Importing</th>
+                <th>First Active File</th>
+            </tr>
+
+        {% for form in cell_id_overview_formset %}
+            <tr>
+
+                <td>{{ form.cell_id }}</td>
+                <td>{{ form.exclude }}</td>
+                <td>{{ form.number_of_active }}</td>
+                <td>{{ form.number_of_deprecated }}</td>
+                <td>{{ form.number_of_needs_importing }}</td>
+                <td>{{ form.first_active_file }}</td>
+
+            </tr>
+
+
+        {% endfor %}
+
+    </table>
+
+
+
+
+    <input type="submit" name = 'trigger_reimport' value = "Trigger Re-Importing">
+
+{% endif %}
+
+</form>
+
+{% if visual_data %}
+        <table border="1">
+            {% for zd in visual_data %}
+                <tr valign="top">
+                    {% for cell_id, image64 in zd %}
+                        <td valign="top">
+
+                            <a href="{% url 'view_cell_id'  cell_id  '' %}">
+                                <img src="data:image/png;base64,{{image64}}" alt="If you see this, there was an error. Send email to Samuel.Buteau@dal.ca" width=200 height=auto />
+                            </a>
+
+                                 <font size="+2">{{cell_id}}</font>
+
+
+                        </td>
+                    {% endfor %}
+                </tr>
+
+            {% endfor %}
+        </table>
+{% endif %}
+
+{% endblock %}

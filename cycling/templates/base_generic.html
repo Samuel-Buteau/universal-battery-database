@@ -1,0 +1,29 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% block title %}<title>NEWARE PARSER</title>{% endblock %}
+</head>
+
+<body>
+  <a href="{% url 'filename_database:main_page' %}"> Explore All Files/Fix Bad Filenames</a>
+  <br>
+  <a href="{% url 'main_page' %}"> Explore Validated Cycling Files/Fix Bad Cycles.</a>
+  <br>
+  <a href="{% url 'cell_database:define_page' mode='dry_cell' %}"> Define Dry Cell.</a>
+  <a href="{% url 'cell_database:define_page' mode='electrolyte' %}"> Define Electrolyte.</a>
+  <a href="{% url 'cell_database:define_page' mode='electrode' %}"> Define Electrode.</a>
+  <a href="{% url 'cell_database:define_page' mode='separator' %}"> Define Separator.</a>
+  <br>
+  <a href="{% url 'cell_database:define_wet_cell_bulk' predefined='False' %}"> Register Cells in Bulk (Electrolyte Definition).</a>
+
+  <br>
+  <a href="{% url 'cell_database:search_page' %}"> Search Stuff.</a>
+  <br>
+  <a href="{% url 'cell_database:delete_page' %}"> Delete Stuff.</a>
+  <a href="{% url 'cell_database:dataset_overview' %}"> Datasets.</a>
+  <br>
+  {% block sidebar %}<!-- insert default navigation text for every page -->{% endblock %}
+  {% block content %}<!-- default content text (typically empty) -->{% endblock %}
+</body>
+</html>

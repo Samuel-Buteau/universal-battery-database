@@ -1,0 +1,45 @@
+{% extends "base_generic.html" %}
+
+{% load static %}
+{% block content %}
+
+
+<style>
+table {
+    border-collapse:collapse;
+
+}
+table, th, td {
+    border:1px solid black;}
+
+
+</style>
+
+<form action="{% url 'cell_database:dataset_overview' %}" method="post">
+    {% csrf_token %}
+    {{ create_dataset_form }}
+    <input type="submit" name = 'define_dataset' value="Create a new Dataset.">
+</form>
+<br>
+{{ message }}
+
+{% if zipped_data %}
+    <table>
+        <caption>Registered Datasets</caption>
+        <tr>
+            <th>Name</th>
+            <th>Number of cells</th>
+
+        </tr>
+        {% for dataset, count in zipped_data %}
+        <tr>
+            <td><a href="{% url 'cell_database:view_dataset' pk=dataset.id %}">{{ dataset.name }}</a></td>
+            <td>{{ count }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+{% else %}
+    <p>No datasets were registered.</p>
+{% endif %}
+
+{% endblock %}

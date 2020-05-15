@@ -268,7 +268,21 @@ tags
 
 # End of https://www.gitignore.io/api/vim,macos,python,pycharm
 neware_parser/log_ml_metadata
-
+cycling/log_ml_metadata
 April*
 tensorflow*
 v_curves*
+2020*
+compile_dataset_shortcut.bat
+flags*
+cycling/config.ini
+
+reload_private.bat
+/log_reload.txt
+/cycling/config_new.ini
+*config*
+log_reload.txt
+reload_private.bat
+/reload_private.sh
+*.ini
+

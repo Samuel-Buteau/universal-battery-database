@@ -117,6 +117,7 @@ def make_sign_grid():
     return numpy.array([1., -1.])
 
 
+# TODO(harvey): replace magic numbers with constants
 def make_temperature_grid(min_t, max_t, n_samples, my_cell_ids):
     if n_samples < 2:
         n_samples = 2

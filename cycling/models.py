@@ -144,8 +144,9 @@ def make_temperature_grid(min_t, max_t, n_samples, my_cell_ids):
     return numpy.array([my_min + delta * float(i) for i in range(n_samples)])
 
 
-def compute_from_database(cell_id, lower_cycle = None, upper_cycle = None,
-                          valid = True, ):
+def compute_from_database(
+    cell_id, lower_cycle = None, upper_cycle = None, valid = True,
+):
     files_cell_id = CyclingFile.objects.filter(
         database_file__deprecated = False,
         database_file__valid_metadata__cell_id = cell_id,
@@ -207,20 +208,20 @@ def make_file_legends_and_vertical(
     file_leg = []
     if len(files_cell_id) >= 1:
         for f_i, f in enumerate(files_cell_id):
-            start_cycle = f.database_file.valid_metadata.start_cycle
+            offset_cycle = f.database_file.valid_metadata.start_cycle
             if show_invalid:
-                min_cycle = start_cycle + Cycle.objects.filter(
+                min_cycle = offset_cycle + Cycle.objects.filter(
                     cycling_file = f
                 ).aggregate(Min("cycle_number"))["cycle_number__min"]
-                max_cycle = start_cycle + Cycle.objects.filter(
+                max_cycle = offset_cycle + Cycle.objects.filter(
                     cycling_file = f
                 ).aggregate(Max("cycle_number"))["cycle_number__max"]
 
             else:
-                min_cycle = start_cycle + Cycle.objects.filter(
+                min_cycle = offset_cycle + Cycle.objects.filter(
                     cycling_file = f, valid_cycle = True,
                 ).aggregate(Min("cycle_number"))["cycle_number__min"]
-                max_cycle = start_cycle + Cycle.objects.filter(
+                max_cycle = offset_cycle + Cycle.objects.filter(
                     cycling_file = f, valid_cycle = True,
                 ).aggregate(Max("cycle_number"))["cycle_number__max"]
 

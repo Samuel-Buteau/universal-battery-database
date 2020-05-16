@@ -10,11 +10,12 @@ from django.db.models import Max, Q, F
 import re
 import pytz
 from django.db import transaction
-import numpy
 from scipy.interpolate import PchipInterpolator
 import math
 from background_task import background
 from scipy import special
+
+import numpy
 
 halifax_timezone = pytz.timezone("America/Halifax")
 
@@ -63,12 +64,16 @@ def strip(string, sub):
 def parse_time(my_realtime_string):
     matchObj1 = re.match(
         r"(\d\d\d\d)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})",
-        my_realtime_string)
+        my_realtime_string,
+    )
     matchObj2 = re.match(
         r"(\d{1,2})/(\d{1,2})/(\d\d\d\d) (\d{1,2}):(\d{1,2}):(\d{1,2})",
-        my_realtime_string)
-    matchObj3 = re.match(r"(\d{1,2})/(\d{1,2})/(\d\d\d\d) (\d{1,2}):(\d{1,2})",
-                         my_realtime_string)
+        my_realtime_string,
+    )
+    matchObj3 = re.match(
+        r"(\d{1,2})/(\d{1,2})/(\d\d\d\d) (\d{1,2}):(\d{1,2})",
+        my_realtime_string,
+    )
 
     second_accuracy = True
     if matchObj1:
@@ -96,15 +101,18 @@ def parse_time(my_realtime_string):
     else:
         raise Exception(
             "tried to parse time {}, but only known formats are YYYY-MM-DD hh:mm:ss, MM/DD/YYYY hh:mm:ss, MM/DD/YYYY hh:mm".format(
-                my_realtime_string))
+                my_realtime_string
+            )
+        )
 
-    return datetime.datetime(int_year, int_month, int_day, hour = int_hour,
-                             minute = int_minute,
-                             second = int_second), second_accuracy
+    return datetime.datetime(
+        int_year, int_month, int_day,
+        hour = int_hour, minute = int_minute, second = int_second,
+    ), second_accuracy
 
 
 def identify_variable_position(separated, label, this_line):
-    if not label in separated:
+    if label not in separated:
         raise Exception("This format is unknown! {}".format(this_line))
     return separated.index(label)
 
@@ -118,9 +126,10 @@ def test_occupied_position(separated, pos):
         return False
 
 
-def read_neware(path, last_imported_cycle = -1, CapacityUnits = 1.0,
-                VoltageUnits = (1.0 / 1000.0),
-                CurrentUnits = 1.0):
+def read_neware(
+    path, last_imported_cycle = -1, capacity_units = 1.0,
+    voltage_units = 1.0 / 1000.0, current_units = 1.0,
+):
     print("\tREADING FILE AS NEWARE FORMAT. {}".format(path))
     """
     TEMPDOC: 
@@ -136,8 +145,8 @@ def read_neware(path, last_imported_cycle = -1, CapacityUnits = 1.0,
 
     """
 
-    with open(path, "r", errors = "ignore") as myfile:
-        this_line = myfile.readline()
+    with open(path, "r", errors = "ignore") as my_file:
+        this_line = my_file.readline()
         separated = this_line.split("\n")[0].split("\t")
         if len(separated) == 1:
             nested = False
@@ -148,16 +157,16 @@ def read_neware(path, last_imported_cycle = -1, CapacityUnits = 1.0,
         else:
             raise Exception("This format is unknown. {}".format(this_line))
 
-    with open(path, "r", errors = "ignore") as myfile:
+    with open(path, "r", errors = "ignore") as my_file:
         def get_header_line():
-            this_line = myfile.readline()
+            this_line = my_file.readline()
             separated = [strip(h.split("(")[0], " ")
                          for h in this_line.split("\n")[0].split("\t")]
             stripped = [h for h in separated if h]
             return this_line, separated, stripped
 
         def get_normal_line():
-            this_line = myfile.readline()
+            this_line = my_file.readline()
             separated = this_line.split("\n")[0].split("\t")
             stripped = [s for s in separated if s]
             return this_line, separated, stripped
@@ -171,21 +180,21 @@ def read_neware(path, last_imported_cycle = -1, CapacityUnits = 1.0,
                 raise Exception("This format is unknown! {}".format(this_line))
 
             if not nested:
-                position["cycle_id"] = identify_variable_position(separated,
-                                                                  label = "Cycle ID",
-                                                                  this_line = this_line)
-            position["step_id"] = identify_variable_position(separated,
-                                                             label = "Step ID",
-                                                             this_line = this_line)
+                position["cycle_id"] = identify_variable_position(
+                    separated, label = "Cycle ID", this_line = this_line,
+                )
+            position["step_id"] = identify_variable_position(
+                separated, label = "Step ID", this_line = this_line,
+            )
 
             if "Step Name" in separated:
-                position["step_type"] = identify_variable_position(stripped,
-                                                                   label = "Step Name",
-                                                                   this_line = this_line)
+                position["step_type"] = identify_variable_position(
+                    stripped, label = "Step Name", this_line = this_line,
+                )
             elif "Step Type" in separated:
-                position["step_type"] = identify_variable_position(stripped,
-                                                                   label = "Step Type",
-                                                                   this_line = this_line)
+                position["step_type"] = identify_variable_position(
+                    stripped, label = "Step Type", this_line = this_line,
+                )
             else:
                 raise Exception("This format is unknown! {}".format(this_line))
 
@@ -196,16 +205,16 @@ def read_neware(path, last_imported_cycle = -1, CapacityUnits = 1.0,
                 raise Exception("This format is unknown! {}".format(this_line))
 
             if not nested:
-                position["cycle_id"] = identify_variable_position(separated,
-                                                                  label = "Cycle ID",
-                                                                  this_line = this_line)
-                position["step_id"] = identify_variable_position(separated,
-                                                                 label = "Step ID",
-                                                                 this_line = this_line)
+                position["cycle_id"] = identify_variable_position(
+                    separated, label = "Cycle ID", this_line = this_line,
+                )
+                position["step_id"] = identify_variable_position(
+                    separated, label = "Step ID", this_line = this_line,
+                )
 
-            position["record_id"] = identify_variable_position(separated,
-                                                               label = "Record ID",
-                                                               this_line = this_line)
+            position["record_id"] = identify_variable_position(
+                separated, label = "Record ID", this_line = this_line,
+            )
 
             if "Vol" in stripped:
                 iter_dat = [
@@ -227,12 +236,13 @@ def read_neware(path, last_imported_cycle = -1, CapacityUnits = 1.0,
             for id, s in iter_dat:
                 position[id] = identify_variable_position(
                     stripped,
-                    label = s,
-                    this_line = this_line
+                    label = s, this_line = this_line,
                 )
 
-        def parse_normal_step(position, current_cycle, current_step,
-                              imported_data, separated, stripped, nested):
+        def parse_normal_step(
+            position, current_cycle, current_step,
+            imported_data, separated, stripped, nested,
+        ):
             if nested:
                 current_step = int(separated[position["step_id"]])
             else:
@@ -261,8 +271,10 @@ def read_neware(path, last_imported_cycle = -1, CapacityUnits = 1.0,
 
             return current_cycle, current_step
 
-        def parse_normal_record(position, current_cycle, current_step,
-                                imported_data, separated, stripped, nested):
+        def parse_normal_record(
+            position, current_cycle, current_step,
+            imported_data, separated, stripped, nested,
+        ):
             if not nested:
                 if test_occupied_position(separated, position["cycle_id"]):
                     current_cycle = int(separated[position["cycle_id"]])
@@ -286,16 +298,19 @@ def read_neware(path, last_imported_cycle = -1, CapacityUnits = 1.0,
                 else:
                     continue
 
-            my_cap_float = CapacityUnits * float(
+            my_cap_float = capacity_units * float(
                 my_extracted_strings["capacity"])
-            my_cur_float = CurrentUnits * float(my_extracted_strings["current"])
-            my_vol_float = VoltageUnits * float(my_extracted_strings["voltage"])
+            my_cur_float = current_units * float(
+                my_extracted_strings["current"])
+            my_vol_float = voltage_units * float(
+                my_extracted_strings["voltage"])
             my_time, second_accuracy = parse_time(
                 my_extracted_strings["realtime"])
 
-            imported_data[current_cycle][current_step][1].append(
-                [my_vol_float, my_cur_float, my_cap_float, my_time,
-                 second_accuracy])
+            imported_data[current_cycle][current_step][1].append([
+                my_vol_float, my_cur_float, my_cap_float, my_time,
+                second_accuracy,
+            ])
 
         current_cycle = -1
         current_step = -1
@@ -306,7 +321,8 @@ def read_neware(path, last_imported_cycle = -1, CapacityUnits = 1.0,
             # Cycle
             this_line, separated, stripped = get_header_line()
             position["cycle_id"] = identify_variable_position(
-                separated, label = "Cycle ID", this_line = this_line)
+                separated, label = "Cycle ID", this_line = this_line,
+            )
             # Step
             parse_step_header(position, nested = nested)
             # Record
@@ -330,19 +346,15 @@ def read_neware(path, last_imported_cycle = -1, CapacityUnits = 1.0,
 
                     if test_occupied_position(separated, position["step_id"]):
                         current_cycle, current_step = parse_normal_step(
-                            position, current_cycle,
-                            current_step, imported_data,
-                            separated, stripped,
-                            nested
+                            position, current_cycle, current_step,
+                            imported_data, separated, stripped, nested,
                         )
 
                     elif test_occupied_position(separated,
                                                 position["record_id"]):
                         parse_normal_record(
-                            position, current_cycle,
-                            current_step, imported_data,
-                            separated, stripped,
-                            nested
+                            position, current_cycle, current_step,
+                            imported_data, separated, stripped, nested,
                         )
 
                     else:
@@ -366,10 +378,8 @@ def read_neware(path, last_imported_cycle = -1, CapacityUnits = 1.0,
                     break
 
                 current_cycle, current_step = parse_normal_step(
-                    position, current_cycle,
-                    current_step, imported_data,
-                    separated, stripped,
-                    nested
+                    position, current_cycle, current_step, imported_data,
+                    separated, stripped, nested,
                 )
 
             # This is the record data header
@@ -382,16 +392,14 @@ def read_neware(path, last_imported_cycle = -1, CapacityUnits = 1.0,
                     break
 
                 parse_normal_record(
-                    position, current_cycle,
-                    current_step, imported_data,
-                    separated, stripped,
-                    nested
+                    position, current_cycle, current_step, imported_data,
+                    separated, stripped, nested,
                 )
 
         return imported_data
 
 
-def import_single_file(database_file, DEBUG = False):
+def import_single_file(database_file, debug = False):
     """
     checks based on timestamps if any work is required
     calls read_neware
@@ -399,21 +407,26 @@ def import_single_file(database_file, DEBUG = False):
 
     TODO(sam): the demarcation between neware-specific and cycling-general is not clear
 
-    :param database_file:
-    :param DEBUG:
-    :return:
+    Args:
+        database_file:
+        debug:
     """
     print("IMPORTING FILE {}".format(database_file))
     time_of_running_script = timezone.now()
     error_message = {}
-    if not database_file.is_valid or database_file.deprecated or database_file.valid_metadata is None:
+    if (
+        not database_file.is_valid
+        or database_file.deprecated
+        or database_file.valid_metadata is None
+    ):
         return error_message
 
     full_path = os.path.join(database_file.root, database_file.filename)
 
     error_message["filepath"] = full_path
     already_cached = CyclingFile.objects.filter(
-        database_file = database_file).exists()
+        database_file = database_file
+    ).exists()
     if not already_cached:
         error_message["cached"] = "None"
 
@@ -468,8 +481,8 @@ def import_single_file(database_file, DEBUG = False):
             Cycle.objects.bulk_create(cycles)
             steps = []
             for cyc in f.cycle_set.filter(
-                cycle_number__gt = last_imported_cycle).order_by(
-                "cycle_number"):
+                cycle_number__gt = last_imported_cycle
+            ).order_by("cycle_number"):
                 cyc_steps = data_table[cyc.cycle_number]
                 for step in cyc_steps.keys():
                     if len(cyc_steps[step][1]) == 0:
@@ -486,28 +499,24 @@ def import_single_file(database_file, DEBUG = False):
                             step_type = cyc_steps[step][0],
                             start_time = halifax_timezone.localize(start_time),
                             second_accuracy = second_accuracy,
-
                         )
                     )
 
-                    steps[-1].set_v_c_q_t_data(
-                        numpy.array(
-                            [
-                                d[:3] + [(d[3] - start_time).total_seconds() / (
-                                    60. * 60.)]
-                                for d in data
-                            ]
-                        )
-
-                    )
+                    steps[-1].set_v_c_q_t_data(numpy.array([
+                        d[:3] + [
+                            (d[3] - start_time).total_seconds() / (60. * 60.)
+                        ]
+                        for d in data
+                    ]))
 
             Step.objects.bulk_create(steps)
             f.import_time = time_of_running_script
             f.save()
 
-        if DEBUG:
-            data_table = read_neware(full_path,
-                                     last_imported_cycle = last_imported_cycle)
+        if debug:
+            data_table = read_neware(
+                full_path, last_imported_cycle = last_imported_cycle,
+            )
             write_to_database(data_table)
 
             error_message["error"] = False
@@ -515,14 +524,14 @@ def import_single_file(database_file, DEBUG = False):
 
         else:
             try:
-                data_table = read_neware(full_path,
-                                         last_imported_cycle = last_imported_cycle)
-
+                data_table = read_neware(
+                    full_path, last_imported_cycle = last_imported_cycle,
+                )
 
             except Exception as e:
                 error_message["error"] = True
                 error_message["error type"] = "ReadNeware"
-                error_message["error verbatum"] = e
+                error_message["error verbatim"] = e
                 return error_message
 
             try:
@@ -537,12 +546,9 @@ def import_single_file(database_file, DEBUG = False):
                 return error_message
 
 
-def bulk_import(cell_ids = None, DEBUG = False):
+def bulk_import(cell_ids = None, debug = False):
     """
     mostly just calls import_single_file
-    :param cell_ids:
-    :param DEBUG:
-    :return:
     """
     if cell_ids is not None:
         neware_files = get_good_neware_files().filter(
@@ -550,7 +556,7 @@ def bulk_import(cell_ids = None, DEBUG = False):
 
     else:
         neware_files = get_good_neware_files()
-    errors = list(map(lambda x: import_single_file(x, DEBUG), neware_files))
+    errors = list(map(lambda x: import_single_file(x, debug), neware_files))
     return list(filter(lambda x: x["error"], errors))
 
 
@@ -566,20 +572,25 @@ def is_monotonically_decreasing(qs):
 def is_monotonically_increasing(qs, mask = None):
     mono = True
     for i in range(1, len(qs) - 1):
-        if qs[i] < qs[i - 1] and (
-            mask is None or (mask[i] > .1 and mask[i - 1] > .1)):
+        if (
+            qs[i] < qs[i - 1]
+            and (mask is None or (mask[i] > .1 and mask[i - 1] > .1))
+        ):
             mono = False
             break
     return mono
 
 
-def average_data(data_source_, val_keys, sort_val, weight_func = None,
-                 weight_exp_func = None, compute_std = False):
+def average_data(
+    data_source_, val_keys, sort_val,
+    weight_func = None, weight_exp_func = None, compute_std = False,
+):
     if weight_func is not None:
         weights, works = weight_func(data_source_)
     else:
         weights, works = numpy.ones(len(data_source_)), numpy.ones(
-            len(data_source_), dtype = numpy.bool)
+            len(data_source_), dtype = numpy.bool,
+        )
 
     weights = weights[works]
     data_source = data_source_[works]
@@ -594,7 +605,8 @@ def average_data(data_source_, val_keys, sort_val, weight_func = None,
 
     all_ = numpy.stack(
         [vals, weights, weights_exp] + [data_source[s_v] for s_v in val_keys],
-        axis = 1)
+        axis = 1,
+    )
     all_ = numpy.sort(all_, axis = 0)
     if len(all_) >= 15:
         all_ = all_[2:-2]
@@ -1861,6 +1873,6 @@ def full_import_cell_ids(cell_ids):
     with transaction.atomic():
         bulk_deprecate(cell_ids)  # TODO what does deprecate do?
         bulk_import(cell_ids = cell_ids,
-                    DEBUG = False)  # TODO what does import do?
+                    debug = False)  # TODO what does import do?
         bulk_process(DEBUG = False,
                      cell_ids = cell_ids)  # TODO what does process do?

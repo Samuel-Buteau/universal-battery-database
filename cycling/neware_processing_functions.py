@@ -625,17 +625,21 @@ def average_data(
     if not compute_std:
         return {val_keys[i]: avg[i] for i in range(len(val_keys))}
     else:
-        var = np.average(np.square(vals - avg), weights = actual_weights,
-                         axis = 0)
+        var = np.average(
+            np.square(vals - avg), weights = actual_weights, axis = 0,
+        )
         if actual_weights is not None:
             actual_weights = (1. / np.sum(
                 actual_weights) * actual_weights) + 1e-10
             actual_weights = np.expand_dims(actual_weights, axis = 1)
-            var = np.sum(actual_weights * np.square(vals - avg),
-                         axis = 0) / (1e-10 + np.abs(
+            var = np.sum(
+                actual_weights * np.square(vals - avg), axis = 0,
+            ) / (1e-10 + np.abs(
                 np.sum(actual_weights, axis = 0) - (
-                    np.sum(np.square(actual_weights), axis = 0) / (
-                    1e-10 + np.sum(actual_weights, axis = 0)))))
+                    np.sum(np.square(actual_weights), axis = 0)
+                    / (1e-10 + np.sum(actual_weights, axis = 0))
+                )
+            ))
         std = np.sqrt(var)
         return {val_keys[i]: (avg[i], std[i]) for i in range(len(val_keys))}
 
@@ -644,9 +648,6 @@ def default_deprecation(cell_id):
     """
     TEMPDOC(sam):
     this decides which of the duplicate files should be deprecated.
-
-    :param cell_id:
-    :return:
     """
     with transaction.atomic():
         files = get_good_neware_files().filter(

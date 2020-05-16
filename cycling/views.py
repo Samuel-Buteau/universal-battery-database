@@ -672,7 +672,8 @@ def main_page(request):
                     initial.append(my_initial)
 
                 cell_id_overview_formset = CellIDOverviewFormset(
-                    initial = initial)
+                    initial = initial
+                )
 
                 if search_form.cleaned_data["show_visuals"]:
                     datas = []
@@ -697,7 +698,6 @@ def main_page(request):
                 ar["page_number"] = pn
                 ar["max_page_number"] = max_page
 
-
             elif "trigger_reimport" in request.POST:
                 cell_id_overview_formset = CellIDOverviewFormset(request.POST)
                 collected_cell_ids = []
@@ -721,28 +721,27 @@ def main_page(request):
     return render(request, "cycling/form_interface.html", ar)
 
 
-StepHeaderValue = ["Step Name", "Capacity (mAh)", "Average Voltage (V)",
-                   "Min Voltage (V)", "Max Voltage (V)",
-                   "Average Current by Capacity (mA)",
-                   "Average Current by Voltage (mA)", "Min Current (mA)",
-                   "Max Current (mA)", "Time (hours)",
-                   "Cumulative Time (hours)"]
+StepHeaderValue = [
+    "Step Name", "Capacity (mAh)", "Average Voltage (V)", "Min Voltage (V)",
+    "Max Voltage (V)", "Average Current by Capacity (mA)",
+    "Average Current by Voltage (mA)", "Min Current (mA)", "Max Current (mA)",
+    "Time (hours)", "Cumulative Time (hours)"
+]
 StepHeaderKey = ["Cycle Number", "Step Number"]
-CycleHeaderValue = ["Charge Capacity (mAh)", "Discharge Capacity (mAh)",
-                    "Charge Average Voltage (V)",
-                    "Discharge Average Voltage (V)", "Charge Min Voltage (V)",
-                    "Discharge Min Voltage (V)",
-                    "Charge Max Voltage (V)", "Discharge Max Voltage (V)",
-                    "Charge Average Current by Capacity (mA)",
-                    "Discharge Average Current by Capacity (mA)",
-                    "Charge Average Current by Voltage (mA)",
-                    "Discharge Average Current by Voltage (mA)",
-                    "Charge Min Current (mA)",
-                    "Discharge Min Current (mA)", "Charge Max Current (mA)",
-                    "Discharge Max Current (mA)",
-                    "Charge Time (hours)", "Discharge Time (hours)",
-                    "Charge Cumulative Time (hours)",
-                    "Discharge Cumulative Time (hours)"]
+CycleHeaderValue = [
+    "Charge Capacity (mAh)", "Discharge Capacity (mAh)",
+    "Charge Average Voltage (V)", "Discharge Average Voltage (V)",
+    "Charge Min Voltage (V)", "Discharge Min Voltage (V)",
+    "Charge Max Voltage (V)", "Discharge Max Voltage (V)",
+    "Charge Average Current by Capacity (mA)",
+    "Discharge Average Current by Capacity (mA)",
+    "Charge Average Current by Voltage (mA)",
+    "Discharge Average Current by Voltage (mA)",
+    "Charge Min Current (mA)", "Discharge Min Current (mA)",
+    "Charge Max Current (mA)", "Discharge Max Current (mA)",
+    "Charge Time (hours)", "Discharge Time (hours)",
+    "Charge Cumulative Time (hours)", "Discharge Cumulative Time (hours)"
+]
 CycleHeaderKey = ["Cycle Number"]
 
 
@@ -755,45 +754,51 @@ def convert_to_csv2(headers, np_content):
     return contents
 
 
+# TODO(harvey): rename function
 def ExportStep(my_step_data):
     my_content = []
     for cycle in my_step_data.keys():
         for step in my_step_data[cycle].keys():
             my_content.append(
-                [str(cycle), str(step)] + [my_step_data[cycle][step][0]] + [
-                    str(field) for field in
-                    my_step_data[cycle][step][1]])
+                [str(cycle), str(step)] + [my_step_data[cycle][step][0]]
+                + [str(field) for field in my_step_data[cycle][step][1]]
+            )
 
     my_content = np.array(my_content)
 
-    # cap, v_avg, v_min, v_max, cur_avg_by_cap, cur_avg_by_vol, cur_min,cur_max, time
+    # cap, v_avg, v_min, v_max, cur_avg_by_cap,
+    # cur_avg_by_vol, cur_min,cur_max, time
     my_content = convert_to_csv2([StepHeaderKey + StepHeaderValue], my_content)
     return my_content
 
 
+# TODO(harvey): rename function
 def ExportCycle(my_cycle_data):
     my_content = []
     for cycle in my_cycle_data.keys():
         my_content.append(
-            [str(cycle)] + [str(field) for field in my_cycle_data[cycle]])
+            [str(cycle)] + [str(field) for field in my_cycle_data[cycle]]
+        )
 
     my_content = np.array(my_content)
 
-    # cap, v_avg, v_min, v_max, cur_avg_by_cap, cur_avg_by_vol, cur_min,cur_max, time
-    my_content = convert_to_csv2([CycleHeaderKey + CycleHeaderValue],
-                                 my_content)
+    # cap, v_avg, v_min, v_max, cur_avg_by_cap,
+    # cur_avg_by_vol, cur_min,cur_max, time
+    my_content = convert_to_csv2(
+        [CycleHeaderKey + CycleHeaderValue], my_content,
+    )
     return my_content
 
 
-lab_header = ["Cycle Number", "Charge Capacity (mAh)",
-              "Discharge Capacity (mAh)", "Delta V (V)",
-              "Average Charge Voltage (V)", "Average Discharge Voltage (V)",
-              "Charge Time (hours)",
-              "Discharge Time (hours)", "Charge Cumulative Time (hours)",
-              "Discharge Cumulative Time (hours)",
-              "Normalized Charge Capacity", "Normalized Discharge Capacity",
-              "Zeroed Delta V (V)", "S (V)", "R (V)",
-              "Zeroed S (V)", "Zeroed R (V)"]
+lab_header = [
+    "Cycle Number", "Charge Capacity (mAh)", "Discharge Capacity (mAh)",
+    "Delta V (V)", "Average Charge Voltage (V)",
+    "Average Discharge Voltage (V)", "Charge Time (hours)",
+    "Discharge Time (hours)", "Charge Cumulative Time (hours)",
+    "Discharge Cumulative Time (hours)", "Normalized Charge Capacity",
+    "Normalized Discharge Capacity", "Zeroed Delta V (V)", "S (V)", "R (V)",
+    "Zeroed S (V)", "Zeroed R (V)"
+]
 
 first_header_line = []
 cc_header = ["First C/20", "Second C/20", "C/2", "C", "2C", "3C"]
@@ -802,29 +807,42 @@ for header_i in cc_header:
 second_header_line = 6 * lab_header
 
 
+# TODO(harvey): rename function
 def ExportRateMaps(my_rate_maps):
     my_content = np.array(
-        [[str(my_rate_maps_i_i) for my_rate_maps_i_i in my_rate_maps_i] for
-         my_rate_maps_i in my_rate_maps])
+        [
+            [str(my_rate_maps_i_i) for my_rate_maps_i_i in my_rate_maps_i]
+            for my_rate_maps_i in my_rate_maps
+        ]
+    )
 
-    my_content = convert_to_csv2([first_header_line, second_header_line],
-                                 my_content)
+    my_content = convert_to_csv2(
+        [first_header_line, second_header_line], my_content,
+    )
     return my_content
 
 
+# TODO(harvey): rename function
 def ExportRobyPattern(my_rate_maps):
     my_content = np.array(
-        [[str(my_rate_maps_i_i) for my_rate_maps_i_i in my_rate_maps_i] for
-         my_rate_maps_i in my_rate_maps])
+        [
+            [str(my_rate_maps_i_i) for my_rate_maps_i_i in my_rate_maps_i]
+            for my_rate_maps_i in my_rate_maps
+        ]
+    )
 
     my_content = convert_to_csv2([lab_header], my_content)
     return my_content
 
 
+# TODO(harvey): rename function
 def ExportSeparateRate(my_rate_maps):
     my_content = np.array(
-        [[str(my_rate_maps_i_i) for my_rate_maps_i_i in my_rate_maps_i] for
-         my_rate_maps_i in my_rate_maps])
+        [
+            [str(my_rate_maps_i_i) for my_rate_maps_i_i in my_rate_maps_i]
+            for my_rate_maps_i in my_rate_maps
+        ]
+    )
 
     my_content = convert_to_csv2([lab_header], my_content)
     return my_content

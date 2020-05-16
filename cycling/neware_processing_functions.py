@@ -15,7 +15,7 @@ import math
 from background_task import background
 from scipy import special
 
-import numpy
+import numpy as np
 
 halifax_timezone = pytz.timezone("America/Halifax")
 
@@ -502,7 +502,7 @@ def import_single_file(database_file, debug = False):
                         )
                     )
 
-                    steps[-1].set_v_c_q_t_data(numpy.array([
+                    steps[-1].set_v_c_q_t_data(np.array([
                         d[:3] + [
                             (d[3] - start_time).total_seconds() / (60. * 60.)
                         ]
@@ -588,8 +588,8 @@ def average_data(
     if weight_func is not None:
         weights, works = weight_func(data_source_)
     else:
-        weights, works = numpy.ones(len(data_source_)), numpy.ones(
-            len(data_source_), dtype = numpy.bool,
+        weights, works = np.ones(len(data_source_)), np.ones(
+            len(data_source_), dtype = np.bool,
         )
 
     weights = weights[works]
@@ -599,15 +599,15 @@ def average_data(
     if weight_exp_func is not None:
         weights_exp = weight_exp_func(data_source)
     else:
-        weights_exp = numpy.zeros(len(data_source))
+        weights_exp = np.zeros(len(data_source))
 
     vals = data_source[sort_val]
 
-    all_ = numpy.stack(
+    all_ = np.stack(
         [vals, weights, weights_exp] + [data_source[s_v] for s_v in val_keys],
         axis = 1,
     )
-    all_ = numpy.sort(all_, axis = 0)
+    all_ = np.sort(all_, axis = 0)
     if len(all_) >= 15:
         all_ = all_[2:-2]
     elif len(all_) >= 9:
@@ -616,27 +616,27 @@ def average_data(
     weights = all_[:, 1]
     weights_exp = all_[:, 2]
     vals = all_[:, 3:]
-    max_weights_exp = numpy.max(weights_exp)
-    actual_weights = weights * numpy.exp(
+    max_weights_exp = np.max(weights_exp)
+    actual_weights = weights * np.exp(
         weights_exp - max_weights_exp)
     if sum(actual_weights) == 0.0:
         actual_weights = None
-    avg = numpy.average(vals, weights = actual_weights, axis = 0)
+    avg = np.average(vals, weights = actual_weights, axis = 0)
     if not compute_std:
         return {val_keys[i]: avg[i] for i in range(len(val_keys))}
     else:
-        var = numpy.average(numpy.square(vals - avg), weights = actual_weights,
-                            axis = 0)
+        var = np.average(np.square(vals - avg), weights = actual_weights,
+                         axis = 0)
         if actual_weights is not None:
-            actual_weights = (1. / numpy.sum(
+            actual_weights = (1. / np.sum(
                 actual_weights) * actual_weights) + 1e-10
-            actual_weights = numpy.expand_dims(actual_weights, axis = 1)
-            var = numpy.sum(actual_weights * numpy.square(vals - avg),
-                            axis = 0) / (1e-10 + numpy.abs(
-                numpy.sum(actual_weights, axis = 0) - (
-                    numpy.sum(numpy.square(actual_weights), axis = 0) / (
-                    1e-10 + numpy.sum(actual_weights, axis = 0)))))
-        std = numpy.sqrt(var)
+            actual_weights = np.expand_dims(actual_weights, axis = 1)
+            var = np.sum(actual_weights * np.square(vals - avg),
+                         axis = 0) / (1e-10 + np.abs(
+                np.sum(actual_weights, axis = 0) - (
+                    np.sum(np.square(actual_weights), axis = 0) / (
+                    1e-10 + np.sum(actual_weights, axis = 0)))))
+        std = np.sqrt(var)
         return {val_keys[i]: (avg[i], std[i]) for i in range(len(val_keys))}
 
 
@@ -817,7 +817,7 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10):
                 )
 
             if len(new_data) > NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS:
-                new_data = numpy.array(
+                new_data = np.array(
                     new_data, dtype = [
                         ("cycle_id", int),
                         ("constant_rate", "f4"),
@@ -831,12 +831,12 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10):
                                   splitting_var = "discharge_c_rate"):
                     rate_step_full = .1 * .5
                     rate_step_cut = .075 * .5
-                    min_rate_full = numpy.min(data_table[splitting_var])
+                    min_rate_full = np.min(data_table[splitting_var])
                     min_rate_full = round(
                         max(min_rate_full, math.log(.005)) - rate_step_full,
                         ndigits = 1)
 
-                    max_rate_full = numpy.max(data_table[splitting_var])
+                    max_rate_full = np.max(data_table[splitting_var])
                     max_rate_full = round(
                         min(max_rate_full, math.log(500.)) + rate_step_full,
                         ndigits = 1)
@@ -846,34 +846,34 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10):
 
                     split_data = {}
 
-                    prev_rate_mask = numpy.zeros(len(data_table),
-                                                 dtype = numpy.bool)
+                    prev_rate_mask = np.zeros(len(data_table),
+                                              dtype = np.bool)
                     prev_avg_rate = 0
                     for i2 in range(number_of_rate_steps):
                         avg_rate = (rate_step_full * i2) + min_rate_full
                         min_rate = avg_rate - rate_step_cut
                         max_rate = avg_rate + rate_step_cut
 
-                        rate_mask = numpy.logical_and(
+                        rate_mask = np.logical_and(
                             min_rate <= data_table[splitting_var],
                             data_table[splitting_var] <= max_rate
                         )
-                        if not numpy.any(rate_mask):
+                        if not np.any(rate_mask):
                             continue
 
-                        intersection_mask = numpy.logical_and(rate_mask,
-                                                              prev_rate_mask)
+                        intersection_mask = np.logical_and(rate_mask,
+                                                           prev_rate_mask)
 
-                        if numpy.array_equal(rate_mask,
-                                             prev_rate_mask) or numpy.array_equal(
+                        if np.array_equal(rate_mask,
+                                          prev_rate_mask) or np.array_equal(
                             intersection_mask,
                             rate_mask):
                             prev_rate_mask = rate_mask
                             prev_avg_rate = avg_rate
                             continue
 
-                        elif numpy.array_equal(intersection_mask,
-                                               prev_rate_mask) and numpy.any(
+                        elif np.array_equal(intersection_mask,
+                                            prev_rate_mask) and np.any(
                             prev_rate_mask):
                             if prev_avg_rate in split_data.keys():
                                 del split_data[prev_avg_rate]
@@ -887,7 +887,7 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10):
                     avg_sorted_keys = {}
                     for sk in sorted_keys:
                         if len(data_table[split_data[sk]][splitting_var]) > 0:
-                            avg_sorted_keys[sk] = numpy.mean(
+                            avg_sorted_keys[sk] = np.mean(
                                 data_table[split_data[sk]][splitting_var])
 
                     grouped_rates = {}
@@ -905,11 +905,11 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10):
                     split_data2 = {}
 
                     for k in grouped_rates.keys():
-                        split_data2[k] = numpy.zeros(len(data_table),
-                                                     dtype = numpy.bool)
+                        split_data2[k] = np.zeros(len(data_table),
+                                                  dtype = np.bool)
                         for kk in grouped_rates[k]:
-                            split_data2[k] = numpy.logical_or(split_data[kk],
-                                                              split_data2[k])
+                            split_data2[k] = np.logical_or(split_data[kk],
+                                                           split_data2[k])
 
                     return split_data2
 
@@ -943,19 +943,19 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10):
                                                     new_data_6 = new_data_5[
                                                         split_data6[k5]]
                                                     if len(new_data_6) > 0:
-                                                        avg_constant_rate = numpy.mean(
+                                                        avg_constant_rate = np.mean(
                                                             new_data_6[
                                                                 "constant_rate"])
-                                                        avg_end_rate = numpy.mean(
+                                                        avg_end_rate = np.mean(
                                                             new_data_6[
                                                                 "end_rate"])
-                                                        avg_end_rate_prev = numpy.mean(
+                                                        avg_end_rate_prev = np.mean(
                                                             new_data_6[
                                                                 "end_rate_prev"])
-                                                        avg_end_voltage = numpy.mean(
+                                                        avg_end_voltage = np.mean(
                                                             new_data_6[
                                                                 "end_voltage"])
-                                                        avg_end_voltage_prev = numpy.mean(
+                                                        avg_end_voltage_prev = np.mean(
                                                             new_data_6[
                                                                 "end_voltage_prev"])
 
@@ -999,36 +999,36 @@ def process_single_file(f, DEBUG = False):
 
                     for step in cyc.step_set.all():
                         dat = step.get_v_c_q_t_data()
-                        v_min = numpy.nanmin(dat[:, 0])
-                        v_max = numpy.nanmax(dat[:, 0])
-                        cur_min = numpy.nanmin(dat[:, 1])
-                        cur_max = numpy.nanmax(dat[:, 1])
-                        delta_t = numpy.max(dat[:, -1]) - numpy.min(dat[:, -1])
-                        capacity = numpy.max(dat[:, 2])
+                        v_min = np.nanmin(dat[:, 0])
+                        v_max = np.nanmax(dat[:, 0])
+                        cur_min = np.nanmin(dat[:, 1])
+                        cur_max = np.nanmax(dat[:, 1])
+                        delta_t = np.max(dat[:, -1]) - np.min(dat[:, -1])
+                        capacity = np.max(dat[:, 2])
                         """
                         sum i -> n-1 : 0.5*(vol[i] + vol[i+1]) * (cap[i+1] - cap[i])
                         sum i -> n-1 : (cap[i+1] - cap[i])
                         """
                         if len(dat) > 1:
-                            capacity_differences = numpy.absolute(
-                                numpy.diff(dat[:, 2]))
-                            voltage_differences = numpy.absolute(
-                                numpy.diff(dat[:, 0]))
+                            capacity_differences = np.absolute(
+                                np.diff(dat[:, 2]))
+                            voltage_differences = np.absolute(
+                                np.diff(dat[:, 0]))
 
                             voltage_averages = .5 * (dat[:-1, 0] + dat[1:, 0])
                             current_averages = .5 * (dat[:-1, 1] + dat[1:, 1])
-                            if numpy.nanmax(capacity_differences) > 0:
-                                cur_avg_by_cap = numpy.average(current_averages,
-                                                               weights = capacity_differences)
-                                vol_avg_by_cap = numpy.average(voltage_averages,
-                                                               weights = capacity_differences)
+                            if np.nanmax(capacity_differences) > 0:
+                                cur_avg_by_cap = np.average(current_averages,
+                                                            weights = capacity_differences)
+                                vol_avg_by_cap = np.average(voltage_averages,
+                                                            weights = capacity_differences)
                             else:
                                 cur_avg_by_cap = .5 * (cur_min + cur_max)
                                 vol_avg_by_cap = .5 * (v_min + v_max)
 
-                            if numpy.nanmax(voltage_differences) > 0:
-                                cur_avg_by_vol = numpy.average(current_averages,
-                                                               weights = voltage_differences)
+                            if np.nanmax(voltage_differences) > 0:
+                                cur_avg_by_vol = np.average(current_averages,
+                                                            weights = voltage_differences)
                             else:
                                 cur_avg_by_vol = .5 * (cur_min + cur_max)
 
@@ -1053,7 +1053,7 @@ def process_single_file(f, DEBUG = False):
                     discharge_query = Q(step_type__contains = "DChg")
                     charge_query = ~Q(step_type__contains = "DChg") & Q(
                         step_type__contains = "Chg")
-                    discharge_data = numpy.array(
+                    discharge_data = np.array(
                         [
                             (step.total_capacity,
                              step.average_voltage,
@@ -1068,7 +1068,7 @@ def process_single_file(f, DEBUG = False):
                              )
                             for step in cyc.step_set.filter(discharge_query)
                         ],
-                        dtype = numpy.dtype(
+                        dtype = np.dtype(
                             [
                                 ("total_capacity", float),
                                 ("average_voltage", float),
@@ -1082,7 +1082,7 @@ def process_single_file(f, DEBUG = False):
                             ]
                         )
                     )
-                    charge_data = numpy.array(
+                    charge_data = np.array(
                         [
                             (step.total_capacity,
                              step.average_voltage,
@@ -1096,7 +1096,7 @@ def process_single_file(f, DEBUG = False):
                              )
                             for step in cyc.step_set.filter(charge_query)
                         ],
-                        dtype = numpy.dtype(
+                        dtype = np.dtype(
                             [
                                 ("total_capacity", float),
                                 ("average_voltage", float),
@@ -1113,26 +1113,26 @@ def process_single_file(f, DEBUG = False):
 
                     # charge agregation
                     if len(charge_data) != 0:
-                        cyc.chg_total_capacity = numpy.sum(
+                        cyc.chg_total_capacity = np.sum(
                             charge_data["total_capacity"])
-                        cyc.chg_duration = numpy.sum(charge_data["duration"])
-                        cyc.chg_minimum_voltage = numpy.min(
+                        cyc.chg_duration = np.sum(charge_data["duration"])
+                        cyc.chg_minimum_voltage = np.min(
                             charge_data["minimum_voltage"])
-                        cyc.chg_maximum_voltage = numpy.max(
+                        cyc.chg_maximum_voltage = np.max(
                             charge_data["maximum_voltage"])
-                        cyc.chg_minimum_current = numpy.min(
+                        cyc.chg_minimum_current = np.min(
                             charge_data["minimum_current"])
-                        cyc.chg_maximum_current = numpy.max(
+                        cyc.chg_maximum_current = np.max(
                             charge_data["maximum_current"])
-                        cyc.chg_average_voltage = numpy.average(
+                        cyc.chg_average_voltage = np.average(
                             charge_data["average_voltage"],
                             weights = 1e-6 + charge_data["total_capacity"]
                         )
-                        cyc.chg_average_current_by_capacity = numpy.average(
+                        cyc.chg_average_current_by_capacity = np.average(
                             charge_data["average_current_by_capacity"],
                             weights = 1e-6 + charge_data["total_capacity"]
                         )
-                        cyc.chg_average_current_by_voltage = numpy.average(
+                        cyc.chg_average_current_by_voltage = np.average(
                             charge_data["average_current_by_voltage"],
                             weights = 1e-6 + charge_data["maximum_voltage"] -
                                       charge_data["minimum_voltage"]
@@ -1142,27 +1142,27 @@ def process_single_file(f, DEBUG = False):
                         continue
 
                     if len(discharge_data) != 0:
-                        cyc.dchg_total_capacity = numpy.sum(
+                        cyc.dchg_total_capacity = np.sum(
                             discharge_data["total_capacity"])
-                        cyc.dchg_duration = numpy.sum(
+                        cyc.dchg_duration = np.sum(
                             discharge_data["duration"])
-                        cyc.dchg_minimum_voltage = numpy.min(
+                        cyc.dchg_minimum_voltage = np.min(
                             discharge_data["minimum_voltage"])
-                        cyc.dchg_maximum_voltage = numpy.max(
+                        cyc.dchg_maximum_voltage = np.max(
                             discharge_data["maximum_voltage"])
-                        cyc.dchg_minimum_current = numpy.min(
+                        cyc.dchg_minimum_current = np.min(
                             discharge_data["minimum_current"])
-                        cyc.dchg_maximum_current = numpy.max(
+                        cyc.dchg_maximum_current = np.max(
                             discharge_data["maximum_current"])
-                        cyc.dchg_average_voltage = numpy.average(
+                        cyc.dchg_average_voltage = np.average(
                             discharge_data["average_voltage"],
                             weights = 1e-6 + discharge_data["total_capacity"]
                         )
-                        cyc.dchg_average_current_by_capacity = numpy.average(
+                        cyc.dchg_average_current_by_capacity = np.average(
                             discharge_data["average_current_by_capacity"],
                             weights = 1e-6 + discharge_data["total_capacity"]
                         )
-                        cyc.dchg_average_current_by_voltage = numpy.average(
+                        cyc.dchg_average_current_by_voltage = np.average(
                             discharge_data["average_current_by_voltage"],
                             weights = 1e-6 + discharge_data["maximum_voltage"] -
                                       discharge_data["minimum_voltage"]
@@ -1211,18 +1211,18 @@ def process_single_file(f, DEBUG = False):
 
 
 def detect_point(mus, sigma, x):
-    return numpy.exp(-.5 * (sigma ** -2.) * numpy.square(x - mus))
+    return np.exp(-.5 * (sigma ** -2.) * np.square(x - mus))
 
 
 def detect_line(mus, sigma, x_min, x_max):
     return 0.5 * (
-        special.erf(1. / (sigma * numpy.sqrt(2.)) * (x_max - mus)) -
-        special.erf(1. / (sigma * numpy.sqrt(2.)) * (x_min - mus))
+        special.erf(1. / (sigma * np.sqrt(2.)) * (x_max - mus)) -
+        special.erf(1. / (sigma * np.sqrt(2.)) * (x_min - mus))
     )
 
 
 def detect_sign(signs, x):
-    return numpy.where(
+    return np.where(
         x * signs > 0.,
         1.,
         0.
@@ -1259,10 +1259,10 @@ def detect_step_cc(V_min, V_max, I, T, sign,
     )
 
     total_detect = (
-        numpy.reshape(sign_dim, [2, 1, 1, 1]) *
-        numpy.reshape(V_dim, [1, -1, 1, 1]) *
-        numpy.reshape(I_dim, [1, 1, -1, 1]) *
-        numpy.reshape(T_dim, [1, 1, 1, -1])
+        np.reshape(sign_dim, [2, 1, 1, 1]) *
+        np.reshape(V_dim, [1, -1, 1, 1]) *
+        np.reshape(I_dim, [1, 1, -1, 1]) *
+        np.reshape(T_dim, [1, 1, 1, -1])
     )
     return total_detect
 
@@ -1295,10 +1295,10 @@ def detect_step_cv(V, I_min, I_max, T, sign,
     )
 
     total_detect = (
-        numpy.reshape(sign_dim, [2, 1, 1, 1]) *
-        numpy.reshape(V_dim, [1, -1, 1, 1]) *
-        numpy.reshape(I_dim, [1, 1, -1, 1]) *
-        numpy.reshape(T_dim, [1, 1, 1, -1])
+        np.reshape(sign_dim, [2, 1, 1, 1]) *
+        np.reshape(V_dim, [1, -1, 1, 1]) *
+        np.reshape(I_dim, [1, 1, -1, 1]) *
+        np.reshape(T_dim, [1, 1, 1, -1])
     )
     return total_detect
 
@@ -1379,7 +1379,7 @@ def get_non_redundent_mask(mat):
     :param mat:
     :return:
     """
-    mask = numpy.ones(len(mat), dtype = numpy.bool)
+    mask = np.ones(len(mat), dtype = np.bool)
     for i in range(1, len(mat)):
         if mat[i] == mat[i - 1]:
             mask[i] = False
@@ -1388,7 +1388,7 @@ def get_non_redundent_mask(mat):
 
 
 def reshuffle(x, y):
-    sorted_ind = numpy.argsort(x)
+    sorted_ind = np.argsort(x)
     x = x[sorted_ind]
     y = y[sorted_ind]
 
@@ -1400,14 +1400,14 @@ def reshuffle(x, y):
 
 def resampler(x, y, x_n, flagged = False, log_space = False,
               delta_grace = 0.001):
-    x_min = numpy.min(x)
-    x_max = numpy.max(x)
+    x_min = np.min(x)
+    x_max = np.max(x)
 
     if log_space:
-        new_x = numpy.exp(
-            numpy.linspace(numpy.log(x_min), numpy.log(x_max), x_n))
+        new_x = np.exp(
+            np.linspace(np.log(x_min), np.log(x_max), x_n))
     else:
-        new_x = numpy.linspace(x_min, x_max, x_n)
+        new_x = np.linspace(x_min, x_max, x_n)
 
     spline = PchipInterpolator(x, y, extrapolate = True)
     new_y = spline(new_x)
@@ -1421,22 +1421,22 @@ def resampler(x, y, x_n, flagged = False, log_space = False,
 
         print("spline: {}".format(new_y))
 
-    new_mask = numpy.where(
-        numpy.logical_and(
+    new_mask = np.where(
+        np.logical_and(
             new_x >= (x_min - delta_grace),
             new_x <= (x_max + delta_grace)
         ),
-        numpy.ones(x_n, dtype = numpy.float32),
-        0.0 * numpy.ones(x_n, dtype = numpy.float32),
+        np.ones(x_n, dtype = np.float32),
+        0.0 * np.ones(x_n, dtype = np.float32),
     )
 
-    mask = numpy.where(
-        numpy.logical_and(
+    mask = np.where(
+        np.logical_and(
             new_x >= (x_min),
             new_x <= (x_max)
         ),
-        numpy.ones(x_n, dtype = numpy.float32),
-        0.0 * numpy.ones(x_n, dtype = numpy.float32),
+        np.ones(x_n, dtype = np.float32),
+        0.0 * np.ones(x_n, dtype = np.float32),
     )
     if flagged:
         print("x_min {}, x_max {}, delta_grace {}, mask1 {}, mask {}".format(
@@ -1487,7 +1487,7 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n,
             vcqt_curve = first_step.get_v_c_q_t_data()
             curve = vcqt_curve[:, [0, 2]]
             curve[:, 1] = -1 * curve[:, 1]
-            curve = numpy.flip(curve, 0)
+            curve = np.flip(curve, 0)
             cv_curve = []
 
     if step_type == "chg":
@@ -1516,7 +1516,7 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n,
                 else:
                     if flagged:
                         print("len(vcqt_curve) was not 0")
-                    delta_currents = numpy.abs(
+                    delta_currents = np.abs(
                         vcqt_curve[1:, 1] - vcqt_curve[:-1, 1])
                     delta_count = 0
                     for d in delta_currents:
@@ -1538,7 +1538,7 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n,
             curve = vcqt_curve[:, [0, 2]]
             cv_curve = []
 
-    within_bounds = numpy.logical_and(
+    within_bounds = np.logical_and(
         voltage_grid_min_v <= curve[:, 0],
         curve[:, 0] <= voltage_grid_max_v
     )
@@ -1554,10 +1554,10 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n,
                 cv_curve
             ))
 
-    cursor = numpy.array([-1, len(curve)], dtype = numpy.int32)
-    limits_v = numpy.array([-10., 10.], dtype = numpy.float32)
-    limits_q = numpy.array([-1e6, 1e6], dtype = numpy.float32)
-    masks = numpy.zeros(len(curve), dtype = numpy.bool)
+    cursor = np.array([-1, len(curve)], dtype = np.int32)
+    limits_v = np.array([-10., 10.], dtype = np.float32)
+    limits_q = np.array([-1e6, 1e6], dtype = np.float32)
+    masks = np.zeros(len(curve), dtype = np.bool)
 
     never_added_up = True
     never_added_down = True
@@ -1722,9 +1722,9 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n,
     if flagged:
         print("last_cv_capacity {}".format(last_cv_capacity))
 
-    cv_currents = numpy.zeros(shape = (current_max_n), dtype = numpy.float32)
-    cv_qs = numpy.zeros(shape = (current_max_n), dtype = numpy.float32)
-    cv_mask = numpy.zeros(shape = (current_max_n), dtype = numpy.float32)
+    cv_currents = np.zeros(shape = (current_max_n), dtype = np.float32)
+    cv_qs = np.zeros(shape = (current_max_n), dtype = np.float32)
+    cv_mask = np.zeros(shape = (current_max_n), dtype = np.float32)
 
     if len(cv_curve) > 0:
         if current_max_n >= len(cv_curve):
@@ -1750,9 +1750,9 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n,
     if voltage_grid_n >= len(v):
         if flagged:
             print("len(voltage_grid) >= len(v)")
-        voltages = numpy.zeros(shape = (voltage_grid_n), dtype = numpy.float32)
-        qs = numpy.zeros(shape = (voltage_grid_n), dtype = numpy.float32)
-        mask = numpy.zeros(shape = (voltage_grid_n), dtype = numpy.float32)
+        voltages = np.zeros(shape = (voltage_grid_n), dtype = np.float32)
+        qs = np.zeros(shape = (voltage_grid_n), dtype = np.float32)
+        mask = np.zeros(shape = (voltage_grid_n), dtype = np.float32)
 
         voltages[:len(v)] = v[:]
         qs[:len(v)] = q[:]

@@ -18,37 +18,40 @@ from scipy import special
 
 halifax_timezone = pytz.timezone("America/Halifax")
 
-
-
 import filename_database.models as filename_models
 
 
 def get_good_neware_files():
     exp_type = filename_models.ExperimentType.objects.get(
-        category=filename_models.Category.objects.get(name="cycling"),
-        subcategory=filename_models.SubCategory.objects.get(name="neware")
+        category = filename_models.Category.objects.get(name = "cycling"),
+        subcategory = filename_models.SubCategory.objects.get(name = "neware"),
     )
 
     return filename_models.DatabaseFile.objects.filter(
-        is_valid=True, deprecated=False).exclude(
-        valid_metadata=None).filter(
-        valid_metadata__experiment_type=exp_type)
-
-
+        is_valid = True, deprecated = False,
+    ).exclude(
+        valid_metadata = None
+    ).filter(valid_metadata__experiment_type = exp_type)
 
 
 def get_cell_ids():
     exp_type = filename_models.ExperimentType.objects.get(
-        category=filename_models.Category.objects.get(name="cycling"),
-        subcategory=filename_models.SubCategory.objects.get(name="neware")
+        category = filename_models.Category.objects.get(name = "cycling"),
+        subcategory = filename_models.SubCategory.objects.get(name = "neware"),
     )
 
     all_current_cell_ids = filename_models.DatabaseFile.objects.filter(
-        is_valid=True, deprecated=False).exclude(
-        valid_metadata=None).filter(valid_metadata__experiment_type=exp_type).values_list(
-        "valid_metadata__cell_id", flat=True).distinct()
+        is_valid = True, deprecated = False,
+    ).exclude(
+        valid_metadata = None
+    ).filter(
+        valid_metadata__experiment_type = exp_type
+    ).values_list(
+        "valid_metadata__cell_id", flat = True,
+    ).distinct()
 
     return all_current_cell_ids
+
 
 def strip(string, sub):
     if string.endswith(sub):
@@ -56,11 +59,16 @@ def strip(string, sub):
     else:
         return string
 
-def parse_time( my_realtime_string):
-    matchObj1 = re.match(r"(\d\d\d\d)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})", my_realtime_string)
-    matchObj2 = re.match(r"(\d{1,2})/(\d{1,2})/(\d\d\d\d) (\d{1,2}):(\d{1,2}):(\d{1,2})", my_realtime_string)
-    matchObj3 = re.match(r"(\d{1,2})/(\d{1,2})/(\d\d\d\d) (\d{1,2}):(\d{1,2})", my_realtime_string)
 
+def parse_time(my_realtime_string):
+    matchObj1 = re.match(
+        r"(\d\d\d\d)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})",
+        my_realtime_string)
+    matchObj2 = re.match(
+        r"(\d{1,2})/(\d{1,2})/(\d\d\d\d) (\d{1,2}):(\d{1,2}):(\d{1,2})",
+        my_realtime_string)
+    matchObj3 = re.match(r"(\d{1,2})/(\d{1,2})/(\d\d\d\d) (\d{1,2}):(\d{1,2})",
+                         my_realtime_string)
 
     second_accuracy = True
     if matchObj1:
@@ -86,9 +94,13 @@ def parse_time( my_realtime_string):
         int_second = 0
         second_accuracy = False
     else:
-        raise Exception("tried to parse time {}, but only known formats are YYYY-MM-DD hh:mm:ss, MM/DD/YYYY hh:mm:ss, MM/DD/YYYY hh:mm".format(my_realtime_string))
+        raise Exception(
+            "tried to parse time {}, but only known formats are YYYY-MM-DD hh:mm:ss, MM/DD/YYYY hh:mm:ss, MM/DD/YYYY hh:mm".format(
+                my_realtime_string))
 
-    return datetime.datetime(int_year, int_month, int_day, hour=int_hour, minute=int_minute, second=int_second), second_accuracy
+    return datetime.datetime(int_year, int_month, int_day, hour = int_hour,
+                             minute = int_minute,
+                             second = int_second), second_accuracy
 
 
 def identify_variable_position(separated, label, this_line):
@@ -106,8 +118,9 @@ def test_occupied_position(separated, pos):
         return False
 
 
-def read_neware(path, last_imported_cycle=-1, CapacityUnits=1.0, VoltageUnits=(1.0 / 1000.0),
-                CurrentUnits=1.0):
+def read_neware(path, last_imported_cycle = -1, CapacityUnits = 1.0,
+                VoltageUnits = (1.0 / 1000.0),
+                CurrentUnits = 1.0):
     print("\tREADING FILE AS NEWARE FORMAT. {}".format(path))
     """
     TEMPDOC: 
@@ -123,7 +136,7 @@ def read_neware(path, last_imported_cycle=-1, CapacityUnits=1.0, VoltageUnits=(1
 
     """
 
-    with open(path, "r", errors="ignore") as myfile:
+    with open(path, "r", errors = "ignore") as myfile:
         this_line = myfile.readline()
         separated = this_line.split("\n")[0].split("\t")
         if len(separated) == 1:
@@ -135,7 +148,7 @@ def read_neware(path, last_imported_cycle=-1, CapacityUnits=1.0, VoltageUnits=(1
         else:
             raise Exception("This format is unknown. {}".format(this_line))
 
-    with open(path, "r", errors="ignore") as myfile:
+    with open(path, "r", errors = "ignore") as myfile:
         def get_header_line():
             this_line = myfile.readline()
             separated = [strip(h.split("(")[0], " ")
@@ -149,7 +162,7 @@ def read_neware(path, last_imported_cycle=-1, CapacityUnits=1.0, VoltageUnits=(1
             stripped = [s for s in separated if s]
             return this_line, separated, stripped
 
-        def parse_step_header(position, nested=True):
+        def parse_step_header(position, nested = True):
             # nested
             this_line, separated, stripped = get_header_line()
 
@@ -158,54 +171,68 @@ def read_neware(path, last_imported_cycle=-1, CapacityUnits=1.0, VoltageUnits=(1
                 raise Exception("This format is unknown! {}".format(this_line))
 
             if not nested:
-                position["cycle_id"] = identify_variable_position(separated, label="Cycle ID", this_line=this_line)
-            position["step_id"] = identify_variable_position(separated, label="Step ID", this_line=this_line)
+                position["cycle_id"] = identify_variable_position(separated,
+                                                                  label = "Cycle ID",
+                                                                  this_line = this_line)
+            position["step_id"] = identify_variable_position(separated,
+                                                             label = "Step ID",
+                                                             this_line = this_line)
 
             if "Step Name" in separated:
-                position["step_type"] = identify_variable_position(stripped, label="Step Name", this_line=this_line)
+                position["step_type"] = identify_variable_position(stripped,
+                                                                   label = "Step Name",
+                                                                   this_line = this_line)
             elif "Step Type" in separated:
-                position["step_type"] = identify_variable_position(stripped, label="Step Type", this_line=this_line)
+                position["step_type"] = identify_variable_position(stripped,
+                                                                   label = "Step Type",
+                                                                   this_line = this_line)
             else:
                 raise Exception("This format is unknown! {}".format(this_line))
 
-
-        def parse_record_header(position, nested=True):
+        def parse_record_header(position, nested = True):
             this_line, separated, stripped = get_header_line()
             # Verify that this is the record header
             if nested and (separated[0] or separated[position["step_id"]]):
                 raise Exception("This format is unknown! {}".format(this_line))
 
             if not nested:
-                position["cycle_id"] = identify_variable_position(separated, label="Cycle ID", this_line=this_line)
-                position["step_id"] = identify_variable_position(separated, label="Step ID", this_line=this_line)
+                position["cycle_id"] = identify_variable_position(separated,
+                                                                  label = "Cycle ID",
+                                                                  this_line = this_line)
+                position["step_id"] = identify_variable_position(separated,
+                                                                 label = "Step ID",
+                                                                 this_line = this_line)
 
-            position["record_id"] = identify_variable_position(separated, label="Record ID", this_line=this_line)
+            position["record_id"] = identify_variable_position(separated,
+                                                               label = "Record ID",
+                                                               this_line = this_line)
 
             if "Vol" in stripped:
                 iter_dat = [
-                    ("voltage","Vol"),
-                    ("current","Cur"),
-                    ("capacity","Cap"),
-                    ("time","Time"),
-                    ("realtime","Realtime"),
+                    ("voltage", "Vol"),
+                    ("current", "Cur"),
+                    ("capacity", "Cap"),
+                    ("time", "Time"),
+                    ("realtime", "Realtime"),
                 ]
             elif "Voltage" in stripped:
                 iter_dat = [
-                    ("voltage","Voltage"),
-                    ("current","Current"),
-                    ("capacity","Capacity"),
-                    ("time","Time"),
-                    ("realtime","Realtime"),
+                    ("voltage", "Voltage"),
+                    ("current", "Current"),
+                    ("capacity", "Capacity"),
+                    ("time", "Time"),
+                    ("realtime", "Realtime"),
                 ]
 
             for id, s in iter_dat:
                 position[id] = identify_variable_position(
                     stripped,
-                    label=s,
-                    this_line=this_line
+                    label = s,
+                    this_line = this_line
                 )
 
-        def parse_normal_step(position, current_cycle, current_step, imported_data, separated, stripped, nested):
+        def parse_normal_step(position, current_cycle, current_step,
+                              imported_data, separated, stripped, nested):
             if nested:
                 current_step = int(separated[position["step_id"]])
             else:
@@ -234,7 +261,8 @@ def read_neware(path, last_imported_cycle=-1, CapacityUnits=1.0, VoltageUnits=(1
 
             return current_cycle, current_step
 
-        def parse_normal_record(position, current_cycle, current_step, imported_data, separated, stripped, nested):
+        def parse_normal_record(position, current_cycle, current_step,
+                                imported_data, separated, stripped, nested):
             if not nested:
                 if test_occupied_position(separated, position["cycle_id"]):
                     current_cycle = int(separated[position["cycle_id"]])
@@ -258,13 +286,16 @@ def read_neware(path, last_imported_cycle=-1, CapacityUnits=1.0, VoltageUnits=(1
                 else:
                     continue
 
-            my_cap_float = CapacityUnits * float(my_extracted_strings["capacity"])
+            my_cap_float = CapacityUnits * float(
+                my_extracted_strings["capacity"])
             my_cur_float = CurrentUnits * float(my_extracted_strings["current"])
             my_vol_float = VoltageUnits * float(my_extracted_strings["voltage"])
-            my_time, second_accuracy = parse_time(my_extracted_strings["realtime"])
+            my_time, second_accuracy = parse_time(
+                my_extracted_strings["realtime"])
 
             imported_data[current_cycle][current_step][1].append(
-                [my_vol_float, my_cur_float, my_cap_float, my_time, second_accuracy])
+                [my_vol_float, my_cur_float, my_cap_float, my_time,
+                 second_accuracy])
 
         current_cycle = -1
         current_step = -1
@@ -272,14 +303,14 @@ def read_neware(path, last_imported_cycle=-1, CapacityUnits=1.0, VoltageUnits=(1
         position = {}
 
         if nested:
-            #Cycle
+            # Cycle
             this_line, separated, stripped = get_header_line()
             position["cycle_id"] = identify_variable_position(
-                separated, label="Cycle ID", this_line = this_line)
-            #Step
-            parse_step_header(position, nested=nested)
-            #Record
-            parse_record_header(position, nested=nested)
+                separated, label = "Cycle ID", this_line = this_line)
+            # Step
+            parse_step_header(position, nested = nested)
+            # Record
+            parse_record_header(position, nested = nested)
 
             for i in range(1000000000):
                 this_line, separated, stripped = get_normal_line()
@@ -305,7 +336,8 @@ def read_neware(path, last_imported_cycle=-1, CapacityUnits=1.0, VoltageUnits=(1
                             nested
                         )
 
-                    elif test_occupied_position(separated, position["record_id"]):
+                    elif test_occupied_position(separated,
+                                                position["record_id"]):
                         parse_normal_record(
                             position, current_cycle,
                             current_step, imported_data,
@@ -318,31 +350,30 @@ def read_neware(path, last_imported_cycle=-1, CapacityUnits=1.0, VoltageUnits=(1
 
 
         else:
-            #not nested
+            # not nested
             for i in range(10000000000):
                 this_line, separated, stripped = get_normal_line()
                 if separated[0] == "Step Data":
                     break
 
-            #This is the step data header
-            parse_step_header(position, nested=nested)
+            # This is the step data header
+            parse_step_header(position, nested = nested)
 
-            #This is the step data
+            # This is the step data
             for i in range(10000000000):
                 this_line, separated, stripped = get_normal_line()
                 if separated[0] == "Record Data":
                     break
 
-                current_cycle, current_step= parse_normal_step(
-                        position, current_cycle,
-                        current_step,imported_data,
-                        separated, stripped,
-                        nested
-                    )
+                current_cycle, current_step = parse_normal_step(
+                    position, current_cycle,
+                    current_step, imported_data,
+                    separated, stripped,
+                    nested
+                )
 
             # This is the record data header
-            parse_record_header(position, nested=nested)
-
+            parse_record_header(position, nested = nested)
 
             # This is the record data
             for i in range(10000000000):
@@ -360,8 +391,7 @@ def read_neware(path, last_imported_cycle=-1, CapacityUnits=1.0, VoltageUnits=(1
         return imported_data
 
 
-
-def import_single_file(database_file, DEBUG=False):
+def import_single_file(database_file, DEBUG = False):
     """
     checks based on timestamps if any work is required
     calls read_neware
@@ -382,12 +412,13 @@ def import_single_file(database_file, DEBUG=False):
     full_path = os.path.join(database_file.root, database_file.filename)
 
     error_message["filepath"] = full_path
-    already_cached = CyclingFile.objects.filter(database_file=database_file).exists()
+    already_cached = CyclingFile.objects.filter(
+        database_file = database_file).exists()
     if not already_cached:
         error_message["cached"] = "None"
 
     if already_cached:
-        f = CyclingFile.objects.get(database_file=database_file)
+        f = CyclingFile.objects.get(database_file = database_file)
         time_origin = database_file.last_modified
         time_cached = f.import_time
 
@@ -402,7 +433,8 @@ def import_single_file(database_file, DEBUG=False):
         return error_message
 
     with transaction.atomic():
-        f, created = CyclingFile.objects.get_or_create(database_file=database_file)
+        f, created = CyclingFile.objects.get_or_create(
+            database_file = database_file)
 
         def get_last_cycle():
             if f.cycle_set.exists():
@@ -415,9 +447,6 @@ def import_single_file(database_file, DEBUG=False):
 
         last_imported_cycle = get_last_cycle()
         print("\tLAST CYCLE ALREADY IMPORTED: {}".format(last_imported_cycle))
-
-
-
 
         def write_to_database(data_table):
 
@@ -433,12 +462,14 @@ def import_single_file(database_file, DEBUG=False):
                                     break
                             if passed:
                                 cycles.append(
-                                    Cycle(cycling_file=f, cycle_number=cyc)
+                                    Cycle(cycling_file = f, cycle_number = cyc)
                                 )
 
             Cycle.objects.bulk_create(cycles)
             steps = []
-            for cyc in f.cycle_set.filter(cycle_number__gt=last_imported_cycle).order_by("cycle_number"):
+            for cyc in f.cycle_set.filter(
+                cycle_number__gt = last_imported_cycle).order_by(
+                "cycle_number"):
                 cyc_steps = data_table[cyc.cycle_number]
                 for step in cyc_steps.keys():
                     if len(cyc_steps[step][1]) == 0:
@@ -450,11 +481,11 @@ def import_single_file(database_file, DEBUG=False):
 
                     steps.append(
                         Step(
-                            cycle=cyc,
-                            step_number=step,
-                            step_type=cyc_steps[step][0],
-                            start_time=halifax_timezone.localize(start_time),
-                            second_accuracy=second_accuracy,
+                            cycle = cyc,
+                            step_number = step,
+                            step_type = cyc_steps[step][0],
+                            start_time = halifax_timezone.localize(start_time),
+                            second_accuracy = second_accuracy,
 
                         )
                     )
@@ -462,7 +493,8 @@ def import_single_file(database_file, DEBUG=False):
                     steps[-1].set_v_c_q_t_data(
                         numpy.array(
                             [
-                                d[:3] + [(d[3] - start_time).total_seconds() / (60. * 60.)]
+                                d[:3] + [(d[3] - start_time).total_seconds() / (
+                                    60. * 60.)]
                                 for d in data
                             ]
                         )
@@ -474,7 +506,8 @@ def import_single_file(database_file, DEBUG=False):
             f.save()
 
         if DEBUG:
-            data_table = read_neware(full_path, last_imported_cycle=last_imported_cycle)
+            data_table = read_neware(full_path,
+                                     last_imported_cycle = last_imported_cycle)
             write_to_database(data_table)
 
             error_message["error"] = False
@@ -482,7 +515,8 @@ def import_single_file(database_file, DEBUG=False):
 
         else:
             try:
-                data_table = read_neware(full_path, last_imported_cycle=last_imported_cycle)
+                data_table = read_neware(full_path,
+                                         last_imported_cycle = last_imported_cycle)
 
 
             except Exception as e:
@@ -490,7 +524,6 @@ def import_single_file(database_file, DEBUG=False):
                 error_message["error type"] = "ReadNeware"
                 error_message["error verbatum"] = e
                 return error_message
-
 
             try:
                 write_to_database(data_table)
@@ -504,7 +537,7 @@ def import_single_file(database_file, DEBUG=False):
                 return error_message
 
 
-def bulk_import(cell_ids=None, DEBUG=False):
+def bulk_import(cell_ids = None, DEBUG = False):
     """
     mostly just calls import_single_file
     :param cell_ids:
@@ -512,13 +545,13 @@ def bulk_import(cell_ids=None, DEBUG=False):
     :return:
     """
     if cell_ids is not None:
-        neware_files = get_good_neware_files().filter(valid_metadata__cell_id__in=cell_ids)
+        neware_files = get_good_neware_files().filter(
+            valid_metadata__cell_id__in = cell_ids)
 
     else:
         neware_files = get_good_neware_files()
     errors = list(map(lambda x: import_single_file(x, DEBUG), neware_files))
     return list(filter(lambda x: x["error"], errors))
-
 
 
 def is_monotonically_decreasing(qs):
@@ -529,21 +562,24 @@ def is_monotonically_decreasing(qs):
             break
     return mono
 
-def is_monotonically_increasing(qs, mask=None):
+
+def is_monotonically_increasing(qs, mask = None):
     mono = True
     for i in range(1, len(qs) - 1):
-        if qs[i] < qs[i - 1] and (mask is None or (mask[i] > .1 and mask[i-1] > .1)):
+        if qs[i] < qs[i - 1] and (
+            mask is None or (mask[i] > .1 and mask[i - 1] > .1)):
             mono = False
             break
     return mono
 
 
-
-def average_data(data_source_, val_keys, sort_val, weight_func=None, weight_exp_func=None, compute_std=False):
+def average_data(data_source_, val_keys, sort_val, weight_func = None,
+                 weight_exp_func = None, compute_std = False):
     if weight_func is not None:
         weights, works = weight_func(data_source_)
     else:
-        weights, works = numpy.ones(len(data_source_)), numpy.ones(len(data_source_), dtype=numpy.bool)
+        weights, works = numpy.ones(len(data_source_)), numpy.ones(
+            len(data_source_), dtype = numpy.bool)
 
     weights = weights[works]
     data_source = data_source_[works]
@@ -556,8 +592,10 @@ def average_data(data_source_, val_keys, sort_val, weight_func=None, weight_exp_
 
     vals = data_source[sort_val]
 
-    all_ = numpy.stack([vals, weights, weights_exp] + [data_source[s_v] for s_v in val_keys], axis=1)
-    all_ = numpy.sort(all_, axis=0)
+    all_ = numpy.stack(
+        [vals, weights, weights_exp] + [data_source[s_v] for s_v in val_keys],
+        axis = 1)
+    all_ = numpy.sort(all_, axis = 0)
     if len(all_) >= 15:
         all_ = all_[2:-2]
     elif len(all_) >= 9:
@@ -571,17 +609,21 @@ def average_data(data_source_, val_keys, sort_val, weight_func=None, weight_exp_
         weights_exp - max_weights_exp)
     if sum(actual_weights) == 0.0:
         actual_weights = None
-    avg = numpy.average(vals, weights=actual_weights, axis=0)
+    avg = numpy.average(vals, weights = actual_weights, axis = 0)
     if not compute_std:
         return {val_keys[i]: avg[i] for i in range(len(val_keys))}
     else:
-        var = numpy.average(numpy.square(vals - avg), weights=actual_weights, axis=0)
+        var = numpy.average(numpy.square(vals - avg), weights = actual_weights,
+                            axis = 0)
         if actual_weights is not None:
-            actual_weights = (1. / numpy.sum(actual_weights) * actual_weights) + 1e-10
-            actual_weights = numpy.expand_dims(actual_weights, axis=1)
-            var = numpy.sum(actual_weights * numpy.square(vals - avg), axis=0) / (1e-10 + numpy.abs(
-                numpy.sum(actual_weights, axis=0) - (numpy.sum(numpy.square(actual_weights), axis=0) / (
-                        1e-10 + numpy.sum(actual_weights, axis=0)))))
+            actual_weights = (1. / numpy.sum(
+                actual_weights) * actual_weights) + 1e-10
+            actual_weights = numpy.expand_dims(actual_weights, axis = 1)
+            var = numpy.sum(actual_weights * numpy.square(vals - avg),
+                            axis = 0) / (1e-10 + numpy.abs(
+                numpy.sum(actual_weights, axis = 0) - (
+                    numpy.sum(numpy.square(actual_weights), axis = 0) / (
+                    1e-10 + numpy.sum(actual_weights, axis = 0)))))
         std = numpy.sqrt(var)
         return {val_keys[i]: (avg[i], std[i]) for i in range(len(val_keys))}
 
@@ -595,42 +637,44 @@ def default_deprecation(cell_id):
     :return:
     """
     with transaction.atomic():
-        files = get_good_neware_files().filter(valid_metadata__cell_id=cell_id)
+        files = get_good_neware_files().filter(
+            valid_metadata__cell_id = cell_id)
         if files.count() == 0:
             return
-        start_cycles = files.order_by("valid_metadata__start_cycle").values_list(
-        "valid_metadata__start_cycle", flat=True).distinct()
+        start_cycles = files.order_by(
+            "valid_metadata__start_cycle").values_list(
+            "valid_metadata__start_cycle", flat = True).distinct()
         for start_cycle in start_cycles:
-            files_start = files.filter(valid_metadata__start_cycle=start_cycle)
+            files_start = files.filter(
+                valid_metadata__start_cycle = start_cycle)
             if files_start.count() <= 1:
                 continue
             last_modified_max = files_start.aggregate(Max("last_modified"))[
-                                "last_modified__max"]
+                "last_modified__max"]
 
             filesize_max = files_start.aggregate(Max("filesize"))[
-                                            "filesize__max"]
-
+                "filesize__max"]
 
             # the winners are not deprecated
             # the winners are the simultaneously last_modified and largest files
-            winners = files_start.filter(last_modified=last_modified_max, filesize=filesize_max)
+            winners = files_start.filter(last_modified = last_modified_max,
+                                         filesize = filesize_max)
             if winners.count() == 0:
-                #no winners means no deprecation
+                # no winners means no deprecation
                 continue
             winner_id = winners[0].id
 
-            files_start.exclude(id=winner_id).update(deprecated=True)
+            files_start.exclude(id = winner_id).update(deprecated = True)
 
 
-
-
-def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
-    #TODO(sam): incorporate resting steps properly.
+def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10):
+    # TODO(sam): incorporate resting steps properly.
     print("\tPROCESSING CELL ID: {}".format(cell_id))
     with transaction.atomic():
         fs = get_files_for_cell_id(cell_id)
         for f in fs:
-            steps = Step.objects.filter(cycle__cycling_file=f).order_by("cycle__cycle_number", "step_number")
+            steps = Step.objects.filter(cycle__cycling_file = f).order_by(
+                "cycle__cycle_number", "step_number")
             if len(steps) == 0:
                 continue
             first_step = steps[0]
@@ -672,7 +716,6 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
                     first_step.end_voltage = first_step.minimum_voltage
                     first_step.end_voltage_prev = first_step.maximum_voltage
 
-
             first_step.save()
 
             if len(steps) == 1:
@@ -680,8 +723,8 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
             for i in range(1, len(steps)):
                 step = steps[i]
                 if "Rest" in step.step_type:
-                    step.end_current = steps[i-1].end_current
-                    step.end_voltage = steps[i-1].end_voltage
+                    step.end_current = steps[i - 1].end_current
+                    step.end_voltage = steps[i - 1].end_voltage
 
                 elif "CCCV_" in step.step_type:
                     sign = +1.
@@ -705,8 +748,8 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
                     sign = +1.
                     if "DChg" in step.step_type:
                         sign = -1.
-                    step.end_current_prev = steps[i-1].end_current
-                    step.end_voltage_prev = steps[i-1].end_voltage
+                    step.end_current_prev = steps[i - 1].end_current
+                    step.end_voltage_prev = steps[i - 1].end_voltage
                     step.constant_current = sign * step.average_current_by_capacity
                     step.end_current = step.constant_current
                     if sign > 0:
@@ -716,20 +759,22 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
 
                 step.save()
 
+        CycleGroup.objects.filter(cell_id = cell_id).delete()
 
-        CycleGroup.objects.filter(cell_id=cell_id).delete()
-
-
-
-        files = get_good_neware_files().filter(valid_metadata__cell_id=cell_id)
-        total_capacity = Cycle.objects.filter(cycling_file__database_file__in=files, valid_cycle=True).aggregate(Max("dchg_total_capacity"))["dchg_total_capacity__max"]
+        files = get_good_neware_files().filter(
+            valid_metadata__cell_id = cell_id)
+        total_capacity =\
+            Cycle.objects.filter(cycling_file__database_file__in = files,
+                                 valid_cycle = True).aggregate(
+                Max("dchg_total_capacity"))["dchg_total_capacity__max"]
         total_capacity = max(1e-10, total_capacity)
 
         # DISCHARGE
         for polarity in [CHARGE, DISCHARGE]:
             new_data = []
             for cyc in Cycle.objects.filter(
-                    cycling_file__database_file__in = files, valid_cycle=True).order_by("cycle_number"):
+                cycling_file__database_file__in = files,
+                valid_cycle = True).order_by("cycle_number"):
 
                 if polarity == DISCHARGE:
                     step = cyc.get_first_discharge_step()
@@ -738,16 +783,22 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
                 else:
                     raise Exception("unknown polarity {}".format(polarity))
 
-                #if step.end_current_prev is None:
-                    # print(polarity)
-                    # print([s.step_type for s in cyc.step_set.order_by("step_number")])
-                    # print([s.get_v_c_q_t_data() for s in cyc.step_set.order_by("step_number")])
+                # if step.end_current_prev is None:
+                # print(polarity)
+                # print([s.step_type for s in cyc.step_set.order_by("step_number")])
+                # print([s.get_v_c_q_t_data() for s in cyc.step_set.order_by("step_number")])
                 new_data.append(
                     (
                         cyc.id,  # id
-                        math.log(1e-10 + abs(step.constant_current)/total_capacity),  # constant current
-                        math.log(1e-10 + abs(step.end_current) / total_capacity),  # end current
-                        math.log(1e-10 + abs(step.end_current_prev)/total_capacity),  # end current prev
+                        math.log(1e-10 + abs(
+                            step.constant_current) / total_capacity),
+                        # constant current
+                        math.log(
+                            1e-10 + abs(step.end_current) / total_capacity),
+                        # end current
+                        math.log(1e-10 + abs(
+                            step.end_current_prev) / total_capacity),
+                        # end current prev
                         step.end_voltage,
                         step.end_voltage_prev,
                     )
@@ -755,7 +806,7 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
 
             if len(new_data) > NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS:
                 new_data = numpy.array(
-                    new_data, dtype=[
+                    new_data, dtype = [
                         ("cycle_id", int),
                         ("constant_rate", "f4"),
                         ("end_rate", "f4"),
@@ -764,20 +815,27 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
                         ("end_voltage_prev", "f4"),
                     ])
 
-                def separate_data(data_table, splitting_var="discharge_c_rate"):
+                def separate_data(data_table,
+                                  splitting_var = "discharge_c_rate"):
                     rate_step_full = .1 * .5
                     rate_step_cut = .075 * .5
                     min_rate_full = numpy.min(data_table[splitting_var])
-                    min_rate_full = round(max(min_rate_full, math.log(.005)) - rate_step_full, ndigits=1)
+                    min_rate_full = round(
+                        max(min_rate_full, math.log(.005)) - rate_step_full,
+                        ndigits = 1)
 
                     max_rate_full = numpy.max(data_table[splitting_var])
-                    max_rate_full = round(min(max_rate_full, math.log(500.)) + rate_step_full, ndigits=1)
+                    max_rate_full = round(
+                        min(max_rate_full, math.log(500.)) + rate_step_full,
+                        ndigits = 1)
 
-                    number_of_rate_steps = int((max_rate_full - min_rate_full) / rate_step_full) + 2
+                    number_of_rate_steps = int(
+                        (max_rate_full - min_rate_full) / rate_step_full) + 2
 
                     split_data = {}
 
-                    prev_rate_mask = numpy.zeros(len(data_table), dtype=numpy.bool)
+                    prev_rate_mask = numpy.zeros(len(data_table),
+                                                 dtype = numpy.bool)
                     prev_avg_rate = 0
                     for i2 in range(number_of_rate_steps):
                         avg_rate = (rate_step_full * i2) + min_rate_full
@@ -791,15 +849,20 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
                         if not numpy.any(rate_mask):
                             continue
 
-                        intersection_mask = numpy.logical_and(rate_mask, prev_rate_mask)
+                        intersection_mask = numpy.logical_and(rate_mask,
+                                                              prev_rate_mask)
 
-                        if numpy.array_equal(rate_mask, prev_rate_mask) or numpy.array_equal(intersection_mask,
-                                                                                             rate_mask):
+                        if numpy.array_equal(rate_mask,
+                                             prev_rate_mask) or numpy.array_equal(
+                            intersection_mask,
+                            rate_mask):
                             prev_rate_mask = rate_mask
                             prev_avg_rate = avg_rate
                             continue
 
-                        elif numpy.array_equal(intersection_mask, prev_rate_mask) and numpy.any(prev_rate_mask):
+                        elif numpy.array_equal(intersection_mask,
+                                               prev_rate_mask) and numpy.any(
+                            prev_rate_mask):
                             if prev_avg_rate in split_data.keys():
                                 del split_data[prev_avg_rate]
 
@@ -811,7 +874,7 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
                     sorted_keys.sort()
                     avg_sorted_keys = {}
                     for sk in sorted_keys:
-                        if len(data_table[split_data[sk]][splitting_var]) >0:
+                        if len(data_table[split_data[sk]][splitting_var]) > 0:
                             avg_sorted_keys[sk] = numpy.mean(
                                 data_table[split_data[sk]][splitting_var])
 
@@ -819,7 +882,8 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
                     for sk in sorted_keys:
                         found = False
                         for k in grouped_rates.keys():
-                            if abs(avg_sorted_keys[k] - avg_sorted_keys[sk]) < 0.13:
+                            if abs(avg_sorted_keys[k] - avg_sorted_keys[
+                                sk]) < 0.13:
                                 grouped_rates[k].append(sk)
                                 found = True
                                 break
@@ -829,60 +893,89 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10):
                     split_data2 = {}
 
                     for k in grouped_rates.keys():
-                        split_data2[k] = numpy.zeros(len(data_table), dtype=numpy.bool)
+                        split_data2[k] = numpy.zeros(len(data_table),
+                                                     dtype = numpy.bool)
                         for kk in grouped_rates[k]:
-                            split_data2[k] = numpy.logical_or(split_data[kk], split_data2[k])
+                            split_data2[k] = numpy.logical_or(split_data[kk],
+                                                              split_data2[k])
 
                     return split_data2
 
                 summary_data = {}
 
-                split_data2 = separate_data(new_data, splitting_var="constant_rate")
+                split_data2 = separate_data(new_data,
+                                            splitting_var = "constant_rate")
                 for k in split_data2.keys():
                     new_data_2 = new_data[split_data2[k]]
                     if len(new_data_2) > 0:
-                        split_data3 = separate_data(new_data_2, splitting_var="end_rate")
+                        split_data3 = separate_data(new_data_2,
+                                                    splitting_var = "end_rate")
                         for k2 in split_data3.keys():
                             new_data_3 = new_data_2[split_data3[k2]]
                             if len(new_data_3) > 0:
-                                split_data4 = separate_data(new_data_3, splitting_var="end_rate_prev")
+                                split_data4 = separate_data(new_data_3,
+                                                            splitting_var = "end_rate_prev")
                                 for k3 in split_data4.keys():
                                     new_data_4 = new_data_3[split_data4[k3]]
                                     if len(new_data_4):
-                                        split_data5 = separate_data(new_data_4, splitting_var="end_voltage")
+                                        split_data5 = separate_data(new_data_4,
+                                                                    splitting_var = "end_voltage")
                                         for k4 in split_data5.keys():
-                                            new_data_5 = new_data_4[split_data5[k4]]
+                                            new_data_5 = new_data_4[
+                                                split_data5[k4]]
                                             if len(new_data_5) > 0:
-                                                split_data6 = separate_data(new_data_5, splitting_var="end_voltage_prev")
+                                                split_data6 = separate_data(
+                                                    new_data_5,
+                                                    splitting_var = "end_voltage_prev")
                                                 for k5 in split_data6.keys():
-                                                    new_data_6 = new_data_5[split_data6[k5]]
+                                                    new_data_6 = new_data_5[
+                                                        split_data6[k5]]
                                                     if len(new_data_6) > 0:
-                                                        avg_constant_rate = numpy.mean(new_data_6["constant_rate"])
-                                                        avg_end_rate = numpy.mean(new_data_6["end_rate"])
-                                                        avg_end_rate_prev = numpy.mean(new_data_6["end_rate_prev"])
-                                                        avg_end_voltage = numpy.mean(new_data_6["end_voltage"])
-                                                        avg_end_voltage_prev = numpy.mean(new_data_6["end_voltage_prev"])
+                                                        avg_constant_rate = numpy.mean(
+                                                            new_data_6[
+                                                                "constant_rate"])
+                                                        avg_end_rate = numpy.mean(
+                                                            new_data_6[
+                                                                "end_rate"])
+                                                        avg_end_rate_prev = numpy.mean(
+                                                            new_data_6[
+                                                                "end_rate_prev"])
+                                                        avg_end_voltage = numpy.mean(
+                                                            new_data_6[
+                                                                "end_voltage"])
+                                                        avg_end_voltage_prev = numpy.mean(
+                                                            new_data_6[
+                                                                "end_voltage_prev"])
 
-                                                        summary_data[(avg_constant_rate, avg_end_rate, avg_end_rate_prev, avg_end_voltage, avg_end_voltage_prev)] = new_data_6
+                                                        summary_data[(
+                                                            avg_constant_rate,
+                                                            avg_end_rate,
+                                                            avg_end_rate_prev,
+                                                            avg_end_voltage,
+                                                            avg_end_voltage_prev)] = new_data_6
 
                 for k in summary_data.keys():
-                    cyc_group = CycleGroup(cell_id=cell_id,
-                                           constant_rate=math.exp(k[0]),
-                                           end_rate=math.exp(k[1]),
-                                           end_rate_prev=math.exp(k[2]),
-                                           end_voltage=k[3],
-                                           end_voltage_prev=k[4],
-                                           polarity=polarity
+                    cyc_group = CycleGroup(cell_id = cell_id,
+                                           constant_rate = math.exp(k[0]),
+                                           end_rate = math.exp(k[1]),
+                                           end_rate_prev = math.exp(k[2]),
+                                           end_voltage = k[3],
+                                           end_voltage_prev = k[4],
+                                           polarity = polarity
                                            )
 
                     cyc_group.save()
                     if polarity == CHARGE:
-                        Cycle.objects.filter(id__in=list(summary_data[k]["cycle_id"])).update(charge_group=cyc_group)
+                        Cycle.objects.filter(
+                            id__in = list(summary_data[k]["cycle_id"])).update(
+                            charge_group = cyc_group)
                     elif polarity == DISCHARGE:
-                        Cycle.objects.filter(id__in=list(summary_data[k]["cycle_id"])).update(discharge_group=cyc_group)
+                        Cycle.objects.filter(
+                            id__in = list(summary_data[k]["cycle_id"])).update(
+                            discharge_group = cyc_group)
 
 
-def process_single_file(f,DEBUG=False):
+def process_single_file(f, DEBUG = False):
     error_message = {"filename": f.database_file.filename}
     print("\tPROCESSING SINGLE FILE: {}".format(f.database_file.filename))
 
@@ -890,7 +983,7 @@ def process_single_file(f,DEBUG=False):
         with transaction.atomic():
             if f.process_time <= f.import_time:
                 # must process the step data to summarize i
-                for cyc in f.cycle_set.filter(processed=False):
+                for cyc in f.cycle_set.filter(processed = False):
 
                     for step in cyc.step_set.all():
                         dat = step.get_v_c_q_t_data()
@@ -905,20 +998,25 @@ def process_single_file(f,DEBUG=False):
                         sum i -> n-1 : (cap[i+1] - cap[i])
                         """
                         if len(dat) > 1:
-                            capacity_differences = numpy.absolute(numpy.diff(dat[:, 2]))
-                            voltage_differences = numpy.absolute(numpy.diff(dat[:, 0]))
+                            capacity_differences = numpy.absolute(
+                                numpy.diff(dat[:, 2]))
+                            voltage_differences = numpy.absolute(
+                                numpy.diff(dat[:, 0]))
 
                             voltage_averages = .5 * (dat[:-1, 0] + dat[1:, 0])
                             current_averages = .5 * (dat[:-1, 1] + dat[1:, 1])
                             if numpy.nanmax(capacity_differences) > 0:
-                                cur_avg_by_cap = numpy.average(current_averages, weights=capacity_differences)
-                                vol_avg_by_cap = numpy.average(voltage_averages, weights=capacity_differences)
+                                cur_avg_by_cap = numpy.average(current_averages,
+                                                               weights = capacity_differences)
+                                vol_avg_by_cap = numpy.average(voltage_averages,
+                                                               weights = capacity_differences)
                             else:
                                 cur_avg_by_cap = .5 * (cur_min + cur_max)
                                 vol_avg_by_cap = .5 * (v_min + v_max)
 
                             if numpy.nanmax(voltage_differences) > 0:
-                                cur_avg_by_vol = numpy.average(current_averages, weights=voltage_differences)
+                                cur_avg_by_vol = numpy.average(current_averages,
+                                                               weights = voltage_differences)
                             else:
                                 cur_avg_by_vol = .5 * (cur_min + cur_max)
 
@@ -940,8 +1038,9 @@ def process_single_file(f,DEBUG=False):
                         step.save()
 
                     # process the cycle
-                    discharge_query = Q(step_type__contains="DChg")
-                    charge_query = ~Q(step_type__contains="DChg") & Q(step_type__contains="Chg")
+                    discharge_query = Q(step_type__contains = "DChg")
+                    charge_query = ~Q(step_type__contains = "DChg") & Q(
+                        step_type__contains = "Chg")
                     discharge_data = numpy.array(
                         [
                             (step.total_capacity,
@@ -957,7 +1056,7 @@ def process_single_file(f,DEBUG=False):
                              )
                             for step in cyc.step_set.filter(discharge_query)
                         ],
-                        dtype=numpy.dtype(
+                        dtype = numpy.dtype(
                             [
                                 ("total_capacity", float),
                                 ("average_voltage", float),
@@ -985,7 +1084,7 @@ def process_single_file(f,DEBUG=False):
                              )
                             for step in cyc.step_set.filter(charge_query)
                         ],
-                        dtype=numpy.dtype(
+                        dtype = numpy.dtype(
                             [
                                 ("total_capacity", float),
                                 ("average_voltage", float),
@@ -1002,46 +1101,59 @@ def process_single_file(f,DEBUG=False):
 
                     # charge agregation
                     if len(charge_data) != 0:
-                        cyc.chg_total_capacity = numpy.sum(charge_data["total_capacity"])
+                        cyc.chg_total_capacity = numpy.sum(
+                            charge_data["total_capacity"])
                         cyc.chg_duration = numpy.sum(charge_data["duration"])
-                        cyc.chg_minimum_voltage = numpy.min(charge_data["minimum_voltage"])
-                        cyc.chg_maximum_voltage = numpy.max(charge_data["maximum_voltage"])
-                        cyc.chg_minimum_current = numpy.min(charge_data["minimum_current"])
-                        cyc.chg_maximum_current = numpy.max(charge_data["maximum_current"])
+                        cyc.chg_minimum_voltage = numpy.min(
+                            charge_data["minimum_voltage"])
+                        cyc.chg_maximum_voltage = numpy.max(
+                            charge_data["maximum_voltage"])
+                        cyc.chg_minimum_current = numpy.min(
+                            charge_data["minimum_current"])
+                        cyc.chg_maximum_current = numpy.max(
+                            charge_data["maximum_current"])
                         cyc.chg_average_voltage = numpy.average(
                             charge_data["average_voltage"],
-                            weights=1e-6 + charge_data["total_capacity"]
+                            weights = 1e-6 + charge_data["total_capacity"]
                         )
                         cyc.chg_average_current_by_capacity = numpy.average(
                             charge_data["average_current_by_capacity"],
-                            weights=1e-6 + charge_data["total_capacity"]
+                            weights = 1e-6 + charge_data["total_capacity"]
                         )
                         cyc.chg_average_current_by_voltage = numpy.average(
                             charge_data["average_current_by_voltage"],
-                            weights=1e-6 + charge_data["maximum_voltage"] - charge_data["minimum_voltage"]
+                            weights = 1e-6 + charge_data["maximum_voltage"] -
+                                      charge_data["minimum_voltage"]
                         )
                     else:
                         cyc.delete()
                         continue
 
                     if len(discharge_data) != 0:
-                        cyc.dchg_total_capacity = numpy.sum(discharge_data["total_capacity"])
-                        cyc.dchg_duration = numpy.sum(discharge_data["duration"])
-                        cyc.dchg_minimum_voltage = numpy.min(discharge_data["minimum_voltage"])
-                        cyc.dchg_maximum_voltage = numpy.max(discharge_data["maximum_voltage"])
-                        cyc.dchg_minimum_current = numpy.min(discharge_data["minimum_current"])
-                        cyc.dchg_maximum_current = numpy.max(discharge_data["maximum_current"])
+                        cyc.dchg_total_capacity = numpy.sum(
+                            discharge_data["total_capacity"])
+                        cyc.dchg_duration = numpy.sum(
+                            discharge_data["duration"])
+                        cyc.dchg_minimum_voltage = numpy.min(
+                            discharge_data["minimum_voltage"])
+                        cyc.dchg_maximum_voltage = numpy.max(
+                            discharge_data["maximum_voltage"])
+                        cyc.dchg_minimum_current = numpy.min(
+                            discharge_data["minimum_current"])
+                        cyc.dchg_maximum_current = numpy.max(
+                            discharge_data["maximum_current"])
                         cyc.dchg_average_voltage = numpy.average(
                             discharge_data["average_voltage"],
-                            weights=1e-6 + discharge_data["total_capacity"]
+                            weights = 1e-6 + discharge_data["total_capacity"]
                         )
                         cyc.dchg_average_current_by_capacity = numpy.average(
                             discharge_data["average_current_by_capacity"],
-                            weights=1e-6 + discharge_data["total_capacity"]
+                            weights = 1e-6 + discharge_data["total_capacity"]
                         )
                         cyc.dchg_average_current_by_voltage = numpy.average(
                             discharge_data["average_current_by_voltage"],
-                            weights=1e-6 + discharge_data["maximum_voltage"] - discharge_data["minimum_voltage"]
+                            weights = 1e-6 + discharge_data["maximum_voltage"] -
+                                      discharge_data["minimum_voltage"]
                         )
                     else:
                         cyc.delete()
@@ -1085,14 +1197,17 @@ def process_single_file(f,DEBUG=False):
     error_message["error"] = False
     return error_message
 
+
 def detect_point(mus, sigma, x):
-    return numpy.exp(-.5 *(sigma**-2.) * numpy.square(x - mus))
+    return numpy.exp(-.5 * (sigma ** -2.) * numpy.square(x - mus))
+
 
 def detect_line(mus, sigma, x_min, x_max):
-    return 0.5* (
-            special.erf(1./(sigma*numpy.sqrt(2.))*(x_max - mus)) -
-            special.erf(1./(sigma*numpy.sqrt(2.))*(x_min - mus))
+    return 0.5 * (
+        special.erf(1. / (sigma * numpy.sqrt(2.)) * (x_max - mus)) -
+        special.erf(1. / (sigma * numpy.sqrt(2.)) * (x_min - mus))
     )
+
 
 def detect_sign(signs, x):
     return numpy.where(
@@ -1101,11 +1216,12 @@ def detect_sign(signs, x):
         0.
     )
 
-def detect_step_cc( V_min, V_max, I, T, sign,
-                    voltage_grid,
-                    current_grid,
-                    temperature_grid,
-                    sign_grid):
+
+def detect_step_cc(V_min, V_max, I, T, sign,
+                   voltage_grid,
+                   current_grid,
+                   temperature_grid,
+                   sign_grid):
     sign_dim = detect_sign(
         sign_grid,
         sign
@@ -1113,37 +1229,37 @@ def detect_step_cc( V_min, V_max, I, T, sign,
 
     V_dim = detect_line(
         voltage_grid,
-        sigma=(voltage_grid[1] - voltage_grid[0]),
-        x_min=V_min,
-        x_max=V_max
+        sigma = (voltage_grid[1] - voltage_grid[0]),
+        x_min = V_min,
+        x_max = V_max
     )
 
     I_dim = detect_point(
         current_grid,
-        sigma=(current_grid[1] - current_grid[0]),
-        x=I,
+        sigma = (current_grid[1] - current_grid[0]),
+        x = I,
     )
 
     T_dim = detect_point(
         temperature_grid,
-        sigma=(temperature_grid[1] - temperature_grid[0]),
-        x=T,
+        sigma = (temperature_grid[1] - temperature_grid[0]),
+        x = T,
     )
 
     total_detect = (
-            numpy.reshape(sign_dim, [2, 1, 1, 1]) *
-            numpy.reshape(V_dim, [1, -1, 1, 1]) *
-            numpy.reshape(I_dim, [1, 1, -1, 1]) *
-            numpy.reshape(T_dim, [1, 1, 1, -1])
+        numpy.reshape(sign_dim, [2, 1, 1, 1]) *
+        numpy.reshape(V_dim, [1, -1, 1, 1]) *
+        numpy.reshape(I_dim, [1, 1, -1, 1]) *
+        numpy.reshape(T_dim, [1, 1, 1, -1])
     )
     return total_detect
 
 
-def detect_step_cv( V, I_min, I_max, T, sign,
-                    voltage_grid,
-                    current_grid,
-                    temperature_grid,
-                    sign_grid):
+def detect_step_cv(V, I_min, I_max, T, sign,
+                   voltage_grid,
+                   current_grid,
+                   temperature_grid,
+                   sign_grid):
     sign_dim = detect_sign(
         sign_grid,
         sign
@@ -1151,38 +1267,38 @@ def detect_step_cv( V, I_min, I_max, T, sign,
 
     V_dim = detect_point(
         voltage_grid,
-        sigma=(voltage_grid[1] - voltage_grid[0]),
-        x=V,
+        sigma = (voltage_grid[1] - voltage_grid[0]),
+        x = V,
     )
     I_dim = detect_line(
         current_grid,
-        sigma=(current_grid[1] - current_grid[0]),
-        x_min=I_min,
-        x_max=I_max
+        sigma = (current_grid[1] - current_grid[0]),
+        x_min = I_min,
+        x_max = I_max
     )
     T_dim = detect_point(
         temperature_grid,
-        sigma=(temperature_grid[1] - temperature_grid[0]),
-        x=T,
+        sigma = (temperature_grid[1] - temperature_grid[0]),
+        x = T,
     )
 
     total_detect = (
-            numpy.reshape(sign_dim, [2, 1, 1, 1]) *
-            numpy.reshape(V_dim, [1, -1, 1, 1]) *
-            numpy.reshape(I_dim, [1, 1, -1, 1]) *
-            numpy.reshape(T_dim, [1, 1, 1, -1])
+        numpy.reshape(sign_dim, [2, 1, 1, 1]) *
+        numpy.reshape(V_dim, [1, -1, 1, 1]) *
+        numpy.reshape(I_dim, [1, 1, -1, 1]) *
+        numpy.reshape(T_dim, [1, 1, 1, -1])
     )
     return total_detect
 
 
-
-def get_count_matrix(cyc, voltage_grid_degradation, current_grid, temperature_grid, sign_grid):
+def get_count_matrix(cyc, voltage_grid_degradation, current_grid,
+                     temperature_grid, sign_grid):
     steps = cyc.step_set.order_by("step_number")
     total = None
-    if len(steps)== 0:
+    if len(steps) == 0:
         return total
     for step in steps:
-        #TODO(sam):
+        # TODO(sam):
         # compute the matrix for a step
         if "CC_DChg" in step.step_type:
             sign = -1.
@@ -1191,7 +1307,10 @@ def get_count_matrix(cyc, voltage_grid_degradation, current_grid, temperature_gr
             I = current_to_log_current(step.constant_current)
             T = cyc.get_temperature()
 
-            total_detect = detect_step_cc(V_min, V_max, I, T, sign, voltage_grid_degradation, current_grid, temperature_grid, sign_grid)
+            total_detect = detect_step_cc(V_min, V_max, I, T, sign,
+                                          voltage_grid_degradation,
+                                          current_grid, temperature_grid,
+                                          sign_grid)
 
 
         elif "CC_Chg" in step.step_type:
@@ -1200,28 +1319,34 @@ def get_count_matrix(cyc, voltage_grid_degradation, current_grid, temperature_gr
             V_max = step.end_voltage
             I = current_to_log_current(step.constant_current)
             T = cyc.get_temperature()
-            total_detect = detect_step_cc(V_min, V_max, I, T, sign, voltage_grid_degradation, current_grid,
+            total_detect = detect_step_cc(V_min, V_max, I, T, sign,
+                                          voltage_grid_degradation,
+                                          current_grid,
                                           temperature_grid, sign_grid)
 
 
         elif "CCCV_Chg" in step.step_type:
             sign = 1.
 
-            #CC part
+            # CC part
             V_min = step.end_voltage_prev
             V_max = step.end_voltage
             I = current_to_log_current(step.constant_current)
             T = cyc.get_temperature()
-            total_detect_0 = detect_step_cc(V_min, V_max, I, T, sign, voltage_grid_degradation, current_grid,
-                                          temperature_grid, sign_grid)
+            total_detect_0 = detect_step_cc(V_min, V_max, I, T, sign,
+                                            voltage_grid_degradation,
+                                            current_grid,
+                                            temperature_grid, sign_grid)
 
-            #CV part
+            # CV part
             V = step.end_voltage
             I_max = current_to_log_current(step.constant_current)
             I_min = current_to_log_current(step.end_current)
 
-            total_detect_1 = detect_step_cv(V,I_min, I_max, T, sign, voltage_grid_degradation, current_grid,
-                                      temperature_grid, sign_grid)
+            total_detect_1 = detect_step_cv(V, I_min, I_max, T, sign,
+                                            voltage_grid_degradation,
+                                            current_grid,
+                                            temperature_grid, sign_grid)
 
             total_detect = total_detect_0 + total_detect_1
 
@@ -1242,16 +1367,15 @@ def get_non_redundent_mask(mat):
     :param mat:
     :return:
     """
-    mask = numpy.ones(len(mat), dtype=numpy.bool)
+    mask = numpy.ones(len(mat), dtype = numpy.bool)
     for i in range(1, len(mat)):
-        if mat[i] == mat[i-1]:
+        if mat[i] == mat[i - 1]:
             mask[i] = False
 
     return mask
 
 
 def reshuffle(x, y):
-
     sorted_ind = numpy.argsort(x)
     x = x[sorted_ind]
     y = y[sorted_ind]
@@ -1262,18 +1386,18 @@ def reshuffle(x, y):
     return x, y
 
 
-def resampler(x, y, x_n, flagged=False, log_space=False, delta_grace = 0.001):
-
-
+def resampler(x, y, x_n, flagged = False, log_space = False,
+              delta_grace = 0.001):
     x_min = numpy.min(x)
     x_max = numpy.max(x)
 
     if log_space:
-        new_x = numpy.exp(numpy.linspace(numpy.log(x_min), numpy.log(x_max), x_n))
+        new_x = numpy.exp(
+            numpy.linspace(numpy.log(x_min), numpy.log(x_max), x_n))
     else:
         new_x = numpy.linspace(x_min, x_max, x_n)
 
-    spline = PchipInterpolator(x, y, extrapolate=True)
+    spline = PchipInterpolator(x, y, extrapolate = True)
     new_y = spline(new_x)
     if flagged:
         print("new_x {}, x {}, y {}".format(
@@ -1290,17 +1414,17 @@ def resampler(x, y, x_n, flagged=False, log_space=False, delta_grace = 0.001):
             new_x >= (x_min - delta_grace),
             new_x <= (x_max + delta_grace)
         ),
-        numpy.ones(x_n, dtype=numpy.float32),
-        0.0 * numpy.ones(x_n, dtype=numpy.float32),
+        numpy.ones(x_n, dtype = numpy.float32),
+        0.0 * numpy.ones(x_n, dtype = numpy.float32),
     )
 
     mask = numpy.where(
         numpy.logical_and(
-            new_x >= (x_min ),
-            new_x <= (x_max )
+            new_x >= (x_min),
+            new_x <= (x_max)
         ),
-        numpy.ones(x_n, dtype=numpy.float32),
-        0.0 * numpy.ones(x_n, dtype=numpy.float32),
+        numpy.ones(x_n, dtype = numpy.float32),
+        0.0 * numpy.ones(x_n, dtype = numpy.float32),
     )
     if flagged:
         print("x_min {}, x_max {}, delta_grace {}, mask1 {}, mask {}".format(
@@ -1311,7 +1435,7 @@ def resampler(x, y, x_n, flagged=False, log_space=False, delta_grace = 0.001):
             mask
         ))
 
-    if not is_monotonically_increasing(new_x, mask=mask):
+    if not is_monotonically_increasing(new_x, mask = mask):
         new_x[:] = x[:x_n]
         new_y[:] = y[:x_n]
         new_mask[:] = 1.
@@ -1321,26 +1445,26 @@ def resampler(x, y, x_n, flagged=False, log_space=False, delta_grace = 0.001):
         if flagged:
             print("was increasing")
 
-
-
     return new_x, new_y, new_mask
 
 
-def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n,voltage_grid_min_v,voltage_grid_max_v,flagged=False):
-
+def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n,
+                          voltage_grid_min_v, voltage_grid_max_v,
+                          flagged = False):
     if flagged:
-        print("Starting Verbose ml_post_process_cycle(cyc={}, voltage_grid_n={}, step_type={}, current_max_n={}, voltage_grid_min_v={}, voltage_grid_max_v={}".format(
-            cyc,
-            voltage_grid_n,
-            step_type,
-            current_max_n,
-            voltage_grid_min_v,
-            voltage_grid_max_v
-        ))
-
+        print(
+            "Starting Verbose ml_post_process_cycle(cyc={}, voltage_grid_n={}, step_type={}, current_max_n={}, voltage_grid_min_v={}, voltage_grid_max_v={}".format(
+                cyc,
+                voltage_grid_n,
+                step_type,
+                current_max_n,
+                voltage_grid_min_v,
+                voltage_grid_max_v
+            ))
 
     if step_type == "dchg":
-        steps = cyc.step_set.filter(step_type__contains="CC_DChg").order_by("cycle__cycle_number","step_number")
+        steps = cyc.step_set.filter(step_type__contains = "CC_DChg").order_by(
+            "cycle__cycle_number", "step_number")
 
         if len(steps) == 0:
             if flagged:
@@ -1350,46 +1474,50 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n,voltage_
             first_step = steps[0]
             vcqt_curve = first_step.get_v_c_q_t_data()
             curve = vcqt_curve[:, [0, 2]]
-            curve[:, 1] = -1*curve[:,1]
+            curve[:, 1] = -1 * curve[:, 1]
             curve = numpy.flip(curve, 0)
             cv_curve = []
 
-
     if step_type == "chg":
-        steps = cyc.step_set.filter(step_type__contains="CC_Chg").order_by("cycle__cycle_number","step_number")
+        steps = cyc.step_set.filter(step_type__contains = "CC_Chg").order_by(
+            "cycle__cycle_number", "step_number")
         if len(steps) == 0:
             if flagged:
                 print("len(steps) was 0 first time.")
-            steps = cyc.step_set.filter(step_type__contains="CCCV_Chg").order_by("cycle__cycle_number", "step_number")
+            steps = cyc.step_set.filter(
+                step_type__contains = "CCCV_Chg").order_by(
+                "cycle__cycle_number", "step_number")
             if len(steps) == 0:
                 if flagged:
                     print("return because len(steps) was 0 second time")
                 return None
             else:
-                #has some CV data
+                # has some CV data
                 first_step = steps[0]
                 vcqt_curve = first_step.get_v_c_q_t_data()
 
-                if len(vcqt_curve)==1:
+                if len(vcqt_curve) == 1:
                     if flagged:
                         print("len(vcqt_curve) was 0")
-                    curve = vcqt_curve[:, [0,2]]
+                    curve = vcqt_curve[:, [0, 2]]
                     cv_curve = []
                 else:
                     if flagged:
                         print("len(vcqt_curve) was not 0")
-                    delta_currents = numpy.abs(vcqt_curve[1:,1] - vcqt_curve[:-1,1])
+                    delta_currents = numpy.abs(
+                        vcqt_curve[1:, 1] - vcqt_curve[:-1, 1])
                     delta_count = 0
                     for d in delta_currents:
                         if d < 5:
-                            delta_count+=1
+                            delta_count += 1
                         else:
                             break
 
                     if flagged:
-                        print('delta_currents = {}, delta_count = {}'.format(delta_currents, delta_count))
-                    curve = vcqt_curve[:delta_count+1, [0, 2]]
-                    cv_curve = vcqt_curve[delta_count+1:, [1,2]]
+                        print('delta_currents = {}, delta_count = {}'.format(
+                            delta_currents, delta_count))
+                    curve = vcqt_curve[:delta_count + 1, [0, 2]]
+                    cv_curve = vcqt_curve[delta_count + 1:, [1, 2]]
 
 
         else:
@@ -1398,28 +1526,26 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n,voltage_
             curve = vcqt_curve[:, [0, 2]]
             cv_curve = []
 
-
     within_bounds = numpy.logical_and(
-            voltage_grid_min_v <= curve[:,0],
-            curve[:, 0] <= voltage_grid_max_v
+        voltage_grid_min_v <= curve[:, 0],
+        curve[:, 0] <= voltage_grid_max_v
     )
 
     curve = curve[within_bounds, :]
 
     if flagged:
-        print("first_step = {}, vcqt_curve = {}, curve = {}, cv_curve = {}".format(
-            first_step,
-            vcqt_curve,
-            curve,
-            cv_curve
-        ))
+        print(
+            "first_step = {}, vcqt_curve = {}, curve = {}, cv_curve = {}".format(
+                first_step,
+                vcqt_curve,
+                curve,
+                cv_curve
+            ))
 
-
-
-    cursor = numpy.array([-1, len(curve)], dtype=numpy.int32)
-    limits_v = numpy.array([-10., 10.], dtype=numpy.float32)
-    limits_q = numpy.array([-1e6, 1e6], dtype=numpy.float32)
-    masks = numpy.zeros(len(curve), dtype=numpy.bool)
+    cursor = numpy.array([-1, len(curve)], dtype = numpy.int32)
+    limits_v = numpy.array([-10., 10.], dtype = numpy.float32)
+    limits_q = numpy.array([-1e6, 1e6], dtype = numpy.float32)
+    masks = numpy.zeros(len(curve), dtype = numpy.bool)
 
     never_added_up = True
     never_added_down = True
@@ -1438,14 +1564,16 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n,voltage_
 
         # Test upward addition (addition from the left)
         new_index = cursor[0] + 1
-        new_v = curve[new_index, 0] # should be more than limits_v[0] and less than limits_v[1]
-        new_q = curve[new_index, 1] # should be more than limits_q[0] and less than limits_q[1]
+        new_v = curve[
+            new_index, 0]  # should be more than limits_v[0] and less than limits_v[1]
+        new_q = curve[
+            new_index, 1]  # should be more than limits_q[0] and less than limits_q[1]
 
-        #should both be positive
+        # should both be positive
         dv1 = new_v - limits_v[0]
         dv2 = limits_v[1] - new_v
 
-        #should both be positive (with some tolerance)
+        # should both be positive (with some tolerance)
         dq1 = new_q - limits_q[0]
         dq2 = limits_q[1] - new_q
 
@@ -1467,8 +1595,10 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n,voltage_
         # Test downward addition
 
         new_index = cursor[1] - 1
-        new_v = curve[new_index, 0]  # should be more than limits_v[0] and less than limits_v[1]
-        new_q = curve[new_index, 1]  # should be more than limits_q[0] and less than limits_q[1]
+        new_v = curve[
+            new_index, 0]  # should be more than limits_v[0] and less than limits_v[1]
+        new_q = curve[
+            new_index, 1]  # should be more than limits_q[0] and less than limits_q[1]
 
         # should both be positive
         dv1 = new_v - limits_v[0]
@@ -1537,10 +1667,12 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n,voltage_
     invalid_curve = curve[~masks]
 
     if flagged:
-        print("valid_curve {}, invalid_curve {}".format(valid_curve, invalid_curve))
+        print("valid_curve {}, invalid_curve {}".format(valid_curve,
+                                                        invalid_curve))
     if len(invalid_curve) > 20:
         if flagged:
-            print("too many invalids {}. (valids were {})".format(invalid_curve, valid_curve))
+            print("too many invalids {}. (valids were {})".format(invalid_curve,
+                                                                  valid_curve))
         return None
 
     if len(valid_curve) == 0:
@@ -1548,19 +1680,15 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n,voltage_
             print("not enough valids. curve was {}".format(curve))
         return None
 
-
     # uniformly sample it
 
-
     v, q = reshuffle(
-        x=valid_curve[:, 0],
-        y=valid_curve[:, 1],
+        x = valid_curve[:, 0],
+        y = valid_curve[:, 1],
     )
-
 
     if flagged:
         print("sorted: v: {}, q: {}".format(v, q))
-
 
     if step_type == "dchg":
 
@@ -1571,7 +1699,8 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n,voltage_
         last_cc_capacity = q[-1]
 
     if flagged:
-        print("last_cc_voltage {}, last_cc_capacity {}".format(last_cc_voltage, last_cc_capacity))
+        print("last_cc_voltage {}, last_cc_capacity {}".format(last_cc_voltage,
+                                                               last_cc_capacity))
 
     if len(cv_curve) > 0:
         last_cv_capacity = cv_curve[-1, 1]
@@ -1581,10 +1710,9 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n,voltage_
     if flagged:
         print("last_cv_capacity {}".format(last_cv_capacity))
 
-
-    cv_currents = numpy.zeros(shape=(current_max_n), dtype=numpy.float32)
-    cv_qs = numpy.zeros(shape=(current_max_n), dtype=numpy.float32)
-    cv_mask = numpy.zeros(shape=(current_max_n), dtype=numpy.float32)
+    cv_currents = numpy.zeros(shape = (current_max_n), dtype = numpy.float32)
+    cv_qs = numpy.zeros(shape = (current_max_n), dtype = numpy.float32)
+    cv_mask = numpy.zeros(shape = (current_max_n), dtype = numpy.float32)
 
     if len(cv_curve) > 0:
         if current_max_n >= len(cv_curve):
@@ -1595,49 +1723,45 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n,voltage_
         else:
             # uniformly sample it
             cv_x, cv_y = reshuffle(
-                x=cv_curve[:, 0],
-                y=cv_curve[:, 1],
+                x = cv_curve[:, 0],
+                y = cv_curve[:, 1],
             )
 
             cv_currents, cv_qs, cv_mask = resampler(
                 x = cv_x,
                 y = cv_y,
-                x_n =current_max_n,
-                flagged=flagged,
-                log_space=True
+                x_n = current_max_n,
+                flagged = flagged,
+                log_space = True
             )
-
-
-
-
-
-
 
     if voltage_grid_n >= len(v):
         if flagged:
             print("len(voltage_grid) >= len(v)")
-        voltages = numpy.zeros(shape=( voltage_grid_n), dtype=numpy.float32)
-        qs = numpy.zeros(shape=( voltage_grid_n), dtype=numpy.float32)
-        mask = numpy.zeros(shape=( voltage_grid_n), dtype=numpy.float32)
+        voltages = numpy.zeros(shape = (voltage_grid_n), dtype = numpy.float32)
+        qs = numpy.zeros(shape = (voltage_grid_n), dtype = numpy.float32)
+        mask = numpy.zeros(shape = (voltage_grid_n), dtype = numpy.float32)
 
         voltages[:len(v)] = v[:]
-        qs[:len(v)] =  q[:]
+        qs[:len(v)] = q[:]
         mask[:len(v)] = 1.0
         if flagged:
             print("voltages {}, qs {}, mask {}".format(voltages, qs, mask))
 
-        return {"cc_voltages":voltages, "cc_capacities":qs, "cc_masks":mask,
-                "cv_currents": cv_currents, "cv_capacities": cv_qs, "cv_masks": cv_mask,
-                "end_current_prev": first_step.end_current_prev,
-                "end_current": first_step.end_current,
+        return {
+            "cc_voltages": voltages, "cc_capacities": qs, "cc_masks": mask,
+            "cv_currents": cv_currents, "cv_capacities": cv_qs,
+            "cv_masks": cv_mask,
+            "end_current_prev": first_step.end_current_prev,
+            "end_current": first_step.end_current,
 
-                "end_voltage_prev": first_step.end_voltage_prev,
-                "end_voltage": first_step.end_voltage,
+            "end_voltage_prev": first_step.end_voltage_prev,
+            "end_voltage": first_step.end_voltage,
 
-                "constant_current": first_step.constant_current,
-                "last_cc_voltage": last_cc_voltage,
-                "last_cc_capacity": last_cc_capacity,
-                "last_cv_capacity": last_cv_capacity,
+            "constant_current": first_step.constant_current,
+            "last_cc_voltage": last_cc_voltage,
+            "last_cc_capacity": last_cc_capacity,
+            "last_cv_capacity": last_cv_capacity,
         }
     if flagged:
         print("len(voltage_grid) < len(v)")
@@ -1647,34 +1771,28 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n,voltage_
         y = q,
         x_n = voltage_grid_n,
         flagged = flagged,
-        log_space=False
+        log_space = False
     )
 
+    # TODO(sam): treat and include the CV data as well.
+    return {
+        "cc_voltages": voltages, "cc_capacities": cc_capacities,
+        "cc_masks": cc_masks,
+        "cv_currents": cv_currents, "cv_capacities": cv_qs, "cv_masks": cv_mask,
+        "end_current_prev": first_step.end_current_prev,
+        "end_current": first_step.end_current,
 
-    #TODO(sam): treat and include the CV data as well.
-    return {"cc_voltages":voltages, "cc_capacities":cc_capacities, "cc_masks":cc_masks,
-            "cv_currents": cv_currents, "cv_capacities": cv_qs, "cv_masks": cv_mask,
-            "end_current_prev": first_step.end_current_prev,
-            "end_current": first_step.end_current,
-
-            "end_voltage_prev": first_step.end_voltage_prev,
-            "end_voltage": first_step.end_voltage,
-            "constant_current": first_step.constant_current,
-            "last_cc_voltage": last_cc_voltage,
-            "last_cc_capacity": last_cc_capacity,
-            "last_cv_capacity": last_cv_capacity,
-        }
-
-
-
+        "end_voltage_prev": first_step.end_voltage_prev,
+        "end_voltage": first_step.end_voltage,
+        "constant_current": first_step.constant_current,
+        "last_cc_voltage": last_cc_voltage,
+        "last_cc_capacity": last_cc_capacity,
+        "last_cv_capacity": last_cv_capacity,
+    }
 
 
-
-
-
-
-
-def bulk_process(DEBUG=False, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10, cell_ids = None):
+def bulk_process(DEBUG = False, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10,
+                 cell_ids = None):
     """
     TEMPDOC
     first calls process_single_file
@@ -1690,17 +1808,19 @@ def bulk_process(DEBUG=False, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10, cell_ids
     """
     if cell_ids is None:
         errors = list(map(lambda x: process_single_file(x, DEBUG),
-                         CyclingFile.objects.filter(database_file__deprecated=False,
-                                                    process_time__lte = F("import_time"))))
+                          CyclingFile.objects.filter(
+                              database_file__deprecated = False,
+                              process_time__lte = F("import_time"))))
         all_current_cell_ids = CyclingFile.objects.filter(
-            database_file__deprecated=False).values_list(
-            "database_file__valid_metadata__cell_id", flat=True).distinct()
+            database_file__deprecated = False).values_list(
+            "database_file__valid_metadata__cell_id", flat = True).distinct()
 
     else:
         errors = list(map(lambda x: process_single_file(x, DEBUG),
-                          CyclingFile.objects.filter(database_file__deprecated=False,
-                                                     database_file__valid_metadata__cell_id__in=cell_ids,
-                                                     process_time__lte=F("import_time"))))
+                          CyclingFile.objects.filter(
+                              database_file__deprecated = False,
+                              database_file__valid_metadata__cell_id__in = cell_ids,
+                              process_time__lte = F("import_time"))))
         all_current_cell_ids = cell_ids
 
     for cell_id in all_current_cell_ids:
@@ -1711,11 +1831,10 @@ def bulk_process(DEBUG=False, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS=10, cell_ids
     return list(filter(lambda x: x["error"], errors))
 
 
-
-def bulk_deprecate(cell_ids=None):
+def bulk_deprecate(cell_ids = None):
     if cell_ids is None:
         all_current_cell_ids = get_good_neware_files().values_list(
-            "valid_metadata__cell_id", flat=True).distinct()
+            "valid_metadata__cell_id", flat = True).distinct()
     else:
         all_current_cell_ids = cell_ids
 
@@ -1726,7 +1845,7 @@ def bulk_deprecate(cell_ids=None):
         )
 
 
-@background(schedule=5)
+@background(schedule = 5)
 def full_import_cell_ids(cell_ids):
     """
     TEMPDOC(sam):
@@ -1738,9 +1857,10 @@ def full_import_cell_ids(cell_ids):
     :param cell_ids:
     :return:
     """
-    #TODO(sam): split into smaller batches?
+    # TODO(sam): split into smaller batches?
     with transaction.atomic():
-        bulk_deprecate(cell_ids) #TODO what does deprecate do?
-        bulk_import(cell_ids=cell_ids, DEBUG=False) #TODO what does import do?
-        bulk_process(DEBUG=False, cell_ids=cell_ids) #TODO what does process do?
-
+        bulk_deprecate(cell_ids)  # TODO what does deprecate do?
+        bulk_import(cell_ids = cell_ids,
+                    DEBUG = False)  # TODO what does import do?
+        bulk_process(DEBUG = False,
+                     cell_ids = cell_ids)  # TODO what does process do?

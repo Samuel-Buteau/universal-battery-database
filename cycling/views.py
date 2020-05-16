@@ -23,7 +23,7 @@ import base64
 from django.db.models import Q, F
 from plot import plot_cycling_direct
 
-import numpy
+import numpy as np
 
 
 def split_interval(initial, n, M, i):
@@ -89,7 +89,7 @@ def view_cell_id(request, cell_id, cursor):
                     cycling_file = f).order_by("cycle_number").values_list(
                     "cycle_number", flat = True)]))
 
-        cycle_list = numpy.sort(numpy.array(list(c_curves)))
+        cycle_list = np.sort(np.array(list(c_curves)))
         interval = (0, len(cycle_list))
 
         """
@@ -603,12 +603,12 @@ CycleHeaderValue = ["Charge Capacity (mAh)", "Discharge Capacity (mAh)",
 CycleHeaderKey = ["Cycle Number"]
 
 
-def convert_to_csv2(headers, numpy_content):
+def convert_to_csv2(headers, np_content):
     contents = ""
     for header in headers:
         contents += ",".join(header) + "\n"
-    for numpy_content_i in numpy_content:
-        contents += ",".join(numpy_content_i) + "\n"
+    for np_content_i in np_content:
+        contents += ",".join(np_content_i) + "\n"
     return contents
 
 
@@ -621,7 +621,7 @@ def ExportStep(my_step_data):
                     str(field) for field in
                     my_step_data[cycle][step][1]])
 
-    my_content = numpy.array(my_content)
+    my_content = np.array(my_content)
 
     # cap, v_avg, v_min, v_max, cur_avg_by_cap, cur_avg_by_vol, cur_min,cur_max, time
     my_content = convert_to_csv2([StepHeaderKey + StepHeaderValue], my_content)
@@ -634,7 +634,7 @@ def ExportCycle(my_cycle_data):
         my_content.append(
             [str(cycle)] + [str(field) for field in my_cycle_data[cycle]])
 
-    my_content = numpy.array(my_content)
+    my_content = np.array(my_content)
 
     # cap, v_avg, v_min, v_max, cur_avg_by_cap, cur_avg_by_vol, cur_min,cur_max, time
     my_content = convert_to_csv2([CycleHeaderKey + CycleHeaderValue],
@@ -660,7 +660,7 @@ second_header_line = 6 * lab_header
 
 
 def ExportRateMaps(my_rate_maps):
-    my_content = numpy.array(
+    my_content = np.array(
         [[str(my_rate_maps_i_i) for my_rate_maps_i_i in my_rate_maps_i] for
          my_rate_maps_i in my_rate_maps])
 
@@ -670,7 +670,7 @@ def ExportRateMaps(my_rate_maps):
 
 
 def ExportRobyPattern(my_rate_maps):
-    my_content = numpy.array(
+    my_content = np.array(
         [[str(my_rate_maps_i_i) for my_rate_maps_i_i in my_rate_maps_i] for
          my_rate_maps_i in my_rate_maps])
 
@@ -679,7 +679,7 @@ def ExportRobyPattern(my_rate_maps):
 
 
 def ExportSeparateRate(my_rate_maps):
-    my_content = numpy.array(
+    my_content = np.array(
         [[str(my_rate_maps_i_i) for my_rate_maps_i_i in my_rate_maps_i] for
          my_rate_maps_i in my_rate_maps])
 

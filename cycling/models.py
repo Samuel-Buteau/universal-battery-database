@@ -10,6 +10,11 @@ from io import BytesIO
 from Key import Key
 import plot_constants
 
+CHARGE = 'chg'
+DISCHARGE = 'dchg'
+
+POLARITIES = [(CHARGE, 'CHARGE'), (DISCHARGE, 'DISCHARGE')]
+
 
 def id_dict_from_id_list(id_list):
     n = len(id_list)
@@ -36,8 +41,7 @@ def make_voltage_grid(min_v, max_v, n_samples, my_cell_ids):
     if n_samples < 2:
         n_samples = 2
     all_cycs = Cycle.objects.filter(
-        discharge_group__cell_id__in = my_cell_ids,
-        valid_cycle = True
+        discharge_group__cell_id__in = my_cell_ids, valid_cycle = True,
     )
     my_max = max(
         all_cycs.aggregate(Max("chg_maximum_voltage"))[
@@ -67,16 +71,19 @@ def make_current_grid(min_c, max_c, n_samples, my_cell_ids):
     if n_samples < 2:
         n_samples = 2
     all_cycs = Cycle.objects.filter(
-        discharge_group__cell_id__in = my_cell_ids,
-        valid_cycle = True
+        discharge_group__cell_id__in = my_cell_ids, valid_cycle = True,
     )
-    my_max = max(abs(
-        all_cycs.aggregate(Max("chg_maximum_current"))[
-            "chg_maximum_current__max"
-        ]),
-        abs(all_cycs.aggregate(Max("dchg_maximum_current"))[
+    my_max = max(
+        abs(
+            all_cycs.aggregate(Max("chg_maximum_current"))[
+                "chg_maximum_current__max"
+            ]
+        ),
+        abs(
+            all_cycs.aggregate(Max("dchg_maximum_current"))[
                 "dchg_maximum_current__max"
-            ])
+            ]
+        )
     )
 
     my_min = min(
@@ -200,30 +207,22 @@ def make_file_legends_and_vertical(
     file_leg = []
     if len(files_cell_id) >= 1:
         for f_i, f in enumerate(files_cell_id):
+            start_cycle = f.database_file.valid_metadata.start_cycle
             if show_invalid:
-                min_cycle = Cycle.objects.filter(
+                min_cycle = start_cycle + Cycle.objects.filter(
                     cycling_file = f
-                ).aggregate(
-                    Min("cycle_number")
-                )[
-                                "cycle_number__min"] + f.database_file.valid_metadata.start_cycle
-                max_cycle = Cycle.objects.filter(cycling_file = f).aggregate(
-                    Max("cycle_number"))[
-                                "cycle_number__max"] + f.database_file.valid_metadata.start_cycle
+                ).aggregate(Min("cycle_number"))["cycle_number__min"]
+                max_cycle = start_cycle + Cycle.objects.filter(
+                    cycling_file = f
+                ).aggregate(Max("cycle_number"))["cycle_number__max"]
 
             else:
-                min_cycle = Cycle.objects.filter(
+                min_cycle = start_cycle + Cycle.objects.filter(
                     cycling_file = f, valid_cycle = True,
-                ).aggregate(
-                    Min("cycle_number")
-                )["cycle_number__min"]\
-                            + f.database_file.valid_metadata.start_cycle
-                max_cycle = Cycle.objects.filter(
+                ).aggregate(Min("cycle_number"))["cycle_number__min"]
+                max_cycle = start_cycle + Cycle.objects.filter(
                     cycling_file = f, valid_cycle = True,
-                ).aggregate(
-                    Max("cycle_number")
-                )["cycle_number__max"]\
-                            + f.database_file.valid_metadata.start_cycle
+                ).aggregate(Max("cycle_number"))["cycle_number__max"]
 
             if lower_cycle is not None:
                 if min_cycle < lower_cycle:
@@ -245,13 +244,14 @@ def make_file_legends_and_vertical(
             )
             file_leg.append(
                 (
-                    bla, "File {} Last Modif: {}-{}-{}. Size: {}KB".format(
+                    bla,
+                    "File {} Last Modif: {}-{}-{}. Size: {}KB".format(
                         f_i,
                         f.database_file.last_modified.year,
                         f.database_file.last_modified.month,
                         f.database_file.last_modified.day,
-                        int(f.database_file.filesize / 1024)
-                    )
+                        int(f.database_file.filesize / 1024),
+                    ),
                 )
             )
 
@@ -267,21 +267,27 @@ def make_file_legends_and_vertical(
             else:
                 min_x, max_x = (
                     vertical_barriers[index_set_i - 1],
-                    vertical_barriers[index_set_i])
+                    vertical_barriers[index_set_i],
+                )
             print(min_x, max_x)
-            ax.axvspan(min_x, max_x, facecolor = col,
-                       alpha = 0.1)
-            plt.text(0.9 * min_x + .1 * max_x,
-                     .99 * ax.get_ylim()[0] + .01 * ax.get_ylim()[1],
-                     list_all_options[index_set_i], size = 18)
+            ax.axvspan(min_x, max_x, facecolor = col, alpha = 0.1)
+            plt.text(
+                0.9 * min_x + .1 * max_x,
+                .99 * ax.get_ylim()[0] + .01 * ax.get_ylim()[1],
+                list_all_options[index_set_i],
+                size = 18,
+            )
 
         for index_set_i in range(len(list_all_options) - 1):
-            plt.axvline(x = vertical_barriers[index_set_i], color = "k",
-                        linestyle = "--")
+            plt.axvline(
+                x = vertical_barriers[index_set_i],
+                color = "k", linestyle = "--",
+            )
 
-    ax.tick_params(direction = "in", length = 7, width = 2, labelsize = 11,
-                   bottom = True, top = True, left = True,
-                   right = True)
+    ax.tick_params(
+        direction = "in", length = 7, width = 2, labelsize = 11,
+        bottom = True, top = True, left = True, right = True,
+    )
 
     if len(file_leg) > 0:
         if list_all_options is None:
@@ -295,8 +301,9 @@ def make_file_legends_and_vertical(
 def get_byte_image(fig, dpi):
     buf = BytesIO()
     plt.savefig(buf, format = "png", dpi = dpi)
-    image_base64 = base64.b64encode(buf.getvalue()).decode("utf-8").replace(
-        "\n", "")
+    image_base64 = base64.b64encode(
+        buf.getvalue()
+    ).decode("utf-8").replace("\n", "")
     buf.close()
     plt.close(fig)
     return image_base64
@@ -305,14 +312,17 @@ def get_byte_image(fig, dpi):
 # TODO(sam): use common mechanism as in compile_dataset/ml_smoothing for ordering
 # TODO(sam): set default color rules in the UI.
 def get_discharge_groups_from_cell_id(cell_id):
-    return list(CycleGroup.objects.filter(cell_id = cell_id,
-                                          polarity = DISCHARGE).order_by(
-        "constant_rate"))
+    return list(
+        CycleGroup.objects.filter(
+            cell_id = cell_id, polarity = DISCHARGE,
+        ).order_by("constant_rate")
+    )
 
 
 class CyclingFile(models.Model):
-    database_file = models.OneToOneField(filename_database.models.DatabaseFile,
-                                         on_delete = models.CASCADE)
+    database_file = models.OneToOneField(
+        filename_database.models.DatabaseFile, on_delete = models.CASCADE,
+    )
     import_time = models.DateTimeField(default = datetime.datetime(1970, 1, 1))
     process_time = models.DateTimeField(default = datetime.datetime(1970, 1, 1))
 
@@ -341,9 +351,7 @@ class CyclingFile(models.Model):
                     cyc.dchg_minimum_current,
                     cyc.dchg_maximum_current,
                     cyc.dchg_duration,
-
                 )
-
                 for cyc in self.cycle_set.filter(fil).order_by("cycle_number")
             ],
             dtype = [
@@ -368,19 +376,8 @@ class CyclingFile(models.Model):
                 ("dchg_minimum_current", float),
                 ("dchg_maximum_current", float),
                 ("dchg_duration", float),
-
             ]
         )
-
-
-CHARGE = 'chg'
-DISCHARGE = 'dchg'
-
-POLARITIES = [
-    (CHARGE, 'CHARGE'),
-    (DISCHARGE, 'DISCHARGE'),
-
-]
 
 
 class CycleGroup(models.Model):
@@ -390,8 +387,9 @@ class CycleGroup(models.Model):
     end_rate_prev = models.FloatField()
     end_voltage = models.FloatField()
     end_voltage_prev = models.FloatField()
-    polarity = models.CharField(max_length = 4, choices = POLARITIES,
-                                blank = True)
+    polarity = models.CharField(
+        max_length = 4, choices = POLARITIES, blank = True,
+    )
 
 
 class Cycle(models.Model):
@@ -402,8 +400,9 @@ class Cycle(models.Model):
         """
         Really important that this only be called when the file is known to be valid!!!
         """
-        return float(
-            self.cycling_file.database_file.valid_metadata.start_cycle) + self.cycle_number
+        return self.cycle_number + float(
+            self.cycling_file.database_file.valid_metadata.start_cycle
+        )
 
     def get_temperature(self):
         """
@@ -411,12 +410,14 @@ class Cycle(models.Model):
         """
         return float(self.cycling_file.database_file.valid_metadata.temperature)
 
-    charge_group = models.ForeignKey(CycleGroup, null = True,
-                                     on_delete = models.SET_NULL,
-                                     related_name = 'charge_group')
-    discharge_group = models.ForeignKey(CycleGroup, null = True,
-                                        on_delete = models.SET_NULL,
-                                        related_name = 'discharge_group')
+    charge_group = models.ForeignKey(
+        CycleGroup, null = True,
+        on_delete = models.SET_NULL, related_name = 'charge_group',
+    )
+    discharge_group = models.ForeignKey(
+        CycleGroup, null = True,
+        on_delete = models.SET_NULL, related_name = 'discharge_group'
+    )
 
     valid_cycle = models.BooleanField(default = True)
 
@@ -445,7 +446,8 @@ class Cycle(models.Model):
     def get_first_discharge_step(self):
 
         steps = self.step_set.filter(step_type__contains = "CC_DChg").order_by(
-            "cycle__cycle_number", "step_number")
+            "cycle__cycle_number", "step_number",
+        )
 
         if len(steps) == 0:
             return None
@@ -453,16 +455,13 @@ class Cycle(models.Model):
             return steps[0]
 
     def get_first_charge_step(self):
-        steps = self.step_set.filter(step_type__contains = "CC_Chg").order_by(
-            "cycle__cycle_number",
-            "step_number"
-        )
+        steps = self.step_set.filter(
+            step_type__contains = "CC_Chg"
+        ).order_by("cycle__cycle_number", "step_number")
         if len(steps) == 0:
             steps = self.step_set.filter(
-                step_type__contains = "CCCV_Chg").order_by(
-                "cycle__cycle_number",
-                "step_number"
-            )
+                step_type__contains = "CCCV_Chg"
+            ).order_by("cycle__cycle_number", "step_number")
         if len(steps) == 0:
             return None
         else:

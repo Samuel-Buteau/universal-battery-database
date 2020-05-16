@@ -1804,42 +1804,44 @@ def ml_post_process_cycle(cyc, voltage_grid_n, step_type, current_max_n,
     }
 
 
-def bulk_process(DEBUG = False, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10,
-                 cell_ids = None):
+def bulk_process(
+    debug = False, number_of_cycles_before_rate_analysis = 10, cell_ids = None,
+):
     """
     TEMPDOC
-    first calls process_single_file
-
-    then,
-
-    calls process_cell_id
-
-    :param DEBUG:
-    :param NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS:
-    :param cell_ids:
-    :return:
+    first calls process_single_file then, calls process_cell_id
     """
     if cell_ids is None:
-        errors = list(map(lambda x: process_single_file(x, DEBUG),
-                          CyclingFile.objects.filter(
-                              database_file__deprecated = False,
-                              process_time__lte = F("import_time"))))
+        errors = list(
+            map(
+                lambda x: process_single_file(x, debug),
+                CyclingFile.objects.filter(
+                    database_file__deprecated = False,
+                    process_time__lte = F("import_time"),
+                )
+            )
+        )
         all_current_cell_ids = CyclingFile.objects.filter(
-            database_file__deprecated = False).values_list(
-            "database_file__valid_metadata__cell_id", flat = True).distinct()
+            database_file__deprecated = False
+        ).values_list(
+            "database_file__valid_metadata__cell_id", flat = True,
+        ).distinct()
 
     else:
-        errors = list(map(lambda x: process_single_file(x, DEBUG),
-                          CyclingFile.objects.filter(
-                              database_file__deprecated = False,
-                              database_file__valid_metadata__cell_id__in = cell_ids,
-                              process_time__lte = F("import_time"))))
+        errors = list(
+            map(
+                lambda x: process_single_file(x, debug),
+                CyclingFile.objects.filter(
+                    database_file__deprecated = False,
+                    database_file__valid_metadata__cell_id__in = cell_ids,
+                    process_time__lte = F("import_time"),
+                )
+            )
+        )
         all_current_cell_ids = cell_ids
 
     for cell_id in all_current_cell_ids:
-        process_cell_id(
-            cell_id,
-            NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS)
+        process_cell_id(cell_id, number_of_cycles_before_rate_analysis)
 
     return list(filter(lambda x: x["error"], errors))
 
@@ -1847,15 +1849,14 @@ def bulk_process(DEBUG = False, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10,
 def bulk_deprecate(cell_ids = None):
     if cell_ids is None:
         all_current_cell_ids = get_good_neware_files().values_list(
-            "valid_metadata__cell_id", flat = True).distinct()
+            "valid_metadata__cell_id", flat = True,
+        ).distinct()
     else:
         all_current_cell_ids = cell_ids
 
     for cell_id in all_current_cell_ids:
         print("\tDEFAULT DEPRECATION OF CELL ID:{}".format(cell_id))
-        default_deprecation(
-            cell_id
-        )
+        default_deprecation(cell_id)
 
 
 @background(schedule = 5)
@@ -1864,16 +1865,12 @@ def full_import_cell_ids(cell_ids):
     TEMPDOC(sam):
     this gets called when asking to trigger a reimport
     TODO(sam): does it create CycleGroups?
-
-
-
-    :param cell_ids:
-    :return:
     """
     # TODO(sam): split into smaller batches?
     with transaction.atomic():
-        bulk_deprecate(cell_ids)  # TODO what does deprecate do?
-        bulk_import(cell_ids = cell_ids,
-                    debug = False)  # TODO what does import do?
-        bulk_process(DEBUG = False,
-                     cell_ids = cell_ids)  # TODO what does process do?
+        # TODO what does deprecate do?
+        bulk_deprecate(cell_ids)
+        # TODO what does import do?
+        bulk_import(cell_ids = cell_ids, debug = False)
+        # TODO what does process do?
+        bulk_process(debug = False, cell_ids = cell_ids)

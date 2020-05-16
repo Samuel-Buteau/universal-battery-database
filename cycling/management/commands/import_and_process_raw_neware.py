@@ -20,8 +20,8 @@ def import_and_process(args):
         print()
     print("BULK PROCESS")
     errors = bulk_process(
-        DEBUG = args["DEBUG"],
-        NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = args[
+        debug = args["DEBUG"],
+        number_of_cycles_before_rate_analysis = args[
             "NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS"])
     if len(errors) > 0:
         print("ERRORS IN BULK PROCESS: {}".format(errors))

@@ -1774,7 +1774,7 @@ class WetCell(models.Model):
     electrolyte = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True, blank=True)
     dry_cell = models.ForeignKey(DryCellLot, on_delete=models.SET_NULL, null=True, blank=True)
     def __str__(self):
-        cell_id_str = 'No Barcode'
+        cell_id_str = 'No cell id'
         if self.cell_id is not None:
             cell_id_str = '{}'.format(self.cell_id)
         electrolyte_str = '?'
@@ -1784,7 +1784,7 @@ class WetCell(models.Model):
         if self.dry_cell is not None:
             dry_cell_str = '{}'.format(self.dry_cell)
 
-        return 'BARCODE: {}, ELECTROLYTE: {}, DRY CELL: {}'.format(cell_id_str, electrolyte_str, dry_cell_str)
+        return 'CELL ID: {}, ELECTROLYTE: {}, DRY CELL: {}'.format(cell_id_str, electrolyte_str, dry_cell_str)
 
 
 
@@ -1802,4 +1802,49 @@ class DatasetSpecificCellName(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['dataset', 'name'], name='unique_dataset_specific_name')
+        ]
+
+
+
+
+class DatasetSpecificFilters(models.Model):
+    ANY = 'any'
+    INTERVAL = 'int'
+    FILTER_TYPES = [
+        (ANY, 'match any'),
+        (INTERVAL, 'match interval'),
+    ]
+
+    name = models.CharField(blank=True, max_length=200)
+    wet_cell = models.ForeignKey(WetCell, on_delete=models.CASCADE, null=True, blank=True)
+    dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE, null=True, blank=True)
+
+    match_none_charge = models.BooleanField(default=False)
+    match_none_discharge = models.BooleanField(default=False)
+
+    charge_constant_rate_min = models.FloatField()
+    charge_end_rate_min = models.FloatField()
+    charge_end_rate_prev_min = models.FloatField()
+    charge_end_voltage_min = models.FloatField()
+    charge_end_voltage_prev_min = models.FloatField()
+    charge_constant_rate_max = models.FloatField()
+    charge_end_rate_max = models.FloatField()
+    charge_end_rate_prev_max = models.FloatField()
+    charge_end_voltage_max = models.FloatField()
+    charge_end_voltage_prev_max = models.FloatField()
+
+    discharge_constant_rate_min = models.FloatField()
+    discharge_end_rate_min = models.FloatField()
+    discharge_end_rate_prev_min = models.FloatField()
+    discharge_end_voltage_min = models.FloatField()
+    discharge_end_voltage_prev_min = models.FloatField()
+    discharge_constant_rate_max = models.FloatField()
+    discharge_end_rate_max = models.FloatField()
+    discharge_end_rate_prev_max = models.FloatField()
+    discharge_end_voltage_max = models.FloatField()
+    discharge_end_voltage_prev_max = models.FloatField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['dataset', 'wet_cell', 'name'], name='unique_dataset_cell_filter_name')
         ]

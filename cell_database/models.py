@@ -1793,3 +1793,13 @@ class Dataset(models.Model):
     wet_cells = models.ManyToManyField(WetCell)
     def __str__(self):
         return self.name
+
+class DatasetSpecificCellName(models.Model):
+    name = models.CharField(blank=True, max_length=200)
+    wet_cell = models.ForeignKey(WetCell, on_delete=models.CASCADE, null=True, blank=True)
+    dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE, null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['dataset', 'name'], name='unique_dataset_specific_name')
+        ]

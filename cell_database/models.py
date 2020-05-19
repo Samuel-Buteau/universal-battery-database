@@ -3,7 +3,7 @@ from django.db.models import Q, F, Func, Count,Exists, OuterRef
 import datetime
 import numpy
 import re
-
+from colorful.fields import RGBColorField
 from enum import Enum
 
 
@@ -1807,6 +1807,7 @@ class DatasetSpecificCellName(models.Model):
 
 
 
+
 class DatasetSpecificFilters(models.Model):
     ANY = 'any'
     INTERVAL = 'int'
@@ -1818,6 +1819,9 @@ class DatasetSpecificFilters(models.Model):
     name = models.CharField(blank=True, max_length=200)
     wet_cell = models.ForeignKey(WetCell, on_delete=models.CASCADE, null=True, blank=True)
     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE, null=True, blank=True)
+    color = RGBColorField(colors=['#FF0000', '#00FF00', '#0000FF'])
+    grid_position_x = models.IntegerField()
+    grid_position_y = models.IntegerField()
 
     match_none_charge = models.BooleanField(default=False)
     match_none_discharge = models.BooleanField(default=False)

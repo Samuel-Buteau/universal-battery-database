@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "cycling",
     "machine_learning",
     "background_task",
+    "colorful"
 ]
 
 MIDDLEWARE = [

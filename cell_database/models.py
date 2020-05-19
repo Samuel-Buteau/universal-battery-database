@@ -1826,6 +1826,18 @@ class DatasetSpecificFilters(models.Model):
     match_none_charge = models.BooleanField(default=False)
     match_none_discharge = models.BooleanField(default=False)
 
+    charge_constant_rate_type = models.CharField(max_length=3, choices=FILTER_TYPES, blank=True)
+    charge_end_rate_type = models.CharField(max_length=3, choices=FILTER_TYPES, blank=True)
+    charge_end_rate_prev_type = models.CharField(max_length=3, choices=FILTER_TYPES, blank=True)
+    charge_end_voltage_type = models.CharField(max_length=3, choices=FILTER_TYPES, blank=True)
+    charge_end_voltage_prev_type = models.CharField(max_length=3, choices=FILTER_TYPES, blank=True)
+
+    discharge_constant_rate_type = models.CharField(max_length=3, choices=FILTER_TYPES, blank=True)
+    discharge_end_rate_type = models.CharField(max_length=3, choices=FILTER_TYPES, blank=True)
+    discharge_end_rate_prev_type = models.CharField(max_length=3, choices=FILTER_TYPES, blank=True)
+    discharge_end_voltage_type = models.CharField(max_length=3, choices=FILTER_TYPES, blank=True)
+    discharge_end_voltage_prev_type = models.CharField(max_length=3, choices=FILTER_TYPES, blank=True)
+
     charge_constant_rate_min = models.FloatField()
     charge_end_rate_min = models.FloatField()
     charge_end_rate_prev_min = models.FloatField()

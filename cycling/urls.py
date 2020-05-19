@@ -19,9 +19,13 @@ from .views import *
 
 app_name = "cycling"
 urlpatterns = [
-    re_path(r"^view_cell_id/(?P<cell_id>\d+)/(?P<cursor>[A-Z_]*)/$", view_cell_id, name="view_cell_id"),
-    path("overview/", main_page, name="main_page"),
-    path("", index, name="index"),
+    re_path(
+        r"^view_cell_id/(?P<cell_id>\d+)/(?P<cursor>[A-Z_]*)/$",
+        view_cell_id,
+        name = "view_cell_id",
+    ),
+    path("overview/", main_page, name = "main_page"),
+    path("", index, name = "index"),
     path("admin/", admin.site.urls),
     path("filename_database/", include("filename_database.urls")),
     path("cell_database/", include("cell_database.urls")),

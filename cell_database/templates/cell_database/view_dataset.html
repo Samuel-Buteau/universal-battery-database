@@ -18,11 +18,21 @@ table, th, td {
 <h1> Dataset: {{ dataset.name }} </h1>
     <table>
         <tr>
-            <th>Cell</th>
+            <th>Cell</th><th>Specific Name</th><th>Filters</th>
         </tr>
-        {% for wet_cell, name in zipped_data %}
+        {% for wet_cell, name, spec_name, filters in zipped_data %}
         <tr>
             <td>{{ name }}</td>
+            <td>{{spec_name}}</td>
+            <td>
+
+                <table>
+
+                    {%for filt in filters %}
+                    <tr> <td>{{ filt.name }}</td> <td style="background-color:{{filt.color}}"> color  </td> <td>{{filt.get_printed_rule}}</td></tr>
+                    {%endfor%}
+                </table>
+            </td>
         </tr>
         {% endfor %}
     </table>
@@ -30,8 +40,30 @@ table, th, td {
     <p>This dataset ({{ dataset.name }}) is empty.</p>
 {% endif %}
 
+
+
 <form action="{% url 'cell_database:view_dataset' pk=dataset.id%}" method="post">
     {% csrf_token %}
+
+    {% if specific_name_form %}
+    <h2>Specific Names</h2>
+    <input type="submit" name = 'change_specific_name' value="Change Specific Name">
+    <table>
+        {{ specific_name_form.as_table }}
+    </table>
+
+    {% endif %}
+
+    {% if specific_filter_form %}
+    <h2>Filters</h2>
+    <input type="submit" name = 'change_filter' value="Change Filter">
+    <table>
+        {{ specific_filter_form.as_table }}
+    </table>
+
+    {% endif %}
+
+    <h2>Individual Cells Preview</h2>
     Display Page: {{visuals_form.page_number}}
     Cells per Page: {{visuals_form.per_page}}
     Cells per Row: {{visuals_form.rows}}

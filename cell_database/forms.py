@@ -573,6 +573,37 @@ class CreateDatasetForm(Form):
     name = forms.CharField(required=False)
 
 
+class SpecificNameForm(ModelForm):
+    wet_cell = forms.ChoiceField(choices=[], required=False)
+    remove_cell_from_dataset = forms.BooleanField(initial=False, required=False)
+    reset_name = forms.BooleanField(initial=False, required=False)
+    class Meta:
+        model = DatasetSpecificCellName
+        exclude = ['wet_cell', 'dataset']
+
+    def __init__(self, *args, dataset_id=None, **kwargs):
+        super(SpecificNameForm, self).__init__(*args, **kwargs)
+        dataset = Dataset.objects.get(id=dataset_id)
+        wet_cell_choices = [(wet_cell.cell_id, wet_cell.get_specific_name_and_cell_id(dataset)) for wet_cell in dataset.wet_cells.order_by('cell_id')]
+        self.fields.get('wet_cell').choices = wet_cell_choices
+
+
+class DatasetSpecificFiltersForm(ModelForm):
+    wet_cell = forms.MultipleChoiceField(choices=[], required=False)
+    remove_filter_from_cells = forms.BooleanField(initial=False, required=False)
+    class Meta:
+        model = DatasetSpecificFilters
+        exclude = ['wet_cell', 'dataset']
+
+    def __init__(self, *args, dataset_id=None, **kwargs):
+        super(DatasetSpecificFiltersForm, self).__init__(*args, **kwargs)
+        dataset = Dataset.objects.get(id=dataset_id)
+        wet_cell_choices = [(wet_cell.cell_id, wet_cell.get_specific_name_and_cell_id(dataset)) for wet_cell in dataset.wet_cells.order_by('cell_id')]
+        self.fields.get('wet_cell').choices = wet_cell_choices
+
+
+
+
 #TODO(sam): create a superclass that has all of this stuff instead of duplicating
 class DatasetVisualsForm(Form):
     page_number = forms.IntegerField(initial=1, required=False)

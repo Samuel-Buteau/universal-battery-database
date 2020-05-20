@@ -1489,20 +1489,105 @@ def delete_page(request):
 def view_dataset(request, pk):
     dataset = Dataset.objects.get(id=pk)
 
-    wet_cells = dataset.wet_cells.order_by('cell_id')
-    zipped_data = zip(wet_cells, [wet_cell.__str__() for wet_cell in wet_cells])
-    ar = {}
-    ar["zipped_data"] = zipped_data
-    ar["dataset"] = dataset
 
+    ar = {}
+    wet_cells = dataset.wet_cells.order_by('cell_id')
     if request.method == 'POST':
+        if 'change_specific_name' in request.POST:
+            spec_name = SpecificNameForm(request.POST, dataset_id=pk, prefix='specific-name-form')
+            if spec_name.is_valid():
+                if "remove_cell_from_dataset" in spec_name.cleaned_data.keys() and spec_name.cleaned_data["remove_cell_from_dataset"]:
+                    cell_id = int(spec_name.cleaned_data["wet_cell"])
+                    wet_cell = WetCell.objects.get(cell_id=cell_id)
+                    dataset.wet_cells.remove(wet_cell)
+                    wet_cells = dataset.wet_cells.order_by("cell_id")
+
+                elif "reset_name" in spec_name.cleaned_data.keys() and spec_name.cleaned_data["reset_name"]:
+                    cell_id = int(spec_name.cleaned_data["wet_cell"])
+                    wet_cell = WetCell.objects.get(cell_id=cell_id)
+                    DatasetSpecificCellName.objects.filter(dataset=dataset, wet_cell=wet_cell).delete()
+
+                else:
+                    cell_id = int(spec_name.cleaned_data["wet_cell"])
+                    wet_cell = WetCell.objects.get(cell_id=cell_id)
+                    name = spec_name.cleaned_data["name"]
+                    if not DatasetSpecificCellName.objects.exclude(wet_cell=wet_cell).filter(dataset=dataset, name=name).exists():
+                        DatasetSpecificCellName.objects.update_or_create(
+                            dataset=dataset, wet_cell=wet_cell,
+                            defaults={'name': name})
+
+        if 'change_filter' in request.POST:
+            specific_filter_form = DatasetSpecificFiltersForm(request.POST, dataset_id=pk, prefix='specific-filter-form')
+            if specific_filter_form.is_valid():
+                if "remove_filter_from_cells" in specific_filter_form.cleaned_data.keys() and specific_filter_form.cleaned_data["remove_filter_from_cells"]:
+                    name = specific_filter_form.cleaned_data["name"]
+                    cell_ids = [int(cell_id) for cell_id in specific_filter_form.cleaned_data.get("wet_cell")]
+                    if len(cell_ids) == 0:
+                        DatasetSpecificFilters.objects.filter(
+                            dataset=dataset,
+                            name=name
+                        ).delete()
+                    else:
+                        DatasetSpecificFilters.objects.filter(
+                            dataset=dataset,
+                            name=name,
+                            wet_cell__cell_id__in=cell_ids
+                        ).delete()
+
+                else:
+                    name = specific_filter_form.cleaned_data["name"]
+                    cell_ids = [int(cell_id) for cell_id in specific_filter_form.cleaned_data.get("wet_cell")]
+                    if len(cell_ids) == 0:
+                        cell_ids = [wet_cell.cell_id for wet_cell in dataset.wet_cells.order_by("cell_id")]
+
+                    for cell_id in cell_ids:
+                        wet_cell = WetCell.objects.get(cell_id=cell_id)
+
+                        DatasetSpecificFilters.objects.update_or_create(
+                            dataset=dataset,
+                            wet_cell=wet_cell,
+                            name=name,
+                            defaults={
+                                'name': name,
+                                'color': specific_filter_form.cleaned_data['color'],
+                                'grid_position_x': specific_filter_form.cleaned_data['grid_position_x'],
+                                'grid_position_y': specific_filter_form.cleaned_data['grid_position_y'],
+                                'match_none_charge': specific_filter_form.cleaned_data['match_none_charge'],
+                                'match_none_discharge': specific_filter_form.cleaned_data['match_none_discharge'],
+                                'charge_constant_rate_min': specific_filter_form.cleaned_data['charge_constant_rate_min'],
+                                'charge_end_rate_min': specific_filter_form.cleaned_data['charge_end_rate_min'],
+                                'charge_end_rate_prev_min': specific_filter_form.cleaned_data['charge_end_rate_prev_min'],
+                                'charge_end_voltage_min': specific_filter_form.cleaned_data['charge_end_voltage_min'],
+                                'charge_end_voltage_prev_min': specific_filter_form.cleaned_data['charge_end_voltage_prev_min'],
+                                'charge_constant_rate_max': specific_filter_form.cleaned_data['charge_constant_rate_max'],
+                                'charge_end_rate_max': specific_filter_form.cleaned_data['charge_end_rate_max'],
+                                'charge_end_rate_prev_max': specific_filter_form.cleaned_data['charge_end_rate_prev_max'],
+                                'charge_end_voltage_max': specific_filter_form.cleaned_data['charge_end_voltage_max'],
+                                'charge_end_voltage_prev_max': specific_filter_form.cleaned_data['charge_end_voltage_prev_max'],
+                                'discharge_constant_rate_min': specific_filter_form.cleaned_data['discharge_constant_rate_min'],
+                                'discharge_end_rate_min': specific_filter_form.cleaned_data['discharge_end_rate_min'],
+                                'discharge_end_rate_prev_min': specific_filter_form.cleaned_data['discharge_end_rate_prev_min'],
+                                'discharge_end_voltage_min': specific_filter_form.cleaned_data['discharge_end_voltage_min'],
+                                'discharge_end_voltage_prev_min': specific_filter_form.cleaned_data['discharge_end_voltage_prev_min'],
+                                'discharge_constant_rate_max': specific_filter_form.cleaned_data['discharge_constant_rate_max'],
+                                'discharge_end_rate_max': specific_filter_form.cleaned_data['discharge_end_rate_max'],
+                                'discharge_end_rate_prev_max': specific_filter_form.cleaned_data['discharge_end_rate_prev_max'],
+                                'discharge_end_voltage_max': specific_filter_form.cleaned_data['discharge_end_voltage_max'],
+                                'discharge_end_voltage_prev_max': specific_filter_form.cleaned_data['discharge_end_voltage_prev_max'],
+                            })
+
+
         if 'plot_cells' in request.POST:
             visuals_form = DatasetVisualsForm(request.POST, prefix='visuals-form')
             if visuals_form.is_valid():
                 number_per_page = visuals_form.cleaned_data["per_page"]
                 rows = visuals_form.cleaned_data["rows"]
-                min_i, max_i, max_page_number, page_number = focus_on_page(visuals_form, len(wet_cells), number_per_page=number_per_page)
-                datas = [(wet_cell.cell_id, plot_cycling_direct(wet_cell.cell_id, path_to_plots=None, figsize=[5., 4.])) for wet_cell in wet_cells[min_i:max_i]]
+
+                min_i, max_i, max_page_number, page_number = \
+                    focus_on_page(visuals_form, len(wet_cells), number_per_page=number_per_page)
+                datas = [
+                    (wet_cell.cell_id, plot_cycling_direct(wet_cell.cell_id, path_to_plots=None, figsize=[5., 4.]))
+                    for wet_cell in wet_cells[min_i:max_i]]
                 split_datas = [datas[i:min(len(datas), i + rows)] for i in range(0, len(datas), rows)]
 
                 ar["visual_data"] = split_datas
@@ -1514,6 +1599,30 @@ def view_dataset(request, pk):
                          "visuals_form",
                          DatasetVisualsForm(prefix='visuals-form')
                          )
+
+    conditional_register(ar,
+                         "specific_name_form",
+                         SpecificNameForm(dataset_id=pk,prefix='specific-name-form')
+                         )
+    conditional_register(ar,
+                         "specific_filter_form",
+                         DatasetSpecificFiltersForm(dataset_id=pk, prefix='specific-filter-form')
+                         )
+    zipped_data = [
+        (
+            wet_cell,
+            str(wet_cell),
+            wet_cell.get_specific_name_or_nothing(dataset),
+            DatasetSpecificFilters.objects.filter(
+                dataset=dataset,
+                wet_cell=wet_cell
+            ).order_by('name')
+        )
+       for wet_cell in wet_cells
+    ]
+    ar["zipped_data"] = zipped_data
+    ar["dataset"] = dataset
+
     return render(request, 'cell_database/view_dataset.html',ar)
 
 

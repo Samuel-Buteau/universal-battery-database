@@ -15,10 +15,16 @@ table, th, td {
 </style>
 
 
-<h1>Fix Bad Cycles for Cell ID: {{ cell_id }}</h1>
+<h1>Cell ID: {{ cell_id }}</h1>
 
 <form action="{% url 'view_cell_id' cell_id cursor %}" method="post" >
     {% csrf_token %}
+    <h2>Theoretical Capacity</h2>
+    {{ cell_globals_form }}
+    <input type="submit" name = "change_theoretical_capacity" value="Change Theoretical Capacity" /> <br>
+
+    <h2>Fix Bad Cycles</h2>
+
 
     {{my_form}} <br>
 

@@ -4,14 +4,9 @@ import datetime
 import numpy
 import re
 from colorful.fields import RGBColorField
-from enum import Enum
 
+from constants import *
 
-class LotTypes(Enum):
-    none = 0
-    unknown = 1
-    no_lot = 2
-    lot = 3
 
 
 def decode_lot_string(s):
@@ -418,54 +413,6 @@ class CoatingLot(models.Model):
 
 
 
-SINGLE_CRYSTAL = 'sc'
-POLY_CRYSTAL = 'po'
-MIXED_CRYSTAL = 'mx'
-UNKNOWN_CRYSTAL = 'un'
-CRYSTAL_TYPES = [
-    (SINGLE_CRYSTAL, 'Single'),
-    (POLY_CRYSTAL, 'Poly'),
-    (MIXED_CRYSTAL, 'Mixed'),
-]
-
-
-
-
-SALT = 'sa'
-ADDITIVE = 'ad'
-SOLVENT = 'so'
-ACTIVE_MATERIAL = 'am'
-CONDUCTIVE_ADDITIVE = 'co'
-BINDER = 'bi'
-SEPARATOR_MATERIAL = 'se'
-
-COMPONENT_TYPES = [
-    (SALT, 'salt'),
-    (ADDITIVE, 'additive'),
-    (SOLVENT, 'solvent'),
-    (ACTIVE_MATERIAL, 'active_material'),
-    (CONDUCTIVE_ADDITIVE, 'conductive_additive'),
-    (BINDER, 'binder'),
-    (SEPARATOR_MATERIAL, 'separator_material'),
-]
-
-ELECTROLYTE = 'el'
-CATHODE = 'ca'
-ANODE = 'an'
-SEPARATOR = 'se'
-COMPOSITE_TYPES = [
-    (ELECTROLYTE, 'electrolyte'),
-    (CATHODE, 'cathode'),
-    (ANODE, 'anode'),
-    (SEPARATOR, 'separator'),
-]
-
-ELECTRODE = 'ed'
-COMPOSITE_TYPES_2 = [
-    (ELECTROLYTE, 'electrolyte'),
-    (ELECTRODE, 'electrode'),
-    (SEPARATOR, 'separator'),
-]
 
 class ElectrodeMaterialStochiometry(models.Model):
     LITHIUM = 'Li'
@@ -1931,3 +1878,40 @@ class DatasetSpecificFilters(models.Model):
 
 
         return ', '.join(rules)
+
+    def get_rule(self):
+        rule = {}
+        charge_rule = {}
+        if self.match_none_charge:
+            charge_rule['no_group'] = True
+        else:
+            for min_var, max_var, label in [
+                (self.charge_constant_rate_min, self.charge_constant_rate_max, 'constant_rate'),
+                (self.charge_end_rate_min, self.charge_end_rate_max, 'end_rate'),
+                (self.charge_end_rate_prev_min, self.charge_end_rate_prev_max, 'end_rate_prev'),
+                (self.charge_end_voltage_min, self.charge_end_voltage_max, 'end_voltage'),
+                (self.charge_end_voltage_prev_min, self.charge_end_voltage_prev_max, 'end_voltage_prev'),
+            ]:
+                if min_var is not None or max_var is not None:
+                    charge_rule[label] = (min_var, max_var)
+        if len(charge_rule) !=0:
+            rule[CHARGE] = charge_rule
+
+        discharge_rule = {}
+        if self.match_none_discharge:
+            discharge_rule['no_group'] = True
+        else:
+            for min_var, max_var, label in [
+                (self.discharge_constant_rate_min, self.discharge_constant_rate_max, 'constant_rate'),
+                (self.discharge_end_rate_min, self.discharge_end_rate_max, 'end_rate'),
+                (self.discharge_end_rate_prev_min, self.discharge_end_rate_prev_max, 'end_rate_prev'),
+                (self.discharge_end_voltage_min, self.discharge_end_voltage_max, 'end_voltage'),
+                (self.discharge_end_voltage_prev_min, self.discharge_end_voltage_prev_max, 'end_voltage_prev'),
+            ]:
+                if min_var is not None or max_var is not None:
+                    discharge_rule[label] = (min_var, max_var)
+        if len(discharge_rule) !=0:
+            rule[DISCHARGE] = discharge_rule
+
+
+        return rule

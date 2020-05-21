@@ -148,14 +148,56 @@ def make_temperature_grid(min_t, max_t, n_samples, my_cell_ids):
 def compute_from_database(
     cell_id, lower_cycle = None, upper_cycle = None, valid = True,
 ):
+    rules = {}
+    for cycle_group in get_discharge_groups_from_cell_id(cell_id):
+        rules[(
+            cycle_group.constant_rate, cycle_group.end_rate_prev,
+            cycle_group.end_rate, cycle_group.end_voltage,
+            cycle_group.end_voltage_prev, cycle_group.polarity,
+        )]={
+            DISCHARGE:{'direct_id':cycle_group.id},
+        }
+
+    return compute_from_database2(cell_id, rules, lower_cycle, upper_cycle, valid)
+
+def compute_from_database2(
+    cell_id, rules, lower_cycle = None, upper_cycle = None, valid = True,
+):
+    """
+
+
+    Args:
+        cell_id:
+        rules: a dictionary where the key can be anything. the value is a dictionary which can have
+           DISCHARGE: a dictionary which contains
+                 'no_group':True/False,
+                 'direct_id': the id of a perfect match
+                 'constant_rate': (None/val,None/val)
+                 'end_rate': ..
+                 'end_rate_prev': ..
+                 'end_voltage': ..
+                 'end_voltage_prev': ..
+           CHARGE: a dictionary which contains
+                 'no_group':True/False,
+                 'constant_rate': (None/val,None/val)
+                 'end_rate': ..
+                 'end_rate_prev': ..
+                 'end_voltage': ..
+                 'end_voltage_prev': ..
+        lower_cycle:
+        upper_cycle:
+        valid:
+
+    Returns:
+
+    """
     files_cell_id = CyclingFile.objects.filter(
         database_file__deprecated = False,
         database_file__valid_metadata__cell_id = cell_id,
     ).order_by("database_file__last_modified")
 
-    polarity = DISCHARGE
     groups = {}
-    for cycle_group in get_discharge_groups_from_cell_id(cell_id):
+    for rule_id in rules.keys():
         q_curves = []
         for f in files_cell_id:
             offset_cycle = f.database_file.valid_metadata.start_cycle
@@ -167,10 +209,76 @@ def compute_from_database(
                     ),
                 )
 
-            if polarity == DISCHARGE:
-                filters = Q(discharge_group = cycle_group) & filters
-            elif polarity == CHARGE:
-                filters = Q(charge_group = cycle_group) & filters
+            rule = rules[rule_id]
+
+            for polarity, group_is_none, group_id_f, group_in_f in [
+                (
+                    DISCHARGE,
+                    Q(discharge_group=None),
+                    lambda x: Q(discharge_group__id=x),
+                    lambda x: Q(discharge_group__in=x),
+                ),
+                (
+                    CHARGE,
+                    Q(charge_group=None),
+                    lambda x: Q(charge_group__id=x),
+                    lambda x: Q(charge_group__in=x),
+                ),
+            ]:
+                if polarity in rule.keys():
+                    if 'no_group' in rule[polarity].keys() and rule[polarity]['no_group']:
+                        filters = group_is_none & filters
+                    elif 'direct_id' in rule[polarity].keys():
+                        filters = group_id_f(rule[polarity]['direct_id']) & filters
+                    else:
+                        group_filter = Q(cell_id=cell_id, polarity=polarity)
+                        for lab, leq_f, geq_f, range_f in [
+                            (
+                                'constant_rate',
+                                lambda x: Q(constant_rate__leq=x),
+                                lambda x: Q(constant_rate__geq=x),
+                                lambda x: Q(constant_rate__range=x),
+                            ),
+                            (
+                                'end_rate',
+                                lambda x: Q(end_rate__leq=x),
+                                lambda x: Q(end_rate__geq=x),
+                                lambda x: Q(end_rate__range=x),
+                            ),
+                            (
+                                'end_rate_prev',
+                                lambda x: Q(end_rate_prev__leq=x),
+                                lambda x: Q(end_rate_prev__geq=x),
+                                lambda x: Q(end_rate_prev__range=x),
+                            ),
+                            (
+                                'end_voltage',
+                                lambda x: Q(end_voltage__leq=x),
+                                lambda x: Q(end_voltage__geq=x),
+                                lambda x: Q(end_voltage__range=x),
+                            ),
+                            (
+                                'end_voltage_prev',
+                                lambda x: Q(end_voltage_prev__leq=x),
+                                lambda x: Q(end_voltage_prev__geq=x),
+                                lambda x: Q(end_voltage_prev__range=x),
+                            ),
+
+                        ]:
+                            if lab in rule[polarity].keys():
+                                if rule[polarity][lab][0] is None:
+                                    group_filter = group_filter & leq_f(rule[polarity][lab][1])
+                                elif rule[polarity][lab][1] is None:
+                                    group_filter = group_filter & geq_f(rule[polarity][lab][0])
+                                else:
+                                    group_filter = group_filter & range_f(rule[polarity][lab])
+
+                        good_groups = CycleGroup.objects.filter(group_filter)
+                        if len(good_groups) == 0:
+                            filters = group_is_none & filters
+                        else:
+                            filters = group_in_f(good_groups) & filters
+
             cycles = Cycle.objects.filter(filters)
             if cycles.exists():
                 q_curves += list([
@@ -182,11 +290,7 @@ def compute_from_database(
                 ])
 
         if len(q_curves) > 0:
-            groups[(
-                cycle_group.constant_rate, cycle_group.end_rate_prev,
-                cycle_group.end_rate, cycle_group.end_voltage,
-                cycle_group.end_voltage_prev, cycle_group.polarity,
-            )] = numpy.array(
+            groups[rule_id] = numpy.array(
                 q_curves,
                 dtype = [
                     (Key.N, 'f4'),
@@ -195,6 +299,7 @@ def compute_from_database(
             )
 
     return groups
+
 
 
 def make_file_legends_and_vertical(

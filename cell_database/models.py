@@ -1830,7 +1830,7 @@ class DatasetSpecificCellName(models.Model):
 
 
 
-
+#TODO(sam): translate a filter to a dictionary form that compute_from_database2 expects.
 
 class DatasetSpecificFilters(models.Model):
     name = models.CharField(blank=True, max_length=200)

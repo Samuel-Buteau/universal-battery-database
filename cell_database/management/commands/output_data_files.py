@@ -36,6 +36,9 @@ def escape_string_to_path(my_string):
 
     return my_string
 
+from cycling.models import *
+#TODO(sam): call compute_from_database2
+
 #TODO(sam): for all datasets, for all cells, for all filters,
 # print (dataset/cell_name_or_id/filter_name)
 def output_files(options):

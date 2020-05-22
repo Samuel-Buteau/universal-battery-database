@@ -15,8 +15,7 @@ The Universal Battery Database was developed at the [Jeff Dahn Research Group](h
 
 - [Installation](#installation)
   * [Prerequisites](#prerequisites)
-  * [Installing Without a Database](#installing-without-a-database)
-  * [Installing With a Database](#installing-with-a-database)
+  * [Two Installation Options](#two-installation-options)
 - [Using the Software](#using-the-software)
   * [ML Smoothing](#ml-smoothing)
 - [Theoretical Physics and Computer Science Behind the Software](#theoretical-physics-and-computer-science-behind-the-software)
@@ -25,97 +24,18 @@ The Universal Battery Database was developed at the [Jeff Dahn Research Group](h
 
 ## Installation
 
-There are two install options:
-1. If you only want to play around with modelling and you have a compiled dataset from somewhere else, you can [install without a database](#installing-without-a-database) (you can always install a database later).
-2. If you want to use the database features such as parsing and organising experimental data and metadata, you should [install with a database](#installing-with-a-database).
-
-You should run all the given commands in Command Prompt (Windows) or Terminal (Bash environment on macOS and Linux).
-
 ### Prerequisites
 
 - [Python 3](https://www.python.org/downloads/)
 - [pip and virtualenv](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
 
-### Installing Without a Database
+### Two Installation Options
 
-#### 1. [Create and activate a new Python environment](https://github.com/Samuel-Buteau/universal-battery-database/wiki/Creating-and-activating-a-new-Python-environment.).
+1. If you only want to play around with modelling and you have a compiled dataset from somewhere else, you can [install without a database](https://github.com/Samuel-Buteau/universal-battery-database/wiki/Installing-Without-a-Database-(Windows)). This option is simpler and you could always install a database later.
+2. If you want to use the full database features such as parsing and organising experimental data and metadata, you should [install with a database](https://github.com/Samuel-Buteau/universal-battery-database/wiki/Installing-With-a-Database-(Windows)).
 
-#### 2. Install requirements.
-```
-pip3 install -r requirements_nosql.txt
-```
+You should run all the given commands in Command Prompt (Windows) or Terminal (Bash environment on macOS and Linux).
 
-#### 3. Create `cycling/config.ini`.
-
-Note: You can pick your own `database`, `user`, `password`, `secret_key`.
-
-`cycling/config.ini` should contain:
-
-```
-[DEFAULT]
-Database = database
-User = user
-Password = password
-Host = localhost
-Port = 0000
-Backend = sqlite3
-SecretKey = secret_key
-```
-
-#### 4. Download your dataset file and put it in the appropriate folder.
-
-
-### Installing With a Database
-
-#### 1. [Create and activate a new Python environment](https://github.com/Samuel-Buteau/universal-battery-database/wiki/Creating-and-activating-a-new-Python-environment.).
-
-#### 2. Install requirements.
-```
-pip3 install -r requirements.txt
-```
-
-#### 3. [Install PostgreSQL](https://www.2ndquadrant.com/en/blog/pginstaller-install-postgresql/).
-
-There is a separate process to choose a driver after the PostgreSQL installation. **Make sure the installation includes the PostgreSQL Unicode ODBC driver** (e.g. ODBC 64-bit).
-
-Follow the installation instructions to create new user and password. **Remember these for later**.
-
-#### 4. Add the bin path of the install to the Path variable.
-
-#### 5. Connect your user.
-```bash
-psql -U username
-```
-where `username` is the one created in Step 3, and enter the password after you hit enter.
-
-#### 6. Create your database.
-
-Note: `database`, `user`, and `password` can be changed to your own values.
-
-```sql
-CREATE DATABASE database;
-
-CREATE USER user WITH PASSWORD ‘password’;
-
-GRANT ALL PRIVILEGES ON DATABASE database TO user;
-```
-
-#### 7. Create `cycling/config.ini`.
-
-Note:  `database`, `user`, and `password` should be changed to match those in Step 6. Choosing a good `secret_key` is crucial if you care about data security.
-
-`cycling/config.ini` should contain the following:
-
-```
-[DEFAULT]
-Database = database
-User = user
-Password = password
-Host = localhost
-Port = 5432
-Backend = postgresql
-SecretKey = secret_key
-```
 
 ## Using the Software
 

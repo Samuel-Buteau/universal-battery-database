@@ -31,10 +31,8 @@ The Universal Battery Database was developed at the [Jeff Dahn Research Group](h
 
 ### Two Installation Options
 
-1. If you only want to play around with modelling and you have a compiled dataset from somewhere else, you can [install without a database](https://github.com/Samuel-Buteau/universal-battery-database/wiki/Installing-Without-a-Database-(Windows)). This option is simpler and you could always install a database later.
+1. If you only want to play around with modelling and you have a compiled dataset from somewhere else, you can [install without a database](https://github.com/Samuel-Buteau/universal-battery-database/wiki/Installing-Without-a-Database-(Windows)). This option is simpler and you can always install a database later.
 2. If you want to use the full database features such as parsing and organising experimental data and metadata, you should [install with a database](https://github.com/Samuel-Buteau/universal-battery-database/wiki/Installing-With-a-Database-(Windows)).
-
-You should run all the given commands in Command Prompt (Windows) or Terminal (Bash environment on macOS and Linux).
 
 
 ## Using the Software

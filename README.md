@@ -37,19 +37,9 @@ The Universal Battery Database was developed at the [Jeff Dahn Research Group](h
 
 ## Using the Software
 
-[Load the virtual environment](https://github.com/Samuel-Buteau/universal-battery-database/wiki/Loading-a-Python-environment.) containing the software in a new terminal.
+Use [`manage.py`](https://github.com/Samuel-Buteau/universal-battery-database/wiki/manage.py) to see the web page and use its analytic features.
 
-To quickly see the web page and start developing, run
-```
-python3 manage.py runserver 0.0.0.0:8000
-```
-then visit `http://localhost:8000/` with a web browser.
-
-When running the code in production, run
-```bash
-python3 manage.py process_tasks
-```
-in a separate terminal to allow background tasks (such as parsing data files). This will process the tasks as they are defined.
+Use `ml_smoothing.py` to use the machine learning model and see the results.
 
 ### ML Smoothing
 cmd (Windows)

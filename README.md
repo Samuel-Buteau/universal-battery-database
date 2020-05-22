@@ -17,8 +17,7 @@ The Universal Battery Database was developed at the [Jeff Dahn Research Group](h
   * [Prerequisites](#prerequisites)
   * [Two Installation Options](#two-installation-options)
 - [Using the Software](#using-the-software)
-  * [ML Smoothing](#ml-smoothing)
-- [Theoretical Physics and Computer Science Behind the Software](#theoretical-physics-and-computer-science-behind-the-software)
+- [Physics and Computer Science Behind the Software](#physics-and-computer-science-behind-the-software)
 - [Contributing](#contributing)
   * [Code Conventions](#code-conventions)
 
@@ -39,20 +38,10 @@ The Universal Battery Database was developed at the [Jeff Dahn Research Group](h
 
 Use [`manage.py`](https://github.com/Samuel-Buteau/universal-battery-database/wiki/manage.py) to see the web page and use its analytic features.
 
-Use `ml_smoothing.py` to use the machine learning model and see the results.
+Use [`ml_smoothing.py`](https://github.com/Samuel-Buteau/universal-battery-database/wiki/ml_smoothing.py) to use the machine learning model and see the results.
 
-### ML Smoothing
-cmd (Windows)
-```cmd
->smoothing.bat path-figures dataset-version
-````
 
-Bash (macOS and Linux)
-```Bash
-$ sh smoothing.sh path-figures dataset-version
-```
-
-## Theoretical Physics and Computer Science Behind the Software
+## Physics and Computer Science Behind the Software
 
 We hypothesize that we can make [good generalizations](https://github.com/Samuel-Buteau/universal-battery-database/wiki/Generalization-Criteria) by [approximating](https://github.com/Samuel-Buteau/universal-battery-database/wiki/The-Universal-Approximation-Theorem) the functions that map one degradation mechanism to another using neural networks. 
 

@@ -13,6 +13,8 @@ The Universal Battery Database was developed at the [Jeff Dahn Research Group](h
 
 ## Table of Contents
 
+- [Preliminary Results](#preliminary-results)
+- [Data Management Software Demo](#data-management-software-demo)
 - [Installation](#installation)
   * [Prerequisites](#prerequisites)
   * [Two Installation Options](#two-installation-options)
@@ -20,6 +22,18 @@ The Universal Battery Database was developed at the [Jeff Dahn Research Group](h
 - [Physics and Computer Science Behind the Software](#physics-and-computer-science-behind-the-software)
 - [Contributing](#contributing)
   * [Code Conventions](#code-conventions)
+  
+## Preliminary Results
+
+![alt text](https://github.com/Samuel-Buteau/universal-battery-database/blob/master/demo_screenshots/capacity_measured_and_modelled.png)
+
+**Figure 1**: Model measurements and make predictions using [`ml_smoothing.py`](https://github.com/Samuel-Buteau/universal-battery-database/wiki/ml_smoothing.py).
+
+## Data Management Software Demo
+
+![alt text](https://github.com/Samuel-Buteau/universal-battery-database/blob/master/demo_screenshots/fix_cycle_example.png)
+
+**Figure 2**: Fix anomologous cycling data using the web browser provided by [`manage.py`](https://github.com/Samuel-Buteau/universal-battery-database/wiki/manage.py).
 
 ## Installation
 

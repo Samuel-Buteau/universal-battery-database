@@ -41,6 +41,59 @@ from cycling.models import *
 
 
 
+#TODO(sam): find better names for the functions that extract data in a plottable format
+def compute_dataset(dataset, field_request):
+    results = {}
+    for wet_cell in dataset.wet_cells.order_by('cell_id'):
+        rules = {}
+        for filt in DatasetSpecificFilters.objects.filter(dataset=dataset, wet_cell=wet_cell):
+            rules[filt.id] = filt.get_rule()
+        results[wet_cell.cell_id] = compute_from_database2(wet_cell.cell_id, rules, field_request)
+    return results
+
+
+def get_dataset_labels(dataset):
+    results = {}
+    dataset_name = dataset.name
+    wet_names = {}
+    for wet_cell in dataset.wet_cells.order_by('cell_id'):
+        wet_name, specified = wet_cell.get_specific_name_details(dataset)
+        if not specified:
+            wet_name = str(wet_cell.cell_id)
+        wet_names[wet_cell.cell_id] = wet_name
+        names = {}
+        for filt in DatasetSpecificFilters.objects.filter(dataset=dataset, wet_cell=wet_cell):
+            names[filt.id] = filt.name
+        results[wet_cell.cell_id] = names
+    return dataset_name, wet_names, results
+
+
+
+def output_dataset_to_csv(data, dataset_name, wet_names, filt_names, csv_format, output_dir):
+    for cell_id in data.keys():
+        for filt_id in data[cell_id].keys():
+            path = os.path.join(
+                output_dir,
+                escape_string_to_path(dataset_name),
+                escape_string_to_path(wet_names[cell_id])
+            )
+
+            if not os.path.exists(path):
+                os.makedirs(path)
+            with open(os.path.join(path, '{}.csv'.format(escape_string_to_path(filt_names[cell_id][filt_id]))), 'w', newline='') as csv_f:
+                writer = csv.writer(csv_f)
+                header = [h for _, _, h in csv_format]
+                writer.writerow(header)
+                content = [[f(res[key]) for key, f, _ in csv_format] for res in data[cell_id][filt_id]]
+                writer.writerows(content)
+
+
+
+def output_dataset_to_csv(dataset, csv_format, field_request, output_dir):
+    data = compute_dataset(dataset, field_request)
+    dataset_name, wet_names, filt_names = get_dataset_labels(dataset)
+    output_dataset_to_csv(data, dataset_name, wet_names, filt_names, csv_format, output_dir)
+
 def output_files(options):
     '''
     Now:
@@ -92,33 +145,8 @@ def output_files(options):
     ]
 
     for dataset in Dataset.objects.all():
-        for wet_cell in dataset.wet_cells.order_by('cell_id'):
-            rules = {}
-            file_paths = {}
-            for filt in DatasetSpecificFilters.objects.filter(dataset=dataset, wet_cell=wet_cell):
-                wet_name, specified = wet_cell.get_specific_name_details(dataset)
-                if not specified:
-                    wet_name = str(wet_cell.cell_id)
-                file_paths[filt.id] = (os.path.join(
-                        options['output_dir'],
-                        escape_string_to_path(dataset.name),
-                        escape_string_to_path(wet_name),
-                    ),
-                    '{}.csv'.format(escape_string_to_path(filt.name)),
-                )
-                rules[filt.id] = filt.get_rule()
-
-            results = compute_from_database2(wet_cell.cell_id, rules, field_request)
-            for id in results.keys():
-                if not os.path.exists(file_paths[id][0]):
-                    os.makedirs(file_paths[id][0])
-                with open(os.path.join(file_paths[id][0], file_paths[id][1]), 'w', newline='') as csv_f:
-                    writer = csv.writer(csv_f)
-                    header = [h for _, _, h in csv_format]
-                    writer.writerow(header)
-                    content = [[f(res[key]) for key, f, _ in csv_format] for res in results[id]]
-                    writer.writerows(content)
-
+        # output dataset to csv
+        output_dataset_to_csv(dataset, csv_format, field_request, options['output_dir'])
 
 
 class Command(BaseCommand):

@@ -1519,6 +1519,7 @@ def view_dataset(request, pk):
                                 'name': name,
                                 'grid_position_x': spec_name.cleaned_data["grid_position_x"],
                                 'grid_position_y': spec_name.cleaned_data["grid_position_y"],
+                                'color': spec_name.cleaned_data["color"],
                             })
 
         if 'change_filter' in request.POST:
@@ -1548,6 +1549,7 @@ def view_dataset(request, pk):
                     for cell_id in cell_ids:
                         wet_cell = WetCell.objects.get(cell_id=cell_id)
                         grid_position_x, grid_position_y = 1, 1
+                        color = "#000000"
 
                         if specific_filter_form.cleaned_data["use_cell_grid_position"] and DatasetSpecificCellName.objects.filter(dataset=dataset, wet_cell=wet_cell).exists():
                             dataset_spec_cell = DatasetSpecificCellName.objects.get(dataset=dataset, wet_cell=wet_cell)
@@ -1558,13 +1560,22 @@ def view_dataset(request, pk):
                             grid_position_x= specific_filter_form.cleaned_data['grid_position_x']
                             grid_position_y= specific_filter_form.cleaned_data['grid_position_y']
 
+                        if specific_filter_form.cleaned_data["use_cell_color"] and DatasetSpecificCellName.objects.filter(dataset=dataset, wet_cell=wet_cell).exists():
+                            dataset_spec_cell = DatasetSpecificCellName.objects.get(dataset=dataset, wet_cell=wet_cell)
+                            color = dataset_spec_cell.color
+
+                        else:
+                            color = specific_filter_form.cleaned_data['color']
+
+
+
                         DatasetSpecificFilters.objects.update_or_create(
                             dataset=dataset,
                             wet_cell=wet_cell,
                             name=name,
                             defaults={
                                 'name': name,
-                                'color': specific_filter_form.cleaned_data['color'],
+                                'color': color,
                                 'grid_position_x': grid_position_x,
                                 'grid_position_y': grid_position_y,
                                 'match_none_charge': specific_filter_form.cleaned_data['match_none_charge'],
@@ -1638,6 +1649,7 @@ def view_dataset(request, pk):
             wet_cell.get_specific_name_or_nothing(dataset),
             wet_cell.get_default_position(dataset)[0],
             wet_cell.get_default_position(dataset)[1],
+            wet_cell.get_default_color(dataset),
             DatasetSpecificFilters.objects.filter(
                 dataset=dataset,
                 wet_cell=wet_cell

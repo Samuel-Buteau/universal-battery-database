@@ -776,11 +776,27 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10):
 
         files = get_good_neware_files().filter(
             valid_metadata__cell_id = cell_id)
+
+
         total_capacity =\
             Cycle.objects.filter(cycling_file__database_file__in = files,
                                  valid_cycle = True).aggregate(
                 Max("dchg_total_capacity"))["dchg_total_capacity__max"]
         total_capacity = max(1e-10, total_capacity)
+
+        if not CellGlobals.objects.filter(cell_id=cell_id).exists():
+            CellGlobals.objects.create(
+                cell_id=cell_id,
+                theoretical_capacity = total_capacity,
+                auto_update_capacity = True,
+            )
+        else:
+            cell_globals = CellGlobals.objects.get(cell_id=cell_id)
+            if cell_globals.auto_update_capacity:
+                cell_globals.theoretical_capacity = total_capacity
+                cell_globals.save()
+            else:
+                total_capacity = cell_globals.theoretical_capacity
 
         # DISCHARGE
         for polarity in [CHARGE, DISCHARGE]:
@@ -895,8 +911,7 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10):
                     for sk in sorted_keys:
                         found = False
                         for k in grouped_rates.keys():
-                            if abs(avg_sorted_keys[k] - avg_sorted_keys[
-                                sk]) < 0.13:
+                            if abs(avg_sorted_keys[k] - avg_sorted_keys[sk]) < 0.13:
                                 grouped_rates[k].append(sk)
                                 found = True
                                 break
@@ -969,9 +984,9 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10):
 
                 for k in summary_data.keys():
                     cyc_group = CycleGroup(cell_id = cell_id,
-                                           constant_rate = math.exp(k[0]),
-                                           end_rate = math.exp(k[1]),
-                                           end_rate_prev = math.exp(k[2]),
+                                           constant_current = total_capacity*math.exp(k[0]),
+                                           end_current = total_capacity * math.exp(k[1]),
+                                           end_current_prev = total_capacity * math.exp(k[2]),
                                            end_voltage = k[3],
                                            end_voltage_prev = k[4],
                                            polarity = polarity

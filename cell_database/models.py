@@ -3,15 +3,10 @@ from django.db.models import Q, F, Func, Count,Exists, OuterRef
 import datetime
 import numpy
 import re
+from colorful.fields import RGBColorField
 
-from enum import Enum
+from constants import *
 
-
-class LotTypes(Enum):
-    none = 0
-    unknown = 1
-    no_lot = 2
-    lot = 3
 
 
 def decode_lot_string(s):
@@ -418,54 +413,6 @@ class CoatingLot(models.Model):
 
 
 
-SINGLE_CRYSTAL = 'sc'
-POLY_CRYSTAL = 'po'
-MIXED_CRYSTAL = 'mx'
-UNKNOWN_CRYSTAL = 'un'
-CRYSTAL_TYPES = [
-    (SINGLE_CRYSTAL, 'Single'),
-    (POLY_CRYSTAL, 'Poly'),
-    (MIXED_CRYSTAL, 'Mixed'),
-]
-
-
-
-
-SALT = 'sa'
-ADDITIVE = 'ad'
-SOLVENT = 'so'
-ACTIVE_MATERIAL = 'am'
-CONDUCTIVE_ADDITIVE = 'co'
-BINDER = 'bi'
-SEPARATOR_MATERIAL = 'se'
-
-COMPONENT_TYPES = [
-    (SALT, 'salt'),
-    (ADDITIVE, 'additive'),
-    (SOLVENT, 'solvent'),
-    (ACTIVE_MATERIAL, 'active_material'),
-    (CONDUCTIVE_ADDITIVE, 'conductive_additive'),
-    (BINDER, 'binder'),
-    (SEPARATOR_MATERIAL, 'separator_material'),
-]
-
-ELECTROLYTE = 'el'
-CATHODE = 'ca'
-ANODE = 'an'
-SEPARATOR = 'se'
-COMPOSITE_TYPES = [
-    (ELECTROLYTE, 'electrolyte'),
-    (CATHODE, 'cathode'),
-    (ANODE, 'anode'),
-    (SEPARATOR, 'separator'),
-]
-
-ELECTRODE = 'ed'
-COMPOSITE_TYPES_2 = [
-    (ELECTROLYTE, 'electrolyte'),
-    (ELECTRODE, 'electrode'),
-    (SEPARATOR, 'separator'),
-]
 
 class ElectrodeMaterialStochiometry(models.Model):
     LITHIUM = 'Li'
@@ -1774,7 +1721,7 @@ class WetCell(models.Model):
     electrolyte = models.ForeignKey(CompositeLot, on_delete=models.SET_NULL, null=True, blank=True)
     dry_cell = models.ForeignKey(DryCellLot, on_delete=models.SET_NULL, null=True, blank=True)
     def __str__(self):
-        cell_id_str = 'No Barcode'
+        cell_id_str = 'No cell id'
         if self.cell_id is not None:
             cell_id_str = '{}'.format(self.cell_id)
         electrolyte_str = '?'
@@ -1784,12 +1731,207 @@ class WetCell(models.Model):
         if self.dry_cell is not None:
             dry_cell_str = '{}'.format(self.dry_cell)
 
-        return 'BARCODE: {}, ELECTROLYTE: {}, DRY CELL: {}'.format(cell_id_str, electrolyte_str, dry_cell_str)
+        return 'CELL ID: {}, ELECTROLYTE: {}, DRY CELL: {}'.format(cell_id_str, electrolyte_str, dry_cell_str)
+
+    def get_specific_name_details(self, dataset):
+        spec_names = DatasetSpecificCellName.objects.filter(dataset=dataset, wet_cell=self)
+        if spec_names.exists():
+            return spec_names[0].name, True
+        else:
+            return str(self), False
 
 
+    def get_specific_name_or_nothing(self, dataset):
+        sn, sn_f = self.get_specific_name_details(dataset)
+        if sn_f:
+            return sn
+        else:
+            return 'No specific name'
+    def get_specific_name(self, dataset):
+        sn, _ = self.get_specific_name_details(dataset)
+        return sn
+
+    def get_specific_name_and_cell_id(self, dataset):
+        ret_name = '{}'.format(self.cell_id)
+        sn, sn_f = self.get_specific_name_details(dataset)
+        if sn_f:
+            return '{}: ({})'.format(self.cell_id, sn)
+        else:
+            return ret_name
+
+    def get_default_position(self, dataset):
+        spec_names = DatasetSpecificCellName.objects.filter(dataset=dataset, wet_cell=self)
+        if spec_names.exists():
+            return spec_names[0].grid_position_x, spec_names[0].grid_position_y
+        else:
+            return 1, 1
+
+    def get_default_color(self, dataset):
+        spec_names = DatasetSpecificCellName.objects.filter(dataset=dataset, wet_cell=self)
+        if spec_names.exists():
+            return spec_names[0].color
+        else:
+            return "#000000"
 
 class Dataset(models.Model):
     name = models.CharField(unique=True, blank=True, max_length=200)
     wet_cells = models.ManyToManyField(WetCell)
     def __str__(self):
         return self.name
+
+
+
+class DatasetSpecificCellName(models.Model):
+    name = models.CharField(blank=True, max_length=200)
+    wet_cell = models.ForeignKey(WetCell, on_delete=models.CASCADE, null=True, blank=True)
+    dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE, null=True, blank=True)
+
+    color = RGBColorField(colors=['#FF0000', '#00FF00', '#0000FF'])
+    grid_position_x = models.IntegerField(default=1)
+    grid_position_y = models.IntegerField(default=1)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['dataset', 'name'], name='unique_dataset_specific_name')
+        ]
+
+
+
+#TODO(sam): translate a filter to a dictionary form that compute_from_database2 expects.
+
+class DatasetSpecificFilters(models.Model):
+    name = models.CharField(blank=True, max_length=200)
+    wet_cell = models.ForeignKey(WetCell, on_delete=models.CASCADE, null=True, blank=True)
+    dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE, null=True, blank=True)
+    color = RGBColorField(colors=['#FF0000', '#00FF00', '#0000FF'])
+    grid_position_x = models.IntegerField(default=1)
+    grid_position_y = models.IntegerField(default=1)
+
+    match_none_charge = models.BooleanField(default=False)
+    match_none_discharge = models.BooleanField(default=False)
+
+
+    charge_constant_rate_min = models.FloatField(null=True, blank=True)
+    charge_end_rate_min = models.FloatField(null=True, blank=True)
+    charge_end_rate_prev_min = models.FloatField(null=True, blank=True)
+    charge_end_voltage_min = models.FloatField(null=True, blank=True)
+    charge_end_voltage_prev_min = models.FloatField(null=True, blank=True)
+    charge_constant_rate_max = models.FloatField(null=True, blank=True)
+    charge_end_rate_max = models.FloatField(null=True, blank=True)
+    charge_end_rate_prev_max = models.FloatField(null=True, blank=True)
+    charge_end_voltage_max = models.FloatField(null=True, blank=True)
+    charge_end_voltage_prev_max = models.FloatField(null=True, blank=True)
+
+    discharge_constant_rate_min = models.FloatField(null=True, blank=True)
+    discharge_end_rate_min = models.FloatField(null=True, blank=True)
+    discharge_end_rate_prev_min = models.FloatField(null=True, blank=True)
+    discharge_end_voltage_min = models.FloatField(null=True, blank=True)
+    discharge_end_voltage_prev_min = models.FloatField(null=True, blank=True)
+    discharge_constant_rate_max = models.FloatField(null=True, blank=True)
+    discharge_end_rate_max = models.FloatField(null=True, blank=True)
+    discharge_end_rate_prev_max = models.FloatField(null=True, blank=True)
+    discharge_end_voltage_max = models.FloatField(null=True, blank=True)
+    discharge_end_voltage_prev_max = models.FloatField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['dataset', 'wet_cell', 'name'], name='unique_dataset_cell_filter_name')
+        ]
+
+    @property
+    def get_printed_rule(self):
+        rules= []
+        gp_x = ''
+        gp_y = ''
+        if self.grid_position_x is not None:
+            gp_x = str(self.grid_position_x)
+        if self.grid_position_y is not None:
+            gp_y = str(self.grid_position_y)
+
+        rules.append( 'pos=({},{})'.format(gp_x, gp_y))
+
+        charge_rules = []
+        for min_var, max_var, label in [
+            (self.charge_constant_rate_min, self.charge_constant_rate_max, 'constant_rate'),
+            (self.charge_end_rate_min, self.charge_end_rate_max, 'end_rate'),
+            (self.charge_end_rate_prev_min, self.charge_end_rate_prev_max, 'end_rate_prev'),
+            (self.charge_end_voltage_min, self.charge_end_voltage_max, 'end_voltage'),
+            (self.charge_end_voltage_prev_min, self.charge_end_voltage_prev_max, 'end_voltage_prev'),
+        ]:
+            if min_var is not None or max_var is not None:
+                min_ = ''
+                max_ = ''
+                if min_var is not None:
+                    min_ = '{:.3f}'.format(min_var)
+                if max_var is not None:
+                    max_ = '{:.3f}'.format(max_var)
+                charge_rules.append('{}=({}, {})'.format(label, min_, max_))
+
+        if self.match_none_charge:
+            rules.append('charge: no group')
+        elif len(charge_rules) != 0:
+            rules.append('charge: [{}]'.format(', '.join(charge_rules)))
+
+        discharge_rules = []
+        for min_var, max_var, label in [
+            (self.discharge_constant_rate_min, self.discharge_constant_rate_max, 'constant_rate'),
+            (self.discharge_end_rate_min, self.discharge_end_rate_max, 'end_rate'),
+            (self.discharge_end_rate_prev_min, self.discharge_end_rate_prev_max, 'end_rate_prev'),
+            (self.discharge_end_voltage_min, self.discharge_end_voltage_max, 'end_voltage'),
+            (self.discharge_end_voltage_prev_min, self.discharge_end_voltage_prev_max, 'end_voltage_prev'),
+        ]:
+            if min_var is not None or max_var is not None:
+                min_ = ''
+                max_ = ''
+                if min_var is not None:
+                    min_ = '{:.3f}'.format(min_var)
+                if max_var is not None:
+                    max_ = '{:.3f}'.format(max_var)
+                discharge_rules.append('{}=({}, {})'.format(label, min_, max_))
+
+
+        if self.match_none_discharge:
+            rules.append('discharge: no group')
+        elif len(discharge_rules) != 0:
+            rules.append('discharge: [{}]'.format(', '.join(discharge_rules)))
+
+
+
+        return ', '.join(rules)
+
+    def get_rule(self):
+        rule = {}
+        charge_rule = {}
+        if self.match_none_charge:
+            charge_rule['no_group'] = True
+        else:
+            for min_var, max_var, label in [
+                (self.charge_constant_rate_min, self.charge_constant_rate_max, 'constant_rate'),
+                (self.charge_end_rate_min, self.charge_end_rate_max, 'end_rate'),
+                (self.charge_end_rate_prev_min, self.charge_end_rate_prev_max, 'end_rate_prev'),
+                (self.charge_end_voltage_min, self.charge_end_voltage_max, 'end_voltage'),
+                (self.charge_end_voltage_prev_min, self.charge_end_voltage_prev_max, 'end_voltage_prev'),
+            ]:
+                if min_var is not None or max_var is not None:
+                    charge_rule[label] = (min_var, max_var)
+        if len(charge_rule) !=0:
+            rule[CHARGE] = charge_rule
+
+        discharge_rule = {}
+        if self.match_none_discharge:
+            discharge_rule['no_group'] = True
+        else:
+            for min_var, max_var, label in [
+                (self.discharge_constant_rate_min, self.discharge_constant_rate_max, 'constant_rate'),
+                (self.discharge_end_rate_min, self.discharge_end_rate_max, 'end_rate'),
+                (self.discharge_end_rate_prev_min, self.discharge_end_rate_prev_max, 'end_rate_prev'),
+                (self.discharge_end_voltage_min, self.discharge_end_voltage_max, 'end_voltage'),
+                (self.discharge_end_voltage_prev_min, self.discharge_end_voltage_prev_max, 'end_voltage_prev'),
+            ]:
+                if min_var is not None or max_var is not None:
+                    discharge_rule[label] = (min_var, max_var)
+        if len(discharge_rule) !=0:
+            rule[DISCHARGE] = discharge_rule
+
+
+        return rule

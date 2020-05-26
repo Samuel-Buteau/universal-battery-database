@@ -141,7 +141,7 @@ def plot_engine_direct(
             )
 
         leg = produce_annotations(
-            ax, get_list_of_patches(list_of_keys, custom_colors), plot_options
+            ax, get_list_of_patches(list_of_keys, custom_colors, {k:make_legend(k) for k in list_of_keys}), plot_options
         )
         if source_database:
             make_file_legends_and_vertical(
@@ -397,12 +397,12 @@ def map_legend_to_color(list_of_keys):
     return custom_colors
 
 
-def get_list_of_patches(list_of_keys, custom_colors):
+def get_list_of_patches(list_of_keys, custom_colors, legends):
     list_of_patches = []
     for k in list_of_keys:
         color = custom_colors[k]
         list_of_patches.append(mpatches.Patch(
-            color = color, label = make_legend(k),
+            color = color, label = legends[k],
         ))
     return list_of_patches
 

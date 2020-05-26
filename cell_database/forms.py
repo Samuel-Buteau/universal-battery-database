@@ -591,6 +591,7 @@ class SpecificNameForm(ModelForm):
 class DatasetSpecificFiltersForm(ModelForm):
     wet_cell = forms.MultipleChoiceField(choices=[], required=False)
     remove_filter_from_cells = forms.BooleanField(initial=False, required=False)
+    use_cell_grid_position = forms.BooleanField(initial=False, required=False)
     class Meta:
         model = DatasetSpecificFilters
         exclude = ['wet_cell', 'dataset']

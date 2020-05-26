@@ -1759,6 +1759,14 @@ class WetCell(models.Model):
         else:
             return ret_name
 
+    def get_default_position(self, dataset):
+        spec_names = DatasetSpecificCellName.objects.filter(dataset=dataset, wet_cell=self)
+        if spec_names.exists():
+            print("existed", spec_names)
+            return spec_names[0].grid_position_x, spec_names[0].grid_position_y
+        else:
+            return 1, 1
+
 class Dataset(models.Model):
     name = models.CharField(unique=True, blank=True, max_length=200)
     wet_cells = models.ManyToManyField(WetCell)
@@ -1769,6 +1777,9 @@ class DatasetSpecificCellName(models.Model):
     name = models.CharField(blank=True, max_length=200)
     wet_cell = models.ForeignKey(WetCell, on_delete=models.CASCADE, null=True, blank=True)
     dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE, null=True, blank=True)
+
+    grid_position_x = models.IntegerField(default=1)
+    grid_position_y = models.IntegerField(default=1)
 
     class Meta:
         constraints = [

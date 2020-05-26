@@ -7,6 +7,8 @@ from plot import plot_cycling_direct
 from django import forms
 import re
 
+from cell_database.dataset_visualization import *
+
 
 
 def conditional_register(ar, name, content):
@@ -1000,7 +1002,7 @@ def get_preview_dry_cells( search_dry_cell, dry_cell_scalars):
     if search_dry_cell.is_valid():
         dry_cell_notes = search_dry_cell.cleaned_data["notes"]
         dry_cell_proprietary = search_dry_cell.cleaned_data["proprietary"]
-        # TODO(sam): deal with geometry category.
+
         geometry_category = search_dry_cell.cleaned_data.get("geometry_category")
         geometry_category_exclude_missing = search_dry_cell.cleaned_data["geometry_category_exclude_missing"]
 
@@ -1488,8 +1490,6 @@ def delete_page(request):
 
 def view_dataset(request, pk):
     dataset = Dataset.objects.get(id=pk)
-
-
     ar = {}
     wet_cells = dataset.wet_cells.order_by('cell_id')
     if request.method == 'POST':
@@ -1512,9 +1512,14 @@ def view_dataset(request, pk):
                     wet_cell = WetCell.objects.get(cell_id=cell_id)
                     name = spec_name.cleaned_data["name"]
                     if not DatasetSpecificCellName.objects.exclude(wet_cell=wet_cell).filter(dataset=dataset, name=name).exists():
+                        print(spec_name.cleaned_data["grid_position_x"], spec_name.cleaned_data["grid_position_y"])
                         DatasetSpecificCellName.objects.update_or_create(
                             dataset=dataset, wet_cell=wet_cell,
-                            defaults={'name': name})
+                            defaults={
+                                'name': name,
+                                'grid_position_x': spec_name.cleaned_data["grid_position_x"],
+                                'grid_position_y': spec_name.cleaned_data["grid_position_y"],
+                            })
 
         if 'change_filter' in request.POST:
             specific_filter_form = DatasetSpecificFiltersForm(request.POST, dataset_id=pk, prefix='specific-filter-form')
@@ -1542,6 +1547,16 @@ def view_dataset(request, pk):
 
                     for cell_id in cell_ids:
                         wet_cell = WetCell.objects.get(cell_id=cell_id)
+                        grid_position_x, grid_position_y = 1, 1
+
+                        if specific_filter_form.cleaned_data["use_cell_grid_position"] and DatasetSpecificCellName.objects.filter(dataset=dataset, wet_cell=wet_cell).exists():
+                            dataset_spec_cell = DatasetSpecificCellName.objects.get(dataset=dataset, wet_cell=wet_cell)
+                            grid_position_x = dataset_spec_cell.grid_position_x
+                            grid_position_y = dataset_spec_cell.grid_position_y
+
+                        else:
+                            grid_position_x= specific_filter_form.cleaned_data['grid_position_x']
+                            grid_position_y= specific_filter_form.cleaned_data['grid_position_y']
 
                         DatasetSpecificFilters.objects.update_or_create(
                             dataset=dataset,
@@ -1550,8 +1565,8 @@ def view_dataset(request, pk):
                             defaults={
                                 'name': name,
                                 'color': specific_filter_form.cleaned_data['color'],
-                                'grid_position_x': specific_filter_form.cleaned_data['grid_position_x'],
-                                'grid_position_y': specific_filter_form.cleaned_data['grid_position_y'],
+                                'grid_position_x': grid_position_x,
+                                'grid_position_y': grid_position_y,
                                 'match_none_charge': specific_filter_form.cleaned_data['match_none_charge'],
                                 'match_none_discharge': specific_filter_form.cleaned_data['match_none_discharge'],
                                 'charge_constant_rate_min': specific_filter_form.cleaned_data['charge_constant_rate_min'],
@@ -1576,6 +1591,11 @@ def view_dataset(request, pk):
                                 'discharge_end_voltage_prev_max': specific_filter_form.cleaned_data['discharge_end_voltage_prev_max'],
                             })
 
+        if 'plot_dataset' in request.POST:
+            data = compute_dataset(dataset, field_request_default)
+            dataset_name, wet_names, filt_names, filt_colors, filt_pos = get_dataset_labels(dataset)
+            ar["image_of_dataset"] = output_dataset_to_plot(data, dataset_name, wet_names, filt_names, filt_colors, filt_pos,
+                                   )
 
         if 'plot_cells' in request.POST:
             visuals_form = DatasetVisualsForm(request.POST, prefix='visuals-form')
@@ -1608,11 +1628,16 @@ def view_dataset(request, pk):
                          "specific_filter_form",
                          DatasetSpecificFiltersForm(dataset_id=pk, prefix='specific-filter-form')
                          )
+
+    for wet_cell in wet_cells:
+        print(wet_cell.get_default_position(dataset))
     zipped_data = [
         (
             wet_cell,
             str(wet_cell),
             wet_cell.get_specific_name_or_nothing(dataset),
+            wet_cell.get_default_position(dataset)[0],
+            wet_cell.get_default_position(dataset)[1],
             DatasetSpecificFilters.objects.filter(
                 dataset=dataset,
                 wet_cell=wet_cell

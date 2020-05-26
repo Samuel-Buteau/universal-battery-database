@@ -18,12 +18,13 @@ table, th, td {
 <h1> Dataset: {{ dataset.name }} </h1>
     <table>
         <tr>
-            <th>Cell</th><th>Specific Name</th><th>Filters</th>
+            <th>Cell</th><th>Specific Name</th><th>Default Position</th><th>Filters</th>
         </tr>
-        {% for wet_cell, name, spec_name, filters in zipped_data %}
+        {% for wet_cell, name, spec_name, pos_x, pos_y, filters in zipped_data %}
         <tr>
             <td>{{ name }}</td>
             <td>{{spec_name}}</td>
+            <td>({{pos_x}},{{pos_y}})</td>
             <td>
 
                 <table>
@@ -62,6 +63,12 @@ table, th, td {
     </table>
 
     {% endif %}
+
+    <h2>Dataset Preview</h2>
+    {% if image_of_dataset %}
+        <img src="data:image/png;base64,{{image_of_dataset}}" alt="If you see this, there was an error. Send email to Samuel.Buteau@dal.ca" width=800 height=auto />
+    {% endif %}
+    <input type="submit" name = 'plot_dataset' value="Plot Dataset">
 
     <h2>Individual Cells Preview</h2>
     Display Page: {{visuals_form.page_number}}

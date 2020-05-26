@@ -118,6 +118,8 @@ def output_dataset_to_plot(data, dataset_name, wet_names, filt_names, filt_color
                 positioned_filters[filt_pos[cell_id][filt_id]] = [(cell_id, filt_id)]
             else:
                 positioned_filters[filt_pos[cell_id][filt_id]].append((cell_id, filt_id))
+    if len(positioned_filters.keys()) == 0:
+        return None
 
     max_pos_x = max([pos_x for pos_x,pos_y in positioned_filters.keys()])
     max_pos_y = max([pos_y for pos_x, pos_y in positioned_filters.keys()])

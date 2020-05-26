@@ -8,7 +8,7 @@ import tensorflow as tf
 from django.core.management.base import BaseCommand
 
 from Key import Key
-from plot import plot_direct
+from machine_learning.plot import plot_direct
 
 from cycling.models import id_dict_from_id_list
 from machine_learning.DegradationModelBlackbox import DegradationModel

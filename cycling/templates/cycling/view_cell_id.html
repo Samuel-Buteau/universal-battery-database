@@ -17,7 +17,7 @@ table, th, td {
 
 <h1>Cell ID: {{ cell_id }}</h1>
 
-<form action="{% url 'view_cell_id' cell_id cursor %}" method="post" >
+<form action="{% url 'cycling:view_cell_id' cell_id cursor %}" method="post" >
     {% csrf_token %}
     <h2>Theoretical Capacity</h2>
     {{ cell_globals_form }}

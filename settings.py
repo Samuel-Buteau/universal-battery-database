@@ -47,10 +47,13 @@ INSTALLED_APPS = [
     "filename_database",
     "cell_database",
     "cycling",
-    "machine_learning",
     "background_task",
     "colorful"
 ]
+
+if config["DEFAULT"]["InstallMachineLearning"] == "True":
+    INSTALLED_APPS.append("machine_learning")
+
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

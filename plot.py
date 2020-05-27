@@ -93,7 +93,7 @@ def get_figsize(target):
 
 # TODO(sam): make the interface more general
 def plot_engine_direct(
-    data_streams, target: str, todos, fit_args, filename,
+    data_streams, target: str, todos, fit_args, filename = "",
     lower_cycle = None, upper_cycle = None, vertical_barriers = None,
     list_all_options = None, show_invalid = False, figsize = None,
     known_data_engines = None,

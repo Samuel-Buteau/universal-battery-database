@@ -8,6 +8,7 @@ import matplotlib.patches as mpatches
 from matplotlib.axes._axes import _log as matplotlib_axes_logger
 
 from plot import *
+from cycling.plot import *
 
 def escape_string_to_path(my_string):
     for bad, good in [

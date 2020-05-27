@@ -4,7 +4,6 @@ import numpy
 import pickle
 import datetime
 from django.db.models import Q, Max, Min
-import matplotlib.pyplot as plt
 import filename_database.models
 
 from Key import Key

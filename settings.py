@@ -26,9 +26,14 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = config["DEFAULT"]["SecretKey"]
 
 # SECURITY WARNING: don"t run with debug turned on in production!
-DEBUG = True
+if config["DEFAULT"]["Debug"] == "False":
+    DEBUG = False
+elif config["DEFAULT"]["Debug"] == "True":
+    DEBUG = True
+else:
+    DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = config["DEFAULT"]["AllowedHosts"].split(',')
 
 # Application definition
 

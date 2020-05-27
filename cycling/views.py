@@ -10,6 +10,7 @@ import datetime
 from django.utils import timezone
 from cycling.neware_processing_functions import full_import_cell_ids
 from .models import *
+from filename_database.models import DatabaseFile
 from django.db.models import Max, Min
 import math
 from .forms import *
@@ -21,7 +22,9 @@ import matplotlib.pyplot as plt
 from io import BytesIO
 import base64
 from django.db.models import Q, F
+
 from cycling.plot import plot_cycling_direct
+from view_generic import *
 
 import numpy as np
 
@@ -55,7 +58,45 @@ def view_cell_id(request, cell_id, cursor):
 
     cell_id = int(cell_id)
     ar = {"cell_id": cell_id}
+    if request.method == "GET":
+        cell_globals = CellGlobals.objects.filter(cell_id=cell_id)
+        if cell_globals.exists():
+            cell_globals_first = cell_globals[0]
+            initial = {
+                'theoretical_capacity':cell_globals_first.theoretical_capacity,
+                'auto_update_capacity':cell_globals_first.auto_update_capacity,
+            }
+        else:
+            initial = {
+                'theoretical_capacity': 1,
+                'auto_update_capacity': True,
+            }
 
+        conditional_register(
+            ar,
+            'cell_globals_form',
+            CellGlobalsForm(initial=initial, prefix='cell-globals-form')
+        )
+
+    if request.method == "POST":
+        cell_globals_form = CellGlobalsForm(request.POST, prefix='cell-globals-form')
+        if cell_globals_form.is_valid():
+            ar['cell_globals_form'] = cell_globals_form
+            if "change_theoretical_capacity" in request.POST:
+                CellGlobals.objects.update_or_create(
+                    cell_id=cell_id,
+                    defaults={
+                        'theoretical_capacity':cell_globals_form.cleaned_data["theoretical_capacity"],
+                        'auto_update_capacity':cell_globals_form.cleaned_data["auto_update_capacity"],
+                    }
+                )
+
+        else:
+            conditional_register(
+                ar,
+                'cell_globals_form',
+                CellGlobalsForm(initial=initial, prefix='cell-globals-form')
+            )
     if len(cursor) == 0:
         chosen = []
     else:

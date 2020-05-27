@@ -1,9 +1,8 @@
 from django import forms
-from filename_database.models import *
+from cycling.models import *
 from datetime import date
-from django.forms import BaseModelFormSet, formset_factory
+from django.forms import BaseModelFormSet, formset_factory,  ModelForm
 from cell_database.models import Dataset
-
 
 class SearchForm(forms.Form):
     filename1_search = forms.BooleanField(required = False)
@@ -104,3 +103,10 @@ class CellIDOverviewForm(forms.Form):
 
 
 CellIDOverviewFormset = formset_factory(CellIDOverviewForm, extra = 0)
+
+
+class CellGlobalsForm(ModelForm):
+
+    class Meta:
+        model = CellGlobals
+        exclude = ['cell_id']

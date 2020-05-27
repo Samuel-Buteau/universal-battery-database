@@ -3,6 +3,7 @@ import pickle
 from django.core.management.base import BaseCommand
 from plot import *
 from Key import Key
+from machine_learning.plot import data_engine_compiled
 
 """
 Shortened Variable Names:
@@ -187,6 +188,10 @@ def initial_processing(my_data: dict, cell_ids, fit_args) -> dict:
             ],
             fit_args = fit_args,
             filename = "voltage_dependence_{}.png".format(cell_id),
+            known_data_engines={
+                "compiled": data_engine_compiled,
+            },
+            send_to_file=True,
 
         )
 
@@ -200,6 +205,10 @@ def initial_processing(my_data: dict, cell_ids, fit_args) -> dict:
             ],
             fit_args = fit_args,
             filename = "cycle_dependence_{}.png".format(cell_id),
+            known_data_engines={
+                "compiled": data_engine_compiled,
+            },
+            send_to_file=True,
 
         )
 

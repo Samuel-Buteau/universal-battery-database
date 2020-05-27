@@ -22,8 +22,10 @@ import matplotlib.pyplot as plt
 from io import BytesIO
 import base64
 from django.db.models import Q, F
-from plot import plot_cycling_direct
+
+from cycling.plot import plot_cycling_direct
 from view_generic import *
+
 import numpy as np
 
 

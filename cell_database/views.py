@@ -3,7 +3,7 @@ from django.forms import modelformset_factory, formset_factory
 from django.db.models import Q, F, Func, Count,Exists, OuterRef
 from .forms import *
 from .models import *
-from plot import plot_cycling_direct
+from cycling.plot import plot_cycling_direct
 from django import forms
 import re
 

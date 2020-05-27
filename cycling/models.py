@@ -6,7 +6,7 @@ import datetime
 from django.db.models import Q, Max, Min
 import matplotlib.pyplot as plt
 import filename_database.models
-from io import BytesIO
+
 from Key import Key
 import plot_constants
 from constants import *
@@ -138,6 +138,7 @@ def make_temperature_grid(min_t, max_t, n_samples, my_cell_ids):
     delta = (my_max - my_min) / float(n_samples - 1)
 
     return numpy.array([my_min + delta * float(i) for i in range(n_samples)])
+
 
 
 def compute_from_database(
@@ -423,24 +424,8 @@ def make_file_legends_and_vertical(
         bottom = True, top = True, left = True, right = True,
     )
 
-    if len(file_leg) > 0:
-        if list_all_options is None:
-            loc = "lower left"
-        else:
-            loc = "upper left"
-        ax.legend([x[0] for x in file_leg], [x[1] for x in file_leg], loc = loc)
-        ax.add_artist(leg1)
 
 
-def get_byte_image(fig, dpi):
-    buf = BytesIO()
-    plt.savefig(buf, format = "png", dpi = dpi)
-    image_base64 = base64.b64encode(
-        buf.getvalue()
-    ).decode("utf-8").replace("\n", "")
-    buf.close()
-    plt.close(fig)
-    return image_base64
 
 
 # TODO(sam): use common mechanism as in compile_dataset/ml_smoothing for ordering

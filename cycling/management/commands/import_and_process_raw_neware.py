@@ -13,7 +13,9 @@ def import_and_process(args):
     print("BULK IMPORT(PARSE RAW FILE + PUSH RAW DATA)")
     errors = bulk_import(
         cell_ids = cell_ids,
-        debug = args["DEBUG"])
+        debug = args["DEBUG"],
+        max_filesize= args["max_filesize"]
+    )
     if len(errors) > 0:
         print("ERRORS IN BULK IMPORT: {}".format(errors))
     for _ in range(5):
@@ -36,6 +38,10 @@ class Command(BaseCommand):
         parser.set_defaults(DEBUG = False)
         parser.add_argument(
             "--NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS", type = int, default = 10,
+        )
+
+        parser.add_argument(
+            "--max_filesize", type=int, default=1000000000,
         )
 
     def handle(self, *args, **options):

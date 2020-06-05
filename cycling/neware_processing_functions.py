@@ -546,7 +546,7 @@ def import_single_file(database_file, debug = False):
                 return error_message
 
 
-def bulk_import(cell_ids = None, debug = False):
+def bulk_import(cell_ids = None, debug = False, max_filesize = 1000000000):
     """
     mostly just calls import_single_file
     """
@@ -556,6 +556,8 @@ def bulk_import(cell_ids = None, debug = False):
 
     else:
         neware_files = get_good_neware_files()
+
+    neware_files = neware_files.filter(filesize__leq = max_filesize)
     errors = list(map(lambda x: import_single_file(x, debug), neware_files))
     return list(filter(lambda x: x["error"], errors))
 

@@ -180,7 +180,7 @@ class DatabaseFile(models.Model):
     filename = models.CharField(max_length=300)
     root = models.CharField(max_length=300)
     last_modified = models.DateTimeField(default=datetime.datetime(1970, 1, 1))
-    filesize = models.IntegerField(default=0) # in bytes
+    filesize = models.BigIntegerField(default=0) # in bytes
     valid_metadata = models.OneToOneField(ValidMetadata, on_delete=models.SET_NULL, null=True)
     is_valid = models.BooleanField(default=False)
     deprecated = models.BooleanField(default=False)

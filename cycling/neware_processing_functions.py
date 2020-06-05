@@ -557,7 +557,7 @@ def bulk_import(cell_ids = None, debug = False, max_filesize = 1000000000):
     else:
         neware_files = get_good_neware_files()
 
-    neware_files = neware_files.filter(filesize__leq = max_filesize)
+    neware_files = neware_files.filter(filesize__lte = max_filesize)
     errors = list(map(lambda x: import_single_file(x, debug), neware_files))
     return list(filter(lambda x: x["error"], errors))
 

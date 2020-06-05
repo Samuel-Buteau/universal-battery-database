@@ -286,3 +286,4 @@ reload_private.bat
 /reload_private.sh
 *.ini
 */migrations/0*.py
+*_private*

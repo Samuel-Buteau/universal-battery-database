@@ -4,12 +4,7 @@ import os
 import sys
 import configparser
 
-config = configparser.ConfigParser()
-config.read("config.ini")
 
-if config["DEFAULT"]["Backend"] == "mysql":
-    import pymysql 
-    pymysql.install_as_MySQLdb()
 
 def main():
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'settings')

@@ -365,6 +365,8 @@ def read_neware(
             # not nested
             for i in range(10000000000):
                 this_line, separated, stripped = get_normal_line()
+                if this_line == "":
+                    break
                 if separated[0] == "Step Data":
                     break
 
@@ -374,6 +376,8 @@ def read_neware(
             # This is the step data
             for i in range(10000000000):
                 this_line, separated, stripped = get_normal_line()
+                if this_line == "":
+                    break
                 if separated[0] == "Record Data":
                     break
 

@@ -783,6 +783,11 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10):
         files = get_good_neware_files().filter(
             valid_metadata__cell_id = cell_id)
 
+        # check if there are any valid cycles.
+        if not Cycle.objects.filter(cycling_file__database_file__in = files,
+                                 valid_cycle = True).exists():
+            return
+
 
         total_capacity =\
             Cycle.objects.filter(cycling_file__database_file__in = files,

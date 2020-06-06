@@ -744,10 +744,18 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10):
                 continue
             for i in range(1, len(steps)):
                 step = steps[i]
+                # the defaults are wrong, but it is hard to completely remove possibility for errors here.
+                step.end_current = 0.
+                step.end_voltage = 0.
+                step.end_current_prev = 0.
+                step.end_voltage_prev = 0.
+                step.constant_current = 0.
+
                 if "Rest" in step.step_type:
                     step.end_current = steps[i - 1].end_current
                     step.end_voltage = steps[i - 1].end_voltage
-
+                    step.end_current_prev = steps[i - 1].end_current
+                    step.end_voltage_prev = steps[i - 1].end_voltage
                 elif "CCCV_" in step.step_type:
                     sign = +1.
                     if "DChg" in step.step_type:

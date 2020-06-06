@@ -834,6 +834,9 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10):
                 else:
                     raise Exception("unknown polarity {}".format(polarity))
 
+                if step is None:
+                    #TODO(sam): potentially interesting special case
+                    continue
                 # if step.end_current_prev is None:
                 # print(polarity)
                 # print([s.step_type for s in cyc.step_set.order_by("step_number")])

@@ -698,11 +698,15 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10):
                 continue
             first_step = steps[0]
 
-            if "Rest" in first_step.step_type:
-                first_step.end_current = 0.
-                first_step.end_voltage = 0.
+            # the defaults are wrong, but it is hard to completely remove possibility for errors here.
+            first_step.end_current = 0.
+            first_step.end_voltage = 0.
+            first_step.end_current_prev = 0.
+            first_step.constant_current = 0.
+            first_step.constant_voltage = 0.
+            first_step.end_voltage_prev = 0
 
-            elif "CCCV_" in first_step.step_type:
+            if "CCCV_" in first_step.step_type:
                 sign = +1.
                 if "DChg" in first_step.step_type:
                     sign = -1.
@@ -716,7 +720,6 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10):
                     first_step.end_voltage_prev = first_step.minimum_voltage
 
                 else:
-
                     first_step.end_voltage = first_step.minimum_voltage
                     first_step.constant_voltage = first_step.minimum_voltage
                     first_step.end_voltage_prev = first_step.maximum_voltage

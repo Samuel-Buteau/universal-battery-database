@@ -1,8 +1,21 @@
 from django.core.management.base import BaseCommand
 from cycling.neware_processing_functions import *
+from datetime import date
 
 
 def import_and_process(args):
+    path_to_log = None
+    if args['log_dir'] is not None:
+        path_to_log = os.path.join(
+            args['log_dir'],
+        )
+        if not os.path.exists(path_to_log):
+            os.makedirs(path_to_log)
+
+        today = date.today()
+        today_string = today.strftime("%y_%m_%d")
+
+
     cell_ids = None
     for _ in range(5):
         print()
@@ -18,6 +31,13 @@ def import_and_process(args):
     )
     if len(errors) > 0:
         print("ERRORS IN BULK IMPORT: {}".format(errors))
+
+        if path_to_log is not None:
+            with open(os.path.join(path_to_log, "bulk_import_errors_{}.txt".format(today_string)),"w") as file:
+                for error in errors:
+                    file.write(error)
+
+
     for _ in range(5):
         print()
     print("BULK PROCESS")
@@ -27,7 +47,10 @@ def import_and_process(args):
             "NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS"])
     if len(errors) > 0:
         print("ERRORS IN BULK PROCESS: {}".format(errors))
-
+        if path_to_log is not None:
+            with open(os.path.join(path_to_log, "bulk_process_errors_{}.txt".format(today_string)),"w") as file:
+                for error in errors:
+                    file.write(error)
 
 class Command(BaseCommand):
     def add_arguments(self, parser):
@@ -37,12 +60,16 @@ class Command(BaseCommand):
         )
         parser.set_defaults(DEBUG = False)
         parser.add_argument(
-            "--NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS", type = int, default = 10,
+            "--NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS",
+            type = int,
+            default = 10,
         )
-
         parser.add_argument(
-            "--max_filesize", type=int, default=1000000000,
+            "--max_filesize",
+            type = int,
+            default = 1000000000,
         )
+        parser.add_argument('--log_dir', default='')
 
     def handle(self, *args, **options):
         import_and_process(options)

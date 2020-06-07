@@ -35,7 +35,7 @@ def import_and_process(args):
         if path_to_log is not None:
             with open(os.path.join(path_to_log, "bulk_import_errors_{}.txt".format(today_string)),"w") as file:
                 for error in errors:
-                    file.write(error)
+                    file.write(str(error))
 
 
     for _ in range(5):
@@ -50,7 +50,7 @@ def import_and_process(args):
         if path_to_log is not None:
             with open(os.path.join(path_to_log, "bulk_process_errors_{}.txt".format(today_string)),"w") as file:
                 for error in errors:
-                    file.write(error)
+                    file.write(str(error))
 
 class Command(BaseCommand):
     def add_arguments(self, parser):

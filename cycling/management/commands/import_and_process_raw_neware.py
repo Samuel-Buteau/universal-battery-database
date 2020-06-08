@@ -34,8 +34,8 @@ def import_and_process(args):
             with open(os.path.join(path_to_log, "bulk_import_errors_{}.csv".format(today_string)),"w") as file:
                 all_keys = []
                 for error in errors:
-                    all_keys.append(error.keys())
-                all_keys = list(set(list(all_keys)))
+                    all_keys += list(error.keys())
+                all_keys = list(set(all_keys))
                 writer = csv.DictWriter(file, fieldnames=all_keys)
                 writer.writeheader()
                 for error in errors:
@@ -57,8 +57,8 @@ def import_and_process(args):
             with open(os.path.join(path_to_log, "bulk_process_errors_{}.csv".format(today_string)),"w") as file:
                 all_keys = []
                 for error in errors:
-                    all_keys.append(error.keys())
-                all_keys = list(set(list(all_keys)))
+                    all_keys += list(error.keys())
+                all_keys = list(set(all_keys))
                 writer = csv.DictWriter(file, fieldnames=all_keys)
                 writer.writeheader()
                 for error in errors:

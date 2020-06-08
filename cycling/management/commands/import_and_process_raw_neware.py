@@ -13,7 +13,7 @@ def import_and_process(args):
             os.makedirs(path_to_log)
         today = date.today()
         today_string = today.strftime("%y_%m_%d")
-        
+
     cell_ids = None
     for _ in range(5):
         print()
@@ -35,7 +35,7 @@ def import_and_process(args):
                 all_keys = []
                 for error in errors:
                     all_keys.append(error.keys())
-                all_keys = list(set(all_keys))
+                all_keys = list(set(list(all_keys)))
                 writer = csv.DictWriter(file, fieldnames=all_keys)
                 writer.writeheader()
                 for error in errors:
@@ -58,7 +58,7 @@ def import_and_process(args):
                 all_keys = []
                 for error in errors:
                     all_keys.append(error.keys())
-                all_keys = list(set(all_keys))
+                all_keys = list(set(list(all_keys)))
                 writer = csv.DictWriter(file, fieldnames=all_keys)
                 writer.writeheader()
                 for error in errors:

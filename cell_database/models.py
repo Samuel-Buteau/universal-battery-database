@@ -307,6 +307,48 @@ class SeparatorGeometry(models.Model):
 
     #overhang_in_core = models.FloatField(null=True, blank=True)
 
+class MaterialType(models.Model):
+    notes = models.CharField(max_length=100, blank=True)
+    def __str__(self):
+        return self.notes
+
+    def define_if_possible(self, target=None):
+
+        object_equality_query = Q(
+            notes=self.notes,
+        )
+
+        string_equality_query = Q(notes=self.notes)
+
+        target_object = None
+        if target is None:
+            type_set = MaterialType.objects
+            target_object = None
+        else:
+            type_set = MaterialType.objects.exclude(id = target)
+            if MaterialType.objects.filter(id=target).exists():
+                target_object = MaterialType.objects.get(id=target)
+
+        set_of_object_equal = type_set.filter(object_equality_query)
+        print('set objects equal: ', set_of_object_equal)
+        string_equals = type_set.filter(string_equality_query).exists()
+        print('set of string equal: ', type_set.filter(string_equality_query))
+
+        if target_object is None:
+            my_self = self
+        else:
+            my_self = target_object
+            my_self.notes = self.notes
+
+        return helper_return(
+                set_of_object_equal=set_of_object_equal,
+                my_self=my_self,
+            )
+
+
+
+
+
 
 class Coating(models.Model):
     notes = models.CharField(max_length=100, null=True, blank=True)
@@ -585,6 +627,9 @@ class Component(models.Model):
     coating_lot = models.ForeignKey(CoatingLot, on_delete=models.SET_NULL, null=True, blank=True)
     coating_lot_name = models.BooleanField(default=False, blank=True)
 
+    material_type = models.ForeignKey(MaterialType, on_delete=models.SET_NULL, null=True, blank=True)
+    material_type_name = models.BooleanField(default=False, blank=True)
+
     particle_size = models.FloatField(null=True, blank=True, help_text = UNITS_SIZE[0])
     particle_size_name = models.BooleanField(default=False, blank=True)
 
@@ -639,6 +684,7 @@ class Component(models.Model):
             component_type=self.component_type,
             notes=self.notes,
             coating_lot=self.coating_lot,
+            material_type=self.material_type,
             particle_size=self.particle_size,
             single_crystal=self.single_crystal,
             turbostratic_misalignment=self.turbostratic_misalignment,
@@ -678,6 +724,13 @@ class Component(models.Model):
                                                               coating_lot_name=True)
         else:
             string_equality_query = string_equality_query & Q(coating_lot_name=False)
+
+        if self.material_type_name:
+            string_equality_query = string_equality_query & Q(material_type=self.material_type,
+                                                              material_type_name=True)
+        else:
+            string_equality_query = string_equality_query & Q(material_type_name=False)
+
         if self.particle_size_name:
             string_equality_query = string_equality_query & Q(particle_size=self.particle_size,
                                                               particle_size_name=True)
@@ -774,6 +827,7 @@ class Component(models.Model):
                 self.composite_type_name = True
                 self.component_type_name = True
                 self.coating_lot_name = True
+                self.material_type_name = True
                 self.particle_size_name = True
                 self.single_crystal_name = True
                 self.turbostratic_misalignment_name = True
@@ -794,7 +848,13 @@ class Component(models.Model):
                 my_self.component_type = self.component_type
                 my_self.component_type_name = self.component_type_name
 
+                my_self.coating_lot = self.coating_lot
                 my_self.coating_lot_name = self.coating_lot_name
+
+                my_self.material_type = self.material_type
+                my_self.material_type_name = self.material_type_name
+
+
 
                 my_self.particle_size = self.particle_size
                 my_self.particle_size_name = self.particle_size_name
@@ -836,6 +896,12 @@ class Component(models.Model):
 
 
         extras = []
+        if self.material_type_name:
+            if self.material_type is None:
+                extras.append('TYPE=?')
+            else:
+                extras.append('TYPE={}'.format(self.material_type))
+
         if self.proprietary_name:
             if self.proprietary:
                 secret = "SECRET"
@@ -888,6 +954,7 @@ class Component(models.Model):
                 extras.append('COAT=?')
             else:
                 extras.append('COAT={}'.format(self.coating_lot))
+
 
 
         if self.component_type_name:

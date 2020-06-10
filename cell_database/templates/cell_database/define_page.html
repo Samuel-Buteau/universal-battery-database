@@ -25,14 +25,20 @@ table, th, td {
 
     {% if define_coating_form %}
         <td valign="top">
-        <h1>Coating</h1>
-            {% include "cell_database/coating.html"  %}
-        <input type="submit" name = 'define_coating' value="Define Coating">
 
-        {% if define_coating_lot_form %}
-            {% include "cell_database/lot_info.html" with lot_info_form=define_coating_lot_form predefined=define_coating_lot_form.predefined_coating predefined_label="Predefined Coating" %}
-            <input type="submit" name = 'define_coating_lot' value="Define Coating Lot">
-        {% endif %}
+            <h1>Coating</h1>
+            {% include "cell_database/coating.html"  %}
+            <input type="submit" name = 'define_coating' value="Define Coating">
+
+            {% if define_coating_lot_form %}
+                {% include "cell_database/lot_info.html" with lot_info_form=define_coating_lot_form predefined=define_coating_lot_form.predefined_coating predefined_label="Predefined Coating" %}
+                <input type="submit" name = 'define_coating_lot' value="Define Coating Lot">
+            {% endif %}
+            <br>
+            <h1>Material Type</h1>
+            {% include "cell_database/material_type.html"  %}
+            <input type="submit" name = 'define_material_type' value="Define Material Type">
+
         </td>
     {% endif %}
 

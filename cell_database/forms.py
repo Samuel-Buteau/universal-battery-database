@@ -182,6 +182,8 @@ class ElectrodeMaterialForm(ModelForm):
                   'composite_type_name',
                   'component_type_name',
                   'coating_lot_name',
+                  'material_type',
+                  'material_type_name'
 
                   ]
 
@@ -219,7 +221,9 @@ class SeparatorMaterialForm(ModelForm):
             'preparation_temperature',
             'preparation_temperature_name',
             'notes',
-            'coating_lot_name'
+            'coating_lot_name',
+            'material_type',
+            'material_type_name',
         ]
 
 class SeparatorMaterialLotForm(ModelForm):
@@ -242,6 +246,9 @@ class CoatingForm(ModelForm):
         model = Coating
         exclude = []
 
+
+
+
 class CoatingLotForm(ModelForm):
     predefined_coating = forms.ModelChoiceField(
         queryset=Coating.objects.all(),
@@ -250,6 +257,18 @@ class CoatingLotForm(ModelForm):
     class Meta:
         model = LotInfo
         exclude = []
+
+
+class MaterialTypeForm(ModelForm):
+    override_target = forms.ModelChoiceField(
+        queryset=MaterialType.objects.all(),
+        required=False
+    )
+
+    class Meta:
+        model = MaterialType
+        exclude = []
+
 
 
 # Electrolyte

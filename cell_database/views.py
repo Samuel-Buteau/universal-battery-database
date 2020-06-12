@@ -186,6 +186,12 @@ def define_page(request, mode=None):
                         elif lot_type == LotTypes.lot:
                             my_component.coating_lot = CoatingLot.objects.get(id=my_id)
 
+                    my_material_type = simple_form.cleaned_data['material_type']
+
+
+                    my_component.material_type = my_material_type
+                    my_component.material_type_name = simple_form.cleaned_data['material_type_name']
+
                     my_component.particle_size = simple_form.cleaned_data['particle_size']
                     my_component.particle_size_name = simple_form.cleaned_data['particle_size_name']
                     my_component.preparation_temperature = simple_form.cleaned_data['preparation_temperature']
@@ -268,6 +274,29 @@ def define_page(request, mode=None):
                 return my_coating.define_if_possible(
                     target=my_target
 
+                )
+        if content == 'material_type':
+            simple_form = MaterialTypeForm(post, prefix='material-type-form')
+
+            simple_form_string = 'define_{}_form'.format(content)
+
+            if not simple_form.is_valid():
+                return None
+            else:
+                ar[simple_form_string] = simple_form
+
+                my_material_type = MaterialType(
+                    notes=simple_form.cleaned_data['notes'],
+                )
+
+
+                my_target = simple_form.cleaned_data['override_target']
+
+                if my_target is not None:
+                    my_target = my_target.id
+
+                return my_material_type.define_if_possible(
+                    target=my_target
                 )
 
         if content == 'dry_cell':
@@ -499,6 +528,7 @@ def define_page(request, mode=None):
         for m,context in [
             ('molecule','electrolyte'),
             ('coating','electrode'),
+            ('material_type', 'electrode'),
             ('electrolyte','electrolyte'),
             ('material','electrode'),
             ('separator_material','separator'),
@@ -554,6 +584,10 @@ def define_page(request, mode=None):
             'define_coating_form',
             CoatingForm(prefix='coating-form')
         )
+        conditional_register(ar,
+                             'define_material_type_form',
+                             MaterialTypeForm(prefix='material-type-form')
+                             )
 
 
         conditional_register(ar,

@@ -56,9 +56,6 @@ def define_page(request, mode=None):
             else:
                 ar[simple_form_string] = simple_form
 
-
-
-
                 my_composite = Composite(
                     proprietary=simple_form.cleaned_data['proprietary'],
                     proprietary_name=simple_form.cleaned_data['proprietary_name'],

@@ -190,7 +190,6 @@ def define_if_possible(lot, lot_info=None, type =None):
         If there is an object clash, return the preexisting object.
         Else: if there is a string clash, set all visibility flags to True.
     """
-    print('entered define if possible')
     if lot_info is None or not lot_info.is_valid():
         print('was invalid')
         return None
@@ -330,9 +329,8 @@ class MaterialType(models.Model):
                 target_object = MaterialType.objects.get(id=target)
 
         set_of_object_equal = type_set.filter(object_equality_query)
-        print('set objects equal: ', set_of_object_equal)
+
         string_equals = type_set.filter(string_equality_query).exists()
-        print('set of string equal: ', type_set.filter(string_equality_query))
 
         if target_object is None:
             my_self = self
@@ -423,9 +421,7 @@ class Coating(models.Model):
                 target_object = Coating.objects.get(id=target)
 
         set_of_object_equal = coating_set.filter(object_equality_query)
-        print('set objects equal: ', set_of_object_equal)
         string_equals = coating_set.filter(string_equality_query).exists()
-        print('set of string equal: ', coating_set.filter(string_equality_query))
 
         if (not set_of_object_equal.exists()) and string_equals:
             self.proprietary_name = True
@@ -531,7 +527,6 @@ def helper_return(
 ):
     if not set_of_object_equal.exists():
         # if string equals, we take care of it before passing it here.
-
         # we know for a fact that value fields don't exist.
         # so we can create it as it is.
         if cathode_geometry is not None:
@@ -672,7 +667,6 @@ class Component(models.Model):
         If there is an object clash, return the preexisting object.
         Else: if there is a string clash, set all visibility flags to True.
         """
-        print('entered define if possible')
         if not self.is_valid():
             print('was invalid')
             return None
@@ -801,7 +795,6 @@ class Component(models.Model):
 
             target_object = None
             if target is None:
-
                 component_set = Component.objects
                 target_object = None
             else:
@@ -809,13 +802,18 @@ class Component(models.Model):
                 if Component.objects.filter(id=target).exists():
                     target_object = Component.objects.get(id=target)
 
-            set_with_valid_stoc = component_set.annotate(
+            if len(my_stochiometry_components) == 0:
+                set_with_valid_stoc = component_set.annotate(
                 count_stochiometry=Count('stochiometry')
             ).filter(count_stochiometry=len(my_stochiometry_components)
-                     ).annotate(
-                count_valid_stochiometry=Count('stochiometry', filter=Q(stochiometry__in=my_stochiometry_components))
-            ).filter(count_valid_stochiometry=len(my_stochiometry_components))
-
+                     )
+            else:
+                set_with_valid_stoc = component_set.annotate(
+                    count_stochiometry=Count('stochiometry')
+                ).filter(count_stochiometry=len(my_stochiometry_components)
+                         ).annotate(
+                    count_valid_stochiometry=Count('stochiometry', filter=Q(stochiometry__in=my_stochiometry_components))
+                ).filter(count_valid_stochiometry=len(my_stochiometry_components))
 
 
             set_of_object_equal = set_with_valid_stoc.filter(object_equality_query)
@@ -867,7 +865,6 @@ class Component(models.Model):
                 my_self.natural = self.natural
                 my_self.natural_name = self.natural_name
 
-
             return helper_return(
                 set_of_object_equal=set_of_object_equal,
                 my_self=my_self,
@@ -900,7 +897,7 @@ class Component(models.Model):
             if self.material_type is None:
                 extras.append('TYPE=?')
             else:
-                extras.append('TYPE={}'.format(self.material_type))
+                extras.append('{}'.format(self.material_type))
 
         if self.proprietary_name:
             if self.proprietary:
@@ -1251,9 +1248,11 @@ class Composite(models.Model):
 
                 set_with_valid_comp = composite_set.annotate(
                     count_components=Count('components')
-                ).filter(count_components=len(my_ratio_components)).annotate(
-                    count_valid_components=Count('components', filter=Q(components__in=my_ratio_components))
-                ).filter(count_valid_components=len(my_ratio_components))
+                ).filter(count_components=len(my_ratio_components))
+                if len(my_ratio_components) > 0:
+                    set_with_valid_comp= set_with_valid_comp.annotate(
+                        count_valid_components=Count('components', filter=Q(components__in=my_ratio_components))
+                    ).filter(count_valid_components=len(my_ratio_components))
 
                 set_of_object_equal = set_with_valid_comp.filter(object_equality_query)
                 string_equals = set_with_valid_comp.filter(string_equality_query).exists()

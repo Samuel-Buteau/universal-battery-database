@@ -30,10 +30,11 @@ table, th, td {
         Start Cell ID: {{bulk_parameters_form.start_cell_id}} End Cell ID: {{bulk_parameters_form.end_cell_id}} Number of Cell IDs: {{bulk_parameters_form.number_of_cell_ids}}
         Override Existing Registration: {{bulk_parameters_form.override_existing}}
         <br>
+        Dry Cell Model: {{bulk_parameters_form.dry_cell}}
+        <br>
         <table>
             <tr>
                 <th></th>
-                <th>Dry Cell Model</th>
                 <th></th>
                 {% if predefined == 'True' %}
                     <th>Electrolyte</th>
@@ -53,7 +54,6 @@ table, th, td {
             <tr>
 
                 <th>Defaults:</th>
-                <td>{{bulk_parameters_form.dry_cell}}</td>
                 {% if predefined == 'True' %}
                     <td>{{bulk_parameters_form.electrolyte}}</td>
                 {% endif %}
@@ -73,7 +73,6 @@ table, th, td {
             </tr>
             <tr>
 
-                <td></td>
                 <td></td>
                 {% if predefined == 'True' %}
                     <td></td>
@@ -96,9 +95,9 @@ table, th, td {
             {% if bulk_entries_formset %}
                 {% csrf_token %}
                 {{ bulk_entries_formset.management_form }}
-                <th>Result</th>
+                <th>Result:</th>
                 {% if predefined == 'False' %}
-                    <th></th><th>Cell ID:<th></th><th></th><th></th><th>Electrolytes:</th></th>
+                    <th>Cell ID:<th>
                 {% endif %}
 
                 {%for entry in bulk_entries_formset %}
@@ -106,11 +105,6 @@ table, th, td {
                         <td>
                             {% if messages %}
                                 {{ messages|index:forloop.counter0 }}
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if predefined == 'False' %}
-                                {{entry.dry_cell}}
                             {% endif %}
                         </td>
                         <td>{{entry.cell_id}}</td>

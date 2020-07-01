@@ -526,7 +526,7 @@ def define_page(request, mode=None):
             ('molecule','electrolyte'),
             ('coating','electrode'),
             ('material_type', 'electrode'),
-            ('electrolyte','electrolyte'),
+            # ('electrolyte','electrolyte'),
             ('material','electrode'),
             ('separator_material','separator'),
             ('electrode','electrode'),
@@ -618,10 +618,10 @@ def define_page(request, mode=None):
 
     if mode =='electrolyte':
 
-        conditional_register(ar,
-            'electrolyte_composition_formset',
-            ElectrolyteCompositionFormset(prefix='electrolyte-composition-formset')
-        )
+        # conditional_register(ar,
+        #     'electrolyte_composition_formset',
+        #     ElectrolyteCompositionFormset(prefix='electrolyte-composition-formset')
+        # )
 
         conditional_register(ar,
             'define_molecule_form',
@@ -633,14 +633,14 @@ def define_page(request, mode=None):
             ElectrolyteMoleculeLotForm(prefix='electrolyte-molecule-lot-form')
         )
 
-        conditional_register(ar,
-            'define_electrolyte_form',
-            ElectrolyteForm(prefix='electrolyte-form')
-        )
-        conditional_register(ar,
-            'define_electrolyte_lot_form',
-            ElectrolyteLotForm(prefix='electrolyte-lot-form')
-        )
+        # conditional_register(ar,
+        #     'define_electrolyte_form',
+        #     ElectrolyteForm(prefix='electrolyte-form')
+        # )
+        # conditional_register(ar,
+        #     'define_electrolyte_lot_form',
+        #     ElectrolyteLotForm(prefix='electrolyte-lot-form')
+        # )
 
     if mode == 'separator':
 

@@ -84,9 +84,9 @@ table, th, td {
             {% endif %}
             <input type="submit" name = 'define_electrolyte' value="Define Electrolyte">
             {% if define_electrolyte_lot_form %}
-            {% include "cell_database/lot_info.html" with lot_info_form=define_electrolyte_lot_form predefined=define_electrolyte_lot_form.predefined_electrolyte predefined_label="Predefined Electrolyte" %}
-            <input type="submit" name = 'define_electrolyte_lot' value="Define Electrolyte Lot">
-        {% endif %}
+                {% include "cell_database/lot_info.html" with lot_info_form=define_electrolyte_lot_form predefined=define_electrolyte_lot_form.predefined_electrolyte predefined_label="Predefined Electrolyte" %}
+                <input type="submit" name = 'define_electrolyte_lot' value="Define Electrolyte Lot">
+            {% endif %}
             </td>
         {% endif %}
 

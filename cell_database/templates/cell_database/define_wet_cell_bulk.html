@@ -71,6 +71,27 @@ table, th, td {
                     <td>{{bulk_parameters_form.notes}}</td>
                 {% endif %}
             </tr>
+            <tr>
+
+                <td></td>
+                <td></td>
+                {% if predefined == 'True' %}
+                    <td></td>
+                {% endif %}
+                <th></th>
+                {% if predefined == 'False' %}
+
+                    <th>Types:</th>
+
+                    {% for component_type in bulk_parameters_form.get_component_type_fields %}
+                        <td>{{ component_type }}
+                        </td>
+                    {% endfor %}
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                {% endif %}
+            </tr>
 
             {% if bulk_entries_formset %}
                 {% csrf_token %}

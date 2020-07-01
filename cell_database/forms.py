@@ -535,13 +535,6 @@ class SearchElectrolyteComponentForm(Form):
 
     molecule = forms.ChoiceField(choices=molecule_choices, required=False)
     must_type = forms.ChoiceField(choices=MUST_TYPES, initial = MANDATORY)
-    component_type_choices = [("", "Use Default")] + list(filter(
-        lambda x: x[0] in [SALT, SOLVENT, ADDITIVE],
-        COMPONENT_TYPES))
-    component_type = forms.ChoiceField(
-                choices=component_type_choices,
-                required=False
-            )
     ratio = forms.FloatField(required=False)
     tolerance = forms.FloatField(required=False)
 

@@ -8,7 +8,7 @@ from django import forms
 import re
 
 from cell_database.dataset_visualization import *
-
+from django.db.models.functions import Coalesce
 
 
 def conditional_register(ar, name, content):
@@ -966,9 +966,14 @@ def get_preview_electrolytes(search_electrolyte_form, electrolyte_composition_fo
 
         if len(completes) != 0:
             total_query = total_query.annotate(
-                has_extra=Exists(RatioComponent.objects.filter(
+                has_extra=Exists(RatioComponent.objects.annotate(
+                        component_type = Coalesce(
+                            'overridden_component_type',
+                            'component_lot__component__component_type'
+                        )
+                    ).filter(
                     Q(composite=OuterRef('pk')) &
-                    Q(component_lot__component__component_type__in=completes) &
+                    Q(component_type__in=completes) &
                     ~Q(component_lot__component__in=allowed_molecules) &
                     ~Q(component_lot__in=allowed_molecules_lot)
                 ))

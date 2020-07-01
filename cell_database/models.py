@@ -6,7 +6,7 @@ import re
 from colorful.fields import RGBColorField
 
 from constants import *
-
+from django.db.models.functions import Coalesce
 
 
 def decode_lot_string(s):
@@ -1304,21 +1304,27 @@ class Composite(models.Model):
     def __str__(self):
         printed_name = ''
 
+        my_components = self.components.annotate(
+            component_type = Coalesce(
+                'overridden_component_type',
+                'component_lot__component__component_type'
+            )
+        )
         if self.composite_type == ELECTROLYTE:
             lists_of_lists = [
                 print_components(
-                    list(self.components.filter(
-                        component_lot__component__component_type=SOLVENT).order_by('-ratio')),
+                    list(my_components.filter(
+                        component_type=SOLVENT).order_by('-ratio')),
                     complete=True, prefix=None
                 ),
                 print_components(
-                    list(self.components.filter(
-                        component_lot__component__component_type=SALT).order_by('-ratio')),
+                    list(my_components.filter(
+                        component_type=SALT).order_by('-ratio')),
                     complete=False, prefix=None
                 ),
                 print_components(
-                    list(self.components.filter(
-                        component_lot__component__component_type=ADDITIVE).order_by('-ratio')),
+                    list(my_components.filter(
+                        component_type=ADDITIVE).order_by('-ratio')),
                     complete=False, prefix="ADDITIVES"
                 )
             ]
@@ -1328,13 +1334,13 @@ class Composite(models.Model):
         elif self.composite_type == ANODE or self.composite_type == CATHODE:
             lists_of_lists = [
                 print_components(
-                    list(self.components.filter(
-                        component_lot__component__component_type=ACTIVE_MATERIAL).order_by('-ratio')),
+                    list(my_components.filter(
+                        component_type=ACTIVE_MATERIAL).order_by('-ratio')),
                     complete=True, prefix=None
                 ),
                 print_components(
-                    list(self.components.exclude(
-                        component_lot__component__component_type=ACTIVE_MATERIAL).order_by('-ratio')),
+                    list(my_components.exclude(
+                        component_type=ACTIVE_MATERIAL).order_by('-ratio')),
                     complete=False, prefix="INACTIVES"
                 )
             ]

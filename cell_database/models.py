@@ -995,7 +995,7 @@ class RatioComponent(models.Model):
 
     ratio = models.FloatField(null=True, blank=True)
     component_lot = models.ForeignKey(ComponentLot, on_delete=models.CASCADE, blank=True)
-    overridden_component_type = models.CharField(max_length=2, choices=COMPONENT_TYPES, blank=True)
+    overridden_component_type = models.CharField(max_length=2, choices=COMPONENT_TYPES, blank=True, null=True)
 
     def pretty_print(self, digits=None):
         my_string = '{}%{}'
@@ -1003,7 +1003,10 @@ class RatioComponent(models.Model):
             pd = '?'
         else:
             pd = print_digits(self.ratio, digits)
-            if self.component_lot.component.component_type == SALT:
+            if self.overridden_component_type == SALT or (
+                    self.overridden_component_type is None and
+                    self.component_lot.component.component_type == SALT
+            ):
                 my_string = '{}m{}'
 
             if pd == '':
@@ -1191,13 +1194,17 @@ class Composite(models.Model):
                         elif kind == 'component_lot':
                             actual_component = component['component_lot'].component
 
-                        if actual_component.component_type in [SOLVENT,ACTIVE_MATERIAL,SEPARATOR_MATERIAL]:
+                        component_type = component['overridden_component_type']
+                        if component_type is None:
+                            component_type = actual_component.component_type
+
+                        if component_type in [SOLVENT,ACTIVE_MATERIAL,SEPARATOR_MATERIAL]:
                             if component['ratio'] is None:
                                 ratio = None
                             else:
                                 ratio = component['ratio'] * 100. / total_complete
                             tolerance = 0.25
-                        elif actual_component.component_type in [CONDUCTIVE_ADDITIVE,BINDER,SALT, ADDITIVE]:
+                        elif component_type in [CONDUCTIVE_ADDITIVE,BINDER,SALT, ADDITIVE]:
                             ratio = component['ratio']
                             tolerance = 0.01
 
@@ -1209,28 +1216,39 @@ class Composite(models.Model):
                         elif kind == 'component_lot':
                             comp_lot = component['component_lot']
 
+
+                        overridden_component_type = None
+                        if actual_component.component_type != component_type:
+                            overridden_component_type = component_type
+
                         if ratio is None:
                             ratio_components = RatioComponent.objects.filter(
                                 component_lot=comp_lot,
-                                ratio=None)
+                                ratio=None,
+                                overridden_component_type = overridden_component_type,
+                            )
                             if ratio_components.exists():
                                 selected_ratio_component = ratio_components.order_by('id')[0]
                             else:
                                 selected_ratio_component = RatioComponent.objects.create(
                                     component_lot=comp_lot,
-                                    ratio=None
+                                    ratio=None,
+                                    overridden_component_type = overridden_component_type,
                                 )
                         else:
                             ratio_components = RatioComponent.objects.filter(
                                 component_lot=comp_lot,
-                                ratio__range=(ratio - tolerance, ratio + tolerance))
+                                ratio__range=(ratio - tolerance, ratio + tolerance),
+                                overridden_component_type = overridden_component_type,
+                            )
                             if ratio_components.exists():
                                 selected_ratio_component = ratio_components.annotate(
                                     distance=Func(F('ratio') - ratio, function='ABS')).order_by('distance')[0]
                             else:
                                 selected_ratio_component = RatioComponent.objects.create(
                                     component_lot=comp_lot,
-                                    ratio=ratio
+                                    ratio=ratio,
+                                    overridden_component_type = overridden_component_type,
                                 )
 
                         my_ratio_components.append(selected_ratio_component)

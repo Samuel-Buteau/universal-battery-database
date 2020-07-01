@@ -774,14 +774,18 @@ def define_wet_cell_bulk(request, predefined=None):
                         header = []
                         for i in range(10):
                             mol_s = bulk_parameters_form.cleaned_data['molecule_{}'.format(i)]
+                            type_s = bulk_parameters_form.cleaned_data['component_type_{}'.format(i)]
+                            if type_s == '':
+                                type_s = None
+
                             my_id, lot_type = decode_lot_string(mol_s)
                             if lot_type == LotTypes.none:
                                 continue
                             if lot_type == LotTypes.lot :
-                                header.append({'index': i, 'molecule_lot': ComponentLot.objects.get(id=my_id)})
+                                header.append({'index': i, 'molecule_lot': ComponentLot.objects.get(id=my_id), 'component_type':type_s})
                                 continue
                             if lot_type == LotTypes.no_lot:
-                                header.append({'index': i, 'molecule': Component.objects.get(id=my_id)})
+                                header.append({'index': i, 'molecule': Component.objects.get(id=my_id), 'component_type':type_s})
                                 continue
 
                     for entry in bulk_entries_formset:
@@ -807,7 +811,8 @@ def define_wet_cell_bulk(request, predefined=None):
                                                 components.append(
                                                     {
                                                         'component': h['molecule'],
-                                                        'ratio': value
+                                                        'ratio': value,
+                                                        'component_type': h['component_type'],
                                                     }
                                                 )
                                             elif 'molecule_lot' in h.keys():
@@ -815,7 +820,8 @@ def define_wet_cell_bulk(request, predefined=None):
                                                 components_lot.append(
                                                     {
                                                         'component_lot':h['molecule_lot'],
-                                                        'ratio': value
+                                                        'ratio': value,
+                                                        'component_type': h['component_type'],
                                                     }
                                                 )
 

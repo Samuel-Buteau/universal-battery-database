@@ -1017,6 +1017,10 @@ class RatioComponent(models.Model):
         return self.pretty_print(digits=2)
 
 def helper_component_type(x, type=None):
+    component_type = x['overridden_component_type']
+    if component_type is not None:
+        return component_type
+
     if type == 'component':
         return x[type].component_type
     if type == 'component_lot':

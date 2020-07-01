@@ -995,6 +995,7 @@ class RatioComponent(models.Model):
 
     ratio = models.FloatField(null=True, blank=True)
     component_lot = models.ForeignKey(ComponentLot, on_delete=models.CASCADE, blank=True)
+    overridden_component_type = models.CharField(max_length=2, choices=COMPONENT_TYPES, blank=True)
 
     def pretty_print(self, digits=None):
         my_string = '{}%{}'

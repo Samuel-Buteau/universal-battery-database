@@ -1017,7 +1017,9 @@ class RatioComponent(models.Model):
         return self.pretty_print(digits=2)
 
 def helper_component_type(x, type=None):
-    component_type = x['overridden_component_type']
+    component_type = None
+    if 'overridden_component_type' in x.keys():
+        component_type = x['overridden_component_type']
     if component_type is not None:
         return component_type
 
@@ -1197,8 +1199,9 @@ class Composite(models.Model):
                             actual_component = component['component']
                         elif kind == 'component_lot':
                             actual_component = component['component_lot'].component
-
-                        component_type = component['overridden_component_type']
+                        component_type = None
+                        if 'overridden_component_type' in component.keys():
+                            component_type = component['overridden_component_type']
                         if component_type is None:
                             component_type = actual_component.component_type
 

@@ -287,4 +287,4 @@ reload_private.bat
 *.ini
 # */migrations/0*.py
 *_private*
-*import_dirty_data.py
+*import_dirty_data*.py

@@ -907,10 +907,18 @@ def get_preview_electrolytes(search_electrolyte_form, electrolyte_composition_fo
     complete_additive = search_electrolyte_form.cleaned_data['complete_additive']
     relative_tolerance = search_electrolyte_form.cleaned_data['relative_tolerance']
     proprietary_flag = search_electrolyte_form.cleaned_data['proprietary_flag']
-    notes = search_electrolyte_form.cleaned_data['notes']
+    notes1 = search_electrolyte_form.cleaned_data['notes1']
+    notes2 = search_electrolyte_form.cleaned_data['notes2']
+    notes3 = search_electrolyte_form.cleaned_data['notes3']
     q = Q(composite_type=ELECTROLYTE)
-    if notes is not None and len(notes) > 0:
-        q = q & Q(notes__icontains=notes)
+    if notes1 is not None and len(notes1) > 0:
+        q = q & Q(notes__icontains=notes1)
+    if notes2 is not None and len(notes2) > 0:
+        q = q & Q(notes__icontains=notes2)
+    if notes3 is not None and len(notes3) > 0:
+        q = q & Q(notes__icontains=notes3)
+
+
 
     if proprietary_flag:
         q = q & Q(proprietary=True)
@@ -937,7 +945,7 @@ def get_preview_electrolytes(search_electrolyte_form, electrolyte_composition_fo
             elif pro['molecule_lot'] is not None:
                 prohibited_lots.append(pro['molecule_lot'])
 
-        q = Q(composite_type=ELECTROLYTE, proprietary=False)
+        q = q & Q(composite_type=ELECTROLYTE, proprietary=False)
         # prohibit molecules
 
         q = q & ~Q(components__component_lot__in=prohibited_lots)

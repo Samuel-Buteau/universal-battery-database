@@ -520,7 +520,9 @@ class SearchElectrolyteForm(Form):
     complete_additive = forms.BooleanField(initial=False, required=False)
     relative_tolerance = forms.FloatField(initial=5., help_text='the default tolerance in percentage.')
     proprietary_flag = forms.BooleanField(initial=False, required=False)
-    notes = forms.CharField(required=False)
+    notes1 = forms.CharField(required=False)
+    notes2 = forms.CharField(required=False)
+    notes3 = forms.CharField(required=False)
 
 
 class SearchElectrolyteComponentForm(Form):

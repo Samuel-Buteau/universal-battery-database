@@ -68,6 +68,9 @@ def unknown_numerical(num_string):
 
 
 def determine_digits(num):
+    if num < 0.00001:
+        return 0
+
     dig = max(int(-(numpy.floor(numpy.log(num) / numpy.log(10.)) - 1)), 0)
     if (round(num*(10**dig)) % 10) ==0 and dig > 0:
         dig = dig -1
@@ -791,7 +794,7 @@ class Component(models.Model):
 
                 my_stochiometry_components.append(selected_stochiometry_component)
 
-            print('gathered the following stochiometry:', my_stochiometry_components)
+            # print('gathered the following stochiometry:', my_stochiometry_components)
 
             target_object = None
             if target is None:

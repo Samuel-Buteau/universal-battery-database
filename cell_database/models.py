@@ -6,7 +6,7 @@ import re
 from colorful.fields import RGBColorField
 
 from constants import *
-
+from django.db.models.functions import Coalesce
 
 
 def decode_lot_string(s):
@@ -68,6 +68,9 @@ def unknown_numerical(num_string):
 
 
 def determine_digits(num):
+    if num < 0.00001:
+        return 0
+
     dig = max(int(-(numpy.floor(numpy.log(num) / numpy.log(10.)) - 1)), 0)
     if (round(num*(10**dig)) % 10) ==0 and dig > 0:
         dig = dig -1
@@ -190,7 +193,6 @@ def define_if_possible(lot, lot_info=None, type =None):
         If there is an object clash, return the preexisting object.
         Else: if there is a string clash, set all visibility flags to True.
     """
-    print('entered define if possible')
     if lot_info is None or not lot_info.is_valid():
         print('was invalid')
         return None
@@ -330,9 +332,8 @@ class MaterialType(models.Model):
                 target_object = MaterialType.objects.get(id=target)
 
         set_of_object_equal = type_set.filter(object_equality_query)
-        print('set objects equal: ', set_of_object_equal)
+
         string_equals = type_set.filter(string_equality_query).exists()
-        print('set of string equal: ', type_set.filter(string_equality_query))
 
         if target_object is None:
             my_self = self
@@ -423,9 +424,7 @@ class Coating(models.Model):
                 target_object = Coating.objects.get(id=target)
 
         set_of_object_equal = coating_set.filter(object_equality_query)
-        print('set objects equal: ', set_of_object_equal)
         string_equals = coating_set.filter(string_equality_query).exists()
-        print('set of string equal: ', coating_set.filter(string_equality_query))
 
         if (not set_of_object_equal.exists()) and string_equals:
             self.proprietary_name = True
@@ -531,7 +530,6 @@ def helper_return(
 ):
     if not set_of_object_equal.exists():
         # if string equals, we take care of it before passing it here.
-
         # we know for a fact that value fields don't exist.
         # so we can create it as it is.
         if cathode_geometry is not None:
@@ -672,7 +670,6 @@ class Component(models.Model):
         If there is an object clash, return the preexisting object.
         Else: if there is a string clash, set all visibility flags to True.
         """
-        print('entered define if possible')
         if not self.is_valid():
             print('was invalid')
             return None
@@ -797,11 +794,10 @@ class Component(models.Model):
 
                 my_stochiometry_components.append(selected_stochiometry_component)
 
-            print('gathered the following stochiometry:', my_stochiometry_components)
+            # print('gathered the following stochiometry:', my_stochiometry_components)
 
             target_object = None
             if target is None:
-
                 component_set = Component.objects
                 target_object = None
             else:
@@ -809,13 +805,18 @@ class Component(models.Model):
                 if Component.objects.filter(id=target).exists():
                     target_object = Component.objects.get(id=target)
 
-            set_with_valid_stoc = component_set.annotate(
+            if len(my_stochiometry_components) == 0:
+                set_with_valid_stoc = component_set.annotate(
                 count_stochiometry=Count('stochiometry')
             ).filter(count_stochiometry=len(my_stochiometry_components)
-                     ).annotate(
-                count_valid_stochiometry=Count('stochiometry', filter=Q(stochiometry__in=my_stochiometry_components))
-            ).filter(count_valid_stochiometry=len(my_stochiometry_components))
-
+                     )
+            else:
+                set_with_valid_stoc = component_set.annotate(
+                    count_stochiometry=Count('stochiometry')
+                ).filter(count_stochiometry=len(my_stochiometry_components)
+                         ).annotate(
+                    count_valid_stochiometry=Count('stochiometry', filter=Q(stochiometry__in=my_stochiometry_components))
+                ).filter(count_valid_stochiometry=len(my_stochiometry_components))
 
 
             set_of_object_equal = set_with_valid_stoc.filter(object_equality_query)
@@ -867,7 +868,6 @@ class Component(models.Model):
                 my_self.natural = self.natural
                 my_self.natural_name = self.natural_name
 
-
             return helper_return(
                 set_of_object_equal=set_of_object_equal,
                 my_self=my_self,
@@ -900,7 +900,7 @@ class Component(models.Model):
             if self.material_type is None:
                 extras.append('TYPE=?')
             else:
-                extras.append('TYPE={}'.format(self.material_type))
+                extras.append('{}'.format(self.material_type))
 
         if self.proprietary_name:
             if self.proprietary:
@@ -998,6 +998,7 @@ class RatioComponent(models.Model):
 
     ratio = models.FloatField(null=True, blank=True)
     component_lot = models.ForeignKey(ComponentLot, on_delete=models.CASCADE, blank=True)
+    overridden_component_type = models.CharField(max_length=2, choices=COMPONENT_TYPES, blank=True, null=True)
 
     def pretty_print(self, digits=None):
         my_string = '{}%{}'
@@ -1005,7 +1006,10 @@ class RatioComponent(models.Model):
             pd = '?'
         else:
             pd = print_digits(self.ratio, digits)
-            if self.component_lot.component.component_type == SALT:
+            if self.overridden_component_type == SALT or (
+                    self.overridden_component_type is None and
+                    self.component_lot.component.component_type == SALT
+            ):
                 my_string = '{}m{}'
 
             if pd == '':
@@ -1016,6 +1020,12 @@ class RatioComponent(models.Model):
         return self.pretty_print(digits=2)
 
 def helper_component_type(x, type=None):
+    component_type = None
+    if 'overridden_component_type' in x.keys():
+        component_type = x['overridden_component_type']
+    if component_type is not None:
+        return component_type
+
     if type == 'component':
         return x[type].component_type
     if type == 'component_lot':
@@ -1192,14 +1202,19 @@ class Composite(models.Model):
                             actual_component = component['component']
                         elif kind == 'component_lot':
                             actual_component = component['component_lot'].component
+                        component_type = None
+                        if 'overridden_component_type' in component.keys():
+                            component_type = component['overridden_component_type']
+                        if component_type is None:
+                            component_type = actual_component.component_type
 
-                        if actual_component.component_type in [SOLVENT,ACTIVE_MATERIAL,SEPARATOR_MATERIAL]:
+                        if component_type in [SOLVENT,ACTIVE_MATERIAL,SEPARATOR_MATERIAL]:
                             if component['ratio'] is None:
                                 ratio = None
                             else:
                                 ratio = component['ratio'] * 100. / total_complete
                             tolerance = 0.25
-                        elif actual_component.component_type in [CONDUCTIVE_ADDITIVE,BINDER,SALT, ADDITIVE]:
+                        elif component_type in [CONDUCTIVE_ADDITIVE,BINDER,SALT, ADDITIVE]:
                             ratio = component['ratio']
                             tolerance = 0.01
 
@@ -1211,28 +1226,39 @@ class Composite(models.Model):
                         elif kind == 'component_lot':
                             comp_lot = component['component_lot']
 
+
+                        overridden_component_type = None
+                        if actual_component.component_type != component_type:
+                            overridden_component_type = component_type
+
                         if ratio is None:
                             ratio_components = RatioComponent.objects.filter(
                                 component_lot=comp_lot,
-                                ratio=None)
+                                ratio=None,
+                                overridden_component_type = overridden_component_type,
+                            )
                             if ratio_components.exists():
                                 selected_ratio_component = ratio_components.order_by('id')[0]
                             else:
                                 selected_ratio_component = RatioComponent.objects.create(
                                     component_lot=comp_lot,
-                                    ratio=None
+                                    ratio=None,
+                                    overridden_component_type = overridden_component_type,
                                 )
                         else:
                             ratio_components = RatioComponent.objects.filter(
                                 component_lot=comp_lot,
-                                ratio__range=(ratio - tolerance, ratio + tolerance))
+                                ratio__range=(ratio - tolerance, ratio + tolerance),
+                                overridden_component_type = overridden_component_type,
+                            )
                             if ratio_components.exists():
                                 selected_ratio_component = ratio_components.annotate(
                                     distance=Func(F('ratio') - ratio, function='ABS')).order_by('distance')[0]
                             else:
                                 selected_ratio_component = RatioComponent.objects.create(
                                     component_lot=comp_lot,
-                                    ratio=ratio
+                                    ratio=ratio,
+                                    overridden_component_type = overridden_component_type,
                                 )
 
                         my_ratio_components.append(selected_ratio_component)
@@ -1251,9 +1277,11 @@ class Composite(models.Model):
 
                 set_with_valid_comp = composite_set.annotate(
                     count_components=Count('components')
-                ).filter(count_components=len(my_ratio_components)).annotate(
-                    count_valid_components=Count('components', filter=Q(components__in=my_ratio_components))
-                ).filter(count_valid_components=len(my_ratio_components))
+                ).filter(count_components=len(my_ratio_components))
+                if len(my_ratio_components) > 0:
+                    set_with_valid_comp= set_with_valid_comp.annotate(
+                        count_valid_components=Count('components', filter=Q(components__in=my_ratio_components))
+                    ).filter(count_valid_components=len(my_ratio_components))
 
                 set_of_object_equal = set_with_valid_comp.filter(object_equality_query)
                 string_equals = set_with_valid_comp.filter(string_equality_query).exists()
@@ -1282,21 +1310,27 @@ class Composite(models.Model):
     def __str__(self):
         printed_name = ''
 
+        my_components = self.components.annotate(
+            component_type = Coalesce(
+                'overridden_component_type',
+                'component_lot__component__component_type'
+            )
+        )
         if self.composite_type == ELECTROLYTE:
             lists_of_lists = [
                 print_components(
-                    list(self.components.filter(
-                        component_lot__component__component_type=SOLVENT).order_by('-ratio')),
+                    list(my_components.filter(
+                        component_type=SOLVENT).order_by('-ratio')),
                     complete=True, prefix=None
                 ),
                 print_components(
-                    list(self.components.filter(
-                        component_lot__component__component_type=SALT).order_by('-ratio')),
+                    list(my_components.filter(
+                        component_type=SALT).order_by('-ratio')),
                     complete=False, prefix=None
                 ),
                 print_components(
-                    list(self.components.filter(
-                        component_lot__component__component_type=ADDITIVE).order_by('-ratio')),
+                    list(my_components.filter(
+                        component_type=ADDITIVE).order_by('-ratio')),
                     complete=False, prefix="ADDITIVES"
                 )
             ]
@@ -1306,13 +1340,13 @@ class Composite(models.Model):
         elif self.composite_type == ANODE or self.composite_type == CATHODE:
             lists_of_lists = [
                 print_components(
-                    list(self.components.filter(
-                        component_lot__component__component_type=ACTIVE_MATERIAL).order_by('-ratio')),
+                    list(my_components.filter(
+                        component_type=ACTIVE_MATERIAL).order_by('-ratio')),
                     complete=True, prefix=None
                 ),
                 print_components(
-                    list(self.components.exclude(
-                        component_lot__component__component_type=ACTIVE_MATERIAL).order_by('-ratio')),
+                    list(my_components.exclude(
+                        component_type=ACTIVE_MATERIAL).order_by('-ratio')),
                     complete=False, prefix="INACTIVES"
                 )
             ]

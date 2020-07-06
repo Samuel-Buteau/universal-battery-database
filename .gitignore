@@ -288,3 +288,5 @@ reload_private.bat
 # */migrations/0*.py
 *_private*
 chinese_*/*
+*import_dirty_data*.py
+unknown_*/*

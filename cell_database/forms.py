@@ -450,13 +450,17 @@ class WetCellParametersForm(WetCellForm):
         super(WetCellParametersForm, self).__init__(*args, **kwargs)
 
 
-def initialize_mini_electrolyte(self, value=False, molecule=False, number=10, dry_cell=True):
+def initialize_mini_electrolyte(self, value=False, molecule=False, component_type=False, number=10, dry_cell=True):
     if dry_cell:
         self.fields['dry_cell'] = forms.ChoiceField(
             choices = dry_cell_choices, required=False)
 
     if molecule:
         c_molecule = molecule_choices
+    if component_type:
+        component_type_choices = [("", "Use Default")] + list(filter(
+            lambda x: x[0] in [SALT, SOLVENT, ADDITIVE],
+            COMPONENT_TYPES))
     for i in range(number):
         if molecule:
             self.fields['molecule_{}'.format(i)] = forms.ChoiceField(
@@ -469,6 +473,11 @@ def initialize_mini_electrolyte(self, value=False, molecule=False, number=10, dr
                 max_length=7,
                 widget=forms.TextInput(attrs={'size':7})
             )
+        if component_type:
+            self.fields['component_type_{}'.format(i)] = forms.ChoiceField(
+                choices=component_type_choices,
+                required=False
+            )
 
 
 class ElectrolyteBulkParametersForm(ElectrolyteForm):
@@ -479,7 +488,7 @@ class ElectrolyteBulkParametersForm(ElectrolyteForm):
 
     def __init__(self, *args, **kwargs):
         super(ElectrolyteBulkParametersForm, self).__init__(*args, **kwargs)
-        initialize_mini_electrolyte(self, value=True, molecule=True)
+        initialize_mini_electrolyte(self, value=True, molecule=True, component_type=True)
 
     def get_molecule_fields(self):
         for i in range(10):
@@ -488,6 +497,9 @@ class ElectrolyteBulkParametersForm(ElectrolyteForm):
         for i in range(10):
             yield self['value_{}'.format(i)]
 
+    def get_component_type_fields(self):
+        for i in range(10):
+            yield self['component_type_{}'.format(i)]
 
 class ElectrolyteBulkSingleEntryForm(ElectrolyteForm):
     cell_id = forms.IntegerField(required=False)
@@ -508,7 +520,9 @@ class SearchElectrolyteForm(Form):
     complete_additive = forms.BooleanField(initial=False, required=False)
     relative_tolerance = forms.FloatField(initial=5., help_text='the default tolerance in percentage.')
     proprietary_flag = forms.BooleanField(initial=False, required=False)
-    notes = forms.CharField(required=False)
+    notes1 = forms.CharField(required=False)
+    notes2 = forms.CharField(required=False)
+    notes3 = forms.CharField(required=False)
 
 
 class SearchElectrolyteComponentForm(Form):

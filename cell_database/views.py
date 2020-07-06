@@ -8,7 +8,7 @@ from django import forms
 import re
 
 from cell_database.dataset_visualization import *
-
+from django.db.models.functions import Coalesce
 
 
 def conditional_register(ar, name, content):
@@ -55,9 +55,6 @@ def define_page(request, mode=None):
                 return None
             else:
                 ar[simple_form_string] = simple_form
-
-
-
 
                 my_composite = Composite(
                     proprietary=simple_form.cleaned_data['proprietary'],
@@ -529,7 +526,7 @@ def define_page(request, mode=None):
             ('molecule','electrolyte'),
             ('coating','electrode'),
             ('material_type', 'electrode'),
-            ('electrolyte','electrolyte'),
+            # ('electrolyte','electrolyte'),
             ('material','electrode'),
             ('separator_material','separator'),
             ('electrode','electrode'),
@@ -621,10 +618,10 @@ def define_page(request, mode=None):
 
     if mode =='electrolyte':
 
-        conditional_register(ar,
-            'electrolyte_composition_formset',
-            ElectrolyteCompositionFormset(prefix='electrolyte-composition-formset')
-        )
+        # conditional_register(ar,
+        #     'electrolyte_composition_formset',
+        #     ElectrolyteCompositionFormset(prefix='electrolyte-composition-formset')
+        # )
 
         conditional_register(ar,
             'define_molecule_form',
@@ -636,14 +633,14 @@ def define_page(request, mode=None):
             ElectrolyteMoleculeLotForm(prefix='electrolyte-molecule-lot-form')
         )
 
-        conditional_register(ar,
-            'define_electrolyte_form',
-            ElectrolyteForm(prefix='electrolyte-form')
-        )
-        conditional_register(ar,
-            'define_electrolyte_lot_form',
-            ElectrolyteLotForm(prefix='electrolyte-lot-form')
-        )
+        # conditional_register(ar,
+        #     'define_electrolyte_form',
+        #     ElectrolyteForm(prefix='electrolyte-form')
+        # )
+        # conditional_register(ar,
+        #     'define_electrolyte_lot_form',
+        #     ElectrolyteLotForm(prefix='electrolyte-lot-form')
+        # )
 
     if mode == 'separator':
 
@@ -777,14 +774,18 @@ def define_wet_cell_bulk(request, predefined=None):
                         header = []
                         for i in range(10):
                             mol_s = bulk_parameters_form.cleaned_data['molecule_{}'.format(i)]
+                            type_s = bulk_parameters_form.cleaned_data['component_type_{}'.format(i)]
+                            if type_s == '':
+                                type_s = None
+
                             my_id, lot_type = decode_lot_string(mol_s)
                             if lot_type == LotTypes.none:
                                 continue
                             if lot_type == LotTypes.lot :
-                                header.append({'index': i, 'molecule_lot': ComponentLot.objects.get(id=my_id)})
+                                header.append({'index': i, 'molecule_lot': ComponentLot.objects.get(id=my_id), 'component_type':type_s})
                                 continue
                             if lot_type == LotTypes.no_lot:
-                                header.append({'index': i, 'molecule': Component.objects.get(id=my_id)})
+                                header.append({'index': i, 'molecule': Component.objects.get(id=my_id), 'component_type':type_s})
                                 continue
 
                     for entry in bulk_entries_formset:
@@ -810,7 +811,8 @@ def define_wet_cell_bulk(request, predefined=None):
                                                 components.append(
                                                     {
                                                         'component': h['molecule'],
-                                                        'ratio': value
+                                                        'ratio': value,
+                                                        'component_type': h['component_type'],
                                                     }
                                                 )
                                             elif 'molecule_lot' in h.keys():
@@ -818,7 +820,8 @@ def define_wet_cell_bulk(request, predefined=None):
                                                 components_lot.append(
                                                     {
                                                         'component_lot':h['molecule_lot'],
-                                                        'ratio': value
+                                                        'ratio': value,
+                                                        'component_type': h['component_type'],
                                                     }
                                                 )
 
@@ -904,10 +907,18 @@ def get_preview_electrolytes(search_electrolyte_form, electrolyte_composition_fo
     complete_additive = search_electrolyte_form.cleaned_data['complete_additive']
     relative_tolerance = search_electrolyte_form.cleaned_data['relative_tolerance']
     proprietary_flag = search_electrolyte_form.cleaned_data['proprietary_flag']
-    notes = search_electrolyte_form.cleaned_data['notes']
+    notes1 = search_electrolyte_form.cleaned_data['notes1']
+    notes2 = search_electrolyte_form.cleaned_data['notes2']
+    notes3 = search_electrolyte_form.cleaned_data['notes3']
     q = Q(composite_type=ELECTROLYTE)
-    if notes is not None and len(notes) > 0:
-        q = q & Q(notes__icontains=notes)
+    if notes1 is not None and len(notes1) > 0:
+        q = q & Q(notes__icontains=notes1)
+    if notes2 is not None and len(notes2) > 0:
+        q = q & Q(notes__icontains=notes2)
+    if notes3 is not None and len(notes3) > 0:
+        q = q & Q(notes__icontains=notes3)
+
+
 
     if proprietary_flag:
         q = q & Q(proprietary=True)
@@ -934,7 +945,7 @@ def get_preview_electrolytes(search_electrolyte_form, electrolyte_composition_fo
             elif pro['molecule_lot'] is not None:
                 prohibited_lots.append(pro['molecule_lot'])
 
-        q = Q(composite_type=ELECTROLYTE, proprietary=False)
+        q = q & Q(composite_type=ELECTROLYTE, proprietary=False)
         # prohibit molecules
 
         q = q & ~Q(components__component_lot__in=prohibited_lots)
@@ -963,9 +974,14 @@ def get_preview_electrolytes(search_electrolyte_form, electrolyte_composition_fo
 
         if len(completes) != 0:
             total_query = total_query.annotate(
-                has_extra=Exists(RatioComponent.objects.filter(
+                has_extra=Exists(RatioComponent.objects.annotate(
+                        component_type = Coalesce(
+                            'overridden_component_type',
+                            'component_lot__component__component_type'
+                        )
+                    ).filter(
                     Q(composite=OuterRef('pk')) &
-                    Q(component_lot__component__component_type__in=completes) &
+                    Q(component_type__in=completes) &
                     ~Q(component_lot__component__in=allowed_molecules) &
                     ~Q(component_lot__in=allowed_molecules_lot)
                 ))

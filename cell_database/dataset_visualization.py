@@ -222,6 +222,7 @@ csv_format_default =[
 
 ]
 
+
 field_request_default = [
     (Key.N, 'f4', "CYCLE_NUMBER", None),
     ("total_charge_capacity", 'f4', "CUSTOM", lambda cyc: cyc.chg_total_capacity),
@@ -229,7 +230,7 @@ field_request_default = [
 
     ("avg_charge_voltage", 'f4', "CUSTOM", lambda cyc: cyc.chg_average_voltage),
     ("avg_discharge_voltage", 'f4', "CUSTOM", lambda cyc: cyc.dchg_average_voltage),
-    ("delta_voltage", 'f4', "CUSTOM", lambda cyc: cyc.chg_average_voltage-cyc.dchg_average_voltage),
+    ("delta_voltage", 'f4', "CUSTOM", lambda cyc: cyc.get_delta_v()),
 
     ("charge_time", 'f4', "CUSTOM", lambda cyc: cyc.chg_duration),
     ("discharge_time", 'f4', "CUSTOM", lambda cyc: cyc.dchg_duration),

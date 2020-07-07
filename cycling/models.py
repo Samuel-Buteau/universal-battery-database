@@ -340,6 +340,12 @@ class Cycle(models.Model):
     dchg_maximum_current = models.FloatField(null = True)
     dchg_duration = models.FloatField(null = True)
 
+    def get_delta_v(self):
+        if self.dchg_average_voltage is None or self.chg_average_voltage is None:
+            return None
+        else:
+            return self.chg_average_voltage-self.dchg_average_voltage
+
     def get_first_discharge_step(self):
 
         steps = self.step_set.filter(step_type__contains = "CC_DChg").order_by(

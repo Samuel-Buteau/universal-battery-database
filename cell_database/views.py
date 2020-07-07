@@ -1225,22 +1225,20 @@ def get_preview_dry_cells( search_dry_cell, dry_cell_scalars):
     return total_query
 
 #TODO(sam): share across applications
-def focus_on_page(search_form, n, number_per_page = 10):
-    pn = search_form.cleaned_data["page_number"]
+def focus_on_page(page_number, n, number_per_page = 10):
+    pn = page_number
     if pn is None:
         pn = 1
-        search_form.set_page_number(pn)
+
     max_page = int(n / number_per_page)
     if (n % number_per_page) != 0:
         max_page += 1
 
     if pn > max_page:
         pn = max_page
-        search_form.set_page_number(pn)
 
     if pn < 1:
         pn = 1
-        search_form.set_page_number(pn)
 
     return (pn - 1) * number_per_page, min(n, (pn) * number_per_page), max_page, pn
 
@@ -1380,7 +1378,9 @@ def search_page(request):
                 )
                 search_wet_cell_form = SearchWetCellForm(request.POST, prefix='search-wet-cell-form')
                 if search_wet_cell_form.is_valid():
-                    min_i, max_i, max_page_number, page_number = focus_on_page(search_wet_cell_form, wet_cell_query.count(),number_per_page=20)
+                    page_number = search_wet_cell_form.cleaned_data['page_number']
+                    min_i, max_i, max_page_number, page_number = focus_on_page(page_number, wet_cell_query.count(),number_per_page=20)
+                    search_wet_cell_form.set_page_number(page_number)
                     ar["max_page_number"] = max_page_number
                     ar["page_number"] = page_number
                     ar['search_wet_cell_form']=search_wet_cell_form
@@ -1542,6 +1542,56 @@ def view_dataset(request, pk):
     dataset = Dataset.objects.get(id=pk)
     ar = {}
     wet_cells = dataset.wet_cells.order_by('cell_id')
+    conditional_register(ar,
+                         "list_form",
+                         DatasetListForm(prefix='list-form')
+                         )
+
+    number_per_page = 10
+    page_number = 1
+    if request.method == 'POST':
+        list_form = DatasetListForm(request.POST, prefix='list-form')
+    else:
+        list_form = DatasetListForm(prefix='list-form')
+
+    if list_form.is_valid():
+        number_per_page = list_form.cleaned_data["per_page"]
+        page_number = list_form.cleaned_data['page_number']
+
+    min_i, max_i, max_page_number, page_number = \
+        focus_on_page(page_number, len(wet_cells), number_per_page=number_per_page)
+
+    list_form.set_page_number(page_number)
+    ar['list_form'] = list_form
+    ar["page_number"] = page_number
+    ar["max_page_number"] = max_page_number
+
+
+    zipped_data = [
+        (
+            wet_cell,
+            str(wet_cell),
+            wet_cell.get_specific_name_or_nothing(dataset),
+            wet_cell.get_default_position(dataset)[0],
+            wet_cell.get_default_position(dataset)[1],
+            wet_cell.get_default_color(dataset),
+            DatasetSpecificFilters.objects.filter(
+                dataset=dataset,
+                wet_cell=wet_cell
+            ).order_by('name')
+        )
+       for wet_cell in wet_cells[min_i:max_i]
+    ]
+    ar["zipped_data"] = zipped_data
+    ar["dataset"] = dataset
+
+    return render(request, 'cell_database/view_dataset.html',ar)
+
+
+def vis_dataset(request, pk):
+    dataset = Dataset.objects.get(id=pk)
+    ar = {}
+
     if request.method == 'POST':
         if 'change_specific_name' in request.POST:
             spec_name = SpecificNameForm(request.POST, dataset_id=pk, prefix='specific-name-form')
@@ -1550,7 +1600,7 @@ def view_dataset(request, pk):
                     cell_id = int(spec_name.cleaned_data["wet_cell"])
                     wet_cell = WetCell.objects.get(cell_id=cell_id)
                     dataset.wet_cells.remove(wet_cell)
-                    wet_cells = dataset.wet_cells.order_by("cell_id")
+                    #Note that this is not necessary if we just delete cell_id from cell_ids we get same.
 
                 elif "reset_name" in spec_name.cleaned_data.keys() and spec_name.cleaned_data["reset_name"]:
                     cell_id = int(spec_name.cleaned_data["wet_cell"])
@@ -1594,7 +1644,7 @@ def view_dataset(request, pk):
                     name = specific_filter_form.cleaned_data["name"]
                     cell_ids = [int(cell_id) for cell_id in specific_filter_form.cleaned_data.get("wet_cell")]
                     if len(cell_ids) == 0:
-                        cell_ids = [wet_cell.cell_id for wet_cell in dataset.wet_cells.order_by("cell_id")]
+                        cell_ids = dataset.wet_cells.order_by('cell_id').values_list('cell_id', flat=True)
 
                     for cell_id in cell_ids:
                         wet_cell = WetCell.objects.get(cell_id=cell_id)
@@ -1661,14 +1711,16 @@ def view_dataset(request, pk):
         if 'plot_cells' in request.POST:
             visuals_form = DatasetVisualsForm(request.POST, prefix='visuals-form')
             if visuals_form.is_valid():
+                cell_ids = dataset.wet_cells.order_by('cell_id').values_list('cell_id', flat=True)
                 number_per_page = visuals_form.cleaned_data["per_page"]
                 rows = visuals_form.cleaned_data["rows"]
-
+                page_number = visuals_form.cleaned_data['page_number']
                 min_i, max_i, max_page_number, page_number = \
-                    focus_on_page(visuals_form, len(wet_cells), number_per_page=number_per_page)
+                    focus_on_page(page_number, len(cell_ids), number_per_page=number_per_page)
+                visuals_form.set_page_number(page_number)
                 datas = [
-                    (wet_cell.cell_id, plot_cycling_direct(wet_cell.cell_id, path_to_plots=None, figsize=[5., 4.]))
-                    for wet_cell in wet_cells[min_i:max_i]]
+                    (cell_id, plot_cycling_direct(cell_id, path_to_plots=None, figsize=[5., 4.]))
+                    for cell_id in cell_ids[min_i:max_i]]
                 split_datas = [datas[i:min(len(datas), i + rows)] for i in range(0, len(datas), rows)]
 
                 ar["visual_data"] = split_datas
@@ -1690,27 +1742,13 @@ def view_dataset(request, pk):
                          DatasetSpecificFiltersForm(dataset_id=pk, prefix='specific-filter-form')
                          )
 
-    for wet_cell in wet_cells:
-        print(wet_cell.get_default_position(dataset))
-    zipped_data = [
-        (
-            wet_cell,
-            str(wet_cell),
-            wet_cell.get_specific_name_or_nothing(dataset),
-            wet_cell.get_default_position(dataset)[0],
-            wet_cell.get_default_position(dataset)[1],
-            wet_cell.get_default_color(dataset),
-            DatasetSpecificFilters.objects.filter(
-                dataset=dataset,
-                wet_cell=wet_cell
-            ).order_by('name')
-        )
-       for wet_cell in wet_cells
-    ]
-    ar["zipped_data"] = zipped_data
+
+
+
     ar["dataset"] = dataset
 
-    return render(request, 'cell_database/view_dataset.html',ar)
+    return render(request, 'cell_database/vis_dataset.html',ar)
+
 
 
 

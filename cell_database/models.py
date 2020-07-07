@@ -1880,7 +1880,26 @@ class Dataset(models.Model):
     def __str__(self):
         return self.name
 
+    def get_cell_ids(self):
+        return self.wet_cells.order_by('cell_id').values_list('cell_id', flat=True)
+    def get_names(self):
+        return dict(DatasetSpecificCellName.objects.filter(dataset=self).values_list('wet_cell__cell_id', 'name'))
+    def get_pretty_cell_choices(self):
+        cell_ids = self.get_cell_ids()
 
+        cell_id_to_name = self.get_names()
+
+        wet_cell_choices = []
+        for cell_id in cell_ids:
+            if cell_id in cell_id_to_name.keys():
+                wet_cell_choices.append(
+                    (cell_id, '{}: ({})'.format(str(cell_id), cell_id_to_name[cell_id]))
+                )
+            else:
+                wet_cell_choices.append(
+                    (cell_id, str(cell_id))
+                )
+        return wet_cell_choices
 
 class DatasetSpecificCellName(models.Model):
     name = models.CharField(blank=True, max_length=200)

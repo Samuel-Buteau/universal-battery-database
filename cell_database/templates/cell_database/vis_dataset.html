@@ -1,0 +1,154 @@
+{% extends "base_generic.html" %}
+
+{% load static %}
+{% block content %}
+
+
+<style>
+table {
+    border-collapse:collapse;
+
+}
+table, th, td {
+    border:1px solid black;}
+
+
+</style>
+
+<h1> Dataset: {{ dataset.name }} (<a href="{% url 'cell_database:view_dataset' pk=dataset.id %}">List</a>)</h1>
+
+<form action="{% url 'cell_database:vis_dataset' pk=dataset.id%}" method="post">
+    {% csrf_token %}
+
+{% if image_of_dataset %}
+        <img src="data:image/png;base64,{{image_of_dataset}}" alt="If you see this, there was an error. Send email to Samuel.Buteau@dal.ca" width=800 height=auto />
+{% endif %}
+{% if visual_data %}
+    Showing page {{page_number}}/{{max_page_number}}.
+        <table border="1">
+            {% for zd in visual_data %}
+                <tr valign="top">
+                    {% for cell_id, image64 in zd %}
+                        <td valign="top">
+
+                            <a href="{% url 'cycling:view_cell_id'  cell_id  '' %}">
+                                <img src="data:image/png;base64,{{image64}}" alt="If you see this, there was an error. Send email to Samuel.Buteau@dal.ca" width=200 height=auto />
+                            </a>
+
+                                 <font size="+2">{{cell_id}}</font>
+
+
+                        </td>
+                    {% endfor %}
+                </tr>
+
+            {% endfor %}
+        </table>
+{% endif %}
+
+    <table>
+    <th valign="top" align="left">
+        {% if specific_name_form %}
+    <h2>Specific Names</h2>
+    <input type="submit" name = 'change_specific_name' value="Change Specific Name">
+    <table>
+
+        <tr>
+            <th>Specific Name</th><td>Wet Cell: {{specific_name_form.wet_cell}} Name: {{specific_name_form.name}}<br> Remove from Dataset: {{specific_name_form.remove_cell_from_dataset}}  Reset defaults: {{specific_name_form.reset_name}}</td>
+        </tr>
+        <tr>
+            <th>Plot Settings</th><td><table>
+                <tr>
+                    <th>Color</th><th>Grid Position</th>
+                </tr>
+                <tr>
+                    <td>{{specific_name_form.color}}</td><td>({{specific_name_form.grid_position_x}}, {{specific_name_form.grid_position_y}})</td>
+                </tr>
+        </table></td>
+        </tr>
+
+    </table>
+         {% endif %}
+    <h2>Dataset Preview</h2>
+    <input type="submit" name = 'plot_dataset' value="Plot Dataset">
+   <h2>Individual Cells Preview</h2>
+    Display Page: {{visuals_form.page_number}} <br>
+    Cells per Page: {{visuals_form.per_page}} <br>
+    Cells per Row: {{visuals_form.rows}} <br>
+    <input type="submit" name = 'plot_cells' value="Plot Cells">
+
+    </th>
+    <th valign="top" align="left">
+        {% if specific_filter_form %}
+    <h2>Filters</h2>
+    <input type="submit" name = 'change_filter' value="Change Filter">
+    <table>
+
+        <tr>
+            <th>Filter</th><td>Wet Cell: {{specific_filter_form.wet_cell}} Name: {{specific_filter_form.name}}<br> Remove from Cell: {{specific_filter_form.remove_filter_from_cells}}</td>
+        </tr>
+        <tr>
+            <th>Plot Settings</th><td><table>
+                <tr>
+                    <th>Color</th><th>Grid Position</th>
+                </tr>
+                <tr>
+                    <td>Use Cell Defaults: {{specific_filter_form.use_cell_color}}</td><td>Use Cell Defaults: {{specific_filter_form.use_cell_grid_position}}</td>
+                </tr>
+                <tr>
+                    <td>{{specific_filter_form.color}}</td><td>({{specific_filter_form.grid_position_x}}, {{specific_filter_form.grid_position_y}})</td>
+                </tr>
+        </table></td>
+        </tr>
+        <tr>
+            <th>Rule</th><td><table>
+                <tr>
+                    <th></th><th>Charge</th><th>Discharge</th>
+                </tr>
+                <tr>
+                    <th>Match None:</th><td>{{specific_filter_form.match_none_charge}}</td><td>{{specific_filter_form.match_none_discharge}}</td>
+                </tr>
+                <br>
+                <tr>
+                    <th>Attibute</th><th>(Min, Max)</th><th>(Min, Max)</th>
+                </tr>
+                <tr>
+                    <th>Constant Rate <br> (This Step)</th>
+                    <td>({{specific_filter_form.charge_constant_rate_min}}, {{specific_filter_form.charge_constant_rate_max}})</td>
+                    <td>({{specific_filter_form.discharge_constant_rate_min}}, {{specific_filter_form.discharge_constant_rate_max}})</td>
+                </tr>
+                <tr>
+                    <th>End Rate <br> (This Step)</th>
+                    <td>({{specific_filter_form.charge_end_rate_min}}, {{specific_filter_form.charge_end_rate_max}})</td>
+                    <td>({{specific_filter_form.discharge_end_rate_min}}, {{specific_filter_form.discharge_end_rate_max}})</td>
+                </tr>
+                <tr>
+                    <th>End Rate <br> (Previous Step)</th>
+                    <td>({{specific_filter_form.charge_end_rate_prev_min}}, {{specific_filter_form.charge_end_rate_prev_max}})</td>
+                    <td>({{specific_filter_form.discharge_end_rate_prev_min}}, {{specific_filter_form.discharge_end_rate_prev_max}})</td>
+                </tr>
+                <tr>
+                    <th>End Voltage <br> (This Step) </th>
+                    <td>({{specific_filter_form.charge_end_voltage_min}}, {{specific_filter_form.charge_end_voltage_max}})</td>
+                    <td>({{specific_filter_form.discharge_end_voltage_min}}, {{specific_filter_form.discharge_end_voltage_max}})</td>
+                </tr>
+                <tr>
+                    <th>End Voltage <br> (Previous Step)</th>
+                    <td>({{specific_filter_form.charge_end_voltage_prev_min}}, {{specific_filter_form.charge_end_voltage_prev_max}})</td>
+                    <td>({{specific_filter_form.discharge_end_voltage_prev_min}}, {{specific_filter_form.discharge_end_voltage_prev_max}})</td>
+                </tr>
+        </table></td>
+        </tr>
+
+
+    </table>
+
+    {% endif %}
+    </th>
+    </table>
+
+
+</form>
+
+
+{% endblock %}

@@ -617,8 +617,8 @@ class SpecificNameForm(ModelForm):
     def __init__(self, *args, dataset_id=None, **kwargs):
         super(SpecificNameForm, self).__init__(*args, **kwargs)
         dataset = Dataset.objects.get(id=dataset_id)
-        wet_cell_choices = [(wet_cell.cell_id, wet_cell.get_specific_name_and_cell_id(dataset)) for wet_cell in dataset.wet_cells.order_by('cell_id')]
-        self.fields.get('wet_cell').choices = wet_cell_choices
+        self.fields.get('wet_cell').choices = dataset.get_pretty_cell_choices()
+
 
 
 class DatasetSpecificFiltersForm(ModelForm):
@@ -634,8 +634,7 @@ class DatasetSpecificFiltersForm(ModelForm):
     def __init__(self, *args, dataset_id=None, **kwargs):
         super(DatasetSpecificFiltersForm, self).__init__(*args, **kwargs)
         dataset = Dataset.objects.get(id=dataset_id)
-        wet_cell_choices = [(wet_cell.cell_id, wet_cell.get_specific_name_and_cell_id(dataset)) for wet_cell in dataset.wet_cells.order_by('cell_id')]
-        self.fields.get('wet_cell').choices = wet_cell_choices
+        self.fields.get('wet_cell').choices = dataset.get_pretty_cell_choices()
 
 
 
@@ -645,6 +644,15 @@ class DatasetVisualsForm(Form):
     page_number = forms.IntegerField(initial=1, required=False)
     per_page = forms.IntegerField(initial=25, required=False)
     rows = forms.IntegerField(initial=5, required=False)
+
+    def set_page_number(self, page_number):
+        data = self.data.copy()
+        data["page_number"] = page_number
+        self.data = data
+
+class DatasetListForm(Form):
+    page_number = forms.IntegerField(initial=1, required=False)
+    per_page = forms.IntegerField(initial=10, required=False)
 
     def set_page_number(self, page_number):
         data = self.data.copy()

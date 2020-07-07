@@ -1034,8 +1034,8 @@ def process_single_file(f, DEBUG = False):
     print("\tPROCESSING SINGLE FILE: {}".format(f.database_file.filename))
 
     def thing_to_try():
-        with transaction.atomic():
-            if f.process_time <= f.import_time:
+        if f.process_time <= f.import_time:
+            with transaction.atomic():
                 # must process the step data to summarize i
                 for cyc in f.cycle_set.filter(processed = False):
 
@@ -1908,10 +1908,7 @@ def full_import_cell_ids(cell_ids):
     TODO(sam): does it create CycleGroups?
     """
     # TODO(sam): split into smaller batches?
-    with transaction.atomic():
-        # TODO what does deprecate do?
-        bulk_deprecate(cell_ids)
-        # TODO what does import do?
-        bulk_import(cell_ids = cell_ids, debug = False)
-        # TODO what does process do?
-        bulk_process(debug = False, cell_ids = cell_ids)
+
+    bulk_deprecate(cell_ids)
+    bulk_import(cell_ids = cell_ids, debug = False)
+    bulk_process(debug = False, cell_ids = cell_ids)

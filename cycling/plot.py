@@ -2,6 +2,9 @@ from plot import *
 from cycling.models import *
 from django.db.models import Q, Max, Min
 import numpy as np
+
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 

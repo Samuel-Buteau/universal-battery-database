@@ -588,7 +588,7 @@ class SearchDryCellForm(Form):
     separator_exclude_missing = forms.BooleanField(initial=False, required=False)
 
 class SearchWetCellForm(Form):
-    page_number = forms.IntegerField(required=False)
+    page_number = forms.IntegerField(initial=1, required=False)
     def set_page_number(self, page_number):
         data = self.data.copy()
         data["page_number"] = page_number

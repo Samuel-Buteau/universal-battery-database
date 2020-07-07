@@ -1295,14 +1295,14 @@ def search_page(request):
         ]
         ar['dry_cell_scalars'] = DryCellScalarsFormset(
             initial=dry_cell_scalars_initial,
-            prefix='dry_cell_scalars'
+            prefix='dry-cell-scalars'
         )
 
     def get_dry_cell_forms(ar, post):
-        search_dry_cell = SearchDryCellForm(post, prefix="search_dry_cell")
+        search_dry_cell = SearchDryCellForm(post, prefix="search-dry-cell")
         dry_cell_scalars = DryCellScalarsFormset(
             post,
-            prefix='dry_cell_scalars'
+            prefix='dry-cell-scalars'
         )
         dry_cell_scalars_is_valid = dry_cell_scalars.is_valid()
         search_dry_cell_is_valid = search_dry_cell.is_valid()
@@ -1379,11 +1379,15 @@ def search_page(request):
                 search_wet_cell_form = SearchWetCellForm(request.POST, prefix='search-wet-cell-form')
                 if search_wet_cell_form.is_valid():
                     page_number = search_wet_cell_form.cleaned_data['page_number']
+                    print('page_number before: ', page_number)
+                    print('form before: ', search_wet_cell_form)
                     min_i, max_i, max_page_number, page_number = focus_on_page(page_number, wet_cell_query.count(),number_per_page=20)
                     search_wet_cell_form.set_page_number(page_number)
                     ar["max_page_number"] = max_page_number
                     ar["page_number"] = page_number
                     ar['search_wet_cell_form']=search_wet_cell_form
+                    print('page_number after: ', page_number)
+                    print('form after: ', search_wet_cell_form)
                     initial = []
                     for wet_cell in wet_cell_query[min_i:max_i]:
                         my_initial = {
@@ -1429,6 +1433,18 @@ def search_page(request):
 
                         ar['wet_cell_preview_formset'] = wet_cell_preview_formset
                 ar["dataset_form"] = dataset_form
+
+    if request.method == "POST":
+        if 'search_wet_cell_form' not in ar.keys():
+            print('preserved entered')
+            search_wet_cell_form = SearchWetCellForm(request.POST, prefix='search-wet-cell-form')
+            if search_wet_cell_form.is_valid():
+                print('preserved:', search_wet_cell_form)
+                ar['search_wet_cell_form'] = search_wet_cell_form
+        else:
+            print(ar['search_wet_cell_form'])
+
+
     # electrolyte
     conditional_register(ar,
                          'electrolyte_composition_formset',
@@ -1442,16 +1458,16 @@ def search_page(request):
     # dry cell
     conditional_register(ar,
                          "search_dry_cell",
-                         SearchDryCellForm(prefix="search_dry_cell")
+                         SearchDryCellForm(prefix="search-dry-cell")
                          )
     conditional_register(ar,
                          'search_wet_cell_form',
-                         SearchWetCellForm(prefix='search_wet_cell_form')
+                         SearchWetCellForm(prefix='search-wet-cell-form')
                          )
 
     conditional_register(ar,
                          'wet_cell_preview_formset',
-                         WetCellPreviewFormset(prefix='wet_cell_preview_formset')
+                         WetCellPreviewFormset(prefix='wet-cell-preview-formset')
                          )
     return render(request, 'cell_database/search_page.html', ar)
 

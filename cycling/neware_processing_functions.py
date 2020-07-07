@@ -433,7 +433,7 @@ def import_single_file(database_file, debug = False):
     ).exists()
     if not already_cached:
         error_message["cached"] = "None"
-
+        last_imported_cycle = -1
     if already_cached:
         f = CyclingFile.objects.get(database_file = database_file)
         time_origin = database_file.last_modified
@@ -441,6 +441,11 @@ def import_single_file(database_file, debug = False):
 
         if time_origin > time_cached:
             already_cached = False
+            if f.cycle_set.exists():
+                last_imported_cycle = f.cycle_set.aggregate(Max("cycle_number"))
+                last_imported_cycle = last_imported_cycle["cycle_number__max"] -1
+            else:
+                last_imported_cycle = -1
             error_message["cached"] = "Stale"
         else:
             error_message["cached"] = "Valid"
@@ -449,97 +454,96 @@ def import_single_file(database_file, debug = False):
         error_message["error"] = False
         return error_message
 
+    print("\tLAST CYCLE ALREADY IMPORTED: {}".format(last_imported_cycle))
+
+    if debug:
+        data_table = read_neware(
+            full_path, last_imported_cycle = last_imported_cycle,
+        )
+        print('data table:')
+        print(data_table.keys())
+
+    else:
+        try:
+            data_table = read_neware(
+                full_path, last_imported_cycle = last_imported_cycle,
+            )
+
+        except Exception as e:
+            error_message["error"] = True
+            error_message["error type"] = "ReadNeware"
+            error_message["error verbatim"] = e
+            return error_message
+
+    def write_to_database(data_table, f):
+        cycles = []
+        if len(data_table) != 0:
+            for cyc in list(data_table.keys())[:]:
+                if cyc > last_imported_cycle:
+                    if len(data_table[cyc]) > 0:
+                        passed = False
+                        for step in data_table[cyc].keys():
+                            if len(data_table[cyc][step][1]) > 0:
+                                passed = True
+                                break
+                        if passed:
+                            cycles.append(
+                                Cycle(cycling_file=f, cycle_number=cyc)
+                            )
+
+        if debug:
+            print("Cycles:")
+            print(len(cycles))
+        Cycle.objects.bulk_create(cycles)
+        steps = []
+        for cyc in f.cycle_set.filter(
+                cycle_number__gt=last_imported_cycle
+        ).order_by("cycle_number"):
+            cyc_steps = data_table[cyc.cycle_number]
+            for step in cyc_steps.keys():
+                if len(cyc_steps[step][1]) == 0:
+                    continue
+
+                step_type, data = cyc_steps[step]
+                start_time = min([d[3] for d in data])
+                second_accuracy = all([d[4] for d in data])
+
+                steps.append(
+                    Step(
+                        cycle=cyc,
+                        step_number=step,
+                        step_type=cyc_steps[step][0],
+                        start_time=halifax_timezone.localize(start_time),
+                        second_accuracy=second_accuracy,
+                    )
+                )
+
+                steps[-1].set_v_c_q_t_data(np.array([
+                    d[:3] + [
+                        (d[3] - start_time).total_seconds() / (60. * 60.)
+                    ]
+                    for d in data
+                ]))
+
+        if debug:
+            print('steps: ')
+            print(len(steps))
+        Step.objects.bulk_create(steps)
+        f.import_time = time_of_running_script
+        f.save()
+
     with transaction.atomic():
         f, created = CyclingFile.objects.get_or_create(
             database_file = database_file)
 
-        def get_last_cycle():
-            if f.cycle_set.exists():
-                last_imported_cycle = f.cycle_set.aggregate(Max("cycle_number"))
-                last_imported_cycle = last_imported_cycle["cycle_number__max"]
-            else:
-                last_imported_cycle = -1
-
-            return last_imported_cycle
-
-        last_imported_cycle = get_last_cycle()
-        print("\tLAST CYCLE ALREADY IMPORTED: {}".format(last_imported_cycle))
-
-        def write_to_database(data_table):
-
-            cycles = []
-            if len(data_table) != 0:
-                for cyc in list(data_table.keys())[:-1]:
-                    if cyc > last_imported_cycle:
-                        if len(data_table[cyc]) > 0:
-                            passed = False
-                            for step in data_table[cyc].keys():
-                                if len(data_table[cyc][step][1]) > 0:
-                                    passed = True
-                                    break
-                            if passed:
-                                cycles.append(
-                                    Cycle(cycling_file = f, cycle_number = cyc)
-                                )
-
-            Cycle.objects.bulk_create(cycles)
-            steps = []
-            for cyc in f.cycle_set.filter(
-                cycle_number__gt = last_imported_cycle
-            ).order_by("cycle_number"):
-                cyc_steps = data_table[cyc.cycle_number]
-                for step in cyc_steps.keys():
-                    if len(cyc_steps[step][1]) == 0:
-                        continue
-
-                    step_type, data = cyc_steps[step]
-                    start_time = min([d[3] for d in data])
-                    second_accuracy = all([d[4] for d in data])
-
-                    steps.append(
-                        Step(
-                            cycle = cyc,
-                            step_number = step,
-                            step_type = cyc_steps[step][0],
-                            start_time = halifax_timezone.localize(start_time),
-                            second_accuracy = second_accuracy,
-                        )
-                    )
-
-                    steps[-1].set_v_c_q_t_data(np.array([
-                        d[:3] + [
-                            (d[3] - start_time).total_seconds() / (60. * 60.)
-                        ]
-                        for d in data
-                    ]))
-
-            Step.objects.bulk_create(steps)
-            f.import_time = time_of_running_script
-            f.save()
-
         if debug:
-            data_table = read_neware(
-                full_path, last_imported_cycle = last_imported_cycle,
-            )
-            write_to_database(data_table)
+            write_to_database(data_table, f)
 
             error_message["error"] = False
             return error_message
-
         else:
             try:
-                data_table = read_neware(
-                    full_path, last_imported_cycle = last_imported_cycle,
-                )
-
-            except Exception as e:
-                error_message["error"] = True
-                error_message["error type"] = "ReadNeware"
-                error_message["error verbatim"] = e
-                return error_message
-
-            try:
-                write_to_database(data_table)
+                write_to_database(data_table, f)
 
                 error_message["error"] = False
                 return error_message

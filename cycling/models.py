@@ -395,7 +395,7 @@ class Step(models.Model):
      numpy list, float, capacities (mAh)
      numpy list, float, absolute times (h), delta t between now and the first cycle.
     """
-    v_c_q_t_data = models.BinaryField(null = True)
+    v_c_q_t_data = models.BinaryField(null = True, max_length=1024*1024)
 
     def get_v_c_q_t_data(self):
         return pickle.loads(base64.decodebytes(self.v_c_q_t_data))

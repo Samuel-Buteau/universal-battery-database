@@ -3,6 +3,8 @@ from cell_database.models import *
 from cycling.models import *
 import csv
 
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.axes._axes import _log as matplotlib_axes_logger

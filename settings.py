@@ -97,6 +97,7 @@ DATABASES = {
         "PASSWORD": config["DEFAULT"]["Password"],
         "HOST": config["DEFAULT"]["Host"],
         "PORT": config["DEFAULT"]["Port"],
+	"CONN_MAX_AGE":290,
     }
 }
 

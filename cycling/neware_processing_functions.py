@@ -544,9 +544,10 @@ def import_single_file(database_file, debug = False):
                 error_message["error"] = False
                 return error_message
 
-            except:
+            except Exception as e:
                 error_message["error"] = True
                 error_message["error type"] = "WriteCache"
+                error_message["error verbatim"] = e
                 return error_message
 
 

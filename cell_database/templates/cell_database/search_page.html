@@ -25,8 +25,8 @@ table, th, td {
     <table>
         <tr>
 
-            {%if search_wet_cell_form %}
-                Display Page: {{search_wet_cell_form.page_number}}
+            {%if wet_cell_page_form %}
+                Display Page: {{wet_cell_page_form.page_number}}
             {%endif%}
             <input type="submit" name = 'preview_wet_cell' value="Preview Wet Cell">
 
@@ -63,9 +63,13 @@ table, th, td {
             {% if electrolyte_form %}
             <td valign="top">
             <h2>Electrolyte</h2>
+                {%if electrolyte_page_form %}
+                    Display Page: {{electrolyte_page_form.page_number}}
+                {%endif%}
                 <input type="submit" name = 'preview_electrolyte' value="Preview Electrolyte">
                 {%if preview_electrolytes %}
                     {% if not preview_electrolytes|length == 0%}
+                     Showing page {{electrolyte_page_number}}/{{electrolyte_max_page_number}}.
                         <table>
                             <tr>
                                 <th>Preview Electrolytes</th>
@@ -102,9 +106,16 @@ table, th, td {
         {% if search_dry_cell %}
             <td valign="top">
             <h2>Dry Cell</h2>
+                {%if dry_cell_page_form %}
+                    Display Page: {{dry_cell_page_form.page_number}}
+                {%endif%}
+
                  <input type="submit" name = 'preview_dry_cell' value="Preview Dry Cell">
+                 <input type="submit" name = 'preview_dry_cell_lot'value="Preview Box IDs">
+
                 {%if preview_dry_cells %}
                     {% if not preview_dry_cells|length == 0%}
+                Showing page {{dry_cell_page_number}}/{{dry_cell_max_page_number}}.
                         <table>
                             <tr>
                                 <th>Preview Dry Cells</th>
@@ -112,6 +123,21 @@ table, th, td {
                             {% for dry_cell in preview_dry_cells %}
                                 <tr>
                                     <td>{{dry_cell}}</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    {% endif %}
+                {% endif %}
+                {%if preview_dry_cell_lots %}
+                    {% if not preview_dry_cell_lots|length == 0%}
+                 Showing page {{dry_cell_page_number}}/{{dry_cell_max_page_number}}.
+                        <table>
+                            <tr>
+                                <th>Preview Box IDs</th>
+                            </tr>
+                            {% for dry_cell_lot in preview_dry_cell_lots %}
+                                <tr>
+                                    <td>{{dry_cell_lot}}</td>
                                 </tr>
                             {% endfor %}
                         </table>

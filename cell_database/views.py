@@ -1048,7 +1048,7 @@ def get_preview_dry_cells( search_dry_cell, dry_cell_scalars):
     separator_id = []
 
     relative_tolerance = 5.
-
+    dry_cell_lot_query, needed = get_box_id_query(search_dry_cell, perspective='dry_cell_lot')
     if search_dry_cell.is_valid():
         dry_cell_notes = search_dry_cell.cleaned_data["notes"]
         dry_cell_proprietary = search_dry_cell.cleaned_data["proprietary"]
@@ -1096,7 +1096,15 @@ def get_preview_dry_cells( search_dry_cell, dry_cell_scalars):
                         exclude_missing = dry_cell_scalar.cleaned_data["exclude_missing"]
                     dry_cell_scalar_dict[name] = (scalar, tolerance, exclude_missing)
 
-    q = Q()
+    if needed:
+        potential_dry_cells = DryCellLot.objects.filter(dry_cell_lot_query).values_list('dry_cell__id', flat=True).distinct()
+        if len(potential_dry_cells) == 0:
+            q = ~Q()
+        else:
+            q = Q(id__in=potential_dry_cells)
+    else:
+        q = Q()
+
     if dry_cell_notes is not None and len(dry_cell_notes) > 0:
         q = q & Q(notes__icontains=dry_cell_notes)
 
@@ -1224,6 +1232,34 @@ def get_preview_dry_cells( search_dry_cell, dry_cell_scalars):
 
     return total_query
 
+
+def get_box_id_query(search_dry_cell, perspective='wet_cell'):
+    test = {
+        'wet_cell': lambda bid:  Q(dry_cell__lot_info__notes__icontains=bid),
+        'dry_cell_lot': lambda bid:  Q(lot_info__notes__icontains=bid),
+    }
+    if search_dry_cell.is_valid():
+        box_id1 = search_dry_cell.cleaned_data["box_id1"]
+        box_id2 = search_dry_cell.cleaned_data["box_id2"]
+        box_id3 = search_dry_cell.cleaned_data["box_id3"]
+        box_id4 = search_dry_cell.cleaned_data["box_id4"]
+        box_id5 = search_dry_cell.cleaned_data["box_id5"]
+
+    box_ids = []
+    for bid in [box_id1, box_id2, box_id3, box_id4, box_id5]:
+        if bid is not None and bid != '':
+            box_ids.append(bid)
+    q = Q()
+    if len(box_ids) ==0:
+        return q, False
+    else:
+        for bid in box_ids:
+            q = q | test[perspective](bid)
+        return q, True
+
+
+
+
 #TODO(sam): share across applications
 def focus_on_page(page_number, n, number_per_page = 10):
     pn = page_number
@@ -1344,20 +1380,68 @@ def search_page(request):
         if 'preview_dry_cell' in request.POST:
             if proceed_dry_cell:
                 total_query = get_preview_dry_cells(search_dry_cell, dry_cell_scalars)
-                max_n = 25
-                preview_dry_cells =  [dry_cell.__str__() for dry_cell in total_query[:max_n]]
-                if total_query.count() > max_n:
-                    preview_dry_cells.append("... (more than {} found) ...".format(max_n))
+                page_number = 25
+                dry_cell_page_form = PageNumberForm(request.POST, prefix='dry-cell-page-form')
+                if dry_cell_page_form.is_valid():
+                    page_number = dry_cell_page_form.cleaned_data['page_number']
+                min_i, max_i, max_page_number, page_number = focus_on_page(page_number, total_query.count(),
+                                                                           number_per_page=20)
+                dry_cell_page_form.set_page_number(page_number)
+                ar["dry_cell_max_page_number"] = max_page_number
+                ar["dry_cell_page_number"] = page_number
+                if dry_cell_page_form.is_valid():
+                    ar['dry_cell_page_form'] = dry_cell_page_form
+
+                preview_dry_cells =  [dry_cell.__str__() for dry_cell in total_query[min_i:max_i]]
+
                 ar['preview_dry_cells'] = preview_dry_cells
+
+        if 'preview_dry_cell_lot' in request.POST:
+            if proceed_dry_cell:
+                dry_cell_query = get_preview_dry_cells(search_dry_cell, dry_cell_scalars)
+                box_id_query,_ = get_box_id_query(
+                    search_dry_cell,
+                    perspective='dry_cell_lot',
+                )
+                total_query = DryCellLot.objects.filter(
+                    box_id_query,
+                    dry_cell__in=dry_cell_query,
+
+                )
+
+                page_number = 25
+                dry_cell_page_form = PageNumberForm(request.POST, prefix='dry-cell-page-form')
+                if dry_cell_page_form.is_valid():
+                    page_number = dry_cell_page_form.cleaned_data['page_number']
+                min_i, max_i, max_page_number, page_number = focus_on_page(page_number, total_query.count(),
+                                                                           number_per_page=20)
+                dry_cell_page_form.set_page_number(page_number)
+                ar["dry_cell_max_page_number"] = max_page_number
+                ar["dry_cell_page_number"] = page_number
+                if dry_cell_page_form.is_valid():
+                    ar['dry_cell_page_form'] = dry_cell_page_form
+
+                preview_dry_cell_lots =  [dry_cell_lot.__str__() for dry_cell_lot in total_query[min_i:max_i]]
+
+                ar['preview_dry_cell_lots'] = preview_dry_cell_lots
 
         if 'preview_electrolyte' in request.POST:
             if proceed_electrolyte:
                 total_query = get_preview_electrolytes(search_electrolyte_form, electrolyte_composition_formset)
 
-                max_n = 25
-                preview_electrolytes =  [electrolyte.__str__() for electrolyte in total_query[:max_n]]
-                if total_query.count() > max_n:
-                    preview_electrolytes.append("... (more than {} found) ...".format(max_n))
+                page_number = 25
+                electrolyte_page_form = PageNumberForm(request.POST, prefix='electrolyte-page-form')
+                if electrolyte_page_form.is_valid():
+                    page_number = electrolyte_page_form.cleaned_data['page_number']
+                min_i, max_i, max_page_number, page_number = focus_on_page(page_number, total_query.count(),
+                                                                           number_per_page=20)
+                electrolyte_page_form.set_page_number(page_number)
+                ar["electrolyte_max_page_number"] = max_page_number
+                ar["electrolyte_page_number"] = page_number
+                if electrolyte_page_form.is_valid():
+                    ar['electrolyte_page_form'] = electrolyte_page_form
+                preview_electrolytes =  [electrolyte.__str__() for electrolyte in total_query[min_i:max_i]]
+
                 ar['preview_electrolytes'] = preview_electrolytes
         if 'preview_wet_cell' in request.POST:
             if proceed_electrolyte and proceed_dry_cell:
@@ -1371,23 +1455,24 @@ def search_page(request):
                     search_dry_cell,
                     dry_cell_scalars
                 )
+                box_id_query,_ = get_box_id_query(
+                    search_dry_cell
+                )
 
                 wet_cell_query = WetCell.objects.filter(
+                    box_id_query,
                     electrolyte__composite__in=electrolyte_query,
-                    dry_cell__dry_cell__in=dry_cell_query
+                    dry_cell__dry_cell__in=dry_cell_query,
+
                 )
-                search_wet_cell_form = SearchWetCellForm(request.POST, prefix='search-wet-cell-form')
-                if search_wet_cell_form.is_valid():
-                    page_number = search_wet_cell_form.cleaned_data['page_number']
-                    print('page_number before: ', page_number)
-                    print('form before: ', search_wet_cell_form)
+                wet_cell_page_form = PageNumberForm(request.POST, prefix='wet-cell-page-form')
+                if wet_cell_page_form.is_valid():
+                    page_number = wet_cell_page_form.cleaned_data['page_number']
                     min_i, max_i, max_page_number, page_number = focus_on_page(page_number, wet_cell_query.count(),number_per_page=20)
-                    search_wet_cell_form.set_page_number(page_number)
+                    wet_cell_page_form.set_page_number(page_number)
                     ar["max_page_number"] = max_page_number
                     ar["page_number"] = page_number
-                    ar['search_wet_cell_form']=search_wet_cell_form
-                    print('page_number after: ', page_number)
-                    print('form after: ', search_wet_cell_form)
+                    ar['wet_cell_page_form']=wet_cell_page_form
                     initial = []
                     for wet_cell in wet_cell_query[min_i:max_i]:
                         my_initial = {
@@ -1435,14 +1520,19 @@ def search_page(request):
                 ar["dataset_form"] = dataset_form
 
     if request.method == "POST":
-        if 'search_wet_cell_form' not in ar.keys():
-            print('preserved entered')
-            search_wet_cell_form = SearchWetCellForm(request.POST, prefix='search-wet-cell-form')
-            if search_wet_cell_form.is_valid():
-                print('preserved:', search_wet_cell_form)
-                ar['search_wet_cell_form'] = search_wet_cell_form
-        else:
-            print(ar['search_wet_cell_form'])
+        if 'wet_cell_page_form' not in ar.keys():
+            wet_cell_page_form = PageNumberForm(request.POST, prefix='wet-cell-page-form')
+            if wet_cell_page_form.is_valid():
+                ar['wet_cell_page_form'] = wet_cell_page_form
+        if 'dry_cell_page_form' not in ar.keys():
+            dry_cell_page_form = PageNumberForm(request.POST, prefix='dry-cell-page-form')
+            if dry_cell_page_form.is_valid():
+                ar['dry_cell_page_form'] = dry_cell_page_form
+        if 'electrolyte_page_form' not in ar.keys():
+            electrolyte_page_form = PageNumberForm(request.POST, prefix='wet-cell-page-form')
+            if electrolyte_page_form.is_valid():
+                ar['electrolyte_page_form'] = electrolyte_page_form
+
 
 
     # electrolyte
@@ -1461,8 +1551,16 @@ def search_page(request):
                          SearchDryCellForm(prefix="search-dry-cell")
                          )
     conditional_register(ar,
-                         'search_wet_cell_form',
-                         SearchWetCellForm(prefix='search-wet-cell-form')
+                         'wet_cell_page_form',
+                         PageNumberForm(prefix='wet-cell-page-form')
+                         )
+    conditional_register(ar,
+                         'dry_cell_page_form',
+                         PageNumberForm(prefix='dry-cell-page-form')
+                         )
+    conditional_register(ar,
+                         'electrolyte_page_form',
+                         PageNumberForm(prefix='electrolyte-page-form')
                          )
 
     conditional_register(ar,

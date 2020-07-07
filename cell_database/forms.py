@@ -553,6 +553,12 @@ class SearchGenericNamedScalarForm(Form):
     exclude_missing = forms.BooleanField(initial=False,required=False)
 
 class SearchDryCellForm(Form):
+    box_id1 = forms.CharField(required=False)
+    box_id2 = forms.CharField(required=False)
+    box_id3 = forms.CharField(required=False)
+    box_id4 = forms.CharField(required=False)
+    box_id5 = forms.CharField(required=False)
+
     notes = forms.CharField(required=False)
     relative_tolerance = forms.FloatField(initial=5., help_text='the default tolerance in percentage.')
     proprietary = forms.BooleanField(initial=False, required=False)
@@ -587,7 +593,7 @@ class SearchDryCellForm(Form):
     )
     separator_exclude_missing = forms.BooleanField(initial=False, required=False)
 
-class SearchWetCellForm(Form):
+class PageNumberForm(Form):
     page_number = forms.IntegerField(initial=1, required=False)
     def set_page_number(self, page_number):
         data = self.data.copy()

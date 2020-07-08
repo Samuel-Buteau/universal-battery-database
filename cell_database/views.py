@@ -1334,10 +1334,11 @@ def search_page(request):
         SearchGenericNamedScalarForm,
         extra=0
     )
-    WetCellPreviewFormset = formset_factory(
-        WetCellPreviewForm,
-        extra=0
-    )
+
+    # WetCellPreviewFormset = formset_factory(
+    #     WetCellPreviewForm,
+    #     extra=0
+    # )
 
     def set_scalars(ar):
         dry_cell_scalars_initial = [
@@ -1537,51 +1538,29 @@ def search_page(request):
                     ar["max_page_number"] = max_page_number
                     ar["page_number"] = page_number
                     ar['wet_cell_page_form']=wet_cell_page_form
-                    initial = []
-                    for wet_cell in wet_cell_query[min_i:max_i]:
-                        my_initial = {
-                            "wet_cell": wet_cell.__str__(),
-                            "cell_id": wet_cell.cell_id,
-                            "exclude": True,
-                        }
 
-                        initial.append(my_initial)
-
-                    wet_cell_preview_formset = WetCellPreviewFormset(
-                        initial=initial,
-                        prefix='wet-cell-preview-formset')
-                    ar['wet_cell_preview_formset'] = wet_cell_preview_formset
-                    ar['dataset_form'] = DatasetForm(prefix='dataset-form')
-                    # preview_wet_cells = [wet_cell.__str__() for wet_cell in wet_cell_query[min_i:max_i]]
-                    # ar['preview_wet_cells'] = preview_wet_cells
+                    initial = [(wet_cell.cell_id, str(wet_cell)) for wet_cell in wet_cell_query[min_i:max_i]]
+                    if len(initial) != 0:
+                        wet_cells_preview_form = WetCellsPreviewForm(wet_cells=initial, prefix='wet-cells-preview-form')
+                        ar['wet_cells_preview_form'] = wet_cells_preview_form
+                        ar['dataset_form'] = DatasetForm(prefix='dataset-form')
 
         if 'register_wet_cells_to_dataset' in request.POST:
-            wet_cell_preview_formset = WetCellPreviewFormset(request.POST, prefix='wet-cell-preview-formset')
+            wet_cells_preview_form = WetCellsPreviewForm(request.POST, wet_cells=[],prefix='wet-cells-preview-form')
             dataset_form =DatasetForm(request.POST, prefix='dataset-form')
             if dataset_form.is_valid():
-
                 dataset = dataset_form.cleaned_data["dataset"]
                 if dataset is not None:
-                    if wet_cell_preview_formset.is_valid():
-
-                        for form in wet_cell_preview_formset:
-                            if not form.is_valid():
+                    if wet_cells_preview_form.is_valid():
+                        selected_wet_cells = wet_cells_preview_form.cleaned_data.get('wet_cells')
+                        for str_cell_id in selected_wet_cells:
+                            try:
+                                cell_id = int(str_cell_id)
+                            except:
                                 continue
-                            if "exclude" not in form.cleaned_data.keys():
-                                continue
-                            if form.cleaned_data["exclude"]:
-                                continue
-
-                            cell_id = form.cleaned_data["cell_id"]
-
                             if WetCell.objects.filter(cell_id = cell_id).exists():
                                 wet_cell = WetCell.objects.get(cell_id = cell_id)
-
                                 dataset.wet_cells.add(wet_cell)
-
-
-                        ar['wet_cell_preview_formset'] = wet_cell_preview_formset
-                ar["dataset_form"] = dataset_form
 
     if request.method == "POST":
         if 'wet_cell_page_form' not in ar.keys():
@@ -1625,11 +1604,6 @@ def search_page(request):
     conditional_register(ar,
                          'electrolyte_page_form',
                          PageNumberForm(prefix='electrolyte-page-form')
-                         )
-
-    conditional_register(ar,
-                         'wet_cell_preview_formset',
-                         WetCellPreviewFormset(prefix='wet-cell-preview-formset')
                          )
 
     conditional_register(ar,

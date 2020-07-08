@@ -31,30 +31,14 @@ table, th, td {
             <input type="submit" name = 'preview_wet_cell' value="Preview Wet Cell">
 
 
-            {%if wet_cell_preview_formset %}
-                {% csrf_token %}
-                {{ wet_cell_preview_formset.management_form }}
-
-                {% if not wet_cell_preview_formset|length == 0%}
-                    Showing page {{page_number}}/{{max_page_number}}.
-                    <table>
-                        <tr>
-                           <th>Exclude ?</th> <th>Wet Cell</th>
-                        </tr>
-                    {% for form in wet_cell_preview_formset %}
-                        {% for hidden in form.hidden_fields %}
-                            {{hidden}}
-                        {% endfor %}
-                        <tr>
-                            <td>{{ form.exclude}}</td><td>{{ form.wet_cell}}</td>
-                        </tr>
-                    {% endfor %}
-                    </table>
-                    {% if dataset_form %}
-                        Target Dataset: {{ dataset_form.dataset }}
-                    {% endif %}
-                    <input type="submit" name = 'register_wet_cells_to_dataset' value="Register to Dataset">
+            {%if wet_cells_preview_form %}
+                Showing page {{page_number}}/{{max_page_number}}.
+                {{ wet_cells_preview_form }}
+                {% if dataset_form %}
+                    Target Dataset: {{ dataset_form.dataset }}
                 {% endif %}
+                <input type="submit" name = 'register_wet_cells_to_dataset' value="Register to Dataset">
+
             {% endif %}
 
         </tr>

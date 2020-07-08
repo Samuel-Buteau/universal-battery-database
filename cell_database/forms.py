@@ -3,6 +3,7 @@ from django.forms import formset_factory, modelformset_factory, ModelForm, Form
 from .models import *
 from django.forms import BaseModelFormSet
 from django.db.models import Q
+from django.core.exceptions import ValidationError
 
 def molecule_choices(none=True):
     return make_choices(
@@ -618,6 +619,31 @@ class WetCellPreviewForm(Form):
     wet_cell = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly', 'size': 200}), required=False)
     cell_id = forms.IntegerField(widget=forms.HiddenInput(), required=False)
     exclude = forms.BooleanField(required=False)
+
+
+class LooseMultipleChoiceField(forms.MultipleChoiceField):
+    def to_python(self, value):
+        if not value:
+            return []
+        elif not isinstance(value, (list, tuple)):
+            raise ValidationError(self.error_messages['invalid_list'], code='invalid_list')
+        return [str(val) for val in value]
+
+    def validate(self, value):
+        """Validate that the input is a list or tuple."""
+        if self.required and not value:
+            raise ValidationError(self.error_messages['required'], code='required')
+
+
+class WetCellsPreviewForm(Form):
+    wet_cells = LooseMultipleChoiceField(
+        choices=[],
+        required=False,
+        widget=forms.SelectMultiple(attrs = {'size':25})
+    )
+    def __init__(self, *args, wet_cells=None, **kwargs):
+        super(WetCellsPreviewForm, self).__init__(*args, **kwargs)
+        self.fields.get('wet_cells').choices = wet_cells
 
 class CreateDatasetForm(Form):
     name = forms.CharField(required=False)

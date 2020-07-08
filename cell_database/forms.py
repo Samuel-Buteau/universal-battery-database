@@ -552,6 +552,17 @@ class SearchGenericNamedScalarForm(Form):
     tolerance = forms.FloatField(required=False)
     exclude_missing = forms.BooleanField(initial=False,required=False)
 
+
+class SearchCellIDRangesForm(Form):
+    cell_id_min_1 = forms.IntegerField(required=False)
+    cell_id_max_1 = forms.IntegerField(required=False)
+    cell_id_min_2 = forms.IntegerField(required=False)
+    cell_id_max_2 = forms.IntegerField(required=False)
+    cell_id_min_3 = forms.IntegerField(required=False)
+    cell_id_max_3 = forms.IntegerField(required=False)
+
+
+
 class SearchDryCellForm(Form):
     box_id1 = forms.CharField(required=False)
     box_id2 = forms.CharField(required=False)

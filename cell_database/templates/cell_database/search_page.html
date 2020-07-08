@@ -39,19 +39,19 @@ table, th, td {
                     Showing page {{page_number}}/{{max_page_number}}.
                     <table>
                         <tr>
-                            <th>Wet Cell</th> <th>Exclude ?</th>
+                           <th>Exclude ?</th> <th>Wet Cell</th>
                         </tr>
                     {% for form in wet_cell_preview_formset %}
                         {% for hidden in form.hidden_fields %}
                             {{hidden}}
                         {% endfor %}
                         <tr>
-                            <td>{{ form.wet_cell}}</td><td>{{ form.exclude}}</td>
+                            <td>{{ form.exclude}}</td><td>{{ form.wet_cell}}</td>
                         </tr>
                     {% endfor %}
                     </table>
                     {% if dataset_form %}
-                        {{ dataset_form }}
+                        Target Dataset: {{ dataset_form.dataset }}
                     {% endif %}
                     <input type="submit" name = 'register_wet_cells_to_dataset' value="Register to Dataset">
                 {% endif %}
@@ -60,6 +60,69 @@ table, th, td {
         </tr>
         <tr>
             <table>
+                {% if search_cell_id_range or search_dataset_membership %}
+            <td valign="top">
+            <h2>Cell ID Ranges</h2>
+                <table>
+                    <tr>
+                        <th>
+                            Cell ID Range:
+                        </th>
+                        <td>
+                            Min (or exact)
+                        </td>
+                        <td>
+                            Max (or blank)
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+
+                        </th>
+                        <td>
+                            {{ search_cell_id_range.cell_id_min_1}}
+                        </td>
+                        <td>
+                            {{ search_cell_id_range.cell_id_max_1}}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+
+                        </th>
+                        <td>
+                            {{ search_cell_id_range.cell_id_min_2}}
+                        </td>
+                        <td>
+                            {{ search_cell_id_range.cell_id_max_2}}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+
+                        </th>
+                        <td>
+                            {{ search_cell_id_range.cell_id_min_3}}
+                        </td>
+                        <td>
+                            {{ search_cell_id_range.cell_id_max_3}}
+                        </td>
+                    </tr>
+
+
+                </table>
+
+            <h2>Dataset</h2>
+                <table>
+                    {{ search_dataset_membership.as_table }}
+                </table>
+
+
+            </td>
+
+            {% endif %}
+
+
             {% if electrolyte_form %}
             <td valign="top">
             <h2>Electrolyte</h2>
@@ -161,6 +224,8 @@ table, th, td {
 
             </td>
         {% endif %}
+
+
         </table>
         </tr>
     </table>

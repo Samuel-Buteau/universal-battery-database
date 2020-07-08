@@ -1257,7 +1257,53 @@ def get_box_id_query(search_dry_cell, perspective='wet_cell'):
             q = q | test[perspective](bid)
         return q, True
 
+def get_cell_id_dataset_query(search_dataset_membership):
+    if search_dataset_membership.is_valid():
+        dataset = search_dataset_membership.cleaned_data['dataset']
+    if dataset is None:
+        return Q(), False
+    else:
+        return Q(dataset__id=dataset.id), True
 
+
+def get_cell_id_query(search_cell_id_range, perspective='wet_cell'):
+    test2 = {
+        'wet_cell': lambda my_min, my_max:  Q(cell_id__range=(my_min, my_max)),
+    }
+    test1 = {
+        'wet_cell': lambda ex: Q(cell_id=ex),
+    }
+    if search_cell_id_range.is_valid():
+        cell_id_min_1 = search_cell_id_range.cleaned_data["cell_id_min_1"]
+        cell_id_max_1 = search_cell_id_range.cleaned_data["cell_id_max_1"]
+        cell_id_min_2 = search_cell_id_range.cleaned_data["cell_id_min_2"]
+        cell_id_max_2 = search_cell_id_range.cleaned_data["cell_id_max_2"]
+        cell_id_min_3 = search_cell_id_range.cleaned_data["cell_id_min_3"]
+        cell_id_max_3 = search_cell_id_range.cleaned_data["cell_id_max_3"]
+
+
+    cell_ids = []
+    for my_min,my_max in [(cell_id_min_1, cell_id_max_1), (cell_id_min_2, cell_id_max_2), (cell_id_min_3, cell_id_max_3)]:
+        if my_min is not None and my_max is not None:
+            cell_ids.append(
+                ('test2', (my_min, my_max))
+            )
+        if my_min is not None and my_max is None:
+            cell_ids.append(
+                ('test1', my_min)
+            )
+    q = Q()
+    if len(cell_ids) == 0:
+        return q, False
+    else:
+        for lab, t in cell_ids:
+            if lab == 'test2':
+                my_min, my_max = t
+                q = q | test2[perspective](my_min, my_max)
+            if lab == 'test1':
+                ex = t
+                q = q | test1[perspective](ex)
+        return q, True
 
 
 #TODO(sam): share across applications
@@ -1376,6 +1422,14 @@ def search_page(request):
         electrolyte_composition_formset, search_electrolyte_form, proceed_electrolyte = get_electrolyte_forms(ar, request.POST)
         # dry cell
         search_dry_cell, dry_cell_scalars, proceed_dry_cell = get_dry_cell_forms(ar, request.POST)
+        search_cell_id_range = SearchCellIDRangesForm(request.POST, prefix='search-cell-id-range')
+        search_dataset_membership = DatasetForm(request.POST, prefix='search-dataset-membership')
+
+        if search_cell_id_range.is_valid():
+            ar['search_cell_id_range'] = search_cell_id_range
+
+        if search_dataset_membership.is_valid():
+            ar['search_dataset_membership'] = search_dataset_membership
 
         if 'preview_dry_cell' in request.POST:
             if proceed_dry_cell:
@@ -1459,10 +1513,20 @@ def search_page(request):
                     search_dry_cell
                 )
 
+                cell_id_query, _ = get_cell_id_query(
+                    search_cell_id_range
+                )
+                cell_id_dataset_query, _ = get_cell_id_dataset_query(
+                    search_dataset_membership
+                )
+
                 wet_cell_query = WetCell.objects.filter(
                     box_id_query,
+                    cell_id_query,
+                    cell_id_dataset_query,
                     electrolyte__composite__in=electrolyte_query,
                     dry_cell__dry_cell__in=dry_cell_query,
+
 
                 )
                 wet_cell_page_form = PageNumberForm(request.POST, prefix='wet-cell-page-form')
@@ -1567,6 +1631,18 @@ def search_page(request):
                          'wet_cell_preview_formset',
                          WetCellPreviewFormset(prefix='wet-cell-preview-formset')
                          )
+
+    conditional_register(ar,
+                         "search_cell_id_range",
+                         SearchCellIDRangesForm(prefix="search-cell-id-range")
+                         )
+
+    conditional_register(ar,
+                         "search_dataset_membership",
+                         DatasetForm(prefix="search-dataset-membership")
+                         )
+
+
     return render(request, 'cell_database/search_page.html', ar)
 
 

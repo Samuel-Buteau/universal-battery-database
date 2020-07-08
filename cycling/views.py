@@ -110,18 +110,18 @@ def view_cell_id(request, cell_id, cursor):
     if request.method == "POST" and "back" in request.POST:
         if len(chosen) == 0:
             return HttpResponseRedirect(
-                reverse("view_cell_id", args = (cell_id, cursor))
+                reverse("cycling:view_cell_id", args = (cell_id, cursor))
             )
 
         new_cursor = "_".join([list_all_options[c] for c in chosen[:-1]])
 
         return HttpResponseRedirect(
-            reverse("view_cell_id", args = (cell_id, new_cursor))
+            reverse("cycling:view_cell_id", args = (cell_id, new_cursor))
         )
 
     if request.method == "POST" and "start" in request.POST:
         return HttpResponseRedirect(
-            reverse("view_cell_id", args = (cell_id, ""))
+            reverse("cycling:view_cell_id", args = (cell_id, ""))
         )
 
     files_cell_id = get_files_for_cell_id(cell_id)
@@ -158,7 +158,7 @@ def view_cell_id(request, cell_id, cursor):
                     [list_all_options[c] for c in chosen[:count]]
                 )
                 return HttpResponseRedirect(
-                    reverse("view_cell_id", args = (cell_id, new_cursor))
+                    reverse("cycling:view_cell_id", args = (cell_id, new_cursor))
                 )
             interval = split_interval(
                 interval[0], interval[1], M = number_of_options, i = choice,
@@ -177,7 +177,7 @@ def view_cell_id(request, cell_id, cursor):
         if request.method == "POST" and "zoom" in request.POST:
             if interval[1] == 1:
                 return HttpResponseRedirect(
-                    reverse("view_cell_id", args = (cell_id, cursor))
+                    reverse("cycling:view_cell_id", args = (cell_id, cursor))
                 )
 
             my_form = ChoiceForm(request.POST)
@@ -190,11 +190,11 @@ def view_cell_id(request, cell_id, cursor):
                     )
                 else:
                     return HttpResponseRedirect(
-                        reverse("view_cell_id", args = (cell_id, cursor))
+                        reverse("cycling:view_cell_id", args = (cell_id, cursor))
                     )
 
             return HttpResponseRedirect(
-                reverse("view_cell_id", args = (cell_id, new_cursor))
+                reverse("cycling:view_cell_id", args = (cell_id, new_cursor))
             )
 
         if (
@@ -213,7 +213,7 @@ def view_cell_id(request, cell_id, cursor):
                 option = my_form.cleaned_data["option"]
                 if option not in list_all_options[:max_possible_options]:
                     return HttpResponseRedirect(
-                        reverse("view_cell_id", args = (cell_id, cursor)))
+                        reverse("cycling:view_cell_id", args = (cell_id, cursor)))
 
                 option_index = list_all_options.index(option)
                 selected_interval = split_interval(
@@ -237,7 +237,7 @@ def view_cell_id(request, cell_id, cursor):
                 ).update(valid_cycle = doing[1])
 
             return HttpResponseRedirect(
-                reverse("view_cell_id", args = (cell_id, cursor)),
+                reverse("cycling:view_cell_id", args = (cell_id, cursor)),
             )
 
         all_intervals = get_all_intervals(

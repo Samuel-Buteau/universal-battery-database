@@ -1435,15 +1435,15 @@ def search_page(request):
         if 'preview_dry_cell' in request.POST:
             if proceed_dry_cell:
                 total_query = get_preview_dry_cells(search_dry_cell, dry_cell_scalars)
-                page_number = 25
+                dry_cell_page_number = 1
                 dry_cell_page_form = PageNumberForm(request.POST, prefix='dry-cell-page-form')
                 if dry_cell_page_form.is_valid():
-                    page_number = dry_cell_page_form.cleaned_data['page_number']
-                min_i, max_i, max_page_number, page_number = focus_on_page(page_number, total_query.count(),
+                    dry_cell_page_number = dry_cell_page_form.cleaned_data['page_number']
+                min_i, max_i, dry_cell_max_page_number, dry_cell_page_number = focus_on_page(dry_cell_page_number, total_query.count(),
                                                                            number_per_page=20)
-                dry_cell_page_form.set_page_number(page_number)
-                ar["dry_cell_max_page_number"] = max_page_number
-                ar["dry_cell_page_number"] = page_number
+                dry_cell_page_form.set_page_number(dry_cell_page_number)
+                ar["dry_cell_max_page_number"] = dry_cell_max_page_number
+                ar["dry_cell_page_number"] = dry_cell_page_number
                 if dry_cell_page_form.is_valid():
                     ar['dry_cell_page_form'] = dry_cell_page_form
 
@@ -1464,15 +1464,15 @@ def search_page(request):
 
                 )
 
-                page_number = 25
+                dry_cell_page_number = 1
                 dry_cell_page_form = PageNumberForm(request.POST, prefix='dry-cell-page-form')
                 if dry_cell_page_form.is_valid():
-                    page_number = dry_cell_page_form.cleaned_data['page_number']
-                min_i, max_i, max_page_number, page_number = focus_on_page(page_number, total_query.count(),
+                    dry_cell_page_number = dry_cell_page_form.cleaned_data['page_number']
+                min_i, max_i, dry_cell_max_page_number, dry_cell_page_number = focus_on_page(dry_cell_page_number, total_query.count(),
                                                                            number_per_page=20)
-                dry_cell_page_form.set_page_number(page_number)
-                ar["dry_cell_max_page_number"] = max_page_number
-                ar["dry_cell_page_number"] = page_number
+                dry_cell_page_form.set_page_number(dry_cell_page_number)
+                ar["dry_cell_max_page_number"] = dry_cell_max_page_number
+                ar["dry_cell_page_number"] = dry_cell_page_number
                 if dry_cell_page_form.is_valid():
                     ar['dry_cell_page_form'] = dry_cell_page_form
 
@@ -1484,20 +1484,21 @@ def search_page(request):
             if proceed_electrolyte:
                 total_query = get_preview_electrolytes(search_electrolyte_form, electrolyte_composition_formset)
 
-                page_number = 25
+                electrolyte_page_number = 1
                 electrolyte_page_form = PageNumberForm(request.POST, prefix='electrolyte-page-form')
                 if electrolyte_page_form.is_valid():
-                    page_number = electrolyte_page_form.cleaned_data['page_number']
-                min_i, max_i, max_page_number, page_number = focus_on_page(page_number, total_query.count(),
+                    electrolyte_page_number = electrolyte_page_form.cleaned_data['page_number']
+                min_i, max_i, electrolyte_max_page_number, electrolyte_page_number = focus_on_page(electrolyte_page_number, total_query.count(),
                                                                            number_per_page=20)
-                electrolyte_page_form.set_page_number(page_number)
-                ar["electrolyte_max_page_number"] = max_page_number
-                ar["electrolyte_page_number"] = page_number
+                electrolyte_page_form.set_page_number(electrolyte_page_number)
+                ar["electrolyte_max_page_number"] = electrolyte_max_page_number
+                ar["electrolyte_page_number"] = electrolyte_page_number
                 if electrolyte_page_form.is_valid():
                     ar['electrolyte_page_form'] = electrolyte_page_form
                 preview_electrolytes =  [electrolyte.__str__() for electrolyte in total_query[min_i:max_i]]
 
                 ar['preview_electrolytes'] = preview_electrolytes
+
         if 'preview_wet_cell' in request.POST:
             if proceed_electrolyte and proceed_dry_cell:
 
@@ -1531,12 +1532,14 @@ def search_page(request):
 
                 )
                 wet_cell_page_form = PageNumberForm(request.POST, prefix='wet-cell-page-form')
+                wet_cell_page_number = 1
                 if wet_cell_page_form.is_valid():
-                    page_number = wet_cell_page_form.cleaned_data['page_number']
-                    min_i, max_i, max_page_number, page_number = focus_on_page(page_number, wet_cell_query.count(),number_per_page=20)
-                    wet_cell_page_form.set_page_number(page_number)
-                    ar["max_page_number"] = max_page_number
-                    ar["page_number"] = page_number
+                    wet_cell_page_number = wet_cell_page_form.cleaned_data['page_number']
+                min_i, max_i, wet_cell_max_page_number, wet_cell_page_number = focus_on_page(wet_cell_page_number, wet_cell_query.count(),number_per_page=20)
+                wet_cell_page_form.set_page_number(wet_cell_page_number)
+                ar["wet_cell_max_page_number"] = wet_cell_max_page_number
+                ar["wet_cell_page_number"] = wet_cell_page_number
+                if wet_cell_page_form.is_valid():
                     ar['wet_cell_page_form']=wet_cell_page_form
 
                     initial = [(wet_cell.cell_id, str(wet_cell)) for wet_cell in wet_cell_query[min_i:max_i]]
@@ -1572,7 +1575,7 @@ def search_page(request):
             if dry_cell_page_form.is_valid():
                 ar['dry_cell_page_form'] = dry_cell_page_form
         if 'electrolyte_page_form' not in ar.keys():
-            electrolyte_page_form = PageNumberForm(request.POST, prefix='wet-cell-page-form')
+            electrolyte_page_form = PageNumberForm(request.POST, prefix='electrolyte-page-form')
             if electrolyte_page_form.is_valid():
                 ar['electrolyte_page_form'] = electrolyte_page_form
 

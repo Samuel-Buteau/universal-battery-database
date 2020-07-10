@@ -286,41 +286,6 @@ class DegradationModel(Model):
         # feedforward neural network for capacity
         self.nn_q = feedforward_nn_parameters(depth, width, finalize = True)
 
-        """ Primitive Dictionary Layer variables """
-        self.dry_cell_direct = PrimitiveDictionaryLayer(
-            num_feats = 6, id_dict = dry_cell_dict,
-        )
-
-        self.dry_cell_latent_flags = np.ones(
-            (self.dry_cell_direct.num_keys, 6), dtype = np.float32,
-        )
-        self.dry_cell_given = np.zeros(
-            (self.dry_cell_direct.num_keys, 6), dtype = np.float32,
-        )
-
-        for dry_cell_id in self.dry_cell_direct.id_dict.keys():
-            if dry_cell_id in dry_cell_to_meta.keys():
-                todo = [
-                    "cathode_loading",
-                    "cathode_density",
-                    "cathode_thickness",
-                    "anode_loading",
-                    "anode_density",
-                    "anode_thickness",
-                ]
-                for i, key in enumerate(todo):
-                    if key in dry_cell_to_meta[dry_cell_id].keys():
-                        val = dry_cell_to_meta[dry_cell_id][key]
-                        self.dry_cell_given[
-                            self.dry_cell_direct.id_dict[dry_cell_id], i,
-                        ] = val
-                        self.dry_cell_latent_flags[
-                            self.dry_cell_direct.id_dict[dry_cell_id], i,
-                        ] = 0.
-
-        self.dry_cell_given = tf.constant(self.dry_cell_given)
-        self.dry_cell_latent_flags = tf.constant(self.dry_cell_latent_flags)
-
         self.cell_direct = PrimitiveDictionaryLayer(
             num_feats = self.num_feats, id_dict = cell_dict,
         )
@@ -340,21 +305,6 @@ class DegradationModel(Model):
                 ] = cell_latent_flags[cell_id]
 
         self.cell_latent_flags = tf.constant(latent_flags)
-
-        cell_pointers = np.zeros(
-            shape = (self.cell_direct.num_keys, 4), dtype = np.int32,
-        )
-
-        for cell_id in self.cell_direct.id_dict.keys():
-            if cell_id in cell_to_dry_cell.keys():
-                cell_pointers[
-                    self.cell_direct.id_dict[cell_id], 3,
-                ] = dry_cell_dict[cell_to_dry_cell[cell_id]]
-
-        self.cell_pointers = tf.constant(cell_pointers)
-        self.cell_indirect = feedforward_nn_parameters(
-            depth, width, last = self.num_feats,
-        )
 
         self.width = width
         self.n_channels = n_channels
@@ -468,7 +418,6 @@ class DegradationModel(Model):
                 indices = tf.range(self.cell_direct.num_keys, dtype = tf.int32),
                 training = True,
                 sample = False,
-                compute_derivatives = True,
             )
 
             returns[Key.Loss.Q] = q_loss
@@ -476,10 +425,7 @@ class DegradationModel(Model):
 
         return returns
 
-    def cell_from_indices(
-        self, indices,
-        training = True, sample = False, compute_derivatives = False,
-    ):
+    def cell_from_indices(self, indices, training = True, sample = False):
         """ Cell from indices
         TODO(harvey, confusion): Need detailed explanation for what this
             function does.
@@ -496,65 +442,9 @@ class DegradationModel(Model):
         fetched_latent_cell = (
             self.min_latent + (1 - self.min_latent) * fetched_latent_cell
         )
-        fetched_pointers_cell = tf.gather(
-            self.cell_pointers, indices, axis = 0,
-        )
-
-        dry_cell_indices = fetched_pointers_cell[:, 3]
-
-        feats_dry_cell_unknown, loss_dry_cell_unknown = self.dry_cell_direct(
-            dry_cell_indices, training = training, sample = sample,
-        )
-
-        latent_dry_cell = tf.gather(
-            self.dry_cell_latent_flags, dry_cell_indices, axis = 0,
-        )
-
-        feats_dry_cell_given = tf.gather(
-            self.dry_cell_given, dry_cell_indices, axis = 0,
-        )
-
-        feats_dry_cell = (
-            latent_dry_cell * feats_dry_cell_unknown
-            + (1. - latent_dry_cell) * feats_dry_cell_given
-        )
-        # TODO(sam): this is not quite right
-        loss_dry_cell = loss_dry_cell_unknown
-
-        derivatives = {}
-
-        if compute_derivatives:
-
-            with tf.GradientTape(persistent = True) as tape_d1:
-                tape_d1.watch(feats_dry_cell)
-
-                cell_dependencies = (feats_dry_cell,)
-
-                feats_cell_indirect = nn_call(
-                    self.cell_indirect, cell_dependencies, training = training,
-                )
-
-            derivatives["d_features_dry_cell"] = tape_d1.batch_jacobian(
-                source = feats_dry_cell, target = feats_cell_indirect,
-            )
-
-            del tape_d1
-        else:
-            cell_dependencies = (feats_dry_cell,)
-
-            feats_cell_indirect = nn_call(
-                self.cell_indirect, cell_dependencies, training = training,
-            )
 
         feats_cell = (
             fetched_latent_cell * feats_cell_direct
-            + (1. - fetched_latent_cell) * feats_cell_indirect
-        )
-        loss_cell_eq = tf.reduce_mean(
-            (1. - fetched_latent_cell) * incentive_inequality(
-                feats_cell_direct, Inequality.Equals, feats_cell_indirect,
-                Level.Proportional,
-            )
         )
 
         if training:
@@ -575,42 +465,11 @@ class DegradationModel(Model):
             feats_cell += self.cell_direct.sample_epsilon * eps
 
         if training:
-
-            loss_input_cell_indirect = (
-                (1. - fetched_latent_cell) * loss_dry_cell
-            )
-
-            if compute_derivatives:
-                l_dry_cell = incentive_magnitude(
-                    derivatives["d_features_dry_cell"], Target.Small,
-                    Level.Proportional,
-                )
-                mult = (1. - tf.reshape(fetched_latent_cell, [-1, 1]))
-                loss_derivative_cell_indirect = (
-                    mult * tf.reduce_mean(l_dry_cell, axis = 2)
-                )
-            else:
-                loss_derivative_cell_indirect = 0.
-
-        else:
-            loss_input_cell_indirect = None
-            loss_derivative_cell_indirect = None
-
-        if training:
             loss = incentive_combine([
                 (
                     self.options["coeff_cell_output"],
                     loss_output_cell,
-                ), (
-                    self.options["coeff_cell_input"],
-                    loss_input_cell_indirect,
-                ), (
-                    self.options["coeff_cell_derivative"],
-                    loss_derivative_cell_indirect,
-                ), (
-                    self.options["coeff_cell_eq"],
-                    loss_cell_eq,
-                )
+                ),
             ])
         else:
             loss = 0.

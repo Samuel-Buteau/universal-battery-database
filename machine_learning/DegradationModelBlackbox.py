@@ -471,16 +471,6 @@ class DegradationModel(Model):
             depth, width, last = self.num_feats,
         )
 
-        self.n_solvent_max = np.max([len(v) for v in lyte_to_solvent.values()])
-        self.n_salt_max = np.max([len(v) for v in lyte_to_salt.values()])
-        self.n_additive_max = np.max(
-            [len(v) for v in lyte_to_additive.values()]
-        )
-
-        self.lyte_indirect = feedforward_nn_parameters(
-            depth, width, last = self.num_feats,
-        )
-
         self.stress_to_encoded_layer = StressToEncodedLayer(
             n_channels = n_channels
         )

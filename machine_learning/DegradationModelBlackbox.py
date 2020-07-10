@@ -427,18 +427,6 @@ class DegradationModel(Model):
         self.cell_direct = PrimitiveDictionaryLayer(
             num_feats = self.num_feats, id_dict = cell_dict,
         )
-        self.pos_direct = PrimitiveDictionaryLayer(
-            num_feats = self.num_feats, id_dict = pos_dict,
-        )
-        self.neg_direct = PrimitiveDictionaryLayer(
-            num_feats = self.num_feats, id_dict = neg_dict,
-        )
-        self.lyte_direct = PrimitiveDictionaryLayer(
-            num_feats = self.num_feats, id_dict = lyte_dict,
-        )
-        self.mol_direct = PrimitiveDictionaryLayer(
-            num_feats = self.num_feats, id_dict = mol_dict,
-        )
 
         self.num_keys = self.cell_direct.num_keys
 
@@ -488,58 +476,6 @@ class DegradationModel(Model):
         self.n_additive_max = np.max(
             [len(v) for v in lyte_to_additive.values()]
         )
-
-        # electrolyte latent flags
-        latent_flags = np.ones(
-            (self.lyte_direct.num_keys, 1), dtype = np.float32,
-        )
-
-        for lyte_id in self.lyte_direct.id_dict.keys():
-            if lyte_id in lyte_latent_flags.keys():
-                latent_flags[
-                    self.lyte_direct.id_dict[lyte_id], 0,
-                ] = lyte_latent_flags[lyte_id]
-
-        self.lyte_latent_flags = tf.constant(latent_flags)
-
-        # electrolyte pointers and weights
-
-        pointers = np.zeros(
-            shape = (
-                self.lyte_direct.num_keys,
-                self.n_solvent_max + self.n_salt_max + self.n_additive_max,
-            ),
-            dtype = np.int32,
-        )
-        weights = np.zeros(
-            shape = (
-                self.lyte_direct.num_keys,
-                self.n_solvent_max + self.n_salt_max + self.n_additive_max,
-            ),
-            dtype = np.float32,
-        )
-
-        for lyte_id in self.lyte_direct.id_dict.keys():
-            for reference_index, lyte_to in [
-                (0, lyte_to_solvent),
-                (self.n_solvent_max, lyte_to_salt),
-                (self.n_solvent_max + self.n_salt_max, lyte_to_additive),
-            ]:
-                if lyte_id in lyte_to.keys():
-                    my_components = lyte_to[lyte_id]
-                    for i in range(len(my_components)):
-                        mol_id, weight = my_components[i]
-                        pointers[
-                            self.lyte_direct.id_dict[lyte_id],
-                            i + reference_index,
-                        ] = mol_dict[mol_id]
-                        weights[
-                            self.lyte_direct.id_dict[lyte_id],
-                            i + reference_index,
-                        ] = weight
-
-        self.lyte_pointers = tf.constant(pointers)
-        self.lyte_weights = tf.constant(weights)
 
         self.lyte_indirect = feedforward_nn_parameters(
             depth, width, last = self.num_feats,
@@ -695,18 +631,7 @@ class DegradationModel(Model):
             self.cell_pointers, indices, axis = 0,
         )
 
-        pos_indices = fetched_pointers_cell[:, 0]
-        neg_indices = fetched_pointers_cell[:, 1]
-        lyte_indices = fetched_pointers_cell[:, 2]
         dry_cell_indices = fetched_pointers_cell[:, 3]
-
-        feats_pos, loss_pos = self.pos_direct(
-            pos_indices, training = training, sample = sample,
-        )
-
-        feats_neg, loss_neg = self.neg_direct(
-            neg_indices, training = training, sample = sample,
-        )
 
         feats_dry_cell_unknown, loss_dry_cell_unknown = self.dry_cell_direct(
             dry_cell_indices, training = training, sample = sample,
@@ -727,201 +652,26 @@ class DegradationModel(Model):
         # TODO(sam): this is not quite right
         loss_dry_cell = loss_dry_cell_unknown
 
-        feats_lyte_direct, loss_lyte_direct = self.lyte_direct(
-            lyte_indices, training = training, sample = sample,
-        )
-
-        fetched_latent_lyte = tf.gather(
-            self.lyte_latent_flags, lyte_indices, axis = 0,
-        )
-        fetched_latent_lyte = (
-            self.min_latent + (1 - self.min_latent) * fetched_latent_lyte
-        )
-
-        fetched_pointers_lyte = tf.gather(
-            self.lyte_pointers, lyte_indices, axis = 0,
-        )
-        fetched_weights_lyte = tf.gather(
-            self.lyte_weights, lyte_indices, axis = 0,
-        )
-        fetched_pointers_lyte_reshaped = tf.reshape(
-            fetched_pointers_lyte, [-1],
-        )
-
-        feats_mol, loss_mol = self.mol_direct(
-            fetched_pointers_lyte_reshaped,
-            training = training, sample = sample
-        )
-        feats_mol_reshaped = tf.reshape(
-            feats_mol,
-            [
-                -1,
-                self.n_solvent_max + self.n_salt_max + self.n_additive_max,
-                self.mol_direct.num_features,
-            ],
-        )
-
-        if training:
-            loss_mol_reshaped = tf.reshape(
-                loss_mol,
-                [
-                    -1,
-                    self.n_solvent_max + self.n_salt_max + self.n_additive_max,
-                    1,
-                ],
-            )
-
-        fetched_mol_weights = tf.reshape(
-            fetched_weights_lyte,
-            [-1, self.n_solvent_max + self.n_salt_max + self.n_additive_max, 1],
-        ) * feats_mol_reshaped
-
-        total_solvent = 1. / (1e-10 + tf.reduce_sum(
-            fetched_weights_lyte[:, 0:self.n_solvent_max], axis = 1,
-        ))
-
-        feats_solvent = tf.reshape(total_solvent, [-1, 1]) * tf.reduce_sum(
-            fetched_mol_weights[:, 0:self.n_solvent_max, :], axis = 1,
-        )
-        feats_salt = tf.reduce_sum(
-            fetched_mol_weights[
-            :, self.n_solvent_max:self.n_solvent_max + self.n_salt_max, :,
-            ],
-            axis = 1,
-        )
-        feats_additive = tf.reduce_sum(
-            fetched_mol_weights[
-            :,
-            self.n_solvent_max + self.n_salt_max:
-            self.n_solvent_max + self.n_salt_max + self.n_additive_max,
-            :,
-            ],
-            axis = 1,
-        )
-
-        if training:
-            fetched_mol_loss_weights = tf.reshape(
-                fetched_weights_lyte,
-                [
-                    -1,
-                    self.n_solvent_max + self.n_salt_max + self.n_additive_max,
-                    1,
-                ],
-            ) * loss_mol_reshaped
-            loss_solvent = tf.reshape(total_solvent, [-1, 1]) * tf.reduce_sum(
-                fetched_mol_loss_weights[:, 0:self.n_solvent_max, :],
-                axis = 1,
-            )
-            loss_salt = tf.reduce_sum(
-                fetched_mol_loss_weights[
-                :, self.n_solvent_max:self.n_solvent_max + self.n_salt_max, :,
-                ],
-                axis = 1,
-            )
-            loss_additive = tf.reduce_sum(
-                fetched_mol_loss_weights[
-                :,
-                self.n_solvent_max + self.n_salt_max:
-                self.n_solvent_max + self.n_salt_max + self.n_additive_max,
-                :
-                ],
-                axis = 1,
-            )
-
         derivatives = {}
 
         if compute_derivatives:
 
             with tf.GradientTape(persistent = True) as tape_d1:
-                tape_d1.watch(feats_solvent)
-                tape_d1.watch(feats_salt)
-                tape_d1.watch(feats_additive)
-
-                lyte_dependencies = (
-                    feats_solvent,
-                    feats_salt,
-                    feats_additive,
-                )
-
-                feats_lyte_indirect = nn_call(
-                    self.lyte_indirect, lyte_dependencies, training = training,
-                )
-
-            derivatives["d_features_solvent"] = tape_d1.batch_jacobian(
-                source = feats_solvent, target = feats_lyte_indirect,
-            )
-            derivatives["d_features_salt"] = tape_d1.batch_jacobian(
-                source = feats_salt, target = feats_lyte_indirect,
-            )
-            derivatives["d_features_additive"] = tape_d1.batch_jacobian(
-                source = feats_additive, target = feats_lyte_indirect,
-            )
-
-            del tape_d1
-        else:
-            lyte_dependencies = (
-                feats_solvent,
-                feats_salt,
-                feats_additive,
-            )
-
-            feats_lyte_indirect = nn_call(
-                self.lyte_indirect, lyte_dependencies, training = training,
-            )
-
-        feats_lyte = (
-            fetched_latent_lyte * feats_lyte_direct
-            + (1. - fetched_latent_lyte) * feats_lyte_indirect
-        )
-
-        loss_lyte_eq = tf.reduce_mean(
-            (1. - fetched_latent_lyte) * incentive_inequality(
-                feats_lyte_direct, Inequality.Equals,
-                feats_lyte_indirect, Level.Proportional,
-            )
-        )
-
-        if compute_derivatives:
-
-            with tf.GradientTape(persistent = True) as tape_d1:
-                tape_d1.watch(feats_pos)
-                tape_d1.watch(feats_neg)
-                tape_d1.watch(feats_lyte)
-
                 tape_d1.watch(feats_dry_cell)
 
-                cell_dependencies = (
-                    feats_pos,
-                    feats_neg,
-                    feats_lyte,
-                    feats_dry_cell,
-                )
+                cell_dependencies = (feats_dry_cell,)
 
                 feats_cell_indirect = nn_call(
                     self.cell_indirect, cell_dependencies, training = training,
                 )
 
-            derivatives["d_features_pos"] = tape_d1.batch_jacobian(
-                source = feats_pos, target = feats_cell_indirect,
-            )
-            derivatives["d_features_neg"] = tape_d1.batch_jacobian(
-                source = feats_neg, target = feats_cell_indirect,
-            )
-            derivatives["d_features_electrolyte"] = tape_d1.batch_jacobian(
-                source = feats_lyte, target = feats_cell_indirect,
-            )
             derivatives["d_features_dry_cell"] = tape_d1.batch_jacobian(
                 source = feats_dry_cell, target = feats_cell_indirect,
             )
 
             del tape_d1
         else:
-            cell_dependencies = (
-                feats_pos,
-                feats_neg,
-                feats_lyte,
-                feats_dry_cell,
-            )
+            cell_dependencies = (feats_dry_cell,)
 
             feats_cell_indirect = nn_call(
                 self.cell_indirect, cell_dependencies, training = training,
@@ -946,16 +696,8 @@ class DegradationModel(Model):
                 loss_output_cell, axis = 1, keepdims = True,
             )
 
-            loss_output_lyte = incentive_magnitude(
-                feats_lyte, Target.Small, Level.Proportional,
-            )
-            loss_output_lyte = tf.reduce_mean(
-                loss_output_lyte, axis = 1, keepdims = True,
-            )
-
         else:
             loss_output_cell = None
-            loss_output_lyte = None
 
         if sample:
             eps = tf.random.normal(
@@ -964,84 +706,19 @@ class DegradationModel(Model):
             feats_cell += self.cell_direct.sample_epsilon * eps
 
         if training:
-            loss_input_lyte_indirect = (
-                (1. - fetched_latent_lyte) * loss_solvent
-                + (1. - fetched_latent_lyte) * loss_salt
-                + (1. - fetched_latent_lyte) * loss_additive
-            )
-            if compute_derivatives:
-                l_solvent = tf.reduce_mean(
-                    incentive_magnitude(
-                        derivatives["d_features_solvent"], Target.Small,
-                        Level.Proportional,
-                    ),
-                    axis = [1, 2],
-                )
-                l_salt = tf.reduce_mean(
-                    incentive_magnitude(
-                        derivatives["d_features_salt"], Target.Small,
-                        Level.Proportional,
-                    ),
-                    axis = [1, 2],
-                )
-                l_additive = tf.reduce_mean(
-                    incentive_magnitude(
-                        derivatives["d_features_additive"], Target.Small,
-                        Level.Proportional,
-                    ),
-                    axis = [1, 2],
-                )
-
-                mult = (1. - tf.reshape(fetched_latent_lyte, [-1]))
-                loss_der_lyte_indirect = tf.reshape(
-                    mult * l_solvent + mult * l_salt + mult * l_additive,
-                    [-1, 1],
-                )
-            else:
-                loss_der_lyte_indirect = 0.
-
-            loss_lyte = (
-                self.options["coeff_electrolyte_output"]
-                * loss_output_lyte
-                + self.options["coeff_electrolyte_input"]
-                * loss_input_lyte_indirect
-                + self.options["coeff_electrolyte_derivative"]
-                * loss_der_lyte_indirect
-                + self.options["coeff_electrolyte_eq"]
-                * loss_lyte_eq
-            )
 
             loss_input_cell_indirect = (
-                (1. - fetched_latent_cell) * loss_pos +
-                (1. - fetched_latent_cell) * loss_neg +
-                (1. - fetched_latent_cell) * loss_dry_cell +
-                (1. - fetched_latent_cell) *
-                self.options["coeff_electrolyte"] * loss_lyte
+                (1. - fetched_latent_cell) * loss_dry_cell
             )
 
             if compute_derivatives:
-                l_pos = incentive_magnitude(
-                    derivatives["d_features_pos"], Target.Small,
-                    Level.Proportional,
-                )
-                l_neg = incentive_magnitude(
-                    derivatives["d_features_neg"], Target.Small,
-                    Level.Proportional,
-                )
-                l_lyte = incentive_magnitude(
-                    derivatives["d_features_electrolyte"], Target.Small,
-                    Level.Proportional,
-                )
                 l_dry_cell = incentive_magnitude(
                     derivatives["d_features_dry_cell"], Target.Small,
                     Level.Proportional,
                 )
                 mult = (1. - tf.reshape(fetched_latent_cell, [-1, 1]))
                 loss_derivative_cell_indirect = (
-                    mult * tf.reduce_mean(l_pos, axis = 2)
-                    + mult * tf.reduce_mean(l_neg, axis = 2)
-                    + mult * tf.reduce_mean(l_lyte, axis = 2)
-                    + mult * tf.reduce_mean(l_dry_cell, axis = 2)
+                    mult * tf.reduce_mean(l_dry_cell, axis = 2)
                 )
             else:
                 loss_derivative_cell_indirect = 0.

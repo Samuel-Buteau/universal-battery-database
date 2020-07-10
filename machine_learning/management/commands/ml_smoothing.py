@@ -782,7 +782,7 @@ class Command(BaseCommand):
             Key.GLB_NORM_CLIP: 10.,
 
             Key.LRN_RATE: 5e-4,
-            Key.MIN_LAT: .05,
+            Key.MIN_LAT: 1,
 
             Key.COEFF_FEAT_CELL_DER: .001,
             Key.COEFF_FEAT_CELL_DER2: .01,

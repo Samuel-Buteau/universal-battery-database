@@ -7,11 +7,9 @@ from tensorflow.keras.layers import Dense
 from Key import Key
 
 from machine_learning.PrimitiveDictionaryLayer import PrimitiveDictionaryLayer
-from machine_learning.StressToEncodedLayer import StressToEncodedLayer
 from machine_learning.loss_calculator_blackbox import calculate_q_loss
 from machine_learning.incentives import (
-    Inequality, Level, Target,
-    incentive_inequality, incentive_magnitude, incentive_combine,
+    Level, Target, incentive_magnitude, incentive_combine,
 )
 
 main_activation = tf.keras.activations.relu
@@ -259,9 +257,7 @@ class DegradationModel(Model):
     """
 
     def __init__(
-        self, depth, width, n_sample, options,
-        cell_dict, dry_cell_dict, cell_latent_flags,
-        cell_to_dry_cell, dry_cell_to_meta,
+        self, depth, width, n_sample, options, cell_dict, cell_latent_flags,
         n_channels = 16, min_latent = 0.1,
     ):
         """
@@ -387,14 +383,9 @@ class DegradationModel(Model):
 
         if training:
             (
-                sampled_vs,
-                sampled_qs,
-                sampled_cycles,
-                sampled_constant_current,
-                sampled_feats_cell,
-                sampled_latent,
-                sampled_svit_grid,
-                sampled_count_matrix,
+                sampled_vs, sampled_qs, sampled_cycles,
+                sampled_constant_current, sampled_feats_cell, sampled_latent,
+                sampled_svit_grid, sampled_count_matrix,
             ) = self.sample(
                 svit_grid, batch_count, count_matrix, n_sample = self.n_sample,
             )
@@ -410,9 +401,7 @@ class DegradationModel(Model):
                 der_params = {Key.V: 3, Key.CELL_FEAT: 2, Key.I: 3, Key.CYC: 3}
             )
 
-            q_loss = calculate_q_loss(
-                q, q_der, options = self.options
-            )
+            q_loss = calculate_q_loss(q, q_der, options = self.options)
 
             _, cell_loss, _ = self.cell_from_indices(
                 indices = tf.range(self.cell_direct.num_keys, dtype = tf.int32),
@@ -443,9 +432,7 @@ class DegradationModel(Model):
             self.min_latent + (1 - self.min_latent) * fetched_latent_cell
         )
 
-        feats_cell = (
-            fetched_latent_cell * feats_cell_direct
-        )
+        feats_cell = fetched_latent_cell * feats_cell_direct
 
         if training:
             loss_output_cell = incentive_magnitude(
@@ -466,17 +453,12 @@ class DegradationModel(Model):
 
         if training:
             loss = incentive_combine([
-                (
-                    self.options["coeff_cell_output"],
-                    loss_output_cell,
-                ),
+                (self.options["coeff_cell_output"], loss_output_cell),
             ])
         else:
             loss = 0.
 
-        return (
-            feats_cell, loss, fetched_latent_cell,
-        )
+        return feats_cell, loss, fetched_latent_cell
 
     def sample(self, svit_grid, batch_count, count_matrix, n_sample = 4 * 32):
         """
@@ -553,13 +535,8 @@ class DegradationModel(Model):
         )
 
         return (
-            sampled_vs,
-            sampled_qs,
-            sampled_cycles,
-            sampled_constant_current,
-            sampled_feats_cell,
-            sampled_latent,
-            sampled_svit_grid,
+            sampled_vs, sampled_qs, sampled_cycles, sampled_constant_current,
+            sampled_feats_cell, sampled_latent, sampled_svit_grid,
             sampled_count_matrix,
         )
 
@@ -650,12 +627,7 @@ class DegradationModel(Model):
         Returns:
             Computed state of charge.
         """
-        dependencies = (
-            cycle,
-            v,
-            feats_cell,
-            current,
-        )
+        dependencies = (cycle, v, feats_cell, current)
         return tf.nn.elu(nn_call(self.nn_q, dependencies, training = training))
 
     def q_for_derivative(self, params: dict, training = True):
@@ -700,73 +672,8 @@ class DegradationModel(Model):
 
     @tf.function
     def test_all_voltages(
-        self,
-        cycle, constant_current, end_current_prev, end_voltage_prev,
-        end_voltage,
-        cell_id_index,
-        voltages, currents, svit_grid, count_matrix,
-    ):
-
-        expanded_cycle = tf.expand_dims(cycle, axis = 1)
-        expanded_constant_current = tf.tile(
-            tf.reshape(constant_current, [1, 1]),
-            [cycle.shape[0], 1],
-        )
-        expanded_end_current_prev = tf.tile(
-            tf.reshape(end_current_prev, [1, 1]),
-            [cycle.shape[0], 1],
-        )
-        expanded_end_voltage_prev = tf.tile(
-            tf.reshape(end_voltage_prev, [1, 1]),
-            [cycle.shape[0], 1],
-        )
-        expanded_end_voltage = tf.tile(
-            tf.reshape(end_voltage, [1, 1]),
-            [cycle.shape[0], 1],
-        )
-
-        indices = tf.tile(
-            tf.expand_dims(cell_id_index, axis = 0),
-            [cycle.shape[0]]
-        )
-
-        expanded_svit_grid = tf.tile(
-            tf.expand_dims(svit_grid, axis = 0),
-            [cycle.shape[0], 1, 1, 1, 1, 1],
-        )
-        expanded_count_matrix = tf.tile(
-            tf.expand_dims(count_matrix, axis = 0),
-            [cycle.shape[0], 1, 1, 1, 1, 1],
-        )
-
-        return self.call(
-            {
-                Key.CYC: expanded_cycle,
-                Key.I_CC: expanded_constant_current,
-                Key.I_PREV_END: expanded_end_current_prev,
-                Key.V_PREV_END: expanded_end_voltage_prev,
-                Key.V_END: expanded_end_voltage,
-                Key.INDICES: indices,
-                Key.V_TENSOR: tf.tile(
-                    tf.reshape(voltages, [1, -1]),
-                    [cycle.shape[0], 1],
-                ),
-                Key.I_TENSOR: tf.tile(
-                    tf.reshape(currents, shape = [1, -1]),
-                    [cycle.shape[0], 1]
-                ),
-                Key.SVIT_GRID: expanded_svit_grid,
-                Key.COUNT_MATRIX: expanded_count_matrix,
-            },
-            training = False,
-        )
-
-    @tf.function
-    def test_single_voltage(
-        self,
-        cycle, v, constant_current, end_current_prev, end_voltage_prev,
-        end_voltage,
-        currents, cell_id_index, svit_grid, count_matrix
+        self, cycle, constant_current, end_current_prev, end_voltage_prev,
+        end_voltage, cell_id_index, voltages, currents, svit_grid, count_matrix,
     ):
 
         expanded_cycle = tf.expand_dims(cycle, axis = 1)
@@ -809,11 +716,69 @@ class DegradationModel(Model):
                 Key.V_PREV_END: expanded_end_voltage_prev,
                 Key.V_END: expanded_end_voltage,
                 Key.INDICES: indices,
-                Key.V_TENSOR: tf.tile(tf.reshape(v, [1, 1]),
-                                      [cycle.shape[0], 1]),
+                Key.V_TENSOR: tf.tile(
+                    tf.reshape(voltages, [1, -1]), [cycle.shape[0], 1],
+                ),
                 Key.I_TENSOR: tf.tile(
-                    tf.reshape(currents, shape = [1, -1]),
-                    [cycle.shape[0], 1],
+                    tf.reshape(currents, shape = [1, -1]), [cycle.shape[0], 1],
+                ),
+                Key.SVIT_GRID: expanded_svit_grid,
+                Key.COUNT_MATRIX: expanded_count_matrix,
+            },
+            training = False,
+        )
+
+    @tf.function
+    def test_single_voltage(
+        self, cycle, v, constant_current, end_current_prev, end_voltage_prev,
+        end_voltage, currents, cell_id_index, svit_grid, count_matrix
+    ):
+
+        expanded_cycle = tf.expand_dims(cycle, axis = 1)
+        expanded_constant_current = tf.tile(
+            tf.reshape(constant_current, [1, 1]),
+            [cycle.shape[0], 1],
+        )
+        expanded_end_current_prev = tf.tile(
+            tf.reshape(end_current_prev, [1, 1]),
+            [cycle.shape[0], 1],
+        )
+        expanded_end_voltage_prev = tf.tile(
+            tf.reshape(end_voltage_prev, [1, 1]),
+            [cycle.shape[0], 1],
+        )
+        expanded_end_voltage = tf.tile(
+            tf.reshape(end_voltage, [1, 1]),
+            [cycle.shape[0], 1],
+        )
+
+        indices = tf.tile(
+            tf.expand_dims(cell_id_index, axis = 0),
+            [cycle.shape[0]],
+        )
+
+        expanded_svit_grid = tf.tile(
+            tf.expand_dims(svit_grid, axis = 0),
+            [cycle.shape[0], 1, 1, 1, 1, 1],
+        )
+        expanded_count_matrix = tf.tile(
+            tf.expand_dims(count_matrix, axis = 0),
+            [cycle.shape[0], 1, 1, 1, 1, 1],
+        )
+
+        return self.call(
+            {
+                Key.CYC: expanded_cycle,
+                Key.I_CC: expanded_constant_current,
+                Key.I_PREV_END: expanded_end_current_prev,
+                Key.V_PREV_END: expanded_end_voltage_prev,
+                Key.V_END: expanded_end_voltage,
+                Key.INDICES: indices,
+                Key.V_TENSOR: tf.tile(
+                    tf.reshape(v, [1, 1]), [cycle.shape[0], 1]
+                ),
+                Key.I_TENSOR: tf.tile(
+                    tf.reshape(currents, shape = [1, -1]), [cycle.shape[0], 1],
                 ),
                 Key.SVIT_GRID: expanded_svit_grid,
                 Key.COUNT_MATRIX: expanded_count_matrix,

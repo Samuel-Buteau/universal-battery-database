@@ -169,7 +169,6 @@ def create_derivatives(
             self.q_for_derivative,
             params = {
                 Key.CYC: sampled_cycles,
-                Key.STRESS: sampled_encoded_stress,
                 Key.V: sampled_vs,
                 Key.CELL_FEAT: sampled_features_cell,
                 Key.I: sampled_constant_current
@@ -357,10 +356,6 @@ class DegradationModel(Model):
             depth, width, last = self.num_feats,
         )
 
-        self.stress_to_encoded_layer = StressToEncodedLayer(
-            n_channels = n_channels
-        )
-
         self.width = width
         self.n_channels = n_channels
 
@@ -450,7 +445,6 @@ class DegradationModel(Model):
                 sampled_latent,
                 sampled_svit_grid,
                 sampled_count_matrix,
-                sampled_encoded_stress,
             ) = self.sample(
                 svit_grid, batch_count, count_matrix, n_sample = self.n_sample,
             )
@@ -459,7 +453,6 @@ class DegradationModel(Model):
                 self.q_for_derivative,
                 params = {
                     Key.CYC: sampled_cycles,
-                    Key.STRESS: sampled_encoded_stress,
                     Key.V: sampled_vs,
                     Key.CELL_FEAT: sampled_feats_cell,
                     Key.I: sampled_constant_current,
@@ -639,7 +632,7 @@ class DegradationModel(Model):
         Returns:
             Sample values - voltages, capacities, cycles,
                 constant current, cell features, latent, svit_grid,
-                count_matrix, encoded_stress.
+                count_matrix
         """
 
         # NOTE(sam): this is an example of a forall.
@@ -700,11 +693,6 @@ class DegradationModel(Model):
             axis = 0,
         )
 
-        sampled_encoded_stress = self.stress_to_encoded_direct(
-            svit_grid = sampled_svit_grid,
-            count_matrix = sampled_count_matrix,
-        )
-
         return (
             sampled_vs,
             sampled_qs,
@@ -714,7 +702,6 @@ class DegradationModel(Model):
             sampled_latent,
             sampled_svit_grid,
             sampled_count_matrix,
-            sampled_encoded_stress,
         )
 
     def cc_capacity(self, params: dict, training = True):
@@ -730,13 +717,7 @@ class DegradationModel(Model):
             Computed constant-current capacity.
         """
 
-        encoded_stress = self.stress_to_encoded_direct(
-            svit_grid = params[Key.SVIT_GRID],
-            count_matrix = params[Key.COUNT_MATRIX],
-        )
-
         q_0 = self.q_direct(
-            encoded_stress = encoded_stress,
             cycle = params[Key.CYC],
             v = params[Key.V_PREV_END],
             feats_cell = params[Key.CELL_FEAT],
@@ -745,9 +726,6 @@ class DegradationModel(Model):
         )
 
         q_1 = self.q_direct(
-            encoded_stress = add_v_dep(
-                encoded_stress, params, encoded_stress.shape[1],
-            ),
             cycle = add_v_dep(params[Key.CYC], params),
             v = params[Key.V],
             feats_cell = add_v_dep(
@@ -772,13 +750,7 @@ class DegradationModel(Model):
             Computed constant-voltage capacity.
         """
 
-        encoded_stress = self.stress_to_encoded_direct(
-            svit_grid = params[Key.SVIT_GRID],
-            count_matrix = params[Key.COUNT_MATRIX],
-        )
-
         q_0 = self.q_direct(
-            encoded_stress = encoded_stress,
             cycle = params[Key.CYC],
             v = params[Key.V_PREV_END],
             feats_cell = params[Key.CELL_FEAT],
@@ -790,9 +762,6 @@ class DegradationModel(Model):
         # then we can restructure the code below.
 
         q_1 = self.q_direct(
-            encoded_stress = add_current_dep(
-                encoded_stress, params, encoded_stress.shape[1],
-            ),
             cycle = add_current_dep(params[Key.CYC], params),
             v = add_current_dep(params[Key.V_END], params),
             feats_cell = add_current_dep(
@@ -804,35 +773,14 @@ class DegradationModel(Model):
 
         return q_1 - add_current_dep(q_0, params)
 
-    def stress_to_encoded_direct(
-        self, svit_grid, count_matrix, training = True,
-    ):
-        """
-        Compute stress directly
-            (receiving arguments directly without using `params`)
-
-        Args: TODO(harvey)
-            svit_grid: Multi-grid of (S, V, I, T).
-            count_matrix:
-            training: Flag for training or evaluation.
-                True for training; False for evaluation.
-
-        Returns:
-            (svit_grid, count_matrix) and the training flag.
-        """
-        return self.stress_to_encoded_layer(
-            (svit_grid, count_matrix), training = training,
-        )
-
     def q_direct(
-        self, encoded_stress, cycle, v, feats_cell, current, training = True,
+        self, cycle, v, feats_cell, current, training = True,
     ):
         """
         Compute state of charge directly
             (receiving arguments directly without using `params`)
 
         Args: TODO(harvey)
-            encoded_stress
             cycle: Cycle, often Key.CYC.
             v: Voltage
             feats_cell: Cell features.
@@ -844,7 +792,6 @@ class DegradationModel(Model):
             Computed state of charge.
         """
         dependencies = (
-            encoded_stress,
             cycle,
             v,
             feats_cell,
@@ -865,7 +812,6 @@ class DegradationModel(Model):
                 self.q_for_derivative,
                 params = {
                     Key.CYC: sampled_cycles,
-                    Key.STRESS: sampled_encoded_stress,
                     Key.V: sampled_vs,
                     Key.CELL_FEAT: sampled_features_cell,
                     Key.I: sampled_constant_current
@@ -886,7 +832,6 @@ class DegradationModel(Model):
         """
 
         return self.q_direct(
-            encoded_stress = params[Key.STRESS],
             cycle = params[Key.CYC],
             feats_cell = params[Key.CELL_FEAT],
             v = params[Key.V],

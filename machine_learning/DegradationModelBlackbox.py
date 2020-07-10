@@ -260,11 +260,9 @@ class DegradationModel(Model):
     """
 
     def __init__(
-        self, depth, width,
-        cell_dict, pos_dict, neg_dict, lyte_dict, dry_cell_dict,
-        cell_latent_flags, cell_to_pos, cell_to_neg,
-        cell_to_lyte, cell_to_dry_cell, dry_cell_to_meta,
-        n_sample, options,
+        self, depth, width, n_sample, options,
+        cell_dict, dry_cell_dict, cell_latent_flags,
+        cell_to_dry_cell, dry_cell_to_meta,
         n_channels = 16, min_latent = 0.1,
     ):
         """

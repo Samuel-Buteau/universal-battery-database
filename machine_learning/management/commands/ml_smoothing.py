@@ -427,22 +427,15 @@ def initial_processing(
         degradation_model = DegradationModel(
             width = options[Key.WIDTH],
             depth = options[Key.DEPTH],
-            cell_dict = id_dict_from_id_list(cell_id_array),
-            pos_dict = id_dict_from_id_list(pos_ids),
-            neg_dict = id_dict_from_id_list(neg_ids),
-            lyte_dict = id_dict_from_id_list(lyte_id_list),
-            dry_cell_dict = id_dict_from_id_list(dry_cell_ids),
-
-            cell_to_pos = cell_id_to_pos_id,
-            cell_to_neg = cell_id_to_neg_id,
-            cell_to_lyte = cell_id_to_lyte_id,
-            cell_to_dry_cell = cell_id_to_dry_cell_id,
-            dry_cell_to_meta = dry_cell_id_to_meta,
-
-            cell_latent_flags = cell_id_to_latent,
-
             n_sample = options[Key.N_SAMPLE],
             options = options,
+
+            cell_dict = id_dict_from_id_list(cell_id_array),
+            dry_cell_dict = id_dict_from_id_list(dry_cell_ids),
+            cell_to_dry_cell = cell_id_to_dry_cell_id,
+            dry_cell_to_meta = dry_cell_id_to_meta,
+            cell_latent_flags = cell_id_to_latent,
+
             min_latent = options[Key.MIN_LAT],
         )
 

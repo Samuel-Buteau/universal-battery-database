@@ -345,7 +345,7 @@ class DegradationModel(Model):
         self.cell_latent_flags = tf.constant(latent_flags)
 
         cell_pointers = np.zeros(
-            shape = (self.cell_direct.num_keys, 4), dtype = np.int32
+            shape = (self.cell_direct.num_keys, 4), dtype = np.int32,
         )
 
         for cell_id in self.cell_direct.id_dict.keys():

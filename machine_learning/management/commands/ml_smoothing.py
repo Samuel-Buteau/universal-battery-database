@@ -429,13 +429,8 @@ def initial_processing(
             depth = options[Key.DEPTH],
             n_sample = options[Key.N_SAMPLE],
             options = options,
-
             cell_dict = id_dict_from_id_list(cell_id_array),
-            dry_cell_dict = id_dict_from_id_list(dry_cell_ids),
-            cell_to_dry_cell = cell_id_to_dry_cell_id,
-            dry_cell_to_meta = dry_cell_id_to_meta,
             cell_latent_flags = cell_id_to_latent,
-
             min_latent = options[Key.MIN_LAT],
         )
 

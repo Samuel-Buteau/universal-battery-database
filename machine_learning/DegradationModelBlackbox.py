@@ -101,97 +101,6 @@ def nn_call(nn_func: dict, dependencies: tuple, training = True):
     return nn_func["final"](centers, training = training)
 
 
-def print_cell_info(
-    cell_latent_flags, cell_to_pos, cell_to_neg, cell_to_lyte,
-    cell_to_dry_cell, dry_cell_to_meta,
-    lyte_to_solvent, lyte_to_salt, lyte_to_additive,
-    lyte_latent_flags, names,
-):
-    """ Print cell information upon the initialization of the Model """
-
-    # TODO: names being a tuple is really dumb. use some less error prone way.
-    pos_to_pos_name, neg_to_neg_name = names[0], names[1]
-    lyte_to_lyte_name = names[2]
-    mol_to_mol_name = names[3]
-    dry_cell_to_dry_cell_name = names[4]
-
-    print("\ncell_id: Known Components (Y/N):\n")
-    for k in cell_latent_flags.keys():
-        known = "Y"
-        if cell_latent_flags[k] > .5:
-            known = "N"
-        print("{}\t\t{}".format(k, known))
-        if known == "Y":
-            pos_id = cell_to_pos[k]
-            if pos_id in pos_to_pos_name.keys():
-                print("\tcathode:\t\t\t{}".format(pos_to_pos_name[pos_id]))
-            else:
-                print("\tcathode id:\t\t\t{}".format(pos_id))
-            neg_id = cell_to_neg[k]
-            if neg_id in neg_to_neg_name.keys():
-                print("\tanode:\t\t\t\t{}".format(neg_to_neg_name[neg_id]))
-            else:
-                print("\tanode id:\t\t\t{}".format(neg_id))
-
-            dry_cell_id = cell_to_dry_cell[k]
-            if dry_cell_id in dry_cell_to_dry_cell_name.keys():
-                print("\tdry cell:\t\t\t{}".format(
-                    dry_cell_to_dry_cell_name[dry_cell_id]))
-            else:
-                print("\tdry cell id:\t\t\t{}".format(dry_cell_id))
-
-            if dry_cell_id in dry_cell_to_meta.keys():
-                my_meta = dry_cell_to_meta[dry_cell_id]
-            else:
-                my_meta = {}
-
-            todo = [
-                ("cathode_loading", "cathode_loading",),
-                ("cathode_density", "cathode_density",),
-                ("cathode_thickness", "cathode_thickness",),
-                ("anode_loading", "anode_loading",),
-                ("anode_density", "anode_density",),
-                ("anode_thickness", "anode_thickness",),
-
-            ]
-
-            for label, key in todo:
-                val = "?"
-                if key in my_meta.keys():
-                    val = "{:.5f}".format(my_meta[key])
-
-                print("\t\t{}:\t\t\t{}".format(label, val))
-
-            lyte_id = cell_to_lyte[k]
-            if lyte_id in lyte_to_lyte_name.keys():
-                print("\telectrolyte:\t\t\t{}".format(
-                    lyte_to_lyte_name[lyte_id]))
-            else:
-                print("\telectrolyte id:\t\t\t{}".format(lyte_id))
-
-            lyte_known = "Y"
-            if lyte_latent_flags[lyte_id] > .5:
-                lyte_known = "N"
-            print("\tKnown Electrolyte Components:\t{}".format(
-                lyte_known))
-            if lyte_known == "Y":
-                for st, lyte_to in [
-                    ("solvents", lyte_to_solvent),
-                    ("salts", lyte_to_salt),
-                    ("additive", lyte_to_additive),
-                ]:
-                    print("\t{}:".format(st))
-                    components = lyte_to[lyte_id]
-                    for s, w in components:
-                        if s in mol_to_mol_name.keys():
-                            print("\t\t{} {}".format(
-                                w, mol_to_mol_name[s])
-                            )
-                        else:
-                            print("\t\t{} id {}".format(w, s))
-        print()
-
-
 def add_v_dep(
     voltage_independent: tf.Tensor, params: dict, dim = 1,
 ) -> tf.Tensor:
@@ -365,13 +274,6 @@ class DegradationModel(Model):
             options: Used to access the incentive coefficients.
         """
         super(DegradationModel, self).__init__()
-
-        print_cell_info(
-            cell_latent_flags, cell_to_pos, cell_to_neg, cell_to_lyte,
-            cell_to_dry_cell, dry_cell_to_meta,
-            lyte_to_solvent, lyte_to_salt, lyte_to_additive, lyte_latent_flags,
-            names,
-        )
 
         # minimum latent
         self.min_latent = min_latent

@@ -349,18 +349,6 @@ class DegradationModel(Model):
         )
 
         for cell_id in self.cell_direct.id_dict.keys():
-            if cell_id in cell_to_pos.keys():
-                cell_pointers[
-                    self.cell_direct.id_dict[cell_id], 0,
-                ] = pos_dict[cell_to_pos[cell_id]]
-            if cell_id in cell_to_neg.keys():
-                cell_pointers[
-                    self.cell_direct.id_dict[cell_id], 1,
-                ] = neg_dict[cell_to_neg[cell_id]]
-            if cell_id in cell_to_lyte.keys():
-                cell_pointers[
-                    self.cell_direct.id_dict[cell_id], 2,
-                ] = lyte_dict[cell_to_lyte[cell_id]]
             if cell_id in cell_to_dry_cell.keys():
                 cell_pointers[
                     self.cell_direct.id_dict[cell_id], 3,

@@ -424,19 +424,6 @@ def initial_processing(
 
         train_ds = strategy.experimental_distribute_dataset(train_ds_)
 
-        dry_cell_to_dry_cell_name = {}
-        pos_to_pos_name = {}
-        neg_to_neg_name = {}
-        lyte_to_lyte_name = {}
-        mol_to_mol_name = {}
-
-        if dataset_names is not None:
-            pos_to_pos_name = dataset_names[Key.NAME_POS]
-            neg_to_neg_name = dataset_names[Key.NAME_NEG]
-            lyte_to_lyte_name = dataset_names[Key.NAME_LYTE]
-            mol_to_mol_name = dataset_names[Key.NAME_MOL]
-            dry_cell_to_dry_cell_name = dataset_names[Key.NAME_DRY]
-
         degradation_model = DegradationModel(
             width = options[Key.WIDTH],
             depth = options[Key.DEPTH],
@@ -444,7 +431,6 @@ def initial_processing(
             pos_dict = id_dict_from_id_list(pos_ids),
             neg_dict = id_dict_from_id_list(neg_ids),
             lyte_dict = id_dict_from_id_list(lyte_id_list),
-            mol_dict = id_dict_from_id_list(mol_ids),
             dry_cell_dict = id_dict_from_id_list(dry_cell_ids),
 
             cell_to_pos = cell_id_to_pos_id,
@@ -455,18 +441,6 @@ def initial_processing(
 
             cell_latent_flags = cell_id_to_latent,
 
-            lyte_to_solvent = lyte_to_sol_weight,
-            lyte_to_salt = lyte_to_salt_weight,
-            lyte_to_additive = lyte_to_addi_weight,
-            lyte_latent_flags = lyte_to_latent,
-
-            names = (
-                pos_to_pos_name,
-                neg_to_neg_name,
-                lyte_to_lyte_name,
-                mol_to_mol_name,
-                dry_cell_to_dry_cell_name,
-            ),
             n_sample = options[Key.N_SAMPLE],
             options = options,
             min_latent = options[Key.MIN_LAT],

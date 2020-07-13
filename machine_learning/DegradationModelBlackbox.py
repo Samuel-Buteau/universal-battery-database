@@ -205,6 +205,7 @@ class DegradationModel(Model):
                 sampled_vs, sampled_qs, sampled_cycles,
                 sampled_constant_current, sampled_feats_cell,
                 sampled_svit_grid, sampled_count_matrix,
+                sampled_v_prevs, sampled_constant_current_prev,
             ) = self.sample(
                 svit_grid, batch_count, count_matrix, n_sample = self.n_sample,
             )
@@ -214,8 +215,10 @@ class DegradationModel(Model):
                 params = {
                     Key.CYC: sampled_cycles,
                     Key.V: sampled_vs,
-                    Key.CELL_FEAT: sampled_feats_cell,
+                    Key.V_PREV_END: sampled_v_prevs,
                     Key.I: sampled_constant_current,
+                    Key.I_PREV_END: sampled_constant_current_prev,
+                    Key.CELL_FEAT: sampled_feats_cell,
                 },
                 der_params = {Key.V: 3, Key.CELL_FEAT: 2, Key.I: 3, Key.CYC: 3}
             )
@@ -265,6 +268,9 @@ class DegradationModel(Model):
         sampled_vs = tf.random.uniform(
             minval = 2.5, maxval = 5., shape = [n_sample, 1],
         )
+        sampled_v_prevs = tf.random.uniform(
+            minval = 2.5, maxval = 5., shape = [n_sample, 1],
+        )
         sampled_qs = tf.random.uniform(
             minval = -.25, maxval = 1.25, shape = [n_sample, 1],
         )
@@ -272,7 +278,13 @@ class DegradationModel(Model):
             minval = -.1, maxval = 5., shape = [n_sample, 1],
         )
         sampled_constant_current = tf.random.uniform(
-            minval = tf.math.log(0.001), maxval = tf.math.log(5.),
+            minval = tf.math.log(0.001),
+            maxval = tf.math.log(5.),
+            shape = [n_sample, 1],
+        )
+        sampled_constant_current_prev = tf.random.uniform(
+            minval = tf.math.log(0.001),
+            maxval = tf.math.log(5.),
             shape = [n_sample, 1],
         )
         sampled_constant_current = tf.exp(sampled_constant_current)
@@ -321,6 +333,7 @@ class DegradationModel(Model):
         return (
             sampled_vs, sampled_qs, sampled_cycles, sampled_constant_current,
             sampled_feats_cell, sampled_svit_grid, sampled_count_matrix,
+            sampled_v_prevs, sampled_constant_current_prev,
         )
 
     def cc_capacity(self, params: dict, training = True):
@@ -335,25 +348,17 @@ class DegradationModel(Model):
             Computed constant-current capacity.
         """
 
-        q_0 = self.q_direct(
-            cycle = params[Key.CYC],
-            v = params[Key.V_PREV_END],
-            feats_cell = params[Key.CELL_FEAT],
-            current = params[Key.I_PREV_END],
-            training = training,
-        )
-
-        q_1 = self.q_direct(
+        return self.q_direct(
             cycle = add_v_dep(params[Key.CYC], params),
             v = params[Key.V],
+            v_prev = add_v_dep(params[Key.V_PREV_END], params),
+            current = add_v_dep(params[Key.I_CC], params),
+            current_prev = add_v_dep(params[Key.I_PREV_END], params),
             feats_cell = add_v_dep(
                 params[Key.CELL_FEAT], params, params[Key.CELL_FEAT].shape[1],
             ),
-            current = add_v_dep(params[Key.I_CC], params),
             training = training,
         )
-
-        return q_1 - add_v_dep(q_0, params)
 
     def cv_capacity(self, params: dict, training = True):
         """ Compute constant-voltage capacity during training or evaluation.
@@ -367,31 +372,21 @@ class DegradationModel(Model):
             Computed constant-voltage capacity.
         """
 
-        q_0 = self.q_direct(
-            cycle = params[Key.CYC],
-            v = params[Key.V_PREV_END],
-            feats_cell = params[Key.CELL_FEAT],
-            current = params[Key.I_PREV_END],
-            training = training,
-        )
-
-        # NOTE (sam): if there truly is no dependency on current for scale,
-        # then we can restructure the code below.
-
-        q_1 = self.q_direct(
+        return self.q_direct(
             cycle = add_current_dep(params[Key.CYC], params),
             v = add_current_dep(params[Key.V_END], params),
+            v_prev = add_current_dep(params[Key.V_PREV_END], params),
+            current = params[Key.I_CV],
+            current_prev = add_current_dep(params[Key.I_PREV_END], params),
             feats_cell = add_current_dep(
                 params[Key.CELL_FEAT], params, params[Key.CELL_FEAT].shape[1],
             ),
-            current = params[Key.I_CV],
             training = training,
         )
 
-        return q_1 - add_current_dep(q_0, params)
-
     def q_direct(
-        self, cycle, v, feats_cell, current, training = True,
+        self, cycle, v, v_prev, current, current_prev, feats_cell,
+        training = True,
     ):
         """
         Compute state of charge directly (receiving arguments directly without
@@ -412,7 +407,7 @@ class DegradationModel(Model):
         if self.fourier_features:
             b, d, f = len(cycle), self.d, self.f
             input_vector = tf.concat(
-                [cycle, v, current],
+                [cycle, v, v_prev, current, current_prev],
                 axis = 1,
             )
             dot_product = tf.einsum(
@@ -427,7 +422,14 @@ class DegradationModel(Model):
                 feats_cell,
             )
         else:
-            dependencies = (cycle, v, feats_cell, current)
+            dependencies = (
+                cycle,
+                v,
+                v_prev,
+                current,
+                current_prev,
+                feats_cell,
+            )
 
         return tf.nn.elu(nn_call(self.nn_q, dependencies, training = training))
 
@@ -465,9 +467,11 @@ class DegradationModel(Model):
 
         return self.q_direct(
             cycle = params[Key.CYC],
-            feats_cell = params[Key.CELL_FEAT],
             v = params[Key.V],
+            v_prev = params[Key.V_PREV_END],
             current = params[Key.I],
+            current_prev = params[Key.I_PREV_END],
+            feats_cell = params[Key.CELL_FEAT],
             training = training,
         )
 

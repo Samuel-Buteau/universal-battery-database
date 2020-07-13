@@ -77,6 +77,13 @@ class DegradationModel(Model):
         self.width = width
         self.n_channels = n_channels
 
+        self.sigma = 0.1
+        self.d, self.f = 3, 32
+        self.random_gaussian_matrix = 2 * np.pi * tf.constant(
+            np.random.normal(0, self.sigma, (self.d, self.f)),
+            dtype = tf.float32,
+        )
+
     def call(self, params: dict, training = False) -> dict:
         """
         Call function for the Model during training or evaluation.
@@ -400,26 +407,20 @@ class DegradationModel(Model):
             Computed state of charge.
         """
 
-        sigma = 0.1
-        b, d, f = len(cycle), 3, 32
-
+        b, d, f = len(cycle), self.d, self.f
         input_vector = tf.concat(
             [cycle, v, current],
             axis = 1,
         )
-        random_gaussian_matrix = tf.constant(
-            np.random.normal(0, sigma, (d, f)),
-            dtype = tf.float32,
-        )
         dot_product = tf.einsum(
             'bd,df->bf',
             input_vector,
-            random_gaussian_matrix,
+            self.random_gaussian_matrix,
         )
 
         dependencies = (
-            tf.math.sin(2 * np.pi * dot_product),
-            tf.math.cos(2 * np.pi * dot_product),
+            tf.math.sin(dot_product),
+            tf.math.cos(dot_product),
             feats_cell,
         )
         return tf.nn.elu(nn_call(self.nn_q, dependencies, training = training))

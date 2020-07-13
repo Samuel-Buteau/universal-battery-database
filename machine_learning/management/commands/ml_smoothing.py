@@ -808,7 +808,7 @@ class Command(BaseCommand):
             Key.COEFF_Q_DER_N: 10.,
         }
 
-        vis = 10000
+        vis = 1000
         int_args = {
             Key.N_SAMPLE: 8 * 16,
 

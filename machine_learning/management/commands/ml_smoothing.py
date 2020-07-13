@@ -795,18 +795,18 @@ class Command(BaseCommand):
             Key.COEFF_Q_CV: 1.,
             Key.COEFF_Q_CC: 1.,
 
-            Key.COEFF_Q: 1.,
-            Key.COEFF_Q_GEQ: 1.,
-            Key.COEFF_Q_LEQ: 1.,
-            Key.COEFF_Q_V_MONO: .1,
-            Key.COEFF_Q_DER3_V: 1.,
-            Key.COEFF_Q_DER3_I: 1.,
-            Key.COEFF_Q_DER3_N: 1.,
-            Key.COEFF_Q_DER_I: 1.,
-            Key.COEFF_Q_DER_N: 10.,
+            Key.COEFF_Q: 0.,
+            Key.COEFF_Q_GEQ: 0.,
+            Key.COEFF_Q_LEQ: 0.,
+            Key.COEFF_Q_V_MONO: 0.,
+            Key.COEFF_Q_DER3_V: 0.,
+            Key.COEFF_Q_DER3_I: 0.,
+            Key.COEFF_Q_DER3_N: 0.,
+            Key.COEFF_Q_DER_I: 0.,
+            Key.COEFF_Q_DER_N: 0.,
         }
 
-        vis = 1000
+        vis = 200
         int_args = {
             Key.N_SAMPLE: 8 * 16,
 

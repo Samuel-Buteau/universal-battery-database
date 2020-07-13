@@ -203,26 +203,7 @@ class DegradationModel(Model):
             indices, training = training, sample = False,
         )
 
-        fetched_latent_cell = tf.gather(
-            self.cell_latent_flags, indices, axis = 0,
-        )
-
-        fetched_latent_cell = (
-            self.min_latent + (1 - self.min_latent) * fetched_latent_cell
-        )
-
-        feats_cell = fetched_latent_cell * feats_cell_direct
-
-        if training:
-            loss_output_cell = incentive_magnitude(
-                feats_cell, Target.Small, Level.Proportional,
-            )
-            loss_output_cell = tf.reduce_mean(
-                loss_output_cell, axis = 1, keepdims = True,
-            )
-
-        else:
-            loss_output_cell = None
+        feats_cell = feats_cell_direct
 
         if sample:
             eps = tf.random.normal(
@@ -230,14 +211,7 @@ class DegradationModel(Model):
             )
             feats_cell += self.cell_direct.sample_epsilon * eps
 
-        if training:
-            loss = incentive_combine([
-                (self.options["coeff_cell_output"], loss_output_cell),
-            ])
-        else:
-            loss = 0.
-
-        return feats_cell, loss, fetched_latent_cell
+        return feats_cell
 
     def sample(self, svit_grid, batch_count, count_matrix, n_sample = 4 * 32):
         """

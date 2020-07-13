@@ -15,7 +15,7 @@ from machine_learning.fnn_functions import (
     add_v_dep, add_current_dep,
 )
 
-SIGMA = 1
+SIGMA = 15
 
 
 class DegradationModel(Model):
@@ -401,24 +401,26 @@ class DegradationModel(Model):
         Returns:
             Computed state of charge.
         """
+        b, d, f = len(cycle), 3, 32
 
         input_vector = tf.concat(
             [cycle, v, current],
             axis = 1,
         )
         random_gaussian_matrix = tf.constant(
-            np.random.normal(0, SIGMA, (3, 32)),
+            np.random.normal(0, SIGMA, (d, f)),
             dtype = tf.float32,
         )
-        dot_product = tf.tensordot(
+        dot_product = tf.einsum(
+            'bd,df->bf',
             input_vector,
             random_gaussian_matrix,
-            axes = 1,
         )
 
         dependencies = (
-            dot_product,
-            feats_cell,  # TODO: size = (64, 50)
+            tf.math.sin(2 * np.pi * dot_product),
+            tf.math.cos(2 * np.pi * dot_product),
+            feats_cell,
         )
         return tf.nn.elu(nn_call(self.nn_q, dependencies, training = training))
 

@@ -15,6 +15,8 @@ from machine_learning.fnn_functions import (
     add_v_dep, add_current_dep,
 )
 
+SIGMA = 1
+
 
 class DegradationModel(Model):
     """
@@ -399,7 +401,26 @@ class DegradationModel(Model):
         Returns:
             Computed state of charge.
         """
-        dependencies = (cycle, v, feats_cell, current)
+
+        input_vector = tf.concat(
+            [cycle, v, current],
+            axis = 1,
+        )  # shape = (?, 3)
+        random_gaussian_matrix = tf.constant(
+            np.random.normal(0, SIGMA, (3, 32)),
+            dtype = tf.float32,
+        )  # shape = (3, 32)
+        dot_product = tf.tensordot(
+            input_vector,
+            random_gaussian_matrix,
+            axes = 1,
+        )  # shape = (?, 32)
+
+        dependencies = (
+            tf.math.sin(2 * np.pi * dot_product),
+            tf.math.cos(2 * np.pi * dot_product),
+            feats_cell,  # TODO: size = (64, 50)
+        )
         return tf.nn.elu(nn_call(self.nn_q, dependencies, training = training))
 
     def q_for_derivative(self, params: dict, training = True):

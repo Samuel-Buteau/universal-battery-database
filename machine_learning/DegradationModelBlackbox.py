@@ -78,6 +78,8 @@ class DegradationModel(Model):
         self.n_channels = n_channels
 
         self.sigma = 0.1
+        self.fourier_features = True
+
         self.d, self.f = 3, 32
         self.random_gaussian_matrix = 2 * np.pi * tf.constant(
             np.random.normal(0, self.sigma, (self.d, self.f)),
@@ -373,23 +375,27 @@ class DegradationModel(Model):
         Returns:
             Computed state of charge.
         """
-        
-        b, d, f = len(cycle), self.d, self.f
-        input_vector = tf.concat(
-            [cycle, v, current],
-            axis = 1,
-        )
-        dot_product = tf.einsum(
-            'bd,df->bf',
-            input_vector,
-            self.random_gaussian_matrix,
-        )
 
-        dependencies = (
-            tf.math.sin(dot_product),
-            tf.math.cos(dot_product),
-            feats_cell,
-        )
+        if self.fourier_features:
+            b, d, f = len(cycle), self.d, self.f
+            input_vector = tf.concat(
+                [cycle, v, current],
+                axis = 1,
+            )
+            dot_product = tf.einsum(
+                'bd,df->bf',
+                input_vector,
+                self.random_gaussian_matrix,
+            )
+
+            dependencies = (
+                tf.math.sin(dot_product),
+                tf.math.cos(dot_product),
+                feats_cell,
+            )
+        else:
+            dependencies = (cycle, v, feats_cell, current)
+
         return tf.nn.elu(nn_call(self.nn_q, dependencies, training = training))
 
     def q_for_derivative(self, params: dict, training = True):

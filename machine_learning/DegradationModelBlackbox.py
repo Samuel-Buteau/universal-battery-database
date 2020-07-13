@@ -121,7 +121,7 @@ class DegradationModel(Model):
         svit_grid = params[Key.SVIT_GRID]
         count_matrix = params[Key.COUNT_MATRIX]
 
-        feats_cell, _, _ = self.cell_from_indices(
+        feats_cell = self.cell_from_indices(
             indices = indices, training = training, sample = False,
         )
 
@@ -163,7 +163,7 @@ class DegradationModel(Model):
         if training:
             (
                 sampled_vs, sampled_qs, sampled_cycles,
-                sampled_constant_current, sampled_feats_cell, sampled_latent,
+                sampled_constant_current, sampled_feats_cell,
                 sampled_svit_grid, sampled_count_matrix,
             ) = self.sample(
                 svit_grid, batch_count, count_matrix, n_sample = self.n_sample,
@@ -182,14 +182,7 @@ class DegradationModel(Model):
 
             q_loss = calculate_q_loss(q, q_der, options = self.options)
 
-            _, cell_loss, _ = self.cell_from_indices(
-                indices = tf.range(self.cell_direct.num_keys, dtype = tf.int32),
-                training = True,
-                sample = False,
-            )
-
             returns[Key.Loss.Q] = q_loss
-            returns[Key.Loss.CELL] = cell_loss
 
         return returns
 
@@ -260,7 +253,7 @@ class DegradationModel(Model):
             sampled_constant_current_sign * sampled_constant_current
         )
 
-        sampled_feats_cell, _, sampled_latent = self.cell_from_indices(
+        sampled_feats_cell = self.cell_from_indices(
             indices = tf.random.uniform(
                 maxval = self.cell_direct.num_keys,
                 shape = [n_sample], dtype = tf.int32,
@@ -289,7 +282,7 @@ class DegradationModel(Model):
 
         return (
             sampled_vs, sampled_qs, sampled_cycles, sampled_constant_current,
-            sampled_feats_cell, sampled_latent, sampled_svit_grid,
+            sampled_feats_cell, sampled_svit_grid,
             sampled_count_matrix,
         )
 
@@ -380,7 +373,7 @@ class DegradationModel(Model):
         Returns:
             Computed state of charge.
         """
-
+        
         b, d, f = len(cycle), self.d, self.f
         input_vector = tf.concat(
             [cycle, v, current],

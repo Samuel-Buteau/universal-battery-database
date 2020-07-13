@@ -8,7 +8,7 @@ class LossRecord:
     def __init__(self):
         self.data = []
         self.labels = [
-            Key.Loss.Q_CC, Key.Loss.Q_CV, Key.Loss.Q, Key.Loss.CELL,
+            Key.Loss.Q_CC, Key.Loss.Q_CV, Key.Loss.Q,
         ]
 
     def record(self, count, losses):

@@ -804,10 +804,13 @@ class Command(BaseCommand):
             Key.COEFF_Q_DER3_N: 0.,
             Key.COEFF_Q_DER_I: 0.,
             Key.COEFF_Q_DER_N: 0.,
+
+            Key.FF_SIGMA: 0.08,
         }
 
         vis = 1000
         int_args = {
+            Key.FOUR_FEAT: 1,
             Key.N_SAMPLE: 8 * 16,
 
             Key.DEPTH: 3,

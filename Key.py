@@ -76,6 +76,9 @@ class Key:
     PATH_PLOTS = "path_to_plots"
     DATA_VERSION = "dataset_version"
 
+    FOUR_FEAT = "four_feat"
+    FF_SIGMA = "four_feat_sigma"
+
     GLB_NORM_CLIP = "global_norm_clip"
     LRN_RATE = "learning_rate"
     MIN_LAT = "min_latent"

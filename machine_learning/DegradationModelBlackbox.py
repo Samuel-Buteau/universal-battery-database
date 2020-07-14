@@ -74,9 +74,9 @@ class DegradationModel(Model):
         self.width = width
         self.n_channels = n_channels
 
-        self.fourier_features = True
+        self.fourier_features = bool(options[Key.FOUR_FEAT])
 
-        self.sigma = 0.08
+        self.sigma = options[Key.FF_SIGMA]
         self.d, self.f = 3, 32
         self.random_gaussian_matrix = 2 * np.pi * tf.constant(
             np.random.normal(0, self.sigma, (self.d, self.f)),

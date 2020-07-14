@@ -779,9 +779,9 @@ class Command(BaseCommand):
             Key.COEFF_Q_CV: 1.,
             Key.COEFF_Q_CC: 1.,
 
-            Key.COEFF_Q: 0.,
-            Key.COEFF_Q_GEQ: 0.,
-            Key.COEFF_Q_LEQ: 0.,
+            Key.COEFF_Q: 0.0001,
+            Key.COEFF_Q_GEQ: 1.,
+            Key.COEFF_Q_LEQ: 1.,
             Key.COEFF_Q_V_MONO: 0.,
             Key.COEFF_Q_DER3_V: 0.,
             Key.COEFF_Q_DER3_I: 0.,

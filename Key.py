@@ -78,6 +78,9 @@ class Key:
 
     FOUR_FEAT = "four_feat"
     FF_SIGMA = "four_feat_sigma"
+    FF_SIGMA_CYC = "four_feat_sigma_cyc"
+    FF_SIGMA_V = "four_feat_sigma_voltage"
+    FF_SIGMA_I = "four_feat_sigma_current"
 
     GLB_NORM_CLIP = "global_norm_clip"
     LRN_RATE = "learning_rate"

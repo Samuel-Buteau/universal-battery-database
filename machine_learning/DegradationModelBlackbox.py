@@ -77,15 +77,15 @@ class DegradationModel(Model):
         self.fourier_features = bool(options[Key.FOUR_FEAT])
 
         self.sigma = options[Key.FF_SIGMA]
-        self.sigma_cycle = 1.
-        self.sigma_voltage = 1.
-        self.sigma_current = 1.
+        self.sigma_cycle = options[Key.FF_SIGMA_CYC]
+        self.sigma_voltage = options[Key.FF_SIGMA_V]
+        self.sigma_current = options[Key.FF_SIGMA_I]
         self.d, self.f = 3, 32
-        random_matrix =  np.random.normal(0, self.sigma, (self.d, self.f))
-        random_matrix[0,:] *= self.sigma_cycle
-        random_matrix[1,:] *= self.sigma_voltage
-        random_matrix[2,:] *= self.sigma_current
-        
+        random_matrix = np.random.normal(0, self.sigma, (self.d, self.f))
+        random_matrix[0, :] *= self.sigma_cycle
+        random_matrix[1, :] *= self.sigma_voltage
+        random_matrix[2, :] *= self.sigma_current
+
         self.random_gaussian_matrix = 2 * np.pi * tf.constant(
             random_matrix,
             dtype = tf.float32,

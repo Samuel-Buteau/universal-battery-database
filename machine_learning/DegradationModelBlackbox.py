@@ -7,9 +7,6 @@ from Key import Key
 
 from machine_learning.PrimitiveDictionaryLayer import PrimitiveDictionaryLayer
 from machine_learning.loss_calculator_blackbox import calculate_q_loss
-from machine_learning.incentives import (
-    Level, Target, incentive_magnitude, incentive_combine,
-)
 from machine_learning.fnn_functions import (
     feedforward_nn_parameters, nn_call, create_derivatives,
     add_v_dep, add_current_dep,

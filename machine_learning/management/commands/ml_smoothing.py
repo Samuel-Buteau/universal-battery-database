@@ -806,7 +806,7 @@ class Command(BaseCommand):
             Key.COEFF_Q_DER_N: 0.,
         }
 
-        vis = 200
+        vis = 1000
         int_args = {
             Key.N_SAMPLE: 8 * 16,
 
@@ -814,7 +814,7 @@ class Command(BaseCommand):
             Key.WIDTH: 50,
             Key.BATCH: 4 * 16,
 
-            Key.PRINT_LOSS: 500,
+            Key.PRINT_LOSS: vis,
             Key.VIS_FIT: vis,
             Key.VIS_VQ: vis,
 

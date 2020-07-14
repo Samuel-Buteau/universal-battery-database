@@ -218,22 +218,6 @@ def initial_processing(
             if lyte_id in dataset[Key.LYTE_TO_LAT].keys():
                 lyte_to_latent[lyte_id] = dataset[Key.LYTE_TO_LAT][lyte_id]
 
-    mess = [
-        [
-            [s[0] for s in siw] for siw in lyte_to_sol_weight.values()
-        ], [
-            [s[0] for s in siw] for siw in lyte_to_salt_weight.values()
-        ], [
-            [s[0] for s in siw] for siw in lyte_to_addi_weight.values()
-        ],
-    ]
-
-    mol_ids = to_sorted_array(list(three_level_flatten(mess)))
-    dry_cell_ids = to_sorted_array(cell_id_to_dry_cell_id.values())
-    pos_ids = to_sorted_array(cell_id_to_pos_id.values())
-    neg_ids = to_sorted_array(cell_id_to_neg_id.values())
-    lyte_id_list = to_sorted_array(cell_id_to_lyte_id.values())
-
     for cell_id_count, cell_id in enumerate(cell_ids):
 
         all_data = dataset[Key.ALL_DATA][cell_id]

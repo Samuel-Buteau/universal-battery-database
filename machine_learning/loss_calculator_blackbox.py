@@ -21,7 +21,7 @@ def calculate_q_loss(q, q_der, options):
             incentive_inequality(q, Inequality.GreaterThan, 0, Level.Strong),
         ), (
             options[Key.COEFF_Q_LEQ],
-            incentive_inequality(q, Inequality.LessThan, 1, Level.Strong),
+            incentive_inequality(q, Inequality.LessThan, 1, Level.Proportional),
         ), (
             options[Key.COEFF_Q_V_MONO],
             incentive_inequality(

@@ -127,3 +127,6 @@ def incentive_combine(xs):
     """
 
     return sum([a[0] * tf.reduce_mean(a[1]) for a in xs])
+
+def incentive_relative_equality(y, y_pred, min_val, max_val):
+    return (y - y_pred)**2/tf.clip_by_value(0.5*tf.stop_gradient(tf.abs(y) + tf.abs(y_pred)), min_val, max_val)**2

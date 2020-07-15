@@ -252,9 +252,6 @@ class Key:
 
     # TODO (harvey): replace the following class of keys
     class Coeff:
-        Q = "coeff_q"
-        Q_CV = "coeff_cv_capacity"
-        Q_CC = "coeff_cc_capacity"
         V_CC = "coeff_cc_voltage"
         SCALE = "coeff_scale"
         R = "coeff_r"

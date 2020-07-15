@@ -709,11 +709,11 @@ def train_step(neigh, params: dict, options: dict):
         )
 
         main_losses = (
-            options[Key.Coeff.Q_CV] * cv_capacity_loss
-            + options[Key.Coeff.Q_CC] * cc_capacity_loss
+            options[Key.COEFF_Q_CV] * cv_capacity_loss
+            + options[Key.COEFF_Q_CC] * cc_capacity_loss
         )
         loss = main_losses + tf.stop_gradient(main_losses) * (
-            options[Key.Coeff.Q] * train_results[Key.Loss.Q]
+            options[Key.COEFF_Q] * train_results[Key.Loss.Q]
         )
 
     gradients = tape.gradient(loss, degradation_model.trainable_variables)

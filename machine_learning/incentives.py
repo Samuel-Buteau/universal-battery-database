@@ -21,35 +21,33 @@ class Target(Enum):
 
 def incentive_inequality(x, symbol, y, level):
     """
-    :param x: The first object
+    Args:
+        x: The first object
 
-    :param symbol: the relationship we want (either Inequality.LessThan or
-    Inequality.GreaterThan or Inequality.Equal)
+        symbol: The relationship we want. This is one of the following:
 
-        Inequality.LessThan (i.e. x < y) means that x should be less than B,
+            Inequality.LessThan (x < y): x should be less than y,
 
-        Inequality.GreaterThan (i.e. x > B) means that x should be greater
-        than B.
+            Inequality.GreaterThan (x > y): x should be greater than y.
 
-        Inequality.Equals (i.e. x = B) means that x should be equal to B.
+            Inequality.Equals (x = y): x should be equal to y.
 
-    :param y: The second object
+        y: The second object
 
-    :param level:  determines the relationship between the incentive strength
-    and the values of x and B.
-    (either Level.Strong or Level.Proportional)
+        level: Determines the relationship between the incentive strength and
+            values of x and y. This is one of the following:
 
-        Level.Strong means that we take the L1 norm, so the gradient trying
-        to satisfy "x symbol B" will be constant no matter how far from "x
-        symbol B" we
-        are.
+            Level.Strong: we take the L1 norm, so the gradient trying to satisfy
+                "x symbol y" will be constant no matter how far from
+                "x symbol y" we are.
 
-        Level.Proportional means that we take the L2 norm, so the gradient
-        trying to satisfy "x symbol B" will be proportional to how far from
-        "x symbol B" we are.
+            Level.Proportional: we take the L2 norm, so the gradient trying to
+                satisfy "x symbol y" will be proportional to how far from
+                "x symbol y" we are.
 
-    :return: A loss which will give the model an incentive to satisfy "x
-    symbol B", with level.
+    Returns:
+        A loss which will give the model an incentive to satisfy "x symbol y",
+            with level.
     """
 
     if symbol == Inequality.LessThan:
@@ -73,28 +71,28 @@ def incentive_inequality(x, symbol, y, level):
 
 def incentive_magnitude(x, target, level):
     """
-    :param x: The object
+    Args:
+        x: The object
 
-    :param target: The direction we want (either Target.Small or Target.Big)
+        target: The direction we want. This is one of the following:
 
-        Target.Small means that the norm of x should be as small as possible
+            Target.Small: the norm of x should be as small as possible
 
-        Target.Big means that the norm of x should be as big as
-        possible,
+            Target.Big: the norm of x should be as big as possible.
 
-    :param level: Determines the relationship between the incentive strength
-    and the value of x. (either Level.Strong or Level.Proportional)
+        level: Determines the relationship between the incentive strength
+        and the value of x. This is one of the following:
 
-        Level.Strong means that we take the L1 norm, so the gradient trying
-        to push the absolute value of x to target
-        will be constant.
+            Level.Strong: we take the L1 norm, so the gradient trying to push
+                the absolute value of x to target will be constant.
 
-        Level.Proportional means that we take the L2 norm,
-        so the gradient trying to push the absolute value of x to target
-        will be proportional to the absolute value of x.
+            Level.Proportional: we take the L2 norm, so the gradient trying to
+                push the absolute value of x to target will be proportional to
+                the absolute value of x.
 
-    :return: A loss which will give the model an incentive to push the
-    absolute value of x to target.
+    Returns:
+        A loss which will give the model an incentive to push the absolute value
+            of x to target.
     """
 
     x_prime = tf.abs(x)
@@ -119,11 +117,13 @@ def incentive_magnitude(x, target, level):
 
 def incentive_combine(xs):
     """
-    :param xs: A list of tuples. Each tuple contains a coefficient and a
-    tensor of losses corresponding to incentives.
+    Args:
+        xs: A list of tuples. Each tuple contains a coefficient and a tensor of
+            losses corresponding to incentives.
 
-    :return: A combined loss (single number) which will incentivize all the
-    individual incentive tensors with weights given by the coefficients.
+    Returns:
+        A combined loss (single number) which will incentivize all the
+            individual incentive tensors with weights given by the coefficients.
     """
 
     return sum([a[0] * tf.reduce_mean(a[1]) for a in xs])

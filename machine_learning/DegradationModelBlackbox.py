@@ -92,10 +92,7 @@ class DegradationModel(Model):
         )
 
     def call(self, params: dict, training = False) -> dict:
-        """
-        Call function for the Model during training or evaluation.
-
-        Examples: TODO(harvey)
+        """ Call function for the Model during training or evaluation.
 
         Args:
             params: Contains -
@@ -108,7 +105,7 @@ class DegradationModel(Model):
                 Voltage,
                 Current
                 S.V.I.T. grid,
-                Count
+                Count.
             training: Flag for training or evaluation.
                 True for training; False for evaluation.
 
@@ -194,9 +191,8 @@ class DegradationModel(Model):
         return returns
 
     def cell_from_indices(self, indices, training = True, sample = False):
-        """ Cell from indices
-        TODO(harvey): Need detailed explanation for what this
-            function does.
+        """
+        TODO(harvey): Need detailed explanation for what this function does.
             What are `indices`? What do the flags do?
         """
         feats_cell_direct, loss_cell = self.cell_direct(
@@ -214,8 +210,7 @@ class DegradationModel(Model):
         return feats_cell
 
     def sample(self, svit_grid, batch_count, count_matrix, n_sample = 4 * 32):
-        """
-        Sample from all possible values of different variables.
+        """ Sample from all possible values of different variables.
 
         Args: TODO(harvey)
             svit_grid: multi-grid of (S, V, I, T).
@@ -289,18 +284,16 @@ class DegradationModel(Model):
 
         return (
             sampled_vs, sampled_qs, sampled_cycles, sampled_constant_current,
-            sampled_feats_cell, sampled_svit_grid,
-            sampled_count_matrix,
+            sampled_feats_cell, sampled_svit_grid, sampled_count_matrix,
         )
 
     def cc_capacity(self, params: dict, training = True):
-        """
-        Compute constant-current capacity during training or evaluation.
+        """ Compute constant-current capacity during training or evaluation.
 
         Args:
             params: Contains the parameters of constant-current capacity.
-            training: Flag for training or evaluation.
-                True for training; False for evaluation.
+            training: Flag for training or evaluation:
+                True for training and False for evaluation.
 
         Returns:
             Computed constant-current capacity.
@@ -327,8 +320,7 @@ class DegradationModel(Model):
         return q_1 - add_v_dep(q_0, params)
 
     def cv_capacity(self, params: dict, training = True):
-        """
-        Compute constant-voltage capacity during training or evaluation.
+        """ Compute constant-voltage capacity during training or evaluation.
 
         Args:
             params: Parameters for computing constant-voltage (cv) capacity.
@@ -366,8 +358,8 @@ class DegradationModel(Model):
         self, cycle, v, feats_cell, current, training = True,
     ):
         """
-        Compute state of charge directly
-            (receiving arguments directly without using `params`)
+        Compute state of charge directly (receiving arguments directly without
+        using `params`).
 
         Args: TODO(harvey)
             cycle: Cycle, often Key.CYC.
@@ -406,8 +398,8 @@ class DegradationModel(Model):
     def q_for_derivative(self, params: dict, training = True):
         """
         Wrapper function calling `q_direct`, to be passed in to
-            `create_derivatives` to compute state of charge
-            and its first derivative.
+        `create_derivatives` to compute state of charge and its first
+        derivative.
 
         Examples:
             ```python

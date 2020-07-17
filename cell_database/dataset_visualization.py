@@ -211,15 +211,15 @@ Later:
 
 csv_format_default =[
     (Key.N, lambda x: str(int(x)), "Cycle Number"),
-    ("total_charge_capacity", lambda x: "{:.2f}".format(x), "Total Charge Capacity (mAh)"),
-    ("total_discharge_capacity", lambda x: "{:.2f}".format(x), "Total Discharge Capacity (mAh)"),
+    ("total_charge_capacity", lambda x: "{:.3f}".format(x), "Total Charge Capacity (mAh)"),
+    ("total_discharge_capacity", lambda x: "{:.3f}".format(x), "Total Discharge Capacity (mAh)"),
 
-    ("avg_charge_voltage", lambda x: "{:.2f}".format(x), "Average Charge Voltage (V)"),
-    ("avg_discharge_voltage", lambda x: "{:.2f}".format(x), "Average Discharge Voltage (V)"),
-    ("delta_voltage", lambda x: "{:.2f}".format(x), "Delta Voltage (V)"),
+    ("avg_charge_voltage", lambda x: "{:.4f}".format(x), "Average Charge Voltage (V)"),
+    ("avg_discharge_voltage", lambda x: "{:.4f}".format(x), "Average Discharge Voltage (V)"),
+    ("delta_voltage", lambda x: "{:.6f}".format(x), "Delta Voltage (V)"),
 
-    ("charge_time", lambda x: "{:.2f}".format(x), "Charge Time (hours)"),
-    ("discharge_time", lambda x: "{:.2f}".format(x), "Discharge Time (hours)"),
+    ("charge_time", lambda x: "{:.4f}".format(x), "Charge Time (hours)"),
+    ("discharge_time", lambda x: "{:.4f}".format(x), "Discharge Time (hours)"),
     ("cumulative_time", lambda x: str(int(x)), "Cumulative Time (hours)"),
 
 ]

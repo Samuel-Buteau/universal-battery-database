@@ -182,14 +182,11 @@ def generate_plot_options(mode: str, typ: str, target: str) -> dict:
             or constant-voltage ("cv").
     Returns: TODO(harvey)
     """
-    # sign_change
-    sign_change = get_sign_change(typ)
 
-    if target == 'generic_vs_capacity':
+    if target == "generic_vs_capacity":
         # label
         x_quantity = "Capacity"
         y_quantity = get_y_quantity(mode)
-        # leg
         leg = {
             ("dchg", "cc"): (.5, 1.),
             ("chg", "cc"): (.5, .5),
@@ -199,8 +196,7 @@ def generate_plot_options(mode: str, typ: str, target: str) -> dict:
     elif target == "generic_vs_cycle":
         # label
         x_quantity = "Cycle"
-        y_quantity = 'capacity'
-        # leg
+        y_quantity = "capacity"
         leg = {
             ("dchg", "cc"): (.7, 1.),
             ("chg", "cc"): (.7, 1.),
@@ -210,15 +206,13 @@ def generate_plot_options(mode: str, typ: str, target: str) -> dict:
     else:
         sys.exit("Unknown `target` in `generate_options`!")
 
-    y_label = typ + "-" + mode + "\n" + y_quantity
-    x_label = x_quantity
     x_leg, y_leg = leg[(typ, mode)]
     return {
-        "sign_change": sign_change,
+        "sign_change": get_sign_change(typ),
         "x_leg": x_leg,
         "y_leg": y_leg,
-        "xlabel": x_label,
-        "ylabel": y_label,
+        "xlabel": x_quantity,
+        "ylabel": typ + "-" + mode + "\n" + y_quantity,
     }
 
 
@@ -260,10 +254,10 @@ def get_y_quantity(mode: str) -> str:
     Returns:
         "voltage" if mode is "cc", "current" if mode is "cv".
     """
-    if mode == 'cc':
-        y_quantity = 'voltage'
-    elif mode == 'cv':
-        y_quantity = 'current'
+    if mode == "cc":
+        y_quantity = "voltage"
+    elif mode == "cv":
+        y_quantity = "current"
     else:
         sys.exit("Unknown `mode` in `get_y_quantity`!")
     return y_quantity
@@ -279,14 +273,14 @@ def get_generic_map(source, target: str, mode: str) -> dict:
     """
     quantity = get_y_quantity(mode)
     if target == "generic_vs_cycle":
-        generic_map = {'y': "last_{}_capacity".format(mode)}
+        generic_map = {"y": "last_{}_capacity".format(mode)}
     elif target == "generic_vs_capacity":
         generic_map = {
-            'x': "{}_capacity_vector".format(mode),
-            'y': "{}_{}_vector".format(mode, quantity),
+            "x": "{}_capacity_vector".format(mode),
+            "y": "{}_{}_vector".format(mode, quantity),
         }
         if source == "compiled":
-            generic_map['mask'] = "{}_mask_vector".format(mode)
+            generic_map["mask"] = "{}_mask_vector".format(mode)
     else:
         sys.exit("Unknown `target` in `get_generic_map`!")
     return generic_map
@@ -429,22 +423,22 @@ def produce_annotations(ax, list_of_patches, plot_options):
 
 def simple_plot(ax, x, y, color, channel):
     if (
-        channel == 'scatter'
+        channel == "scatter"
         or channel == "scatter_valid"
         or channel == "scatter_invalid"
     ):
-        if channel == 'scatter':
+        if channel == "scatter":
             s = 20
-            marker = '.'
+            marker = "."
         elif channel == "scatter_valid":
             s = 100
-            marker = '.'
+            marker = "."
         else:
             s = 5
-            marker = 'x'
+            marker = "x"
 
         ax.scatter(x, y, c = [list(color)], s = s, marker = marker)
-    elif channel == 'plot':
+    elif channel == "plot":
         ax.plot(x, y, c = color, )
     else:
         raise Exception("not yet implemented. channel = {}".format(channel))
@@ -460,15 +454,15 @@ def plot_generic(
         group = groups[k]
         if target == "generic_vs_cycle":
             x = group[Key.N]
-            y = plot_options["sign_change"] * group[generic_map['y']]
+            y = plot_options["sign_change"] * group[generic_map["y"]]
             color = custom_colors[k]
             simple_plot(ax, x, y, color, channel)
         elif target == "generic_vs_capacity":
             for i in range(len(group)):
-                x_ = plot_options["sign_change"] * group[generic_map['x']][i]
-                y_ = group[generic_map['y']][i]
-                if 'mask' in generic_map.keys():
-                    valids = group[generic_map['mask']][i] > .5
+                x_ = plot_options["sign_change"] * group[generic_map["x"]][i]
+                y_ = group[generic_map["y"]][i]
+                if "mask" in generic_map.keys():
+                    valids = group[generic_map["mask"]][i] > .5
                     x = x_[valids]
                     y = y_[valids]
                 else:
@@ -532,15 +526,15 @@ def compute_target(
     cycle = np.linspace(cycle_min, cycle_max, max_cyc_n)
     scaled_cyc = (cycle - cycle_m) / tf.sqrt(cycle_v)
 
-    if target == 'generic_vs_capacity':
+    if target == "generic_vs_capacity":
         v_range = np.ones(1, dtype = np.float32)
         current_range = np.ones(1, dtype = np.float32)
-        if mode == 'cc':
+        if mode == "cc":
             v_min = min(averages[Key.V_PREV_END_AVG], averages[Key.V_END_AVG])
             v_max = max(averages[Key.V_PREV_END_AVG], averages[Key.V_END_AVG])
             v_range = np.linspace(v_min, v_max, 32)
             y_n = 32
-        elif mode == 'cv':
+        elif mode == "cv":
             curr_max = abs(averages[Key.I_CC_AVG])
             curr_min = abs(averages[Key.I_END_AVG])
 
@@ -590,9 +584,9 @@ def compute_target(
         generic = np.array(
             [(cyc, cap[i, :], yrange) for i, cyc in enumerate(cycle)],
             dtype = [
-                (Key.N, 'f4'),
-                (generic_map['x'], 'f4', y_n),
-                (generic_map['y'], 'f4', y_n),
+                (Key.N, "f4"),
+                (generic_map["x"], "f4", y_n),
+                (generic_map["y"], "f4", y_n),
             ]
         )
     elif target == "generic_vs_cycle":
@@ -632,8 +626,8 @@ def compute_target(
         generic = np.array(
             list(zip(cycle, pred_cap)),
             dtype = [
-                (Key.N, 'f4'),
-                (generic_map['y'], 'f4'),
+                (Key.N, "f4"),
+                (generic_map["y"], "f4"),
             ],
         )
     else:
@@ -649,12 +643,12 @@ def plot_cycling_direct(
 ):
     if show_invalid:
         data_streams = [
-            ('database', (cell_id, True), 'scatter_valid', 100),
-            ('database', (cell_id, False), 'scatter_invalid', 100),
+            ("database", (cell_id, True), "scatter_valid", 100),
+            ("database", (cell_id, False), "scatter_invalid", 100),
         ]
     else:
         data_streams = [
-            ('database', (cell_id, True), 'scatter_valid', 100),
+            ("database", (cell_id, True), "scatter_valid", 100),
         ]
 
     if path_to_plots is None:
@@ -662,7 +656,7 @@ def plot_cycling_direct(
             data_streams = data_streams,
             target = "generic_vs_cycle",
             todos = [("dchg", "cc")],
-            fit_args = {'path_to_plots': path_to_plots},
+            fit_args = {"path_to_plots": path_to_plots},
             filename = "Initial_{}.png".format(cell_id),
             lower_cycle = lower_cycle,
             upper_cycle = upper_cycle,
@@ -676,7 +670,7 @@ def plot_cycling_direct(
             data_streams = data_streams,
             target = "generic_vs_cycle",
             todos = [("dchg", "cc")],
-            fit_args = {'path_to_plots': path_to_plots},
+            fit_args = {"path_to_plots": path_to_plots},
             filename = "Initial_{}.png".format(cell_id),
             lower_cycle = lower_cycle,
             upper_cycle = upper_cycle,
@@ -727,8 +721,8 @@ def plot_direct(target: str, plot_params: dict, init_returns: dict) -> None:
 
         plot_engine_direct(
             data_streams = [
-                ('compiled', compiled_groups, 'scatter', compiled_max_cyc_n),
-                ('model', model_data, 'plot', model_max_cyc_n),
+                ("compiled", compiled_groups, "scatter", compiled_max_cyc_n),
+                ("model", model_data, "plot", model_max_cyc_n),
             ],
             target = target,
             todos = [("dchg", "cc"), ("chg", "cc"), ("chg", "cv")],

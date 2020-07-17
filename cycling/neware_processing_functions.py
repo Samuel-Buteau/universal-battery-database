@@ -1922,7 +1922,8 @@ def full_import_cell_ids(cell_ids):
     TODO(sam): does it create CycleGroups?
     """
     # TODO(sam): split into smaller batches?
-
+    print('starting import of:', cell_ids)
     bulk_deprecate(cell_ids)
     bulk_import(cell_ids = cell_ids, debug = False)
     bulk_process(debug = False, cell_ids = cell_ids)
+    print('done import of:', cell_ids)

@@ -15,8 +15,8 @@ def feedforward_nn_parameters(
     Args:
         depth: The depth the feedforward neural network
         width: The width of the feedforward neural network
-        last: TODO(harvey, confusion)
-        finalize: TODO(harvey, confusion)
+        last: TODO(harvey)
+        finalize: TODO(harvey)
 
     Returns:
         { "initial", "bulk", and "final" }, each key corresponds to a component
@@ -147,7 +147,7 @@ def create_derivatives(
     Given a feedforward neural network `nn`,
         compute its value and its first derivative.
 
-    TODO(harvey, confusion): Is "forall" explained somewhere? Maybe an entry
+    TODO(harvey): Is "forall" explained somewhere? Maybe an entry
         in a wiki would be helpful.
     Derivatives will only be taken inside forall statements.
     If auxiliary variables must be given, create a lambda.
@@ -173,7 +173,7 @@ def create_derivatives(
         params: Contains parameters for computing the given quantity.
         der_params: Contains parameters for computing the first derivative of
             the given quantity.
-        internal_loss: TODO(harvey, confusion)
+        internal_loss: TODO(harvey)
 
     Returns:
         The evaluated quantity and it first derivative. If the `internal_loss`

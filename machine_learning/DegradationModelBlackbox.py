@@ -195,7 +195,7 @@ class DegradationModel(Model):
 
     def cell_from_indices(self, indices, training = True, sample = False):
         """ Cell from indices
-        TODO(harvey, confusion): Need detailed explanation for what this
+        TODO(harvey): Need detailed explanation for what this
             function does.
             What are `indices`? What do the flags do?
         """

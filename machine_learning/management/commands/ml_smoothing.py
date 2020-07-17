@@ -477,7 +477,7 @@ def train_and_evaluate(
             args = (neigh,),
         )
 
-    # TODO(harvey, confusion): what is `l`?
+    # TODO(harvey): what is `l`?
     l = None
     loss_record = LossRecord()
     with strategy.scope():

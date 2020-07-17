@@ -507,7 +507,6 @@ class DegradationModel(Model):
         end_voltage, currents, cell_id_index, svit_grid, count_matrix
     ):
 
-        expanded_cycle = tf.expand_dims(cycle, axis = 1)
         expanded_constant_current = tf.tile(
             tf.reshape(constant_current, [1, 1]),
             [cycle.shape[0], 1],
@@ -524,12 +523,10 @@ class DegradationModel(Model):
             tf.reshape(end_voltage, [1, 1]),
             [cycle.shape[0], 1],
         )
-
         indices = tf.tile(
             tf.expand_dims(cell_id_index, axis = 0),
             [cycle.shape[0]],
         )
-
         expanded_svit_grid = tf.tile(
             tf.expand_dims(svit_grid, axis = 0),
             [cycle.shape[0], 1, 1, 1, 1, 1],
@@ -541,17 +538,19 @@ class DegradationModel(Model):
 
         return self.call(
             {
-                Key.CYC: expanded_cycle,
+                Key.CYC: tf.expand_dims(cycle, axis = 1),
                 Key.I_CC: expanded_constant_current,
                 Key.I_PREV_END: expanded_end_current_prev,
                 Key.V_PREV_END: expanded_end_voltage_prev,
                 Key.V_END: expanded_end_voltage,
                 Key.INDICES: indices,
                 Key.V_TENSOR: tf.tile(
-                    tf.reshape(v, [1, 1]), [cycle.shape[0], 1]
+                    tf.reshape(v, [1, 1]),
+                    [cycle.shape[0], 1],
                 ),
                 Key.I_TENSOR: tf.tile(
-                    tf.reshape(currents, shape = [1, -1]), [cycle.shape[0], 1],
+                    tf.reshape(currents, shape = [1, -1]),
+                    [cycle.shape[0], 1],
                 ),
                 Key.SVIT_GRID: expanded_svit_grid,
                 Key.COUNT_MATRIX: expanded_count_matrix,

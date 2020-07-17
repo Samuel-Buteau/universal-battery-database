@@ -691,6 +691,12 @@ def default_deprecation(cell_id):
             files_start.exclude(id = winner_id).update(deprecated = True)
 
 
+def mult_if_not_none(x,y):
+    if x is None or y is None:
+        return None
+    else:
+        return x*y
+
 def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10):
     # TODO(sam): incorporate resting steps properly.
     print("\tPROCESSING CELL ID: {}".format(cell_id))
@@ -717,8 +723,8 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10):
                     sign = -1.
 
                 first_step.end_current_prev = 0.
-                first_step.constant_current = sign * first_step.maximum_current
-                first_step.end_current = sign * first_step.minimum_current
+                first_step.constant_current = mult_if_not_none(sign, first_step.maximum_current)
+                first_step.end_current = mult_if_not_none(sign, first_step.minimum_current)
                 if sign > 0:
                     first_step.end_voltage = first_step.maximum_voltage
                     first_step.constant_voltage = first_step.maximum_voltage
@@ -734,7 +740,7 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10):
                     sign = -1.
 
                 first_step.end_current_prev = 0.
-                first_step.constant_current = sign * first_step.average_current_by_capacity
+                first_step.constant_current = mult_if_not_none(sign, first_step.average_current_by_capacity)
                 first_step.end_current = first_step.constant_current
                 if sign > 0:
                     first_step.end_voltage = first_step.maximum_voltage
@@ -768,8 +774,10 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10):
 
                     step.end_current_prev = steps[i - 1].end_current
                     step.end_voltage_prev = steps[i - 1].end_voltage
-                    step.constant_current = sign * step.maximum_current
-                    step.end_current = sign * step.minimum_current
+                    step.constant_current = mult_if_not_none(sign, step.maximum_current)
+
+                    step.end_current = mult_if_not_none(sign, step.minimum_current)
+
                     if sign > 0:
                         step.end_voltage = step.maximum_voltage
                         step.constant_voltage = step.maximum_voltage
@@ -785,7 +793,7 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10):
                         sign = -1.
                     step.end_current_prev = steps[i - 1].end_current
                     step.end_voltage_prev = steps[i - 1].end_voltage
-                    step.constant_current = sign * step.average_current_by_capacity
+                    step.constant_current = mult_if_not_none(sign, step.average_current_by_capacity)
                     step.end_current = step.constant_current
                     if sign > 0:
                         step.end_voltage = step.maximum_voltage
@@ -846,6 +854,8 @@ def process_cell_id(cell_id, NUMBER_OF_CYCLES_BEFORE_RATE_ANALYSIS = 10):
                 # print(polarity)
                 # print([s.step_type for s in cyc.step_set.order_by("step_number")])
                 # print([s.get_v_c_q_t_data() for s in cyc.step_set.order_by("step_number")])
+                if any([x is None for x in [step.constant_current, step.end_current, step.end_current_prev]]):
+                    continue
                 new_data.append(
                     (
                         cyc.id,  # id

@@ -808,7 +808,7 @@ class Command(BaseCommand):
             Key.VIS_FIT: vis,
             Key.VIS_VQ: vis,
 
-            Key.STOP: 1000004,
+            Key.STOP: 16000,
             Key.CELL_ID_SHOW: 10,
         }
 

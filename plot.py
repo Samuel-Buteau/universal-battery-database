@@ -13,6 +13,7 @@ from cycling.models import (
     compute_from_database, make_file_legends_and_vertical, get_byte_image,
 )
 from machine_learning.DegradationModelBlackbox import DegradationModel
+from cycling.Print import Print
 
 matplotlib_axes_logger.setLevel("ERROR")
 from plot_constants import *
@@ -525,6 +526,19 @@ def compute_target(
     """
     cycle = np.linspace(cycle_min, cycle_max, max_cyc_n)
     scaled_cyc = (cycle - cycle_m) / tf.sqrt(cycle_v)
+
+    if sign_change == 1 and (
+        averages[Key.I_CC_AVG] < 0
+        or averages[Key.I_PREV_END_AVG] > 0
+        or averages[Key.I_END_AVG] < 0
+    ):
+        Print.colour(Print.RED, "CHARGE ERROR")
+    elif sign_change == -1 and (
+        averages[Key.I_CC_AVG] > 0
+        or averages[Key.I_PREV_END_AVG] < 0
+        or averages[Key.I_END_AVG] > 0
+    ):
+        Print.colour(Print.RED, "DISCHARGE ERROR")
 
     if target == "generic_vs_capacity":
         v_range = np.ones(1, dtype = np.float32)

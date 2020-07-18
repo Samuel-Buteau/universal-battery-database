@@ -150,6 +150,25 @@ class DegradationModel(Model):
             Key.SVIT_GRID: svit_grid,
             Key.COUNT_MATRIX: count_matrix,
         }
+        
+        # Assert that the currents are given with the right sign
+        positive_cc_I = tf.math.greater_equal(call_params[Key.I_CC], 0)
+        negative_cc_I = tf.math.greater_equal(0, call_params[Key.I_CC])
+        
+        positive_prev_I = tf.math.greater_equal(call_params[Key.I_PREV_END], 0)
+        negative_prev_I = tf.math.greater_equal(0, call_params[Key.I_PREV_END])
+        
+        positive_cv_I = tf.reduce_all(tf.math.greater_equal(current_tensor, 0), axis=1, keepdims=True)
+        negative_cv_I = tf.reduce_all(tf.math.greater_equal(0, current_tensor), axis=1, keepdims=True)
+        
+        valid_charge = tf.math.logical_and(positive_cc_I, tf.math.logical_and(positive_cv_I, negative_prev_I))
+        valid_discharge = tf.math.logical_and(negative_cc_I, tf.math.logical_and(negative_cv_I, positive_prev_I))
+        
+        valid_data = tf.math.logical_or(valid_charge, valid_discharge)
+        
+        tf.debugging.Assert(valid_data, [call_params[Key.I_CC], call_params[Key.I_PREV_END], current_tensor])
+        
+        
         cc_capacity = self.cc_capacity(capacity_params, training = training)
         pred_cc_capacity = tf.reshape(cc_capacity, [-1, voltage_count])
 

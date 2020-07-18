@@ -91,7 +91,7 @@ class DegradationModel(Model):
             dtype = tf.float32,
         )
 
-    def call(self, params: dict, training = False) -> dict:
+    def call(self, call_params: dict, training = False) -> dict:
         """ Call function for the Model during training or evaluation.
 
         Args:
@@ -113,20 +113,15 @@ class DegradationModel(Model):
             `{ Key.Pred.I_CC, Key.Pred.I_CV }`. During training, the
                 dictionary also includes `{ Key.Loss.Q, Key.Loss.CELL }`.
         """
-
-        cycle = params[Key.CYC]  # matrix; dim: [batch, 1]
-        constant_current = params[Key.I_CC]  # matrix; dim: [batch, 1]
-        end_current_prev = params[Key.I_PREV_END]  # matrix; dim: [batch, 1]
-        end_voltage_prev = params[Key.V_PREV_END]  # matrix; dim: [batch, 1]
-        end_voltage = params[Key.V_END]  # matrix; dim: [batch, 1]
-        indices = params[Key.INDICES]  # batch of index; dim: [batch]
-        voltage_tensor = params[Key.V_TENSOR]  # dim: [batch, voltages]
-        current_tensor = params[Key.I_TENSOR]  # dim: [batch, voltages]
-        svit_grid = params[Key.SVIT_GRID]
-        count_matrix = params[Key.COUNT_MATRIX]
+        cycle = call_params[Key.CYC]  # matrix; dim: [batch, 1]
+        voltage_tensor = call_params[Key.V_TENSOR]  # dim: [batch, voltages]
+        current_tensor = call_params[Key.I_TENSOR]  # dim: [batch, voltages]
+        svit_grid = call_params[Key.SVIT_GRID]
+        count_matrix = call_params[Key.COUNT_MATRIX]
 
         feats_cell = self.cell_from_indices(
-            indices = indices, training = training, sample = False,
+            indices = call_params[Key.INDICES],  # batch of index; dim: [batch]
+            training = training, sample = False,
         )
 
         # duplicate cycles and others for all the voltages
@@ -135,7 +130,7 @@ class DegradationModel(Model):
         voltage_count = voltage_tensor.shape[1]
         current_count = current_tensor.shape[1]
 
-        params = {
+        capacity_params = {
             Key.COUNT_BATCH: batch_count,
             Key.COUNT_V: voltage_count,
             Key.COUNT_I: current_count,
@@ -144,19 +139,21 @@ class DegradationModel(Model):
             Key.I_CV: tf.reshape(current_tensor, [-1, 1]),
 
             Key.CYC: cycle,
-            Key.I_CC: constant_current,
-            Key.I_PREV_END: end_current_prev,
-            Key.V_PREV_END: end_voltage_prev,
+
+            # The following matrices all have dimensions [batch, 1]
+            Key.I_CC: call_params[Key.I_CC],
+            Key.I_PREV_END: call_params[Key.I_PREV_END],
+            Key.V_PREV_END: call_params[Key.V_PREV_END],
             Key.CELL_FEAT: feats_cell,
-            Key.V_END: end_voltage,
+            Key.V_END: call_params[Key.V_END],
 
             Key.SVIT_GRID: svit_grid,
             Key.COUNT_MATRIX: count_matrix,
         }
-        cc_capacity = self.cc_capacity(params, training = training)
+        cc_capacity = self.cc_capacity(capacity_params, training = training)
         pred_cc_capacity = tf.reshape(cc_capacity, [-1, voltage_count])
 
-        cv_capacity = self.cv_capacity(params, training = training)
+        cv_capacity = self.cv_capacity(capacity_params, training = training)
         pred_cv_capacity = tf.reshape(cv_capacity, [-1, current_count])
 
         returns = {

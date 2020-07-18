@@ -116,7 +116,7 @@ class DegradationModel(Model):
         self.sigma_cycle = options[Key.FF_SIGMA_CYC]
         self.sigma_voltage = options[Key.FF_SIGMA_V]
         self.sigma_current = options[Key.FF_SIGMA_I]
-        self.d, self.f = 3, 32
+        self.d, self.f = 5, 32
         random_matrix = np.random.normal(0, self.sigma, (self.d, self.f))
         random_matrix[0, :] *= self.sigma_cycle
         random_matrix[1, :] *= self.sigma_voltage

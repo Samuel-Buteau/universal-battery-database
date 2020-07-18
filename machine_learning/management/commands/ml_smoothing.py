@@ -791,7 +791,7 @@ class Command(BaseCommand):
 
             Key.FF_SIGMA: 0.08,
             Key.FF_SIGMA_CYC: 1.,
-            Key.FF_SIGMA_V: 2.,
+            Key.FF_SIGMA_V: 1.,
             Key.FF_SIGMA_I: 1.,
         }
 

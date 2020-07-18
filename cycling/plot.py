@@ -193,6 +193,7 @@ def compute_from_database2(
     for rule_id in rules.keys():
         q_curves = []
         for f in files_cell_id:
+            failed = False
             offset_cycle = f.database_file.valid_metadata.start_cycle
             filters = Q(valid_cycle = valid) & Q(cycling_file = f)
             if not (lower_cycle is None and upper_cycle is None):
@@ -270,24 +271,24 @@ def compute_from_database2(
                                     group_filter = group_filter & range_f(rule[polarity][lab])
 
                         good_groups = CycleGroup.objects.filter(group_filter)
-                        if len(good_groups) == 0:
-                            filters = group_is_none & filters
-                        else:
+                        if good_groups.exists():
                             filters = group_in_f(good_groups) & filters
-
-            cycles = Cycle.objects.filter(filters)
-            if cycles.exists():
-
-                q_curves += list([
-                    tuple(
-                        [
-                            generic_field(tp, f, cyc, offset_cycle, cell_first_time)
-                            for _, _, tp, f in field_request
+                        else:
+                            failed = True
+                            break
+            if not failed:
+                cycles = Cycle.objects.filter(filters)
+                if cycles.exists():
+                    q_curves += list([
+                        tuple(
+                            [
+                                generic_field(tp, f, cyc, offset_cycle, cell_first_time)
+                                for _, _, tp, f in field_request
+                            ]
+                        )
+                        for cyc in cycles.order_by("cycle_number")
                         ]
                     )
-                    for cyc in cycles.order_by("cycle_number")
-                    ]
-                )
 
         if len(q_curves) > 0:
             groups[rule_id] = np.array(

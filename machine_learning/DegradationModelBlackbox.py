@@ -41,7 +41,10 @@ def assert_current_sign(call_params, current_tensor):
     )
 
     tf.debugging.Assert(
-        tf.math.logical_or(valid_charge, valid_discharge),
+        tf.reduce_all(
+            tf.math.logical_or(valid_charge, valid_discharge),
+            axis = [0, 1],
+        ),
         [call_params[Key.I_CC], call_params[Key.I_PREV_END], current_tensor],
     )
 

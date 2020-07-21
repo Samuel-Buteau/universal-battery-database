@@ -131,9 +131,9 @@ class DegradationModel(Model):
         """ Call function for the Model during training or evaluation.
 
         Args:
-            params: Contains -
+            call_params: Contains -
                 Cycle,
-                Constant current,
+                Constant current6252 Quantum information and quantum computing,
                 The end current of the previous step,
                 The end voltage of the previous step,
                 The end voltage of the current step,
@@ -147,7 +147,7 @@ class DegradationModel(Model):
 
         Returns:
             `{ Key.Pred.I_CC, Key.Pred.I_CV }`. During training, the
-                dictionary also includes `{ Key.Loss.Q, Key.Loss.CELL }`.
+                dictionary also includes Key.Loss.Q.
         """
         cycle = call_params[Key.CYC]  # matrix; dim: [batch, 1]
         voltage_tensor = call_params[Key.V_TENSOR]  # dim: [batch, voltages]
@@ -201,20 +201,15 @@ class DegradationModel(Model):
         }
 
         if training:
-            (
-                sampled_vs, sampled_cycles, sampled_constant_current,
-                sampled_feats_cell,
-            ) = self.sample(
-                svit_grid, batch_count, count_matrix, n_sample = self.n_sample,
-            )
+            samples = self.sample(n_sample = self.n_sample)
 
             q, q_der = create_derivatives(
                 self.q_for_derivative,
                 params = {
-                    Key.CYC: sampled_cycles,
-                    Key.V: sampled_vs,
-                    Key.CELL_FEAT: sampled_feats_cell,
-                    Key.I: sampled_constant_current,
+                    Key.CYC: samples["cycles"],
+                    Key.V: samples["vs"],
+                    Key.CELL_FEAT: samples["cell_feats"],
+                    Key.I: samples["constant_current"],
                 },
                 der_params = {Key.V: 3, Key.CELL_FEAT: 2, Key.I: 3, Key.CYC: 3}
             )
@@ -238,69 +233,60 @@ class DegradationModel(Model):
 
         if sample:
             eps = tf.random.normal(
-                shape = [feats_cell.shape[0], self.num_feats]
+                shape = [feats_cell.shape[0], self.num_feats],
             )
             feats_cell += self.cell_direct.sample_epsilon * eps
 
         return feats_cell
 
-    def sample(self, svit_grid, batch_count, count_matrix, n_sample = 4 * 32):
+    def sample(self, n_sample = 4 * 32):
         """ Sample from all possible values of different variables.
 
         Args: TODO(harvey)
-            svit_grid: multi-grid of (S, V, I, T).
-            batch_count:
-            count_matrix:
             n_sample:
 
         Returns:
-            Sample values - voltages, capacities, cycles,
-                constant current, cell features, latent, svit_grid,
-                count_matrix
+            Sample values.
         """
 
-        # NOTE(sam): this is an example of a forall.
-        # (for all voltages, and all cell features)
-        sampled_vs = tf.random.uniform(
-            minval = 2.5, maxval = 5., shape = [n_sample, 1],
-        )
-        sampled_cycles = tf.random.uniform(
-            minval = -.1, maxval = 5., shape = [n_sample, 1],
-        )
-        sampled_constant_current = tf.random.uniform(
-            minval = tf.math.log(0.001), maxval = tf.math.log(5.),
-            shape = [n_sample, 1],
-        )
-        sampled_constant_current = tf.exp(sampled_constant_current)
-        sampled_constant_current_sign = tf.random.uniform(
-            minval = 0, maxval = 1, shape = [n_sample, 1], dtype = tf.int32,
+        # This is an example of a forall: for all voltages and all cell features
+
+        sampled_constant_current = tf.exp(
+            tf.random.uniform(
+                minval = tf.math.log(0.001), maxval = tf.math.log(5.),
+                shape = [n_sample, 1],
+            )
         )
         sampled_constant_current_sign = tf.cast(
-            sampled_constant_current_sign, dtype = tf.float32,
+            tf.random.uniform(
+                minval = 0, maxval = 1, shape = [n_sample, 1], dtype = tf.int32,
+            ),
+            dtype = tf.float32,
         )
-        sampled_constant_current_sign = (
-            1. * sampled_constant_current_sign
-            - (1. - sampled_constant_current_sign)
-        )
-
-        sampled_constant_current = (
-            sampled_constant_current_sign * sampled_constant_current
-        )
+        sampled_constant_current_sign = 2.0 * sampled_constant_current_sign - 1.
 
         sampled_feats_cell = self.cell_from_indices(
             indices = tf.random.uniform(
                 maxval = self.cell_direct.num_keys,
                 shape = [n_sample], dtype = tf.int32,
             ),
-            training = False,
-            sample = True,
+            training = False, sample = True,
         )
-        sampled_feats_cell = tf.stop_gradient(sampled_feats_cell)
 
-        return (
-            sampled_vs, sampled_cycles, sampled_constant_current,
-            sampled_feats_cell,
-        )
+        return {
+            "vs": tf.random.uniform(
+                minval = 2.5, maxval = 5., shape = [n_sample, 1],
+            ),
+            "cycles": tf.random.uniform(
+                minval = -.1, maxval = 5., shape = [n_sample, 1],
+            ),
+            "constant_current": (
+                sampled_constant_current_sign * sampled_constant_current
+            ),
+            "cell_feats": tf.stop_gradient(
+                sampled_feats_cell
+            ),
+        }
 
     def cc_capacity(self, params: dict, training = True):
         """ Compute constant-current capacity during training or evaluation.

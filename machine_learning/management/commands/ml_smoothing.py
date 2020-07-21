@@ -148,12 +148,9 @@ def initial_processing(
     #   classes inside cycling.Key
 
     compiled_data = {}
-    number_of_compiled_cycs = 0
-    number_of_reference_cycs = 0
-
+    compiled_cycs_count, reference_cycs_count = 0, 0
     dataset[Key.Q_MAX] = 250
     max_cap = dataset[Key.Q_MAX]
-
     keys = [Key.V_GRID, Key.TEMP_GRID, Key.SIGN_GRID]
     for key in keys:
         numpy_acc(compiled_data, key, np.array([dataset[key]]))
@@ -162,61 +159,6 @@ def initial_processing(
     # the current grid is adjusted by the max capacity of the cell_id. It is
     # in log space, so I/q becomes log(I) - log(q)
     numpy_acc(compiled_data, Key.I_GRID, np.array([dataset[Key.I_GRID]]))
-
-    # TODO (harvey): simplify the following using loops
-    # cell ID array
-    cell_id_array = np.array(cell_ids)
-    # cell ID to positive electrode ID
-    cell_id_to_pos_id = {}
-    # cell ID to negative electrode ID
-    cell_id_to_neg_id = {}
-    # cell ID to electrolyte ID
-    cell_id_to_lyte_id = {}
-    # cell ID to dry cell ID
-    cell_id_to_dry_cell_id = {}
-    # dry cell ID to meta
-    dry_cell_id_to_meta = {}
-    # cell ID to latent
-    cell_id_to_latent = {}
-
-    # electrolyte ID to latent ID weight
-    lyte_to_latent = {}
-    # electrolyte ID to solvent ID weight
-    lyte_to_sol_weight = {}
-    # electrolyte ID to salt ID weight
-    lyte_to_salt_weight = {}
-    # electrolyte ID to additive ID weight
-    lyte_to_addi_weight = {}
-
-    for cell_id in cell_id_array:
-        if cell_id in dataset[Key.CELL_TO_POS].keys():
-            cell_id_to_pos_id[cell_id] = dataset[Key.CELL_TO_POS][cell_id]
-        if cell_id in dataset[Key.CELL_TO_NEG].keys():
-            cell_id_to_neg_id[cell_id] = dataset[Key.CELL_TO_NEG][cell_id]
-        if cell_id in dataset[Key.CELL_TO_LYTE].keys():
-            cell_id_to_lyte_id[cell_id] = dataset[Key.CELL_TO_LYTE][cell_id]
-        if cell_id in dataset[Key.CELL_TO_DRY].keys():
-            dry_cell_id = dataset[Key.CELL_TO_DRY][cell_id]
-            cell_id_to_dry_cell_id[cell_id] = dry_cell_id
-
-            if dry_cell_id in dataset[Key.DRY_TO_META].keys():
-                dry_cell_id_to_meta[dry_cell_id]\
-                    = dataset[Key.DRY_TO_META][dry_cell_id]
-
-        if cell_id in dataset[Key.CELL_TO_LAT].keys():
-            cell_id_to_latent[cell_id] = dataset[Key.CELL_TO_LAT][cell_id]
-
-        if cell_id_to_latent[cell_id] < 0.5:
-            lyte_id = cell_id_to_lyte_id[cell_id]
-            if lyte_id in dataset[Key.LYTE_TO_SOL].keys():
-                lyte_to_sol_weight[lyte_id] = dataset[Key.LYTE_TO_SOL][lyte_id]
-            if lyte_id in dataset[Key.LYTE_TO_SALT].keys():
-                lyte_to_salt_weight[lyte_id] = dataset[Key.LYTE_TO_SALT][
-                    lyte_id]
-            if lyte_id in dataset[Key.LYTE_TO_ADD].keys():
-                lyte_to_addi_weight[lyte_id] = dataset[Key.LYTE_TO_ADD][lyte_id]
-            if lyte_id in dataset[Key.LYTE_TO_LAT].keys():
-                lyte_to_latent[lyte_id] = dataset[Key.LYTE_TO_LAT][lyte_id]
 
     for cell_id_count, cell_id in enumerate(cell_ids):
 
@@ -249,8 +191,7 @@ def initial_processing(
                 cyc_grp_dict[k][key] = 1. / max_cap * cyc_grp_dict[k][key]
 
             # range of cycles which exist for this cycle group
-            min_cyc = min(main_data[Key.N])
-            max_cyc = max(main_data[Key.N])
+            min_cyc, max_cyc = min(main_data[Key.N]), max(main_data[Key.N])
 
             """
             - now create neighborhoods, which contains the cycles,
@@ -269,16 +210,15 @@ def initial_processing(
             delta = (
                 1.2 * (all_neigh_center_cycs[1] - all_neigh_center_cycs[0]) + 10
             )
+
             # check all tentative neighborhood centers and
             # commit the ones that contain good data to the dataset
             neigh_data = []
-
             valid_cycs = 0
             for cyc in all_neigh_center_cycs:
                 # max_cyc and min_cyc are the limits of existing cycles.
 
-                below_cyc = cyc - delta
-                above_cyc = cyc + delta
+                below_cyc, above_cyc = cyc - delta, cyc + delta
 
                 # numpy array of True and False; same length as cyc_grp_dict[k]
                 # False when cycle_number falls outside out of
@@ -327,7 +267,7 @@ def initial_processing(
                 neigh_data_i[NEIGH_MAX_CYC] = max_cyc_index
                 neigh_data_i[NEIGH_RATE] = k_count
                 neigh_data_i[NEIGH_CELL_ID] = cell_id_count
-                neigh_data_i[NEIGH_ABSOLUTE_CYC] = number_of_compiled_cycs
+                neigh_data_i[NEIGH_ABSOLUTE_CYC] = compiled_cycs_count
                 # a weight based on prevalence. Set later
                 neigh_data_i[NEIGH_VALID_CYC] = 0
                 neigh_data_i[NEIGH_SIGN_GRID] = 0
@@ -342,8 +282,7 @@ def initial_processing(
                     abs(center_cyc - reference_cycs)
                 )
 
-                neigh_data_i[NEIGH_ABSOLUTE_REFERENCE]\
-                    = number_of_reference_cycs
+                neigh_data_i[NEIGH_ABSOLUTE_REFERENCE] = reference_cycs_count
                 neigh_data_i[NEIGH_REFERENCE] = index_of_closest_reference
 
                 neigh_data.append(neigh_data_i)
@@ -357,8 +296,8 @@ def initial_processing(
 
                 numpy_acc(compiled_data, Key.NEIGH_DATA, neigh_data)
 
-            number_of_compiled_cycs += len(main_data[Key.N])
-            number_of_reference_cycs += len(all_data[Key.REF_ALL_MATS][Key.N])
+            compiled_cycs_count += len(main_data[Key.N])
+            reference_cycs_count += len(all_data[Key.REF_ALL_MATS][Key.N])
 
             dict_to_acc = {
                 Key.REF_CYC: all_data[Key.REF_ALL_MATS][Key.N],
@@ -399,23 +338,19 @@ def initial_processing(
     for label in labels:
         compiled_tensors[label] = tf.constant(compiled_data[label])
 
-    batch_size = options[Key.BATCH]
-
     with strategy.scope():
-        train_ds_ = tf.data.Dataset.from_tensor_slices(
-            neigh_data
-        ).repeat(2).shuffle(100000).batch(batch_size)
-
-        train_ds = strategy.experimental_distribute_dataset(train_ds_)
+        train_ds = strategy.experimental_distribute_dataset(
+            tf.data.Dataset.from_tensor_slices(
+                neigh_data
+            ).repeat(2).shuffle(100000).batch(options[Key.BATCH])
+        )
 
         degradation_model = DegradationModel(
             width = options[Key.WIDTH],
             depth = options[Key.DEPTH],
             n_sample = options[Key.N_SAMPLE],
             options = options,
-            cell_dict = id_dict_from_id_list(cell_id_array),
-            cell_latent_flags = cell_id_to_latent,
-            min_latent = options[Key.MIN_LAT],
+            cell_dict = id_dict_from_id_list(np.array(cell_ids)),
         )
 
         optimizer = tf.keras.optimizers.Adam(
@@ -731,11 +666,7 @@ def train_step(neigh, params: dict, options: dict):
     )
 
     return tf.stack(
-        [
-            cc_capacity_loss,
-            cv_capacity_loss,
-            train_results[Key.Loss.Q],
-        ],
+        [cc_capacity_loss, cv_capacity_loss, train_results[Key.Loss.Q]],
     )
 
 
@@ -749,11 +680,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
 
-        required_args = [
-            Key.PATH_DATASET,
-            Key.DATA_VERSION,
-            Key.PATH_PLOTS,
-        ]
+        required_args = [Key.PATH_DATASET, Key.DATA_VERSION, Key.PATH_PLOTS]
 
         float_args = {
             Key.GLB_NORM_CLIP: 10.,
@@ -790,9 +717,9 @@ class Command(BaseCommand):
             Key.COEFF_Q_DER_N: 0.,
 
             Key.FF_SIGMA: 0.08,
-            Key.FF_SIGMA_CYC: 1.,
-            Key.FF_SIGMA_V: 2.,
-            Key.FF_SIGMA_I: 1.,
+            Key.FF_SIGMA_CYC: 1.5,
+            Key.FF_SIGMA_V: 1.2,
+            Key.FF_SIGMA_I: .5,
         }
 
         vis = 1000

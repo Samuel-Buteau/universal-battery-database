@@ -62,8 +62,7 @@ class DegradationModel(Model):
     """
 
     def __init__(
-        self, depth, width, n_sample, options, cell_dict, cell_latent_flags,
-        n_channels = 16, min_latent = 0.1,
+        self, depth, width, n_sample, options, cell_dict, n_channels = 16,
     ):
         """
         Args:
@@ -75,8 +74,7 @@ class DegradationModel(Model):
         self.options = options  # incentive coefficients
         self.feature_count = width  # number of features
 
-        # feedforward neural network for capacity
-        self.nn_q = feedforward_nn_parameters(depth, width, finalize = True)
+        self.fnn_q = feedforward_nn_parameters(depth, width, finalize = True)
 
         self.cell_direct = PrimitiveDictionaryLayer(
             num_feats = self.feature_count, id_dict = cell_dict,
@@ -92,15 +90,8 @@ class DegradationModel(Model):
         self.sigma_voltage = options[Key.FF_SIGMA_V]
         self.sigma_current = options[Key.FF_SIGMA_I]
         self.d, self.f = 3, 32
-        random_matrix = np.random.normal(0, self.sigma, (self.d, self.f))
-        random_matrix[0, :] *= self.sigma_cycle
-        random_matrix[1, :] *= self.sigma_voltage
-        random_matrix[2, :] *= self.sigma_current
 
-        self.random_gaussian_matrix = 2 * np.pi * tf.constant(
-            random_matrix,
-            dtype = tf.float32,
-        )
+        self.random_gaussian_matrix = self.build_random_matrix()
 
     def call(self, call_params: dict, training = False) -> dict:
         """ Call function for the Model during training or evaluation.
@@ -213,6 +204,13 @@ class DegradationModel(Model):
             feats_cell += self.cell_direct.sample_epsilon * eps
 
         return feats_cell
+
+    def build_random_matrix(self):
+        random_matrix = np.random.normal(0, self.sigma, (self.d, self.f))
+        random_matrix[0, :] *= self.sigma_cycle
+        random_matrix[1, :] *= self.sigma_voltage
+        random_matrix[2, :] *= self.sigma_current
+        return 2 * np.pi * tf.constant(random_matrix, dtype = tf.float32)
 
     def sample(self, n_sample = 4 * 32):
         """ Sample from all possible values of different variables.
@@ -369,7 +367,7 @@ class DegradationModel(Model):
         else:
             dependencies = (cycle, v, feats_cell, current)
 
-        return tf.nn.elu(nn_call(self.nn_q, dependencies, training = training))
+        return tf.nn.elu(nn_call(self.fnn_q, dependencies, training = training))
 
     def q_for_derivative(self, params: dict, training = True):
         """

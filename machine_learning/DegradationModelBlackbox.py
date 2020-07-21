@@ -71,41 +71,16 @@ class DegradationModel(Model):
         """
         super(DegradationModel, self).__init__()
 
-        # minimum latent
-        self.min_latent = min_latent
-
-        # TODO(harvey): decide the style of "number of x" for the whole project
-        # number of samples
-        self.n_sample = n_sample
-        # incentive coefficients
-        self.options = options
-
-        # TODO(harvey): decide the style of "number of x" for the whole project
-        # number of features
-        self.num_feats = width
+        self.sample_count = n_sample  # number of samples
+        self.options = options  # incentive coefficients
+        self.feature_count = width  # number of features
 
         # feedforward neural network for capacity
         self.nn_q = feedforward_nn_parameters(depth, width, finalize = True)
 
         self.cell_direct = PrimitiveDictionaryLayer(
-            num_feats = self.num_feats, id_dict = cell_dict,
+            num_feats = self.feature_count, id_dict = cell_dict,
         )
-
-        self.num_keys = self.cell_direct.num_keys
-
-        # cell_latent_flags is a dict with cell_ids as keys.
-        # latent_flags is a numpy array such that the indecies match cell_dict
-        latent_flags = np.ones(
-            (self.cell_direct.num_keys, 1), dtype = np.float32,
-        )
-
-        for cell_id in self.cell_direct.id_dict.keys():
-            if cell_id in cell_latent_flags.keys():
-                latent_flags[
-                    self.cell_direct.id_dict[cell_id], 0,
-                ] = cell_latent_flags[cell_id]
-
-        self.cell_latent_flags = tf.constant(latent_flags)
 
         self.width = width
         self.n_channels = n_channels
@@ -187,7 +162,7 @@ class DegradationModel(Model):
             Key.COUNT_MATRIX: count_matrix,
         }
 
-        assert_current_sign(call_params, current_tensor)
+        # assert_current_sign(call_params, current_tensor)
 
         cc_capacity = self.cc_capacity(capacity_params, training = training)
         pred_cc_capacity = tf.reshape(cc_capacity, [-1, voltage_count])
@@ -201,7 +176,7 @@ class DegradationModel(Model):
         }
 
         if training:
-            samples = self.sample(n_sample = self.n_sample)
+            samples = self.sample(n_sample = self.sample_count)
 
             q, q_der = create_derivatives(
                 self.q_for_derivative,
@@ -233,7 +208,7 @@ class DegradationModel(Model):
 
         if sample:
             eps = tf.random.normal(
-                shape = [feats_cell.shape[0], self.num_feats],
+                shape = [feats_cell.shape[0], self.feature_count],
             )
             feats_cell += self.cell_direct.sample_epsilon * eps
 

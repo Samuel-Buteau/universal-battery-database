@@ -202,9 +202,8 @@ class DegradationModel(Model):
 
         if training:
             (
-                sampled_vs, sampled_qs, sampled_cycles,
-                sampled_constant_current, sampled_feats_cell,
-                sampled_svit_grid, sampled_count_matrix,
+                sampled_vs, sampled_cycles, sampled_constant_current,
+                sampled_feats_cell,
             ) = self.sample(
                 svit_grid, batch_count, count_matrix, n_sample = self.n_sample,
             )
@@ -265,9 +264,6 @@ class DegradationModel(Model):
         sampled_vs = tf.random.uniform(
             minval = 2.5, maxval = 5., shape = [n_sample, 1],
         )
-        sampled_qs = tf.random.uniform(
-            minval = -.25, maxval = 1.25, shape = [n_sample, 1],
-        )
         sampled_cycles = tf.random.uniform(
             minval = -.1, maxval = 5., shape = [n_sample, 1],
         )
@@ -301,26 +297,9 @@ class DegradationModel(Model):
         )
         sampled_feats_cell = tf.stop_gradient(sampled_feats_cell)
 
-        sampled_svit_grid = tf.gather(
-            svit_grid,
-            indices = tf.random.uniform(
-                minval = 0, maxval = batch_count,
-                shape = [n_sample], dtype = tf.int32,
-            ),
-            axis = 0,
-        )
-        sampled_count_matrix = tf.gather(
-            count_matrix,
-            indices = tf.random.uniform(
-                minval = 0, maxval = batch_count,
-                shape = [n_sample], dtype = tf.int32,
-            ),
-            axis = 0,
-        )
-
         return (
-            sampled_vs, sampled_qs, sampled_cycles, sampled_constant_current,
-            sampled_feats_cell, sampled_svit_grid, sampled_count_matrix,
+            sampled_vs, sampled_cycles, sampled_constant_current,
+            sampled_feats_cell,
         )
 
     def cc_capacity(self, params: dict, training = True):

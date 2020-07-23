@@ -7,7 +7,7 @@ from colorful.fields import RGBColorField
 
 from constants import *
 from django.db.models.functions import Coalesce
-
+import django.utils.timezone
 
 def decode_lot_string(s):
 
@@ -2055,3 +2055,21 @@ class DatasetSpecificFilters(models.Model):
 
 
         return rule
+
+import pickle
+import base64
+
+class MyCache(models.Model):
+    name = models.CharField(null=False, primary_key=True, max_length=100)
+    cache = models.BinaryField(null = True, max_length=10*1024*1024)
+    write_time = models.DateTimeField()
+
+    def get_cache(self):
+        return pickle.loads(base64.decodebytes(self.cache))
+
+    def set_cache(self, cache):
+        np_bytes = pickle.dumps(cache)
+        np_base64 = base64.b64encode(np_bytes)
+        self.cache = np_base64
+        self.write_time = django.utils.timezone.now()
+

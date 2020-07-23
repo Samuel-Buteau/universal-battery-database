@@ -4,6 +4,7 @@ from .models import *
 from django.forms import BaseModelFormSet
 from django.db.models import Q
 from django.core.exceptions import ValidationError
+import django.utils.timezone
 
 def molecule_choices(none=True):
     return make_choices(
@@ -46,6 +47,44 @@ def dry_cell_choices(none=True):
             no_lots=DryCell.objects.all(),
             lots=DryCellLot.objects.exclude(lot_info__isnull=True)
         )
+
+def dry_cell_choices_exists(none=True, force=False):
+    actual_choice = lambda : make_choices(
+                    none=none,
+                    no_lots=DryCell.objects.exclude(notes="Box Does Not Exist"),
+                    lots=DryCellLot.objects.exclude(lot_info__isnull=True).exclude(dry_cell__notes="Box Does Not Exist")
+                )
+    name = 'dry_cell_choices_exists'
+    if not force:
+        now = django.utils.timezone.now()
+        mycaches = MyCache.objects.filter(name=name)
+        if mycaches.exists():
+            print('existed')
+            mycache = mycaches[0]
+            if (now - mycache.write_time).total_seconds() > 600:
+                print('was old')
+                choices = actual_choice()
+                mycache.set_cache(choices)
+                mycache.save()
+                return choices
+            else:
+                print('was young')
+                return mycache.get_cache()
+        else:
+            print('did not exist')
+            choices = actual_choice()
+            mycache = MyCache(name=name)
+            mycache.set_cache(choices)
+            mycache.save()
+            return choices
+    else:
+        print('forced')
+        choices = actual_choice()
+        mycache = MyCache.objects.get_or_create(name=name)
+        mycache.set_cache(choices)
+        mycache.save()
+        return choices
+
 
 
 class DeleteForm(forms.Form):
@@ -430,7 +469,7 @@ class DryCellGeometryForm(ModelForm):
 class WetCellForm(Form):
     cell_id = forms.IntegerField(required=False)
     dry_cell = forms.ChoiceField(
-        choices=dry_cell_choices,
+        choices=dry_cell_choices_exists,
         required=False
     )
     electrolyte = forms.ChoiceField(
@@ -454,7 +493,7 @@ class WetCellParametersForm(WetCellForm):
 def initialize_mini_electrolyte(self, value=False, molecule=False, component_type=False, number=10, dry_cell=True):
     if dry_cell:
         self.fields['dry_cell'] = forms.ChoiceField(
-            choices = dry_cell_choices, required=False)
+            choices = dry_cell_choices_exists, required=False)
 
     if molecule:
         c_molecule = molecule_choices

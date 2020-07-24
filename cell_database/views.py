@@ -782,10 +782,10 @@ def define_wet_cell_bulk(request, predefined=None):
                             if lot_type == LotTypes.none:
                                 continue
                             if lot_type == LotTypes.lot :
-                                header.append({'index': i, 'molecule_lot': ComponentLot.objects.get(id=my_id), 'component_type':type_s})
+                                header.append({'index': i, 'molecule_lot': ComponentLot.objects.get(id=my_id), 'overridden_component_type':type_s})
                                 continue
                             if lot_type == LotTypes.no_lot:
-                                header.append({'index': i, 'molecule': Component.objects.get(id=my_id), 'component_type':type_s})
+                                header.append({'index': i, 'molecule': Component.objects.get(id=my_id), 'overridden_component_type':type_s})
                                 continue
 
                     for entry in bulk_entries_formset:
@@ -812,7 +812,7 @@ def define_wet_cell_bulk(request, predefined=None):
                                                     {
                                                         'component': h['molecule'],
                                                         'ratio': value,
-                                                        'component_type': h['component_type'],
+                                                        'overridden_component_type': h['overridden_component_type'],
                                                     }
                                                 )
                                             elif 'molecule_lot' in h.keys():
@@ -821,7 +821,7 @@ def define_wet_cell_bulk(request, predefined=None):
                                                     {
                                                         'component_lot':h['molecule_lot'],
                                                         'ratio': value,
-                                                        'component_type': h['component_type'],
+                                                        'overridden_component_type': h['overridden_component_type'],
                                                     }
                                                 )
 

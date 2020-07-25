@@ -77,10 +77,14 @@ class Key:
     DATA_VERSION = "dataset_version"
 
     FOUR_FEAT = "four_feat"
-    FF_SIGMA = "four_feat_sigma"
-    FF_SIGMA_CYC = "four_feat_sigma_cyc"
-    FF_SIGMA_V = "four_feat_sigma_voltage"
-    FF_SIGMA_I = "four_feat_sigma_current"
+    FF_Q_SIGMA = "four_feat_sigma_q"
+    FF_Q_SIGMA_CYC = "four_feat_sigma_cyc_q"
+    FF_Q_SIGMA_V = "four_feat_sigma_voltage_q"
+    FF_Q_SIGMA_I = "four_feat_sigma_current_q"
+    FF_V_SIGMA = "four_feat_sigma_v"
+    FF_V_SIGMA_CYC = "four_feat_sigma_cyc_v"
+    FF_V_SIGMA_V = "four_feat_sigma_voltage_v"
+    FF_V_SIGMA_I = "four_feat_sigma_current_v"
 
     GLB_NORM_CLIP = "global_norm_clip"
     LRN_RATE = "learning_rate"

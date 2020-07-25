@@ -716,10 +716,15 @@ class Command(BaseCommand):
             Key.COEFF_Q_DER_I: 0.,
             Key.COEFF_Q_DER_N: 0.,
 
-            Key.FF_SIGMA: 0.08,
-            Key.FF_SIGMA_CYC: 1.5,
-            Key.FF_SIGMA_V: 1.2,
-            Key.FF_SIGMA_I: .5,
+            Key.FF_Q_SIGMA: 0.08,
+            Key.FF_Q_SIGMA_CYC: 1.5,
+            Key.FF_Q_SIGMA_V: 1.2,
+            Key.FF_Q_SIGMA_I: .5,
+
+            Key.FF_V_SIGMA: 0.08,
+            Key.FF_V_SIGMA_CYC: 1.,
+            Key.FF_V_SIGMA_V: 1.,
+            Key.FF_V_SIGMA_I: 1.,
         }
 
         vis = 1000

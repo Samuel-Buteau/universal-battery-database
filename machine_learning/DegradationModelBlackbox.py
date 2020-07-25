@@ -49,6 +49,15 @@ def assert_current_sign(call_params, current_tensor):
     )
 
 
+# TODO(harvey): this is very much a hard-coded function not suitable for reuse
+def build_random_matrix(sigma, sigma_1, sigma_2, sigma_3, d, f):
+    random_matrix = np.random.normal(0, sigma, (d, f))
+    random_matrix[0, :] *= sigma_1
+    random_matrix[1, :] *= sigma_2
+    random_matrix[2, :] *= sigma_3
+    return 2 * np.pi * tf.constant(random_matrix, dtype = tf.float32)
+
+
 class DegradationModel(Model):
     """
     The machine learning model of the long-term cycling data in this project.
@@ -75,6 +84,7 @@ class DegradationModel(Model):
         self.feature_count = width  # number of features
 
         self.fnn_q = feedforward_nn_parameters(depth, width, finalize = True)
+        self.fnn_v = feedforward_nn_parameters(depth, width, finalize = True)
 
         self.cell_direct = PrimitiveDictionaryLayer(
             num_feats = self.feature_count, id_dict = cell_dict,
@@ -85,13 +95,23 @@ class DegradationModel(Model):
 
         self.fourier_features = bool(options[Key.FOUR_FEAT])
 
-        self.sigma = options[Key.FF_SIGMA]
-        self.sigma_cycle = options[Key.FF_SIGMA_CYC]
-        self.sigma_voltage = options[Key.FF_SIGMA_V]
-        self.sigma_current = options[Key.FF_SIGMA_I]
         self.d, self.f = 3, 32
 
-        self.random_gaussian_matrix = self.build_random_matrix()
+        self.random_matrix_q = build_random_matrix(
+            sigma = options[Key.FF_Q_SIGMA],
+            sigma_1 = options[Key.FF_Q_SIGMA_CYC],
+            sigma_2 = options[Key.FF_Q_SIGMA_V],
+            sigma_3 = options[Key.FF_Q_SIGMA_I],
+            d = self.d, f = self.f,
+        )
+
+        self.random_matrix_v = build_random_matrix(
+            sigma = options[Key.FF_V_SIGMA],
+            sigma_1 = options[Key.FF_V_SIGMA_CYC],
+            sigma_2 = options[Key.FF_V_SIGMA_V],
+            sigma_3 = options[Key.FF_V_SIGMA_I],
+            d = self.d, f = self.f,
+        )
 
     def call(self, call_params: dict, training = False) -> dict:
         """ Call function for the Model during training or evaluation.
@@ -205,13 +225,6 @@ class DegradationModel(Model):
 
         return feats_cell
 
-    def build_random_matrix(self):
-        random_matrix = np.random.normal(0, self.sigma, (self.d, self.f))
-        random_matrix[0, :] *= self.sigma_cycle
-        random_matrix[1, :] *= self.sigma_voltage
-        random_matrix[2, :] *= self.sigma_current
-        return 2 * np.pi * tf.constant(random_matrix, dtype = tf.float32)
-
     def sample(self, n_sample = 4 * 32):
         """ Sample from all possible values of different variables.
 
@@ -275,7 +288,12 @@ class DegradationModel(Model):
 
         q_0 = self.q_direct(
             cycle = params[Key.CYC],
-            v = params[Key.V_PREV_END],
+            v = self.prev_voltage_direct(
+                prev_end_current = params[Key.I_PREV_END],
+                constant_current = params[Key.I_CC],
+                prev_end_voltage = params[Key.V_END],
+                feats_cell = params[Key.CELL_FEAT],
+            ),
             feats_cell = params[Key.CELL_FEAT],
             current = params[Key.I_PREV_END],
             training = training,
@@ -356,7 +374,7 @@ class DegradationModel(Model):
             dot_product = tf.einsum(
                 'bd,df->bf',
                 input_vector,
-                self.random_gaussian_matrix,
+                self.random_matrix_q,
             )
 
             dependencies = (
@@ -366,6 +384,52 @@ class DegradationModel(Model):
             )
         else:
             dependencies = (cycle, v, feats_cell, current)
+
+        return tf.nn.elu(nn_call(self.fnn_q, dependencies, training = training))
+
+    def prev_voltage_direct(
+        self, prev_end_current, constant_current, prev_end_voltage, feats_cell,
+        training = True,
+    ):
+        """
+        Compute state of charge directly (receiving arguments directly without
+        using `params`).
+
+        Args: TODO(harvey)
+            cycle: Cycle, often Key.CYC.
+            v: Voltage
+            feats_cell: Cell features.
+            current: Current.
+            training: Flag for training or evaluation.
+                True for training; False for evaluation.
+
+        Returns:
+            Computed state of charge.
+        """
+
+        if self.fourier_features:
+            b, d, f = len(prev_end_current), self.d, self.f
+            input_vector = tf.concat(
+                [prev_end_voltage, constant_current, prev_end_voltage],
+                axis = 1,
+            )
+            dot_product = tf.einsum(
+                'bd,df->bf',
+                input_vector,
+                self.random_matrix_v,
+            )
+
+            dependencies = (
+                tf.math.sin(dot_product),
+                tf.math.cos(dot_product),
+                feats_cell,
+            )
+        else:
+            dependencies = (
+                prev_end_voltage,
+                constant_current,
+                prev_end_voltage,
+            )
 
         return tf.nn.elu(nn_call(self.fnn_q, dependencies, training = training))
 

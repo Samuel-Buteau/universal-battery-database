@@ -644,11 +644,11 @@ def train_step(neigh, params: dict, options: dict):
         )
 
         main_losses = (
-            options[Key.COEFF_Q_CV] * cv_capacity_loss
-            + options[Key.COEFF_Q_CC] * cc_capacity_loss
+            options[Key.Coeff.Q_CV] * cv_capacity_loss
+            + options[Key.Coeff.Q_CC] * cc_capacity_loss
         )
         loss = main_losses + tf.stop_gradient(main_losses) * (
-            options[Key.COEFF_Q] * train_results[Key.Loss.Q]
+            options[Key.Coeff.Q] * train_results[Key.Loss.Q]
         )
 
     gradients = tape.gradient(loss, degradation_model.trainable_variables)
@@ -688,33 +688,33 @@ class Command(BaseCommand):
             Key.LRN_RATE: 5e-4,
             Key.MIN_LAT: 1,
 
-            Key.COEFF_FEAT_CELL_DER: .001,
-            Key.COEFF_FEAT_CELL_DER2: .01,
+            Key.Coeff.FEAT_CELL_DER: .001,
+            Key.Coeff.FEAT_CELL_DER2: .01,
 
-            Key.COEFF_CELL: 1.,
-            Key.COEFF_CELL_OUT: .1,
-            Key.COEFF_CELL_IN: .1,
-            Key.COEFF_CELL_DER: .1,
-            Key.COEFF_CELL_EQ: 10.,
+            Key.Coeff.CELL: 1.,
+            Key.Coeff.CELL_OUT: .1,
+            Key.Coeff.CELL_IN: .1,
+            Key.Coeff.CELL_DER: .1,
+            Key.Coeff.CELL_EQ: 10.,
 
-            Key.COEFF_LYTE: 1.,
-            Key.COEFF_LYTE_OUT: .1,
-            Key.COEFF_LYTE_IN: .1,
-            Key.COEFF_LYTE_DER: .1,
-            Key.COEFF_LYTE_EQ: 10.,
+            Key.Coeff.LYTE: 1.,
+            Key.Coeff.LYTE_OUT: .1,
+            Key.Coeff.LYTE_IN: .1,
+            Key.Coeff.LYTE_DER: .1,
+            Key.Coeff.LYTE_EQ: 10.,
 
-            Key.COEFF_Q_CV: 1.,
-            Key.COEFF_Q_CC: 1.,
+            Key.Coeff.Q_CV: 1.,
+            Key.Coeff.Q_CC: 1.,
 
-            Key.COEFF_Q: 0.0001,
-            Key.COEFF_Q_GEQ: 1.,
-            Key.COEFF_Q_LEQ: 1.,
-            Key.COEFF_Q_V_MONO: 0.,
-            Key.COEFF_Q_DER3_V: 0.,
-            Key.COEFF_Q_DER3_I: 0.,
-            Key.COEFF_Q_DER3_N: 0.,
-            Key.COEFF_Q_DER_I: 0.,
-            Key.COEFF_Q_DER_N: 0.,
+            Key.Coeff.Q: 0.0001,
+            Key.Coeff.Q_GEQ: 1.,
+            Key.Coeff.Q_LEQ: 1.,
+            Key.Coeff.Q_V_MONO: 0.,
+            Key.Coeff.Q_DER3_V: 0.,
+            Key.Coeff.Q_DER3_I: 0.,
+            Key.Coeff.Q_DER3_N: 0.,
+            Key.Coeff.Q_DER_I: 0.,
+            Key.Coeff.Q_DER_N: 0.,
 
             Key.FF_Q_SIGMA: 0.08,
             Key.FF_Q_SIGMA_CYC: 1.5,

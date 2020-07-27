@@ -17,48 +17,48 @@ def calculate_q_loss(q, q_der, options):
     return incentive_combine([
 
         (
-            options[Key.COEFF_Q_GEQ],
+            options[Key.Coeff.Q_GEQ],
             incentive_inequality(q, Inequality.GreaterThan, 0, Level.Strong),
         ), (
-            options[Key.COEFF_Q_LEQ],
+            options[Key.Coeff.Q_LEQ],
             incentive_inequality(q, Inequality.LessThan, 1, Level.Proportional),
         ), (
-            options[Key.COEFF_Q_V_MONO],
+            options[Key.Coeff.Q_V_MONO],
             incentive_inequality(
                 q_der[Key.D_V], Inequality.GreaterThan, 0, Level.Strong,
             ),
         ), (
-            options[Key.COEFF_Q_DER3_V],
+            options[Key.Coeff.Q_DER3_V],
             incentive_magnitude(
                 q_der[Key.D3_V], Target.Small, Level.Proportional,
             ),
         ), (
-            options[Key.COEFF_Q_DER3_I],
+            options[Key.Coeff.Q_DER3_I],
             incentive_magnitude(
                 q_der[Key.D3_I], Target.Small, Level.Proportional,
             ),
         ), (
-            options[Key.COEFF_Q_DER3_N],
+            options[Key.Coeff.Q_DER3_N],
             incentive_magnitude(
                 q_der[Key.D3_CYC], Target.Small, Level.Proportional,
             ),
         ), (
-            options[Key.COEFF_Q_DER_I],
+            options[Key.Coeff.Q_DER_I],
             incentive_magnitude(
                 q_der[Key.D_I], Target.Small, Level.Proportional,
             ),
         ), (
-            options[Key.COEFF_Q_DER_N],
+            options[Key.Coeff.Q_DER_N],
             incentive_magnitude(
                 q_der[Key.D_CYC], Target.Small, Level.Proportional,
             ),
         ), (
-            options[Key.COEFF_FEAT_CELL_DER],
+            options[Key.Coeff.FEAT_CELL_DER],
             incentive_magnitude(
                 q_der[Key.D_CELL_FEAT], Target.Small, Level.Proportional,
             ),
         ), (
-            options[Key.COEFF_FEAT_CELL_DER2],
+            options[Key.Coeff.FEAT_CELL_DER2],
             incentive_magnitude(
                 q_der[Key.D2_CELL_FEAT], Target.Small, Level.Strong,
             ),

@@ -719,14 +719,14 @@ def plot_direct(target: str, plot_params: dict, init_returns: dict) -> None:
     fit_args = plot_params[Key.OPTIONS]
 
     degradation_model = init_returns[Key.MODEL]
-    my_data = init_returns[Key.DATASET]
+    dataset = init_returns[Key.DATASET]
     cycle_m = init_returns[Key.CYC_M]
     cycle_v = init_returns[Key.CYC_V]
 
     for cell_id_count, cell_id in enumerate(cell_ids):
-        compiled_groups = my_data[Key.ALL_DATA][cell_id][Key.CYC_GRP_DICT]
+        compiled_groups = dataset[Key.ALL_DATA][cell_id][Key.CYC_GRP_DICT]
         svit_and_count, keys, averages = fetch_svit_keys_averages(
-            my_data, cell_id,
+            dataset, cell_id,
         )
         model_data = (
             degradation_model, cell_id, cycle_m, cycle_v,

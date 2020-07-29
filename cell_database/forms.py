@@ -563,6 +563,7 @@ class SearchElectrolyteForm(Form):
     notes1 = forms.CharField(required=False)
     notes2 = forms.CharField(required=False)
     notes3 = forms.CharField(required=False)
+    only_wet_cell_electrolytes = forms.BooleanField(required=False)
 
 
 class SearchElectrolyteComponentForm(Form):
@@ -643,6 +644,7 @@ class SearchDryCellForm(Form):
         required=False
     )
     separator_exclude_missing = forms.BooleanField(initial=False, required=False)
+    only_wet_cell_dry_cells = forms.BooleanField(required=False)
 
 class PageNumberForm(Form):
     page_number = forms.IntegerField(initial=1, required=False)

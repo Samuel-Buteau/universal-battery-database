@@ -9,8 +9,9 @@ import re
 
 from cell_database.dataset_visualization import *
 from django.db.models.functions import Coalesce
-
-
+from filename_database.models import DatabaseFile
+from cycling.forms import SearchCellByValidMetadataForm, CellIDOverviewFormset
+from cycling.neware_processing_functions import full_import_cell_ids
 def conditional_register(ar, name, content):
     if name not in ar.keys():
         ar[name] = content
@@ -1257,53 +1258,314 @@ def get_box_id_query(search_dry_cell, perspective='wet_cell'):
             q = q | test[perspective](bid)
         return q, True
 
-def get_cell_id_dataset_query(search_dataset_membership):
-    if search_dataset_membership.is_valid():
-        dataset = search_dataset_membership.cleaned_data['dataset']
+def get_cell_id_dataset_query(search_cell_by_valid_metadata_form, perspective='wet_cell'):
+
+    test_exact = {
+        'wet_cell': lambda dataset: Q(dataset__id=dataset.id),
+        'database_file': lambda dataset: Q(valid_metadata__cell_id__in = dataset.wet_cells.values_list("cell_id", flat=True)),
+    }
+
+    if search_cell_by_valid_metadata_form.is_valid():
+        dataset = search_cell_by_valid_metadata_form.cleaned_data['dataset']
     if dataset is None:
         return Q(), False
     else:
-        return Q(dataset__id=dataset.id), True
+        return test_exact[perspective](dataset), True
 
 
-def get_cell_id_query(search_cell_id_range, perspective='wet_cell'):
-    test2 = {
-        'wet_cell': lambda my_min, my_max:  Q(cell_id__range=(my_min, my_max)),
-    }
-    test1 = {
-        'wet_cell': lambda ex: Q(cell_id=ex),
-    }
-    if search_cell_id_range.is_valid():
-        cell_id_min_1 = search_cell_id_range.cleaned_data["cell_id_min_1"]
-        cell_id_max_1 = search_cell_id_range.cleaned_data["cell_id_max_1"]
-        cell_id_min_2 = search_cell_id_range.cleaned_data["cell_id_min_2"]
-        cell_id_max_2 = search_cell_id_range.cleaned_data["cell_id_max_2"]
-        cell_id_min_3 = search_cell_id_range.cleaned_data["cell_id_min_3"]
-        cell_id_max_3 = search_cell_id_range.cleaned_data["cell_id_max_3"]
 
-
-    cell_ids = []
-    for my_min,my_max in [(cell_id_min_1, cell_id_max_1), (cell_id_min_2, cell_id_max_2), (cell_id_min_3, cell_id_max_3)]:
-        if my_min is not None and my_max is not None:
-            cell_ids.append(
-                ('test2', (my_min, my_max))
-            )
-        if my_min is not None and my_max is None:
-            cell_ids.append(
-                ('test1', my_min)
-            )
+def get_cell_id_query(search_cell_by_valid_metadata_form, perspective='wet_cell'):
     q = Q()
-    if len(cell_ids) == 0:
+    test_exact = {
+        'wet_cell': lambda val: Q(
+                cell_id
+                =val
+            ),
+        'database_file': lambda val:Q(
+                valid_metadata__cell_id
+                =val
+            ),
+    }
+    test_min = {
+        'wet_cell': lambda val:Q(
+                    cell_id__gte
+                    =val
+                ),
+        'database_file': lambda val:Q(
+                    valid_metadata__cell_id__gte
+                    =val
+                ),
+    }
+    test_max = {
+        'wet_cell': lambda val:Q(
+                    cell_id__lte
+                    =val
+                ),
+        'database_file': lambda val:Q(
+                    valid_metadata__cell_id__lte
+                    =val
+                ),
+    }
+    test_min_max = {
+        'wet_cell': lambda min_val, max_val: Q(
+            cell_id__range
+            =(min_val, max_val)
+        ),
+        'database_file': lambda min_val, max_val:  Q(
+            valid_metadata__cell_id__range
+            = (min_val, max_val)
+
+        ),
+    }
+
+
+    if search_cell_by_valid_metadata_form.is_valid():
+        cell_id_exact = search_cell_by_valid_metadata_form.cleaned_data["cell_id_exact"]
+        cell_id_min = search_cell_by_valid_metadata_form.cleaned_data["cell_id_minimum"]
+        cell_id_max = search_cell_by_valid_metadata_form.cleaned_data["cell_id_maximum"]
+    if cell_id_exact is None and cell_id_min is None and cell_id_max is None:
         return q, False
+
+    if cell_id_exact is not None:
+        q = q & test_exact[perspective](
+            cell_id_exact
+        )
     else:
-        for lab, t in cell_ids:
-            if lab == 'test2':
-                my_min, my_max = t
-                q = q | test2[perspective](my_min, my_max)
-            if lab == 'test1':
-                ex = t
-                q = q | test1[perspective](ex)
-        return q, True
+        if (
+                cell_id_min
+                is not None
+                and cell_id_max
+                is not None
+        ):
+            q = q & test_min_max[perspective](
+                cell_id_min,
+                cell_id_max
+            )
+        elif (
+                cell_id_min
+                is None
+                and cell_id_max
+                is not None
+        ):
+            q = q & test_max[perspective](
+                cell_id_max
+            )
+        elif (
+                cell_id_min
+                is not None
+                and cell_id_max
+                is None
+        ):
+            q = q & test_min[perspective](
+                cell_id_min
+            )
+
+    return q, True
+
+
+
+def get_valid_cell_id_query(search_cell_by_valid_metadata_form):
+    exp_type = filename_database.models.ExperimentType.objects.get(
+        category=filename_database.models.Category.objects.get(
+            name="cycling"
+        ),
+        subcategory
+        =filename_database.models.SubCategory.objects.get(
+            name="neware"
+        )
+    )
+
+    q = Q(is_valid=True) & ~Q(valid_metadata=None) & Q(
+        valid_metadata__experiment_type=exp_type
+    )
+    dataset_q, use_dataset_q = get_cell_id_dataset_query(search_cell_by_valid_metadata_form,
+                                                         perspective='database_file')
+    if use_dataset_q:
+        q = q & dataset_q
+
+    def test_existance(lab):
+        return lab in search_cell_by_valid_metadata_form.cleaned_data.keys() and \
+               search_cell_by_valid_metadata_form.cleaned_data[lab] is not None and \
+               search_cell_by_valid_metadata_form.cleaned_data[lab] != ''
+
+    def test_existance_no_str(lab):
+        return lab in search_cell_by_valid_metadata_form.cleaned_data.keys() and \
+               search_cell_by_valid_metadata_form.cleaned_data[lab] is not None
+
+    if test_existance("filename1"):
+        q = q & Q(
+            filename__icontains
+            =search_cell_by_valid_metadata_form.cleaned_data["filename1"]
+        )
+    if test_existance("filename2"):
+        q = q & Q(
+            filename__icontains
+            =search_cell_by_valid_metadata_form.cleaned_data["filename2"]
+        )
+    if test_existance("filename3"):
+        q = q & Q(
+            filename__icontains
+            =search_cell_by_valid_metadata_form.cleaned_data["filename3"]
+        )
+
+    if test_existance("root1"):
+        q = q & Q(
+            root__icontains
+            =search_cell_by_valid_metadata_form.cleaned_data["root1"]
+        )
+    if test_existance("root2"):
+        q = q & Q(
+            root__icontains
+            =search_cell_by_valid_metadata_form.cleaned_data["root2"]
+        )
+    if test_existance("root3"):
+        q = q & Q(
+            root__icontains
+            =search_cell_by_valid_metadata_form.cleaned_data["root3"]
+        )
+
+    if test_existance("charID_exact"):
+        q = q & Q(
+            valid_metadata__charID
+            =search_cell_by_valid_metadata_form.cleaned_data["charID_exact"]
+        )
+
+    cell_id_q, use_cell_id_q = get_cell_id_query(search_cell_by_valid_metadata_form, perspective='database_file')
+    if use_cell_id_q:
+        q = q & cell_id_q
+
+    if test_existance_no_str("voltage_exact") or test_existance_no_str("voltage_minimum") or test_existance_no_str(
+            "voltage_maximum"):
+        if search_cell_by_valid_metadata_form.cleaned_data["voltage_exact"] is not None:
+            q = q & Q(
+                valid_metadata__voltage=search_cell_by_valid_metadata_form.cleaned_data[
+                    "voltage_exact"]
+            )
+        else:
+            if (
+                    search_cell_by_valid_metadata_form.cleaned_data["voltage_minimum"]
+                    is not None
+                    and search_cell_by_valid_metadata_form.cleaned_data["voltage_maximum"]
+                    is not None
+            ):
+                q = q & Q(
+                    valid_metadata__voltage__range=(
+                        search_cell_by_valid_metadata_form.cleaned_data["voltage_minimum"],
+                        search_cell_by_valid_metadata_form.cleaned_data["voltage_maximum"],
+                    )
+                )
+            elif (
+                    search_cell_by_valid_metadata_form.cleaned_data["voltage_minimum"]
+                    is None
+                    and search_cell_by_valid_metadata_form.cleaned_data["voltage_maximum"]
+                    is not None
+            ):
+                q = q & Q(
+                    valid_metadata__voltage__lte
+                    =search_cell_by_valid_metadata_form.cleaned_data["voltage_maximum"]
+                )
+            elif (
+                    search_cell_by_valid_metadata_form.cleaned_data["voltage_minimum"]
+                    is not None
+                    and search_cell_by_valid_metadata_form.cleaned_data["voltage_maximum"]
+                    is None
+            ):
+                q = q & Q(
+                    valid_metadata__voltage__gte
+                    =search_cell_by_valid_metadata_form.cleaned_data["voltage_minimum"]
+                )
+
+    if test_existance_no_str("temperature_exact") or test_existance_no_str(
+            "temperature_minimum") or test_existance_no_str("temperature_maximum"):
+        if (
+                search_cell_by_valid_metadata_form.cleaned_data["temperature_exact"]
+                is not None
+        ):
+            q = q & Q(
+                valid_metadata__temperature
+                =search_cell_by_valid_metadata_form.cleaned_data["temperature_exact"]
+            )
+        else:
+            if (
+                    search_cell_by_valid_metadata_form.cleaned_data["temperature_minimum"]
+                    is not None
+                    and search_cell_by_valid_metadata_form.cleaned_data["temperature_maximum"]
+                    is not None
+            ):
+                q = q & Q(
+                    valid_metadata__temperature__range=(
+                        search_cell_by_valid_metadata_form.cleaned_data[
+                            "temperature_minimum"
+                        ],
+                        search_cell_by_valid_metadata_form.cleaned_data[
+                            "temperature_maximum"
+                        ],
+                    )
+                )
+            elif (
+                    search_cell_by_valid_metadata_form.cleaned_data["temperature_minimum"]
+                    is None
+                    and search_cell_by_valid_metadata_form.cleaned_data["temperature_maximum"]
+                    is not None
+            ):
+                q = q & Q(
+                    valid_metadata__temperature__lte
+                    =search_cell_by_valid_metadata_form.cleaned_data[
+                        "temperature_maximum"
+                    ]
+                )
+            elif (
+                    search_cell_by_valid_metadata_form.cleaned_data["temperature_minimum"]
+                    is not None
+                    and search_cell_by_valid_metadata_form.cleaned_data["temperature_maximum"]
+                    is None
+            ):
+                q = q & Q(
+                    valid_metadata__temperature__gte
+                    =search_cell_by_valid_metadata_form.cleaned_data[
+                        "temperature_minimum"
+                    ]
+                )
+
+    if test_existance_no_str("date_exact") or test_existance_no_str("date_minimum") or test_existance_no_str(
+            "date_maximum"):
+        if search_cell_by_valid_metadata_form.cleaned_data["date_exact"] is not None:
+            q = q & Q(
+                valid_metadata__date
+                =search_cell_by_valid_metadata_form.cleaned_data["date_exact"]
+            )
+        else:
+            if (
+                    search_cell_by_valid_metadata_form.cleaned_data["date_minimum"] is not None
+                    and
+                    search_cell_by_valid_metadata_form.cleaned_data["date_maximum"] is not None
+            ):
+                q = q & Q(valid_metadata__date__range=(
+                    search_cell_by_valid_metadata_form.cleaned_data["date_minimum"],
+                    search_cell_by_valid_metadata_form.cleaned_data["date_maximum"]))
+            elif (
+                    search_cell_by_valid_metadata_form.cleaned_data["date_minimum"] is None
+                    and
+                    search_cell_by_valid_metadata_form.cleaned_data["date_maximum"] is not None
+            ):
+                q = q & Q(
+                    valid_metadata__date__lte
+                    =search_cell_by_valid_metadata_form.cleaned_data["date_maximum"]
+                )
+            elif (
+                    search_cell_by_valid_metadata_form.cleaned_data["date_minimum"] is not None
+                    and search_cell_by_valid_metadata_form.cleaned_data["date_maximum"] is None
+            ):
+                q = q & Q(
+                    valid_metadata__date__gte
+                    =search_cell_by_valid_metadata_form.cleaned_data["date_minimum"]
+                )
+
+    total_query = DatabaseFile.objects.filter(q).order_by(
+        "valid_metadata__cell_id").values_list(
+        "valid_metadata__cell_id", flat=True
+    ).distinct()
+    return total_query
 
 
 #TODO(sam): share across applications
@@ -1423,83 +1685,14 @@ def search_page(request):
         electrolyte_composition_formset, search_electrolyte_form, proceed_electrolyte = get_electrolyte_forms(ar, request.POST)
         # dry cell
         search_dry_cell, dry_cell_scalars, proceed_dry_cell = get_dry_cell_forms(ar, request.POST)
-        search_cell_id_range = SearchCellIDRangesForm(request.POST, prefix='search-cell-id-range')
-        search_dataset_membership = DatasetForm(request.POST, prefix='search-dataset-membership')
 
-        if search_cell_id_range.is_valid():
-            ar['search_cell_id_range'] = search_cell_id_range
+        search_cell_by_valid_metadata_form = SearchCellByValidMetadataForm(request.POST,
+                                                                           prefix='search-cell-by-valid-metadata-form')
 
-        if search_dataset_membership.is_valid():
-            ar['search_dataset_membership'] = search_dataset_membership
+        if search_cell_by_valid_metadata_form.is_valid():
+            ar["search_cell_by_valid_metadata_form"] = search_cell_by_valid_metadata_form
 
-        if 'preview_dry_cell' in request.POST:
-            if proceed_dry_cell:
-                total_query = get_preview_dry_cells(search_dry_cell, dry_cell_scalars)
-                dry_cell_page_number = 1
-                dry_cell_page_form = PageNumberForm(request.POST, prefix='dry-cell-page-form')
-                if dry_cell_page_form.is_valid():
-                    dry_cell_page_number = dry_cell_page_form.cleaned_data['page_number']
-                min_i, max_i, dry_cell_max_page_number, dry_cell_page_number = focus_on_page(dry_cell_page_number, total_query.count(),
-                                                                           number_per_page=20)
-                dry_cell_page_form.set_page_number(dry_cell_page_number)
-                ar["dry_cell_max_page_number"] = dry_cell_max_page_number
-                ar["dry_cell_page_number"] = dry_cell_page_number
-                if dry_cell_page_form.is_valid():
-                    ar['dry_cell_page_form'] = dry_cell_page_form
-
-                preview_dry_cells =  [dry_cell.__str__() for dry_cell in total_query[min_i:max_i]]
-
-                ar['preview_dry_cells'] = preview_dry_cells
-
-        if 'preview_dry_cell_lot' in request.POST:
-            if proceed_dry_cell:
-                dry_cell_query = get_preview_dry_cells(search_dry_cell, dry_cell_scalars)
-                box_id_query,_ = get_box_id_query(
-                    search_dry_cell,
-                    perspective='dry_cell_lot',
-                )
-                total_query = DryCellLot.objects.filter(
-                    box_id_query,
-                    dry_cell__in=dry_cell_query,
-
-                )
-
-                dry_cell_page_number = 1
-                dry_cell_page_form = PageNumberForm(request.POST, prefix='dry-cell-page-form')
-                if dry_cell_page_form.is_valid():
-                    dry_cell_page_number = dry_cell_page_form.cleaned_data['page_number']
-                min_i, max_i, dry_cell_max_page_number, dry_cell_page_number = focus_on_page(dry_cell_page_number, total_query.count(),
-                                                                           number_per_page=20)
-                dry_cell_page_form.set_page_number(dry_cell_page_number)
-                ar["dry_cell_max_page_number"] = dry_cell_max_page_number
-                ar["dry_cell_page_number"] = dry_cell_page_number
-                if dry_cell_page_form.is_valid():
-                    ar['dry_cell_page_form'] = dry_cell_page_form
-
-                preview_dry_cell_lots =  [dry_cell_lot.__str__() for dry_cell_lot in total_query[min_i:max_i]]
-
-                ar['preview_dry_cell_lots'] = preview_dry_cell_lots
-
-        if 'preview_electrolyte' in request.POST:
-            if proceed_electrolyte:
-                total_query = get_preview_electrolytes(search_electrolyte_form, electrolyte_composition_formset)
-
-                electrolyte_page_number = 1
-                electrolyte_page_form = PageNumberForm(request.POST, prefix='electrolyte-page-form')
-                if electrolyte_page_form.is_valid():
-                    electrolyte_page_number = electrolyte_page_form.cleaned_data['page_number']
-                min_i, max_i, electrolyte_max_page_number, electrolyte_page_number = focus_on_page(electrolyte_page_number, total_query.count(),
-                                                                           number_per_page=20)
-                electrolyte_page_form.set_page_number(electrolyte_page_number)
-                ar["electrolyte_max_page_number"] = electrolyte_max_page_number
-                ar["electrolyte_page_number"] = electrolyte_page_number
-                if electrolyte_page_form.is_valid():
-                    ar['electrolyte_page_form'] = electrolyte_page_form
-                preview_electrolytes =  [electrolyte.__str__() for electrolyte in total_query[min_i:max_i]]
-
-                ar['preview_electrolytes'] = preview_electrolytes
-
-        if 'preview_wet_cell' in request.POST:
+        def get_wet_cells():
             if proceed_electrolyte and proceed_dry_cell:
 
                 electrolyte_query = get_preview_electrolytes(
@@ -1515,22 +1708,130 @@ def search_page(request):
                     search_dry_cell
                 )
 
-                cell_id_query, _ = get_cell_id_query(
-                    search_cell_id_range
-                )
-                cell_id_dataset_query, _ = get_cell_id_dataset_query(
-                    search_dataset_membership
-                )
+                if not search_cell_by_valid_metadata_form.cleaned_data['only_valid_cells']:
+                    cell_id_query, _ = get_cell_id_query(
+                        search_cell_by_valid_metadata_form
+                    )
+                    cell_id_dataset_query, _ = get_cell_id_dataset_query(
+                        search_cell_by_valid_metadata_form
+                    )
 
-                wet_cell_query = WetCell.objects.filter(
-                    box_id_query,
-                    cell_id_query,
-                    cell_id_dataset_query,
-                    electrolyte__composite__in=electrolyte_query,
-                    dry_cell__dry_cell__in=dry_cell_query,
+                    wet_cell_query = WetCell.objects.filter(
+                        box_id_query,
+                        cell_id_query,
+                        cell_id_dataset_query,
+                        electrolyte__composite__in=electrolyte_query,
+                        dry_cell__dry_cell__in=dry_cell_query,
 
 
-                )
+                    )
+                else:
+                    valid_cell_id_query = get_valid_cell_id_query(search_cell_by_valid_metadata_form)
+
+                    wet_cell_query = WetCell.objects.filter(
+                        box_id_query,
+                        cell_id__in=valid_cell_id_query,
+                        electrolyte__composite__in=electrolyte_query,
+                        dry_cell__dry_cell__in=dry_cell_query,
+                    )
+                return wet_cell_query
+
+        if 'preview_dry_cell' in request.POST:
+            if proceed_dry_cell:
+                if search_dry_cell.cleaned_data['only_wet_cell_dry_cells']:
+                    if proceed_electrolyte and proceed_dry_cell:
+                        wet_cell_query = get_wet_cells()
+                        total_query = wet_cell_query.values_list('dry_cell__dry_cell', flat=True).distinct().order_by('dry_cell__dry_cell')
+                else:
+                    total_query = get_preview_dry_cells(search_dry_cell, dry_cell_scalars)
+                dry_cell_page_number = 1
+                dry_cell_page_form = PageNumberForm(request.POST, prefix='dry-cell-page-form')
+                if dry_cell_page_form.is_valid():
+                    dry_cell_page_number = dry_cell_page_form.cleaned_data['page_number']
+                min_i, max_i, dry_cell_max_page_number, dry_cell_page_number = focus_on_page(dry_cell_page_number, total_query.count(),
+                                                                           number_per_page=20)
+                dry_cell_page_form.set_page_number(dry_cell_page_number)
+                ar["dry_cell_max_page_number"] = dry_cell_max_page_number
+                ar["dry_cell_page_number"] = dry_cell_page_number
+                if dry_cell_page_form.is_valid():
+                    ar['dry_cell_page_form'] = dry_cell_page_form
+
+                if search_dry_cell.cleaned_data['only_wet_cell_dry_cells']:
+                    preview_dry_cells = [DryCell.objects.get(id=dry_cell).__str__() for dry_cell in total_query[min_i:max_i]]
+                else:
+                    preview_dry_cells =  [dry_cell.__str__() for dry_cell in total_query[min_i:max_i]]
+
+                ar['preview_dry_cells'] = preview_dry_cells
+
+        if 'preview_dry_cell_lot' in request.POST:
+            if proceed_dry_cell:
+                if search_dry_cell.cleaned_data['only_wet_cell_dry_cells']:
+                    if proceed_electrolyte and proceed_dry_cell:
+                        wet_cell_query = get_wet_cells()
+                        total_query = wet_cell_query.values_list('dry_cell', flat=True).distinct().order_by('dry_cell')
+                else:
+                    dry_cell_query = get_preview_dry_cells(search_dry_cell, dry_cell_scalars)
+                    box_id_query,_ = get_box_id_query(
+                        search_dry_cell,
+                        perspective='dry_cell_lot',
+                    )
+                    total_query = DryCellLot.objects.filter(
+                        box_id_query,
+                        dry_cell__in=dry_cell_query,
+
+                    )
+
+                dry_cell_page_number = 1
+                dry_cell_page_form = PageNumberForm(request.POST, prefix='dry-cell-page-form')
+                if dry_cell_page_form.is_valid():
+                    dry_cell_page_number = dry_cell_page_form.cleaned_data['page_number']
+                min_i, max_i, dry_cell_max_page_number, dry_cell_page_number = focus_on_page(dry_cell_page_number, total_query.count(),
+                                                                           number_per_page=20)
+                dry_cell_page_form.set_page_number(dry_cell_page_number)
+                ar["dry_cell_max_page_number"] = dry_cell_max_page_number
+                ar["dry_cell_page_number"] = dry_cell_page_number
+                if dry_cell_page_form.is_valid():
+                    ar['dry_cell_page_form'] = dry_cell_page_form
+
+
+                if search_dry_cell.cleaned_data['only_wet_cell_dry_cells']:
+                    preview_dry_cell_lots = [DryCellLot.objects.get(id=dry_cell_lot).__str__() for dry_cell_lot in total_query[min_i:max_i]]
+                else:
+                    preview_dry_cell_lots =  [dry_cell_lot.__str__() for dry_cell_lot in total_query[min_i:max_i]]
+
+                ar['preview_dry_cell_lots'] = preview_dry_cell_lots
+
+        if 'preview_electrolyte' in request.POST:
+
+            if proceed_electrolyte:
+                if search_electrolyte_form.cleaned_data['only_wet_cell_electrolytes']:
+                    if proceed_electrolyte and proceed_dry_cell:
+                        wet_cell_query = get_wet_cells()
+                        total_query = wet_cell_query.values_list('electrolyte__composite', flat=True).distinct().order_by('electrolyte__composite')
+                else:
+                    total_query = get_preview_electrolytes(search_electrolyte_form, electrolyte_composition_formset)
+
+                electrolyte_page_number = 1
+                electrolyte_page_form = PageNumberForm(request.POST, prefix='electrolyte-page-form')
+                if electrolyte_page_form.is_valid():
+                    electrolyte_page_number = electrolyte_page_form.cleaned_data['page_number']
+                min_i, max_i, electrolyte_max_page_number, electrolyte_page_number = focus_on_page(electrolyte_page_number, total_query.count(),
+                                                                           number_per_page=20)
+                electrolyte_page_form.set_page_number(electrolyte_page_number)
+                ar["electrolyte_max_page_number"] = electrolyte_max_page_number
+                ar["electrolyte_page_number"] = electrolyte_page_number
+                if electrolyte_page_form.is_valid():
+                    ar['electrolyte_page_form'] = electrolyte_page_form
+                if search_electrolyte_form.cleaned_data['only_wet_cell_electrolytes']:
+                    preview_electrolytes = [Composite.objects.get(id=electrolyte).__str__() for electrolyte in total_query[min_i:max_i]]
+                else:
+                    preview_electrolytes =  [electrolyte.__str__() for electrolyte in total_query[min_i:max_i]]
+
+                ar['preview_electrolytes'] = preview_electrolytes
+
+        if 'preview_wet_cell' in request.POST:
+            if proceed_electrolyte and proceed_dry_cell:
+                wet_cell_query = get_wet_cells()
                 wet_cell_page_form = PageNumberForm(request.POST, prefix='wet-cell-page-form')
                 wet_cell_page_number = 1
                 if wet_cell_page_form.is_valid():
@@ -1564,6 +1865,138 @@ def search_page(request):
                             if WetCell.objects.filter(cell_id = cell_id).exists():
                                 wet_cell = WetCell.objects.get(cell_id = cell_id)
                                 dataset.wet_cells.add(wet_cell)
+
+        if "search_validated_cycling_data" in request.POST:
+            total_query = get_valid_cell_id_query(search_cell_by_valid_metadata_form)
+
+            wet_cell_page_form = PageNumberForm(request.POST, prefix='wet-cell-page-form')
+            wet_cell_page_number = 1
+            if wet_cell_page_form.is_valid():
+                wet_cell_page_number = wet_cell_page_form.cleaned_data['page_number']
+            min_i, max_i, wet_cell_max_page_number, wet_cell_page_number = focus_on_page(wet_cell_page_number,
+                                                                                         total_query.count(),
+                                                                                         number_per_page=20)
+            wet_cell_page_form.set_page_number(wet_cell_page_number)
+            ar["wet_cell_max_page_number"] = wet_cell_max_page_number
+            ar["wet_cell_page_number"] = wet_cell_page_number
+            if wet_cell_page_form.is_valid():
+                ar['wet_cell_page_form'] = wet_cell_page_form
+
+            exp_type = filename_database.models.ExperimentType.objects.get(
+                category=filename_database.models.Category.objects.get(
+                    name="cycling"
+                ),
+                subcategory
+                =filename_database.models.SubCategory.objects.get(
+                    name="neware"
+                )
+            )
+            initial = []
+            for cell_id in total_query[
+                min_i:max_i
+            ]:
+                """
+                cell_id
+                exclude
+                number_of_active
+                number_of_deprecated
+                number_of_needs_importing
+                import_soon
+                """
+
+                my_initial = {
+                    "cell_id": cell_id,
+                    "exclude": True,
+                    "number_of_active": CyclingFile.objects.filter(
+                        database_file__deprecated = False,
+                        database_file__valid_metadata__cell_id = cell_id,
+                        database_file__last_modified__lte = F("import_time")
+                    ).count(),
+                    "number_of_deprecated": CyclingFile.objects.filter(
+                        database_file__deprecated = True,
+                        database_file__valid_metadata__cell_id = cell_id
+                    ).count(),
+                    "number_of_needs_importing":
+                        CyclingFile.objects.filter(
+                            database_file__deprecated = False,
+                            database_file__valid_metadata__cell_id
+                            = cell_id,
+                            database_file__last_modified__gt
+                            = F("import_time"),
+                        ).count() + DatabaseFile.objects.filter(
+                            is_valid = True, deprecated = False,
+                        ).exclude(valid_metadata = None).filter(
+                            valid_metadata__experiment_type = exp_type,
+                            valid_metadata__cell_id = cell_id,
+                        ).exclude(
+                            id__in = CyclingFile.objects.filter(
+                                database_file__valid_metadata__cell_id
+                                = cell_id
+                            ).values_list(
+                                "database_file_id", flat = True,
+                            )
+                        ).count(),
+                    "first_active_file": ""
+                }
+                if CyclingFile.objects.filter(
+                    database_file__deprecated = False,
+                    database_file__valid_metadata__cell_id = cell_id,
+                    database_file__last_modified__lte = F("import_time"),
+                ).exists():
+                    my_initial["first_active_file"] = (
+                        CyclingFile.objects.filter(
+                            database_file__deprecated = False,
+                            database_file__valid_metadata__cell_id
+                            = cell_id,
+                            database_file__last_modified__lte
+                            = F("import_time"),
+                        )[0]
+                    ).database_file.filename
+
+                initial.append(my_initial)
+
+            cell_id_overview_formset = CellIDOverviewFormset(
+                initial = initial
+            )
+
+            if search_cell_by_valid_metadata_form.cleaned_data["show_visuals"]:
+                datas = []
+                for cell_id in total_query[
+                    min_i:max_i
+                ]:
+                    image_base64 = plot_cycling_direct(
+                        cell_id, path_to_plots = None, figsize = [5., 4.],
+                    )
+                    datas.append((cell_id, image_base64))
+
+                n = 5
+
+                split_datas = [
+                    datas[i:min(len(datas), i + n)] for i
+                    in range(0, len(datas), n)
+                ]
+                ar["visual_data"] = split_datas
+
+            ar["cell_id_overview_formset"] = cell_id_overview_formset
+            ar["search_cell_by_valid_metadata_form"] = search_cell_by_valid_metadata_form
+
+        elif "trigger_reimport" in request.POST:
+            cell_id_overview_formset = CellIDOverviewFormset(request.POST)
+            collected_cell_ids = []
+            for form in cell_id_overview_formset:
+                validation_step = form.is_valid()
+                to_be_excluded = form.cleaned_data["exclude"]
+
+                if to_be_excluded:
+                    print("exclude")
+                    continue
+
+                if validation_step:
+                    collected_cell_ids.append(form.cleaned_data["cell_id"])
+
+            full_import_cell_ids(collected_cell_ids)
+            ar["search_cell_by_valid_metadata_form"] = search_cell_by_valid_metadata_form
+
 
     if request.method == "POST":
         if 'wet_cell_page_form' not in ar.keys():
@@ -1610,14 +2043,10 @@ def search_page(request):
                          )
 
     conditional_register(ar,
-                         "search_cell_id_range",
-                         SearchCellIDRangesForm(prefix="search-cell-id-range")
+                         "search_cell_by_valid_metadata_form",
+                         SearchCellByValidMetadataForm(prefix='search-cell-by-valid-metadata-form')
                          )
 
-    conditional_register(ar,
-                         "search_dataset_membership",
-                         DatasetForm(prefix="search-dataset-membership")
-                         )
 
 
     return render(request, 'cell_database/search_page.html', ar)

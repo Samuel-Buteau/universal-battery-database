@@ -395,369 +395,377 @@ def main_page(request):
 
     if request.method == "POST":
 
-        search_form = SearchForm(request.POST)
+        search_cell_by_valid_metadata_form = SearchCellByValidMetadataForm(request.POST, prefix='search-cell-by-valid-metadata')
 
-        if search_form.is_valid():
+        if search_cell_by_valid_metadata_form.is_valid():
+            ar["search_cell_by_valid_metadata_form"] = search_cell_by_valid_metadata_form
 
-            ar["search_form"] = search_form
+        if "search_validated_cycling_data" in request.POST:
 
-            if "search_validated_cycling_data" in request.POST:
+            exp_type = filename_database.models.ExperimentType.objects.get(
+                category = filename_database.models.Category.objects.get(
+                    name = "cycling"
+                ),
+                subcategory
+                = filename_database.models.SubCategory.objects.get(
+                    name = "neware"
+                )
+            )
 
-                exp_type = filename_database.models.ExperimentType.objects.get(
-                    category = filename_database.models.Category.objects.get(
-                        name = "cycling"
-                    ),
-                    subcategory
-                    = filename_database.models.SubCategory.objects.get(
-                        name = "neware"
-                    )
+            q = Q(is_valid = True) & ~Q(valid_metadata = None) & Q(
+                valid_metadata__experiment_type = exp_type
+            )
+            dataset = search_cell_by_valid_metadata_form.cleaned_data["dataset"]
+            if dataset is not None:
+                cell_ids = [
+                    wet_cell.cell_id for wet_cell
+                    in dataset.wet_cells.order_by("cell_id")
+                ]
+                q = q & Q(valid_metadata__cell_id__in = cell_ids)
+
+            def test_existance(lab):
+                return lab in search_cell_by_valid_metadata_form.cleaned_data.keys() and search_cell_by_valid_metadata_form.cleaned_data[lab] is not None and search_cell_by_valid_metadata_form.cleaned_data[lab] != ''
+
+            def test_existance_no_str(lab):
+                return lab in search_cell_by_valid_metadata_form.cleaned_data.keys() and search_cell_by_valid_metadata_form.cleaned_data[lab] is not None
+
+            if test_existance("filename1"):
+                q = q & Q(
+                    filename__icontains
+                    = search_cell_by_valid_metadata_form.cleaned_data["filename1"]
+                )
+            if test_existance("filename2"):
+                q = q & Q(
+                    filename__icontains
+                    = search_cell_by_valid_metadata_form.cleaned_data["filename2"]
+                )
+            if test_existance("filename3"):
+                q = q & Q(
+                    filename__icontains
+                    = search_cell_by_valid_metadata_form.cleaned_data["filename3"]
                 )
 
-                q = Q(is_valid = True) & ~Q(valid_metadata = None) & Q(
-                    valid_metadata__experiment_type = exp_type
+
+            if test_existance("root1"):
+                q = q & Q(
+                    root__icontains
+                    = search_cell_by_valid_metadata_form.cleaned_data["root1"]
                 )
-                dataset = search_form.cleaned_data["dataset"]
-                if dataset is not None:
-                    cell_ids = [
-                        wet_cell.cell_id for wet_cell
-                        in dataset.wet_cells.order_by("cell_id")
-                    ]
-                    q = q & Q(valid_metadata__cell_id__in = cell_ids)
+            if test_existance("root2"):
+                q = q & Q(
+                    root__icontains
+                    = search_cell_by_valid_metadata_form.cleaned_data["root2"]
+                )
+            if test_existance("root3"):
+                q = q & Q(
+                    root__icontains
+                    = search_cell_by_valid_metadata_form.cleaned_data["root3"]
+                )
 
-                if search_form.cleaned_data["filename1_search"]:
+
+            if test_existance("charID_exact"):
+                q = q & Q(
+                    valid_metadata__charID
+                    = search_cell_by_valid_metadata_form.cleaned_data["charID_exact"]
+                )
+
+            if test_existance_no_str("cell_id_exact") or test_existance_no_str("cell_id_minimum") or test_existance_no_str("cell_id_maximum"):
+                if search_cell_by_valid_metadata_form.cleaned_data["cell_id_exact"] is not None:
                     q = q & Q(
-                        filename__icontains
-                        = search_form.cleaned_data["filename1"]
+                        valid_metadata__cell_id
+                        = search_cell_by_valid_metadata_form.cleaned_data["cell_id_exact"]
                     )
-
-                if search_form.cleaned_data["filename2_search"]:
-                    q = q & Q(
-                        filename__icontains
-                        = search_form.cleaned_data["filename2"]
-                    )
-
-                if search_form.cleaned_data["filename3_search"]:
-                    q = q & Q(
-                        filename__icontains
-                        = search_form.cleaned_data["filename3"]
-                    )
-
-                if search_form.cleaned_data["root1_search"]:
-                    q = q & Q(
-                        root__icontains = search_form.cleaned_data["root1"]
-                    )
-                if search_form.cleaned_data["root2_search"]:
-                    q = q & Q(
-                        root__icontains = search_form.cleaned_data["root2"]
-                    )
-                if search_form.cleaned_data["root3_search"]:
-                    q = q & Q(
-                        root__icontains = search_form.cleaned_data["root3"]
-                    )
-
-                if search_form.cleaned_data["charID_search"]:
-                    q = q & Q(
-                        valid_metadata__charID
-                        = search_form.cleaned_data["charID_exact"]
-                    )
-
-                if search_form.cleaned_data["cell_id_search"]:
-                    if search_form.cleaned_data["cell_id_exact"] is not None:
-                        q = q & Q(
-                            valid_metadata__cell_id
-                            = search_form.cleaned_data["cell_id_exact"]
-                        )
-                    else:
-                        if (
-                            search_form.cleaned_data["cell_id_minimum"]
-                            is not None
-                            and search_form.cleaned_data["cell_id_maximum"]
-                            is not None
-                        ):
-                            q = q & Q(
-                                valid_metadata__cell_id__range = (
-                                    search_form.cleaned_data["cell_id_minimum"],
-                                    search_form.cleaned_data["cell_id_maximum"],
-                                )
-                            )
-                        elif (
-                            search_form.cleaned_data["cell_id_minimum"]
-                            is None
-                            and search_form.cleaned_data["cell_id_maximum"]
-                            is not None
-                        ):
-                            q = q & Q(
-                                valid_metadata__cell_id__lte
-                                = search_form.cleaned_data["cell_id_maximum"]
-                            )
-                        elif (
-                            search_form.cleaned_data["cell_id_minimum"]
-                            is not None
-                            and search_form.cleaned_data["cell_id_maximum"]
-                            is None
-                        ):
-                            q = q & Q(
-                                valid_metadata__cell_id__gte
-                                = search_form.cleaned_data["cell_id_minimum"]
-                            )
-
-                if search_form.cleaned_data["voltage_search"]:
-                    if search_form.cleaned_data["voltage_exact"] is not None:
-                        q = q & Q(
-                            valid_metadata__voltage = search_form.cleaned_data[
-                                "voltage_exact"]
-                        )
-                    else:
-                        if (
-                            search_form.cleaned_data["voltage_minimum"]
-                            is not None
-                            and search_form.cleaned_data["voltage_maximum"]
-                            is not None
-                        ):
-                            q = q & Q(
-                                valid_metadata__voltage__range = (
-                                    search_form.cleaned_data["voltage_minimum"],
-                                    search_form.cleaned_data["voltage_maximum"],
-                                )
-                            )
-                        elif (
-                            search_form.cleaned_data["voltage_minimum"]
-                            is None
-                            and search_form.cleaned_data["voltage_maximum"]
-                            is not None
-                        ):
-                            q = q & Q(
-                                valid_metadata__voltage__lte
-                                = search_form.cleaned_data["voltage_maximum"]
-                            )
-                        elif (
-                            search_form.cleaned_data["voltage_minimum"]
-                            is not None
-                            and search_form.cleaned_data["voltage_maximum"]
-                            is None
-                        ):
-                            q = q & Q(
-                                valid_metadata__voltage__gte
-                                = search_form.cleaned_data["voltage_minimum"]
-                            )
-
-                if search_form.cleaned_data["temperature_search"]:
+                else:
                     if (
-                        search_form.cleaned_data["temperature_exact"]
+                        search_cell_by_valid_metadata_form.cleaned_data["cell_id_minimum"]
+                        is not None
+                        and search_cell_by_valid_metadata_form.cleaned_data["cell_id_maximum"]
                         is not None
                     ):
                         q = q & Q(
-                            valid_metadata__temperature
-                            = search_form.cleaned_data["temperature_exact"]
+                            valid_metadata__cell_id__range = (
+                                search_cell_by_valid_metadata_form.cleaned_data["cell_id_minimum"],
+                                search_cell_by_valid_metadata_form.cleaned_data["cell_id_maximum"],
+                            )
                         )
-                    else:
-                        if (
-                            search_form.cleaned_data["temperature_minimum"]
-                            is not None
-                            and search_form.cleaned_data["temperature_maximum"]
-                            is not None
-                        ):
-                            q = q & Q(
-                                valid_metadata__temperature__range = (
-                                    search_form.cleaned_data[
-                                        "temperature_minimum"
-                                    ],
-                                    search_form.cleaned_data[
-                                        "temperature_maximum"
-                                    ],
-                                )
-                            )
-                        elif (
-                            search_form.cleaned_data["temperature_minimum"]
-                            is None
-                            and search_form.cleaned_data["temperature_maximum"]
-                            is not None
-                        ):
-                            q = q & Q(
-                                valid_metadata__temperature__lte
-                                = search_form.cleaned_data[
-                                    "temperature_maximum"
-                                ]
-                            )
-                        elif (
-                            search_form.cleaned_data["temperature_minimum"]
-                            is not None
-                            and search_form.cleaned_data["temperature_maximum"]
-                            is None
-                        ):
-                            q = q & Q(
-                                valid_metadata__temperature__gte
-                                = search_form.cleaned_data[
-                                    "temperature_minimum"
-                                ]
-                            )
-
-                if search_form.cleaned_data["date_search"]:
-                    if search_form.cleaned_data["date_exact"] is not None:
+                    elif (
+                        search_cell_by_valid_metadata_form.cleaned_data["cell_id_minimum"]
+                        is None
+                        and search_cell_by_valid_metadata_form.cleaned_data["cell_id_maximum"]
+                        is not None
+                    ):
                         q = q & Q(
-                            valid_metadata__date
-                            = search_form.cleaned_data["date_exact"]
+                            valid_metadata__cell_id__lte
+                            = search_cell_by_valid_metadata_form.cleaned_data["cell_id_maximum"]
                         )
-                    else:
-                        if (
-                            search_form.cleaned_data["date_minimum"] is not None
-                            and
-                            search_form.cleaned_data["date_maximum"] is not None
-                        ):
-                            q = q & Q(valid_metadata__date__range = (
-                                search_form.cleaned_data["date_minimum"],
-                                search_form.cleaned_data["date_maximum"]))
-                        elif (
-                            search_form.cleaned_data["date_minimum"] is None
-                            and
-                            search_form.cleaned_data["date_maximum"] is not None
-                        ):
-                            q = q & Q(
-                                valid_metadata__date__lte
-                                = search_form.cleaned_data["date_maximum"]
+                    elif (
+                        search_cell_by_valid_metadata_form.cleaned_data["cell_id_minimum"]
+                        is not None
+                        and search_cell_by_valid_metadata_form.cleaned_data["cell_id_maximum"]
+                        is None
+                    ):
+                        q = q & Q(
+                            valid_metadata__cell_id__gte
+                            = search_cell_by_valid_metadata_form.cleaned_data["cell_id_minimum"]
+                        )
+
+            if test_existance_no_str("voltage_exact") or test_existance_no_str("voltage_minimum") or test_existance_no_str("voltage_maximum"):
+                if search_cell_by_valid_metadata_form.cleaned_data["voltage_exact"] is not None:
+                    q = q & Q(
+                        valid_metadata__voltage = search_cell_by_valid_metadata_form.cleaned_data[
+                            "voltage_exact"]
+                    )
+                else:
+                    if (
+                        search_cell_by_valid_metadata_form.cleaned_data["voltage_minimum"]
+                        is not None
+                        and search_cell_by_valid_metadata_form.cleaned_data["voltage_maximum"]
+                        is not None
+                    ):
+                        q = q & Q(
+                            valid_metadata__voltage__range = (
+                                search_cell_by_valid_metadata_form.cleaned_data["voltage_minimum"],
+                                search_cell_by_valid_metadata_form.cleaned_data["voltage_maximum"],
                             )
-                        elif (
-                            search_form.cleaned_data["date_minimum"] is not None
-                            and search_form.cleaned_data["date_maximum"] is None
-                        ):
-                            q = q & Q(
-                                valid_metadata__date__gte
-                                = search_form.cleaned_data["date_minimum"]
+                        )
+                    elif (
+                        search_cell_by_valid_metadata_form.cleaned_data["voltage_minimum"]
+                        is None
+                        and search_cell_by_valid_metadata_form.cleaned_data["voltage_maximum"]
+                        is not None
+                    ):
+                        q = q & Q(
+                            valid_metadata__voltage__lte
+                            = search_cell_by_valid_metadata_form.cleaned_data["voltage_maximum"]
+                        )
+                    elif (
+                        search_cell_by_valid_metadata_form.cleaned_data["voltage_minimum"]
+                        is not None
+                        and search_cell_by_valid_metadata_form.cleaned_data["voltage_maximum"]
+                        is None
+                    ):
+                        q = q & Q(
+                            valid_metadata__voltage__gte
+                            = search_cell_by_valid_metadata_form.cleaned_data["voltage_minimum"]
+                        )
+
+            if test_existance_no_str("temperature_exact") or test_existance_no_str("temperature_minimum") or test_existance_no_str("temperature_maximum"):
+                if (
+                    search_cell_by_valid_metadata_form.cleaned_data["temperature_exact"]
+                    is not None
+                ):
+                    q = q & Q(
+                        valid_metadata__temperature
+                        = search_cell_by_valid_metadata_form.cleaned_data["temperature_exact"]
+                    )
+                else:
+                    if (
+                        search_cell_by_valid_metadata_form.cleaned_data["temperature_minimum"]
+                        is not None
+                        and search_cell_by_valid_metadata_form.cleaned_data["temperature_maximum"]
+                        is not None
+                    ):
+                        q = q & Q(
+                            valid_metadata__temperature__range = (
+                                search_cell_by_valid_metadata_form.cleaned_data[
+                                    "temperature_minimum"
+                                ],
+                                search_cell_by_valid_metadata_form.cleaned_data[
+                                    "temperature_maximum"
+                                ],
                             )
+                        )
+                    elif (
+                        search_cell_by_valid_metadata_form.cleaned_data["temperature_minimum"]
+                        is None
+                        and search_cell_by_valid_metadata_form.cleaned_data["temperature_maximum"]
+                        is not None
+                    ):
+                        q = q & Q(
+                            valid_metadata__temperature__lte
+                            = search_cell_by_valid_metadata_form.cleaned_data[
+                                "temperature_maximum"
+                            ]
+                        )
+                    elif (
+                        search_cell_by_valid_metadata_form.cleaned_data["temperature_minimum"]
+                        is not None
+                        and search_cell_by_valid_metadata_form.cleaned_data["temperature_maximum"]
+                        is None
+                    ):
+                        q = q & Q(
+                            valid_metadata__temperature__gte
+                            = search_cell_by_valid_metadata_form.cleaned_data[
+                                "temperature_minimum"
+                            ]
+                        )
 
-                total_query = DatabaseFile.objects.filter(q).order_by(
-                    "valid_metadata__cell_id").values_list(
-                    "valid_metadata__cell_id", flat = True
-                ).distinct()
+            if test_existance_no_str("date_exact") or test_existance_no_str("date_minimum") or test_existance_no_str("date_maximum"):
+                if search_cell_by_valid_metadata_form.cleaned_data["date_exact"] is not None:
+                    q = q & Q(
+                        valid_metadata__date
+                        = search_cell_by_valid_metadata_form.cleaned_data["date_exact"]
+                    )
+                else:
+                    if (
+                        search_cell_by_valid_metadata_form.cleaned_data["date_minimum"] is not None
+                        and
+                        search_cell_by_valid_metadata_form.cleaned_data["date_maximum"] is not None
+                    ):
+                        q = q & Q(valid_metadata__date__range = (
+                            search_cell_by_valid_metadata_form.cleaned_data["date_minimum"],
+                            search_cell_by_valid_metadata_form.cleaned_data["date_maximum"]))
+                    elif (
+                        search_cell_by_valid_metadata_form.cleaned_data["date_minimum"] is None
+                        and
+                        search_cell_by_valid_metadata_form.cleaned_data["date_maximum"] is not None
+                    ):
+                        q = q & Q(
+                            valid_metadata__date__lte
+                            = search_cell_by_valid_metadata_form.cleaned_data["date_maximum"]
+                        )
+                    elif (
+                        search_cell_by_valid_metadata_form.cleaned_data["date_minimum"] is not None
+                        and search_cell_by_valid_metadata_form.cleaned_data["date_maximum"] is None
+                    ):
+                        q = q & Q(
+                            valid_metadata__date__gte
+                            = search_cell_by_valid_metadata_form.cleaned_data["date_minimum"]
+                        )
 
-                number_per_page = 10
-                initial = []
-                pn = search_form.cleaned_data["page_number"]
-                if pn is None:
-                    pn = 1
-                    search_form.set_page_number(pn)
-                n = total_query.count()
-                max_page = int(n / number_per_page)
-                if (n % number_per_page) != 0:
-                    max_page += 1
+            total_query = DatabaseFile.objects.filter(q).order_by(
+                "valid_metadata__cell_id").values_list(
+                "valid_metadata__cell_id", flat = True
+            ).distinct()
 
-                if pn > max_page:
-                    pn = max_page
-                    search_form.set_page_number(pn)
+            number_per_page = 10
+            initial = []
+            pn = search_cell_by_valid_metadata_form.cleaned_data["page_number"]
+            if pn is None:
+                pn = 1
+                search_cell_by_valid_metadata_form.set_page_number(pn)
+            n = total_query.count()
+            max_page = int(n / number_per_page)
+            if (n % number_per_page) != 0:
+                max_page += 1
 
-                if pn < 1:
-                    pn = 1
-                    search_form.set_page_number(pn)
+            if pn > max_page:
+                pn = max_page
+                search_cell_by_valid_metadata_form.set_page_number(pn)
 
+            if pn < 1:
+                pn = 1
+                search_cell_by_valid_metadata_form.set_page_number(pn)
+
+            for cell_id in total_query[
+                (pn - 1) * number_per_page:min(n, pn * number_per_page)
+            ]:
+                """
+                cell_id
+                exclude
+                number_of_active
+                number_of_deprecated
+                number_of_needs_importing
+                import_soon
+                """
+
+                my_initial = {
+                    "cell_id": cell_id,
+                    "exclude": True,
+                    "number_of_active": CyclingFile.objects.filter(
+                        database_file__deprecated = False,
+                        database_file__valid_metadata__cell_id = cell_id,
+                        database_file__last_modified__lte = F("import_time")
+                    ).count(),
+                    "number_of_deprecated": CyclingFile.objects.filter(
+                        database_file__deprecated = True,
+                        database_file__valid_metadata__cell_id = cell_id
+                    ).count(),
+                    "number_of_needs_importing":
+                        CyclingFile.objects.filter(
+                            database_file__deprecated = False,
+                            database_file__valid_metadata__cell_id
+                            = cell_id,
+                            database_file__last_modified__gt
+                            = F("import_time"),
+                        ).count() + DatabaseFile.objects.filter(
+                            is_valid = True, deprecated = False,
+                        ).exclude(valid_metadata = None).filter(
+                            valid_metadata__experiment_type = exp_type,
+                            valid_metadata__cell_id = cell_id,
+                        ).exclude(
+                            id__in = CyclingFile.objects.filter(
+                                database_file__valid_metadata__cell_id
+                                = cell_id
+                            ).values_list(
+                                "database_file_id", flat = True,
+                            )
+                        ).count(),
+                    "first_active_file": ""
+                }
+                if CyclingFile.objects.filter(
+                    database_file__deprecated = False,
+                    database_file__valid_metadata__cell_id = cell_id,
+                    database_file__last_modified__lte = F("import_time"),
+                ).exists():
+                    my_initial["first_active_file"] = (
+                        CyclingFile.objects.filter(
+                            database_file__deprecated = False,
+                            database_file__valid_metadata__cell_id
+                            = cell_id,
+                            database_file__last_modified__lte
+                            = F("import_time"),
+                        )[0]
+                    ).database_file.filename
+
+                initial.append(my_initial)
+
+            cell_id_overview_formset = CellIDOverviewFormset(
+                initial = initial
+            )
+
+            if search_cell_by_valid_metadata_form.cleaned_data["show_visuals"]:
+                datas = []
                 for cell_id in total_query[
                     (pn - 1) * number_per_page:min(n, pn * number_per_page)
                 ]:
-                    """
-                    cell_id
-                    exclude
-                    number_of_active
-                    number_of_deprecated
-                    number_of_needs_importing
-                    import_soon
-                    """
+                    image_base64 = plot_cycling_direct(
+                        cell_id, path_to_plots = None, figsize = [5., 4.],
+                    )
+                    datas.append((cell_id, image_base64))
 
-                    my_initial = {
-                        "cell_id": cell_id,
-                        "exclude": True,
-                        "number_of_active": CyclingFile.objects.filter(
-                            database_file__deprecated = False,
-                            database_file__valid_metadata__cell_id = cell_id,
-                            database_file__last_modified__lte = F("import_time")
-                        ).count(),
-                        "number_of_deprecated": CyclingFile.objects.filter(
-                            database_file__deprecated = True,
-                            database_file__valid_metadata__cell_id = cell_id
-                        ).count(),
-                        "number_of_needs_importing":
-                            CyclingFile.objects.filter(
-                                database_file__deprecated = False,
-                                database_file__valid_metadata__cell_id
-                                = cell_id,
-                                database_file__last_modified__gt
-                                = F("import_time"),
-                            ).count() + DatabaseFile.objects.filter(
-                                is_valid = True, deprecated = False,
-                            ).exclude(valid_metadata = None).filter(
-                                valid_metadata__experiment_type = exp_type,
-                                valid_metadata__cell_id = cell_id,
-                            ).exclude(
-                                id__in = CyclingFile.objects.filter(
-                                    database_file__valid_metadata__cell_id
-                                    = cell_id
-                                ).values_list(
-                                    "database_file_id", flat = True,
-                                )
-                            ).count(),
-                        "first_active_file": ""
-                    }
-                    if CyclingFile.objects.filter(
-                        database_file__deprecated = False,
-                        database_file__valid_metadata__cell_id = cell_id,
-                        database_file__last_modified__lte = F("import_time"),
-                    ).exists():
-                        my_initial["first_active_file"] = (
-                            CyclingFile.objects.filter(
-                                database_file__deprecated = False,
-                                database_file__valid_metadata__cell_id
-                                = cell_id,
-                                database_file__last_modified__lte
-                                = F("import_time"),
-                            )[0]
-                        ).database_file.filename
+                n = 5
 
-                    initial.append(my_initial)
+                split_datas = [
+                    datas[i:min(len(datas), i + n)] for i
+                    in range(0, len(datas), n)
+                ]
+                ar["visual_data"] = split_datas
 
-                cell_id_overview_formset = CellIDOverviewFormset(
-                    initial = initial
-                )
+            ar["cell_id_overview_formset"] = cell_id_overview_formset
+            ar["search_cell_by_valid_metadata_form"] = search_cell_by_valid_metadata_form
+            ar["search_cell_by_valid_metadata_page_number"] = pn
+            ar["search_cell_by_valid_metadata_max_page_number"] = max_page
 
-                if search_form.cleaned_data["show_visuals"]:
-                    datas = []
-                    for cell_id in total_query[
-                        (pn - 1) * number_per_page:min(n, pn * number_per_page)
-                    ]:
-                        image_base64 = plot_cycling_direct(
-                            cell_id, path_to_plots = None, figsize = [5., 4.],
-                        )
-                        datas.append((cell_id, image_base64))
+        elif "trigger_reimport" in request.POST:
+            cell_id_overview_formset = CellIDOverviewFormset(request.POST)
+            collected_cell_ids = []
+            for form in cell_id_overview_formset:
+                validation_step = form.is_valid()
+                to_be_excluded = form.cleaned_data["exclude"]
 
-                    n = 5
+                if to_be_excluded:
+                    print("exclude")
+                    continue
 
-                    split_datas = [
-                        datas[i:min(len(datas), i + n)] for i
-                        in range(0, len(datas), n)
-                    ]
-                    ar["visual_data"] = split_datas
+                if validation_step:
+                    collected_cell_ids.append(form.cleaned_data["cell_id"])
 
-                ar["cell_id_overview_formset"] = cell_id_overview_formset
-                ar["search_form"] = search_form
-                ar["page_number"] = pn
-                ar["max_page_number"] = max_page
+            full_import_cell_ids(collected_cell_ids)
+            ar["search_cell_by_valid_metadata_form"] = search_cell_by_valid_metadata_form
 
-            elif "trigger_reimport" in request.POST:
-                cell_id_overview_formset = CellIDOverviewFormset(request.POST)
-                collected_cell_ids = []
-                for form in cell_id_overview_formset:
-                    validation_step = form.is_valid()
-                    to_be_excluded = form.cleaned_data["exclude"]
-
-                    if to_be_excluded:
-                        print("exclude")
-                        continue
-
-                    if validation_step:
-                        collected_cell_ids.append(form.cleaned_data["cell_id"])
-
-                full_import_cell_ids(collected_cell_ids)
-                ar["search_form"] = search_form
-
-    else:
-        ar["search_form"] = SearchForm()
+    if "search_cell_by_valid_metadata_form" not in ar.keys():
+        ar["search_cell_by_valid_metadata_form"] = SearchCellByValidMetadataForm(prefix='search-cell-by-valid-metadata')
 
     return render(request, "cycling/form_interface.html", ar)
 

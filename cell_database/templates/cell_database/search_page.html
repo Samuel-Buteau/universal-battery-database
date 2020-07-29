@@ -24,14 +24,20 @@ table, th, td {
     {% csrf_token %}
     <table>
         <tr>
-
+            <h2>Wet Cells</h2>
             {%if wet_cell_page_form %}
                 Display Page: {{wet_cell_page_form.page_number}}
             {%endif%}
+            {%if search_cell_by_valid_metadata_form %}
+                Show Visuals: {{search_cell_by_valid_metadata_form.show_visuals}}
+
+            {%endif%}
             <input type="submit" name = 'preview_wet_cell' value="Preview Wet Cell">
+            <input type="submit" name = 'search_validated_cycling_data' value="Preview Validated Cycling Data">
 
 
             {%if wet_cells_preview_form %}
+                <br>
                 Showing page {{wet_cell_page_number}}/{{wet_cell_max_page_number}}.
                 {{ wet_cells_preview_form }}
                 {% if dataset_form %}
@@ -40,66 +46,126 @@ table, th, td {
                 <input type="submit" name = 'register_wet_cells_to_dataset' value="Register to Dataset">
 
             {% endif %}
+            {% if cell_id_overview_formset %}
+                {% csrf_token %}
+                {{ cell_id_overview_formset.management_form }}
+                <br>
+                Showing page {{wet_cell_page_number}}/{{wet_cell_max_page_number}}.
+                    <table>
+                    <col width = "200">
+                    <col width = "5">
+
+                            <tr>
+                                <th>Cell ID</th>
+                                <th>Exclude</th>
+                                <th>Number of Active Files</th>
+                                <th>Number of Imported But Deprecated Files</th>
+                                <th>Number which Needs Importing</th>
+                                <th>First Active File</th>
+                            </tr>
+
+                        {% for form in cell_id_overview_formset %}
+                            <tr>
+
+                                <td>{{ form.cell_id }}</td>
+                                <td>{{ form.exclude }}</td>
+                                <td>{{ form.number_of_active }}</td>
+                                <td>{{ form.number_of_deprecated }}</td>
+                                <td>{{ form.number_of_needs_importing }}</td>
+                                <td>{{ form.first_active_file }}</td>
+
+                            </tr>
+
+
+                        {% endfor %}
+
+                    </table>
+
+
+
+
+                    <input type="submit" name = 'trigger_reimport' value = "Trigger Re-Importing">
+
+            {% endif %}
+
+            {% if visual_data %}
+                    <table border="1">
+                        {% for zd in visual_data %}
+                            <tr valign="top">
+                                {% for cell_id, image64 in zd %}
+                                    <td valign="top">
+
+                                        <a href="{% url 'cycling:view_cell_id'  cell_id  '' %}">
+                                            <img src="data:image/png;base64,{{image64}}" alt="If you see this, there was an error. Send email to Samuel.Buteau@dal.ca" width=200 height=auto />
+                                        </a>
+
+                                             <font size="+2">{{cell_id}}</font>
+
+
+                                    </td>
+                                {% endfor %}
+                            </tr>
+
+                        {% endfor %}
+                    </table>
+            {% endif %}
 
         </tr>
         <tr>
             <table>
-                {% if search_cell_id_range or search_dataset_membership %}
+                {% if search_cell_by_valid_metadata_form %}
             <td valign="top">
-            <h2>Cell ID Ranges</h2>
+
                 <table>
                     <tr>
-                        <th>
-                            Cell ID Range:
-                        </th>
-                        <td>
-                            Min (or exact)
-                        </td>
-                        <td>
-                            Max (or blank)
-                        </td>
+                        <th> </th>  <th>Value to search</th>
+                    <tr>
+                        <th>Keyword in Filename</th>  <td>{{search_cell_by_valid_metadata_form.filename1}}</td>
                     </tr>
                     <tr>
-                        <th>
-
-                        </th>
-                        <td>
-                            {{ search_cell_id_range.cell_id_min_1}}
-                        </td>
-                        <td>
-                            {{ search_cell_id_range.cell_id_max_1}}
-                        </td>
+                        <th>Keyword in Filename</th>  <td>{{search_cell_by_valid_metadata_form.filename2}}</td>
                     </tr>
                     <tr>
-                        <th>
+                        <th>Keyword in Filename</th>  <td>{{search_cell_by_valid_metadata_form.filename3}}</td>
+                    </tr>
 
-                        </th>
-                        <td>
-                            {{ search_cell_id_range.cell_id_min_2}}
-                        </td>
-                        <td>
-                            {{ search_cell_id_range.cell_id_max_2}}
-                        </td>
+
+                    <tr>
+                        <th>Keyword in Root</th> <td>{{ search_cell_by_valid_metadata_form.root1 }}</td>
                     </tr>
                     <tr>
-                        <th>
-
-                        </th>
-                        <td>
-                            {{ search_cell_id_range.cell_id_min_3}}
-                        </td>
-                        <td>
-                            {{ search_cell_id_range.cell_id_max_3}}
-                        </td>
+                        <th>Keyword in Root</th> <td>{{ search_cell_by_valid_metadata_form.root2 }}</td>
+                    </tr>
+                    <tr>
+                        <th>Keyword in Root</th> <td>{{ search_cell_by_valid_metadata_form.root3 }}</td>
                     </tr>
 
+                    <tr>
+                        <th> </th> <th>Exact Match</th> <th>Minimum</th> <th>Maximum</th>
+                    <tr>
 
+                    <tr>
+                        <th>Char ID </th> <td>{{ search_cell_by_valid_metadata_form.charID_exact }}</td>  <td></td><td></td>
+                    </tr>
+                    <tr>
+                        <th>Cell ID</th> <td>{{ search_cell_by_valid_metadata_form.cell_id_exact }}</td><td>{{ search_cell_by_valid_metadata_form.cell_id_minimum }}</td><td>{{ search_cell_by_valid_metadata_form.cell_id_maximum }}</td>
+                    </tr>
+
+                    <tr>
+                        <th>Upper Cutoff Voltage</th> <td>{{ search_cell_by_valid_metadata_form.voltage_exact }}</td><td>{{ search_cell_by_valid_metadata_form.voltage_minimum }}</td><td>{{ search_cell_by_valid_metadata_form.voltage_maximum }}</td>
+                    </tr>
+                    <tr>
+                        <th>Temperature</th> <td>{{ search_cell_by_valid_metadata_form.temperature_exact }}</td><td>{{ search_cell_by_valid_metadata_form.temperature_minimum }}</td><td>{{ search_cell_by_valid_metadata_form.temperature_maximum }}</td>
+                    </tr>
+                    <tr>
+                        <th>Date</th> <td>{{ search_cell_by_valid_metadata_form.date_exact }}</td><td>{{ search_cell_by_valid_metadata_form.date_minimum }}</td><td>{{ search_cell_by_valid_metadata_form.date_maximum }}</td>
+                    </tr>
+                    <tr>
+                        <th>Dataset</th> <td>{{search_cell_by_valid_metadata_form.dataset}}</td>
+                    </tr>
                 </table>
-
-            <h2>Dataset</h2>
-                <table>
-                    {{ search_dataset_membership.as_table }}
-                </table>
+                <br>
+                Limit other searches: {{search_cell_by_valid_metadata_form.only_valid_cells}}
 
 
             </td>

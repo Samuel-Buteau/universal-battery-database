@@ -24,5 +24,4 @@ urlpatterns = [
         view_cell_id,
         name = "view_cell_id",
     ),
-    path("overview/", main_page, name = "main_page"),
 ]

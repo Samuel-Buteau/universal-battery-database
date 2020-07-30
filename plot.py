@@ -84,7 +84,7 @@ def get_figsize(target):
 
 # TODO(sam): make the interface more general
 def plot_engine_direct(
-    data_streams, target: str, todos, fit_args, filename,
+    data_streams, target: str, todos, options, filename,
     lower_cycle = None, upper_cycle = None, vertical_barriers = None,
     list_all_options = None, show_invalid = False, figsize = None,
 ):
@@ -162,7 +162,7 @@ def plot_engine_direct(
             quick = False
 
         if send_to_file:
-            savefig(filename, fit_args)
+            savefig(filename, options)
             plt.close(fig)
         else:
             if quick:
@@ -172,7 +172,7 @@ def plot_engine_direct(
             return get_byte_image(fig, dpi)
 
     else:
-        savefig(filename, fit_args)
+        savefig(filename, options)
     plt.close(fig)
 
 
@@ -226,7 +226,7 @@ def fetch_svit_keys_averages(compiled, cell_id):
         averages[k] = {}
         for t in [
             Key.I_CC_AVG, Key.I_PREV_END_AVG, Key.I_END_AVG,
-            Key.V_PREV_END_AVG, Key.V_END_AVG, Key.V_CC_LAST_AVG
+            Key.V_PREV_END_AVG, Key.V_END_AVG, Key.V_CC_LAST_AVG,
         ]:
             averages[k][t] = view[t]
 
@@ -670,7 +670,7 @@ def plot_cycling_direct(
             data_streams = data_streams,
             target = "generic_vs_cycle",
             todos = [("dchg", "cc")],
-            fit_args = {"path_to_plots": path_to_plots},
+            options = {"path_to_plots": path_to_plots},
             filename = "Initial_{}.png".format(cell_id),
             lower_cycle = lower_cycle,
             upper_cycle = upper_cycle,
@@ -684,7 +684,7 @@ def plot_cycling_direct(
             data_streams = data_streams,
             target = "generic_vs_cycle",
             todos = [("dchg", "cc")],
-            fit_args = {"path_to_plots": path_to_plots},
+            options = {"path_to_plots": path_to_plots},
             filename = "Initial_{}.png".format(cell_id),
             lower_cycle = lower_cycle,
             upper_cycle = upper_cycle,
@@ -716,7 +716,7 @@ def plot_direct(target: str, plot_params: dict, init_returns: dict) -> None:
     cell_ids\
         = plot_params["cell_ids"][:plot_params[Key.OPTIONS][Key.CELL_ID_SHOW]]
     count = plot_params["count"]
-    fit_args = plot_params[Key.OPTIONS]
+    options = plot_params[Key.OPTIONS]
 
     degradation_model = init_returns[Key.MODEL]
     dataset = init_returns[Key.DATASET]
@@ -740,7 +740,7 @@ def plot_direct(target: str, plot_params: dict, init_returns: dict) -> None:
             ],
             target = target,
             todos = [("dchg", "cc"), ("chg", "cc"), ("chg", "cv")],
-            fit_args = fit_args,
+            options = options,
             filename = header + "_{}_Count_{}.png".format(cell_id, count)
         )
 

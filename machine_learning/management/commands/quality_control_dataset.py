@@ -42,16 +42,16 @@ NEIGH_REFERENCE = 11
 NEIGH_TOTAL = 12
 
 
-def quality_control(fit_args):
-    if not os.path.exists(fit_args[Key.PATH_PLOTS]):
-        os.makedirs(fit_args[Key.PATH_PLOTS])
+def quality_control(options):
+    if not os.path.exists(options[Key.PATH_PLOTS]):
+        os.makedirs(options[Key.PATH_PLOTS])
 
-    if not os.path.exists(fit_args["path_to_flags"]):
-        os.makedirs(fit_args["path_to_flags"])
+    if not os.path.exists(options["path_to_flags"]):
+        os.makedirs(options["path_to_flags"])
 
     dataset_path = os.path.join(
-        fit_args[Key.PATH_DATASET],
-        "dataset_ver_{}.file".format(fit_args[Key.DATA_VERSION])
+        options[Key.PATH_DATASET],
+        "dataset_ver_{}.file".format(options[Key.DATA_VERSION]),
     )
 
     if not os.path.exists(dataset_path):
@@ -63,17 +63,11 @@ def quality_control(fit_args):
 
     cell_ids = list(my_data[Key.ALL_DATA].keys())
 
-    initial_processing(
-        my_data, cell_ids,
-        fit_args,
-    )
+    initial_processing(my_data, cell_ids, options)
 
 
-def initial_processing(my_data: dict, cell_ids, fit_args) -> dict:
+def initial_processing(my_data: dict, cell_ids, options) -> dict:
     errors = []
-
-    max_cap = my_data[Key.Q_MAX]
-
     for cell_id_count, cell_id in enumerate(cell_ids):
         all_data = my_data[Key.ALL_DATA][cell_id]
         cyc_grp_dict = all_data[Key.CYC_GRP_DICT]
@@ -111,30 +105,25 @@ def initial_processing(my_data: dict, cell_ids, fit_args) -> dict:
                 abs(cyc_grp_dict[k][Key.I_PREV_END_AVG]) < 1e-5,
                 abs(cyc_grp_dict[k][Key.I_CC_AVG]) < 1e-5,
                 abs(cyc_grp_dict[k][Key.I_END_AVG]) < 1e-5,
-                fit_args["voltage_grid_min_v"]
+                options["voltage_grid_min_v"]
                 > cyc_grp_dict[k][Key.V_PREV_END_AVG],
-                fit_args["voltage_grid_max_v"]
+                options["voltage_grid_max_v"]
                 < cyc_grp_dict[k][Key.V_PREV_END_AVG],
-                fit_args["voltage_grid_min_v"]
-                > cyc_grp_dict[k][Key.V_END_AVG],
-                fit_args["voltage_grid_max_v"]
-                < cyc_grp_dict[k][Key.V_END_AVG],
-
+                options["voltage_grid_min_v"] > cyc_grp_dict[k][Key.V_END_AVG],
+                options["voltage_grid_max_v"] < cyc_grp_dict[k][Key.V_END_AVG],
             ]):
                 for i in range(len(cycs)):
-                    errors.append(
-                        {
-                            "type": 'bad_group_bounds',
-                            "flag": {
-                                "cell_id": cell_id,
-                                "group": k,
-                                Key.CYC: cycs[i],
-                            },
-                            "caps": caps[i],
-                            "vols": vols[i],
-                            "masks": masks[i]
-                        }
-                    )
+                    errors.append({
+                        "type": 'bad_group_bounds',
+                        "flag": {
+                            "cell_id": cell_id,
+                            "group": k,
+                            Key.CYC: cycs[i],
+                        },
+                        "caps": caps[i],
+                        "vols": vols[i],
+                        "masks": masks[i],
+                    })
 
             # Test for points of opposite polarity
             if k[-1] == 'dchg':
@@ -146,19 +135,17 @@ def initial_processing(my_data: dict, cell_ids, fit_args) -> dict:
 
             for i in range(len(cycs)):
                 if any([f(c) for c in caps[i]]):
-                    errors.append(
-                        {
-                            "type": 'opposite_polarity',
-                            "flag": {
-                                "cell_id": cell_id,
-                                "group": k,
-                                Key.CYC: cycs[i],
-                            },
-                            "caps": caps[i],
-                            "vols": vols[i],
-                            "masks": masks[i]
-                        }
-                    )
+                    errors.append({
+                        "type": 'opposite_polarity',
+                        "flag": {
+                            "cell_id": cell_id,
+                            "group": k,
+                            Key.CYC: cycs[i],
+                        },
+                        "caps": caps[i],
+                        "vols": vols[i],
+                        "masks": masks[i],
+                    })
         if len(errors) > 0:
             print('Full error list:')
             print(errors)
@@ -173,7 +160,7 @@ def initial_processing(my_data: dict, cell_ids, fit_args) -> dict:
             print('Only the flags')
             print(flags)
         with open(
-            os.path.join(fit_args["path_to_flags"], "FLAGS.file"), 'wb',
+            os.path.join(options["path_to_flags"], "FLAGS.file"), 'wb',
         ) as file:
             pickle.dump(flags, file, pickle.HIGHEST_PROTOCOL)
 
@@ -185,7 +172,7 @@ def initial_processing(my_data: dict, cell_ids, fit_args) -> dict:
                 ("chg", "cc"),
                 ("chg", "cv"),
             ],
-            fit_args = fit_args,
+            options = options,
             filename = "voltage_dependence_{}.png".format(cell_id),
 
         )
@@ -198,7 +185,7 @@ def initial_processing(my_data: dict, cell_ids, fit_args) -> dict:
                 ("chg", "cc"),
                 ("chg", "cv"),
             ],
-            fit_args = fit_args,
+            options = options,
             filename = "cycle_dependence_{}.png".format(cell_id),
 
         )
@@ -218,7 +205,6 @@ class Command(BaseCommand):
         float_args = {
             "--voltage_grid_min_v": 2.5,
             "--voltage_grid_max_v": 5.0,
-
         }
 
         for arg in required_args:

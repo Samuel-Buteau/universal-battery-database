@@ -95,14 +95,14 @@ class DegradationModel(Model):
 
         self.fourier_features = bool(options[Key.FOUR_FEAT])
 
-        self.d, self.f = 3, 32
+        self.q_param_count, self.v_param_count, self.f = 3, 3, 32
 
         self.random_matrix_q = build_random_matrix(
             sigma = options[Key.FF_Q_SIGMA],
             sigma_1 = options[Key.FF_Q_SIGMA_CYC],
             sigma_2 = options[Key.FF_Q_SIGMA_V],
             sigma_3 = options[Key.FF_Q_SIGMA_I],
-            d = self.d, f = self.f,
+            d = self.q_param_count, f = self.f,
         )
 
         self.random_matrix_v = build_random_matrix(
@@ -110,7 +110,7 @@ class DegradationModel(Model):
             sigma_1 = options[Key.FF_V_SIGMA_CYC],
             sigma_2 = options[Key.FF_V_SIGMA_V],
             sigma_3 = options[Key.FF_V_SIGMA_I],
-            d = self.d, f = self.f,
+            d = self.v_param_count, f = self.f,
         )
 
     def call(self, call_params: dict, training = False) -> dict:
@@ -366,7 +366,7 @@ class DegradationModel(Model):
         """
 
         if self.fourier_features:
-            b, d, f = len(cycle), self.d, self.f
+            b, d, f = len(cycle), self.q_param_count, self.f
             input_vector = tf.concat(
                 [cycle, v, current],
                 axis = 1,
@@ -388,8 +388,8 @@ class DegradationModel(Model):
         return tf.nn.elu(nn_call(self.fnn_q, dependencies, training = training))
 
     def prev_voltage_direct(
-        self, prev_end_current, constant_current, prev_end_voltage, feats_cell,
-        training = True,
+        self, prev_end_current, constant_current, prev_end_voltage,
+        feats_cell, training = True,
     ):
         """
         Compute state of charge directly (receiving arguments directly without
@@ -408,7 +408,7 @@ class DegradationModel(Model):
         """
 
         if self.fourier_features:
-            b, d, f = len(prev_end_current), self.d, self.f
+            b, d, f = len(prev_end_current), self.v_param_count, self.f
             input_vector = tf.concat(
                 [prev_end_voltage, constant_current, prev_end_voltage],
                 axis = 1,

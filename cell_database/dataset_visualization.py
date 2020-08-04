@@ -108,6 +108,7 @@ def output_dataset_to_csv(data, dataset_name, wet_names, filt_names, csv_format,
             if not os.path.exists(path):
                 os.makedirs(path)
             try:
+                print('outputting ', os.path.join(path, '{}.csv'.format(escape_string_to_path(filt_names[cell_id][filt_id]))))
                 with open(os.path.join(path, '{}.csv'.format(escape_string_to_path(filt_names[cell_id][filt_id]))), 'w', newline='') as csv_f:
                     writer = csv.writer(csv_f)
                     header = [h for _, _, h in csv_format]
@@ -115,6 +116,7 @@ def output_dataset_to_csv(data, dataset_name, wet_names, filt_names, csv_format,
                     content = [[f(res[key]) for key, f, _ in csv_format] for res in data[cell_id][filt_id]]
                     writer.writerows(content)
             except PermissionError:
+                print('failed...',os.path.join(path, '{}.csv'.format(escape_string_to_path(filt_names[cell_id][filt_id]))))
                 pass
 
 def output_dataset_to_plot(data, dataset_name, wet_names, filt_names, filt_colors, filt_pos, output_dir=None, dpi=300):

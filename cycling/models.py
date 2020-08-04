@@ -283,6 +283,20 @@ def get_cell_id_first_time(cell_id):
     first_time = start_times["start_time__min"]
     return first_time
 
+from scipy import stats
+def get_reference_delta_v(cell_id):
+    reference_delta_v = 1.0
+
+    files_cell_id = CyclingFile.objects.filter(
+        database_file__deprecated=False,
+        database_file__valid_metadata__cell_id=cell_id,
+    ).order_by("database_file__last_modified")
+
+    cycles = Cycle.objects.filter(cycling_file__in=files_cell_id)
+    delta_vs = numpy.array(list([cycle.get_delta_v() for cycle in cycles if 5. < cycle.get_offset_cycle() < 15. and cycle.get_delta_v is not None]))
+    delta_v = stats.trim_mean(delta_vs, 0.25)
+    return delta_v
+
 class Cycle(models.Model):
     cycling_file = models.ForeignKey(CyclingFile, on_delete = models.CASCADE)
     cycle_number = models.IntegerField()

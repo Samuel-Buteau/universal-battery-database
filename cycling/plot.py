@@ -133,13 +133,15 @@ def compute_from_database(
     return compute_from_database2(cell_id, rules, field_request, lower_cycle, upper_cycle, valid)
 
 
-def generic_field(tp, f, cyc, offset_cycle=None, cell_first_time=None):
+def generic_field(tp, f, cyc, offset_cycle=None, cell_first_time=None, reference_delta_v=None):
     if tp == "CUSTOM":
         return f(cyc)
     elif tp == "CYCLE_NUMBER":
         return float(cyc.cycle_number + offset_cycle)
     elif tp == "CUMULATIVE_TIME":
         return (cyc.get_start_time() - cell_first_time).total_seconds() / (60. * 60.)
+    elif tp == "NORMALIZED_DELTA_V":
+        return cyc.get_delta_v()/reference_delta_v
 
 
 
@@ -188,6 +190,7 @@ def compute_from_database2(
     ).order_by("database_file__last_modified")
 
     cell_first_time = get_cell_id_first_time(cell_id)
+    reference_delta_v = get_reference_delta_v(cell_id)
 
     groups = {}
     for rule_id in rules.keys():
@@ -282,7 +285,7 @@ def compute_from_database2(
                     q_curves += list([
                         tuple(
                             [
-                                generic_field(tp, f, cyc, offset_cycle, cell_first_time)
+                                generic_field(tp, f, cyc, offset_cycle, cell_first_time, reference_delta_v)
                                 for _, _, tp, f in field_request
                             ]
                         )

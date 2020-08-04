@@ -69,8 +69,10 @@ table, th, td {
 
     </table>
          {% endif %}
-    <h2>Dataset Preview</h2>
-    <input type="submit" name = 'plot_dataset' value="Plot Dataset">
+    <h2>Dataset Preview and Immediate Export</h2>
+        <input type="submit" name = 'plot_dataset' value="Plot Dataset">
+        <br>
+        <input type="submit" name = 'export_dataset' value="Export Dataset">
    <h2>Individual Cells Preview</h2>
     Display Page: {{visuals_form.page_number}} <br>
     Cells per Page: {{visuals_form.per_page}} <br>

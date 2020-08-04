@@ -2303,6 +2303,8 @@ def vis_dataset(request, pk):
             dataset_name, wet_names, filt_names, filt_colors, filt_pos = get_dataset_labels(dataset)
             ar["image_of_dataset"] = output_dataset_to_plot(data, dataset_name, wet_names, filt_names, filt_colors, filt_pos,
                                    )
+        if 'export_dataset' in request.POST:
+            output_files(options={'visuals':False}, dataset_id=pk)
 
         if 'plot_cells' in request.POST:
             visuals_form = DatasetVisualsForm(request.POST, prefix='visuals-form')

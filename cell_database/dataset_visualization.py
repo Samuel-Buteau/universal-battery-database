@@ -11,6 +11,8 @@ from matplotlib.axes._axes import _log as matplotlib_axes_logger
 
 from plot import *
 from cycling.plot import *
+import configparser
+from background_task import background
 
 def escape_string_to_path(my_string):
     for bad, good in [
@@ -105,13 +107,15 @@ def output_dataset_to_csv(data, dataset_name, wet_names, filt_names, csv_format,
 
             if not os.path.exists(path):
                 os.makedirs(path)
-            with open(os.path.join(path, '{}.csv'.format(escape_string_to_path(filt_names[cell_id][filt_id]))), 'w', newline='') as csv_f:
-                writer = csv.writer(csv_f)
-                header = [h for _, _, h in csv_format]
-                writer.writerow(header)
-                content = [[f(res[key]) for key, f, _ in csv_format] for res in data[cell_id][filt_id]]
-                writer.writerows(content)
-
+            try:
+                with open(os.path.join(path, '{}.csv'.format(escape_string_to_path(filt_names[cell_id][filt_id]))), 'w', newline='') as csv_f:
+                    writer = csv.writer(csv_f)
+                    header = [h for _, _, h in csv_format]
+                    writer.writerow(header)
+                    content = [[f(res[key]) for key, f, _ in csv_format] for res in data[cell_id][filt_id]]
+                    writer.writerows(content)
+            except PermissionError:
+                pass
 
 def output_dataset_to_plot(data, dataset_name, wet_names, filt_names, filt_colors, filt_pos, output_dir=None, dpi=300):
     positioned_filters = {}
@@ -186,7 +190,30 @@ def output_dataset_to_plot(data, dataset_name, wet_names, filt_names, filt_color
         return get_byte_image(fig, dpi)
 
 
+config = configparser.ConfigParser()
+config.read("config.ini")
 
+@background(schedule = 5)
+def output_files(options, dataset_id=None):
+    if 'output_dirs' in options.keys() and options['output_dir'] != '':
+        output_dir = options['output_dir']
+    else:
+        output_dir = config["DEFAULT"]["OutputDir"]
+
+    def perform_on_dataset(dataset):
+        data = compute_dataset(dataset, field_request_default)
+        dataset_name, wet_names, filt_names, filt_colors, filt_pos = get_dataset_labels(dataset)
+        output_dataset_to_csv(data, dataset_name, wet_names, filt_names, csv_format_default,
+                              output_dir)
+        if options['visuals']:
+            output_dataset_to_plot(data, dataset_name, wet_names, filt_names, filt_colors, filt_pos,
+                                   output_dir)
+
+    if dataset_id is not None:
+        perform_on_dataset(Dataset.objects.get(id=dataset_id))
+    else:
+        for dataset in Dataset.objects.all():
+            perform_on_dataset(dataset)
 
 
 '''
@@ -220,8 +247,8 @@ csv_format_default =[
 
     ("charge_time", lambda x: "{:.4f}".format(x), "Charge Time (hours)"),
     ("discharge_time", lambda x: "{:.4f}".format(x), "Discharge Time (hours)"),
-    ("cumulative_time", lambda x: str(int(x)), "Cumulative Time (hours)"),
-
+    ("cumulative_time", lambda x: "{:.4f}".format(x), "Cumulative Time (hours)"),
+    ("normalized_delta_v", lambda x: "{:.6f}".format(x), "Normalized Delta Voltage (unitless)"),
 ]
 
 
@@ -237,5 +264,5 @@ field_request_default = [
     ("charge_time", 'f4', "CUSTOM", lambda cyc: cyc.chg_duration),
     ("discharge_time", 'f4', "CUSTOM", lambda cyc: cyc.dchg_duration),
     ("cumulative_time", 'f4', "CUMULATIVE_TIME", None),
-
+    ("normalized_delta_v", 'f4', "NORMALIZED_DELTA_V", None),
 ]

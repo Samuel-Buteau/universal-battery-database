@@ -292,8 +292,18 @@ def get_reference_delta_v(cell_id):
         database_file__valid_metadata__cell_id=cell_id,
     ).order_by("database_file__last_modified")
 
-    cycles = Cycle.objects.filter(cycling_file__in=files_cell_id)
-    delta_vs = numpy.array(list([cycle.get_delta_v() for cycle in cycles if 5. < cycle.get_offset_cycle() < 15. and cycle.get_delta_v is not None]))
+    def delta_v_from_tuple(tup):
+        if tup[0] is None or tup[1] is None:
+            return None
+        else:
+            return tup[0] - tup[1]
+
+    delta_vs = []
+    for file in files_cell_id:
+        offset = file.database_file.valid_metadata.start_cycle
+        delta_vs += list([delta_v_from_tuple(tup) for tup in Cycle.objects.filter(cycling_file=file, cycle_number__range=(5.-offset, 15.-offset)).values_list("chg_average_voltage","dchg_average_voltage")])
+
+    delta_vs = numpy.array(delta_vs)
     delta_v = stats.trim_mean(delta_vs, 0.25)
     return delta_v
 

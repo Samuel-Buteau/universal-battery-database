@@ -540,7 +540,70 @@ def compute_target(
     ):
         Print.colour(Print.RED, "DISCHARGE ERROR")
 
-    if target == "generic_vs_capacity" or target == "v_vs_q":
+    if target == "generic_vs_capacity":
+        v_range = np.ones(1, dtype = np.float32)
+        current_range = np.ones(1, dtype = np.float32)
+        if mode == "cc":
+            v_min = min(averages[Key.V_PREV_END_AVG], averages[Key.V_END_AVG])
+            v_max = max(averages[Key.V_PREV_END_AVG], averages[Key.V_END_AVG])
+            v_range = np.linspace(v_min, v_max, 32)
+            y_n = 32
+        elif mode == "cv":
+            curr_max = abs(averages[Key.I_CC_AVG])
+            curr_min = abs(averages[Key.I_END_AVG])
+
+            if curr_min == curr_max:
+                current_range = np.array([curr_min])
+                y_n = 1
+            else:
+                current_range = sign_change * np.exp(
+                    np.linspace(np.log(curr_min), np.log(curr_max), 32)
+                )
+                y_n = 32
+        else:
+            sys.exit("Unknown `mode` in `compute_target`!")
+
+        test_results = degradation_model.test_all_voltages(
+            tf.constant(scaled_cyc, dtype = tf.float32),
+            tf.constant(averages[Key.I_CC_AVG], dtype = tf.float32),
+            tf.constant(averages[Key.I_PREV_END_AVG], dtype = tf.float32),
+            tf.constant(averages[Key.V_PREV_END_AVG], dtype = tf.float32),
+            tf.constant(averages[Key.V_END_AVG], dtype = tf.float32),
+            tf.constant(
+                degradation_model.cell_direct.id_dict[cell_id],
+                dtype = tf.int32,
+            ),
+            tf.constant(v_range, dtype = tf.float32),
+            tf.constant(current_range, dtype = tf.float32),
+            tf.constant(svit_and_count[Key.SVIT_GRID], dtype = tf.float32),
+            tf.constant(svit_and_count[Key.COUNT_MATRIX], dtype = tf.float32),
+        )
+
+        if mode == "cc":
+            yrange = v_range
+            pred_capacity_label = Key.Pred.I_CC
+        elif mode == "cv":
+            yrange = current_range
+            pred_capacity_label = Key.Pred.I_CV
+        else:
+            sys.exit("Unknown `mode` in `compute_target`!")
+
+        cap = tf.reshape(
+            test_results[pred_capacity_label], shape = [max_cyc_n, -1],
+        )
+
+        if y_n == 1:
+            y_n = (1,)
+
+        generic = np.array(
+            [(cyc, cap[i, :], yrange) for i, cyc in enumerate(cycle)],
+            dtype = [
+                (Key.N, "f4"),
+                (generic_map["x"], "f4", y_n),
+                (generic_map["y"], "f4", y_n),
+            ]
+        )
+    elif target == "v_vs_q":
         v_range = np.ones(1, dtype = np.float32)
         current_range = np.ones(1, dtype = np.float32)
         if mode == "cc":

@@ -563,7 +563,7 @@ def compute_target(
         else:
             sys.exit("Unknown `mode` in `compute_target`!")
 
-        test_results = degradation_model.test_all_voltages(
+        test_results = degradation_model.test_q(
             tf.constant(scaled_cyc, dtype = tf.float32),
             tf.constant(averages[Key.I_CC_AVG], dtype = tf.float32),
             tf.constant(averages[Key.I_PREV_END_AVG], dtype = tf.float32),

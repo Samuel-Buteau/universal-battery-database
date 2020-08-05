@@ -291,7 +291,7 @@ class DegradationModel(Model):
             v = self.prev_voltage_direct(
                 prev_end_current = params[Key.I_PREV_END],
                 constant_current = params[Key.I_CC],
-                prev_end_voltage = params[Key.V_END],
+                end_voltage = params[Key.V_END],
                 feats_cell = params[Key.CELL_FEAT],
             ),
             feats_cell = params[Key.CELL_FEAT],
@@ -388,7 +388,7 @@ class DegradationModel(Model):
         return tf.nn.elu(nn_call(self.fnn_q, dependencies, training = training))
 
     def prev_voltage_direct(
-        self, prev_end_current, constant_current, prev_end_voltage,
+        self, prev_end_current, constant_current, end_voltage,
         feats_cell, training = True,
     ):
         """
@@ -410,7 +410,7 @@ class DegradationModel(Model):
         if self.fourier_features:
             b, d, f = len(prev_end_current), self.v_param_count, self.f
             input_vector = tf.concat(
-                [prev_end_voltage, constant_current, prev_end_voltage],
+                [end_voltage, constant_current, end_voltage],
                 axis = 1,
             )
             dot_product = tf.einsum(
@@ -426,9 +426,9 @@ class DegradationModel(Model):
             )
         else:
             dependencies = (
-                prev_end_voltage,
+                end_voltage,
                 constant_current,
-                prev_end_voltage,
+                end_voltage,
             )
 
         return tf.nn.elu(nn_call(self.fnn_q, dependencies, training = training))

@@ -75,7 +75,7 @@ def make_legend(key):
 def get_figsize(target):
     """ TODO(harvey) """
     figsize = None
-    if target == "generic_vs_capacity":
+    if target == "generic_vs_capacity" or target == "v_vs_q":
         figsize = [5, 10]
     elif target == "generic_vs_cycle":
         figsize = [11, 10]
@@ -184,7 +184,7 @@ def generate_plot_options(mode: str, typ: str, target: str) -> dict:
     Returns: TODO(harvey)
     """
 
-    if target == "generic_vs_capacity":
+    if target == "generic_vs_capacity" or target == "v_vs_q":
         # label
         x_quantity = "Capacity"
         y_quantity = get_y_quantity(mode)
@@ -275,7 +275,7 @@ def get_generic_map(source, target: str, mode: str) -> dict:
     quantity = get_y_quantity(mode)
     if target == "generic_vs_cycle":
         generic_map = {"y": "last_{}_capacity".format(mode)}
-    elif target == "generic_vs_capacity":
+    elif target == "generic_vs_capacity" or target == "v_vs_q":
         generic_map = {
             "x": "{}_capacity_vector".format(mode),
             "y": "{}_{}_vector".format(mode, quantity),
@@ -458,7 +458,7 @@ def plot_generic(
             y = plot_options["sign_change"] * group[generic_map["y"]]
             color = custom_colors[k]
             simple_plot(ax, x, y, color, channel)
-        elif target == "generic_vs_capacity":
+        elif target == "generic_vs_capacity" or target == "v_vs_q":
             for i in range(len(group)):
                 x_ = plot_options["sign_change"] * group[generic_map["x"]][i]
                 y_ = group[generic_map["y"]][i]
@@ -540,7 +540,7 @@ def compute_target(
     ):
         Print.colour(Print.RED, "DISCHARGE ERROR")
 
-    if target == "generic_vs_capacity":
+    if target == "generic_vs_capacity" or target == "v_vs_q":
         v_range = np.ones(1, dtype = np.float32)
         current_range = np.ones(1, dtype = np.float32)
         if mode == "cc":
@@ -718,6 +718,10 @@ def plot_direct(target: str, plot_params: dict, init_returns: dict) -> None:
         compiled_max_cyc_n = 2000
         model_max_cyc_n = 200
         header = "Cap"
+    elif target == "v_vs_q":
+        compiled_max_cyc_n = 8
+        model_max_cyc_n = 3
+        header = "VQN"
     else:
         target_error(target, "", "plot_direct")
 

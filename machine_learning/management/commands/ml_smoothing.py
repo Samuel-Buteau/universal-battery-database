@@ -452,6 +452,9 @@ def train_and_evaluate(
                         plot_direct(
                             "generic_vs_capacity", plot_params, init_returns,
                         )
+                        plot_direct(
+                            "v_vs_q", plot_params, init_returns,
+                        )
 
                         end = time.time()
                         print("time to plot: ", end - start)

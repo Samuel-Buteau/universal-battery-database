@@ -82,6 +82,7 @@ class Key:
     FF_Q_SIGMA_V = "four_feat_q_sigma_voltage"
     FF_Q_SIGMA_I = "four_feat_q_sigma_current"
     FF_V_SIGMA = "four_feat_v_sigma"
+    FF_V_SIGMA_CYC = "four_feat_v_sigma_cyc"
     FF_V_SIGMA_I_PRE = "four_feat_v_sigma_previous_current"
     FF_V_SIGMA_I_CC = "four_feat_v_sigma_constant_current"
     FF_V_SIGMA_V_END = "four_feat_v_sigma_voltage"

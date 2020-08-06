@@ -98,7 +98,7 @@ class DegradationModel(Model):
         self.fourier_features = bool(options[Key.FOUR_FEAT])
 
         self.q_param_count = 3
-        self.v_param_count = 3
+        self.v_param_count = 4
         self.f = 32
 
         self.random_matrix_q = build_random_matrix(
@@ -114,6 +114,7 @@ class DegradationModel(Model):
         self.random_matrix_v = build_random_matrix(
             sigma = options[Key.FF_V_SIGMA],
             var_sigmas = [
+                options[Key.FF_V_SIGMA_CYC],
                 options[Key.FF_V_SIGMA_I_PRE],
                 options[Key.FF_V_SIGMA_I_CC],
                 options[Key.FF_V_SIGMA_V_END],
@@ -297,6 +298,7 @@ class DegradationModel(Model):
         q_0 = self.q_direct(
             cycle = params[Key.CYC],
             v = self.prev_voltage_direct(
+                cycle = params[Key.CYC],
                 prev_end_current = params[Key.I_PREV_END],
                 constant_current = params[Key.I_CC],
                 end_voltage = params[Key.V_END],
@@ -396,7 +398,7 @@ class DegradationModel(Model):
         return tf.nn.elu(nn_call(self.fnn_q, dependencies, training = training))
 
     def prev_voltage_direct(
-        self, prev_end_current, constant_current, end_voltage,
+        self, cycle, prev_end_current, constant_current, end_voltage,
         feats_cell, training = True,
     ):
         """
@@ -416,6 +418,7 @@ class DegradationModel(Model):
         """
 
         input_dependencies = [
+            cycle,
             prev_end_current,
             constant_current,
             end_voltage,

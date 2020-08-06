@@ -670,7 +670,17 @@ class DegradationModel(Model):
 
         # assert_current_sign(call_params, current_tensor)
 
-        cc_capacity = self.cc_capacity(capacity_params, training = training)
+        cc_capacity = self.q_1 = self.q_direct(
+            cycle = add_v_dep(capacity_params[Key.CYC], capacity_params),
+            v = capacity_params[Key.V],
+            feats_cell = add_v_dep(
+                capacity_params[Key.CELL_FEAT],
+                capacity_params,
+                capacity_params[Key.CELL_FEAT].shape[1],
+            ),
+            current = add_v_dep(capacity_params[Key.I_CC], capacity_params),
+            training = training,
+        )
         pred_cc_capacity = tf.reshape(cc_capacity, [-1, voltage_count])
 
         cv_capacity = self.cv_capacity(capacity_params, training = training)

@@ -393,7 +393,7 @@ class DegradationModel(Model):
                 feats_cell,
             )
         else:
-            dependencies = (cycle, v, feats_cell, current)
+            dependencies = (cycle, v, current, feats_cell)
 
         return tf.nn.elu(nn_call(self.fnn_q, dependencies, training = training))
 

@@ -722,9 +722,9 @@ class Command(BaseCommand):
             Key.FF_Q_SIGMA_I: .5,
 
             Key.FF_V_SIGMA: 0.08,
-            Key.FF_V_SIGMA_CYC: 1.,
-            Key.FF_V_SIGMA_V: 1.,
-            Key.FF_V_SIGMA_I: 1.,
+            Key.FF_V_SIGMA_I_PRE: 1.,
+            Key.FF_V_SIGMA_I_CC: 1.,
+            Key.FF_V_SIGMA_V_END: 1.,
         }
 
         vis = 1000

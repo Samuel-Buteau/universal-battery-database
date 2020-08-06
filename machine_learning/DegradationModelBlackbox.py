@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 import tensorflow as tf
 
@@ -49,12 +51,12 @@ def assert_current_sign(call_params, current_tensor):
     )
 
 
-# TODO(harvey): this is very much a hard-coded function not suitable for reuse
-def build_random_matrix(sigma, sigma_1, sigma_2, sigma_3, d, f):
+def build_random_matrix(sigma, var_sigmas: list, d, f):
+    if not len(var_sigmas) == d:
+        sys.exit("Wrong number of sigmas given!")
     random_matrix = np.random.normal(0, sigma, (d, f))
-    random_matrix[0, :] *= sigma_1
-    random_matrix[1, :] *= sigma_2
-    random_matrix[2, :] *= sigma_3
+    for i, var_sigma in enumerate(var_sigmas):
+        random_matrix[i, :] *= var_sigma
     return 2 * np.pi * tf.constant(random_matrix, dtype = tf.float32)
 
 
@@ -95,21 +97,27 @@ class DegradationModel(Model):
 
         self.fourier_features = bool(options[Key.FOUR_FEAT])
 
-        self.q_param_count, self.v_param_count, self.f = 3, 3, 32
+        self.q_param_count = 3
+        self.v_param_count = 3
+        self.f = 32
 
         self.random_matrix_q = build_random_matrix(
             sigma = options[Key.FF_Q_SIGMA],
-            sigma_1 = options[Key.FF_Q_SIGMA_CYC],
-            sigma_2 = options[Key.FF_Q_SIGMA_V],
-            sigma_3 = options[Key.FF_Q_SIGMA_I],
+            var_sigmas = [
+                options[Key.FF_Q_SIGMA_CYC],
+                options[Key.FF_Q_SIGMA_V],
+                options[Key.FF_Q_SIGMA_I],
+            ],
             d = self.q_param_count, f = self.f,
         )
 
         self.random_matrix_v = build_random_matrix(
             sigma = options[Key.FF_V_SIGMA],
-            sigma_1 = options[Key.FF_V_SIGMA_CYC],
-            sigma_2 = options[Key.FF_V_SIGMA_V],
-            sigma_3 = options[Key.FF_V_SIGMA_I],
+            var_sigmas = [
+                options[Key.FF_V_SIGMA_I_PRE],
+                options[Key.FF_V_SIGMA_I_CC],
+                options[Key.FF_V_SIGMA_V_END],
+            ],
             d = self.v_param_count, f = self.f,
         )
 
@@ -407,12 +415,15 @@ class DegradationModel(Model):
             Computed state of charge.
         """
 
+        input_dependencies = [
+            prev_end_current,
+            constant_current,
+            end_voltage,
+        ]
         if self.fourier_features:
             b, d, f = len(prev_end_current), self.v_param_count, self.f
-            input_vector = tf.concat(
-                [end_voltage, constant_current, end_voltage],
-                axis = 1,
-            )
+            input_vector = tf.concat(input_dependencies, axis = 1)
+
             dot_product = tf.einsum(
                 'bd,df->bf',
                 input_vector,
@@ -424,12 +435,10 @@ class DegradationModel(Model):
                 tf.math.cos(dot_product),
                 feats_cell,
             )
+
         else:
-            dependencies = (
-                end_voltage,
-                constant_current,
-                end_voltage,
-            )
+            input_dependencies.append(feats_cell)
+            dependencies = tuple(input_dependencies)
 
         return tf.nn.elu(nn_call(self.fnn_q, dependencies, training = training))
 

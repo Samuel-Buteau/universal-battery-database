@@ -477,6 +477,7 @@ def import_single_file(database_file, debug = False):
 
     def write_to_database(data_table, f):
         cycles = []
+        deletable_cycles = []
         if len(data_table) != 0:
             for cyc in list(data_table.keys())[:]:
                 if cyc > last_imported_cycle:
@@ -490,10 +491,13 @@ def import_single_file(database_file, debug = False):
                             cycles.append(
                                 Cycle(cycling_file=f, cycle_number=cyc)
                             )
+                            deletable_cycles.append(cyc)
+
 
         if debug:
             print("Cycles:")
             print(len(cycles))
+        Cycle.objects.filter(cycling_file=f, cycle_number__in=deletable_cycles).delete()
         Cycle.objects.bulk_create(cycles)
         steps = []
         for cyc in f.cycle_set.filter(

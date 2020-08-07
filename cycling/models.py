@@ -5,6 +5,7 @@ import pickle
 import datetime
 from django.db.models import Q, Max, Min
 import filename_database.models
+from scipy import stats
 
 from Key import Key
 import plot_constants
@@ -283,7 +284,7 @@ def get_cell_id_first_time(cell_id):
     first_time = start_times["start_time__min"]
     return first_time
 
-from scipy import stats
+
 def get_reference_delta_v(cell_id):
     reference_delta_v = 1.0
 

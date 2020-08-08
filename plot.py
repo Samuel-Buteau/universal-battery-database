@@ -176,6 +176,99 @@ def plot_engine_direct(
     plt.close(fig)
 
 
+def plot_engine_v_vs_q(
+    data_streams, target: str, todos, options, filename,
+    lower_cycle = None, upper_cycle = None, vertical_barriers = None,
+    list_all_options = None, show_invalid = False, figsize = None,
+):
+    """ TODO(harvey)
+    Args: TODO(harvey)
+        target: Plot type - "generic_vs_capacity" or "generic_vs_cycle".
+    Returns: TODO(harvey)
+    """
+    # open plot
+    if figsize is None:
+        figsize = get_figsize(target)
+
+    fig, axs = plt.subplots(
+        nrows = len(todos), figsize = figsize, sharex = True,
+    )
+    for i, todo in enumerate(todos):
+        typ, mode = todo
+        if len(todos) == 1:
+            ax = axs
+        else:
+            ax = axs[i]
+        for axis in ["top", "bottom", "left", "right"]:
+            ax.spines[axis].set_linewidth(3.)
+
+        plot_options = generate_plot_options(mode, typ, target)
+        list_of_target_data = []
+
+        source_database = False
+        cell_id = None
+        for source, data, _, max_cyc_n in data_streams:
+            list_of_target_data.append(
+                data_engine(
+                    source, target, data, typ, mode,
+                    max_cyc_n = max_cyc_n, lower_cycle = lower_cycle,
+                    upper_cycle = upper_cycle,
+                )
+            )
+            if source == "database":
+                source_database = True
+                cell_id, valid = data
+
+        list_of_keys = []
+        for _, lok, _ in list_of_target_data:
+            list_of_keys += lok
+        list_of_keys = get_list_of_keys(list(set(list_of_keys)), typ)
+
+        custom_colors = map_legend_to_color(list_of_keys)
+
+        for j, target_data in enumerate(list_of_target_data):
+            generic, _, generic_map = target_data
+
+            plot_generic(
+                target, generic, list_of_keys, custom_colors, generic_map, ax,
+                channel = data_streams[j][2], plot_options = plot_options,
+            )
+
+        leg = produce_annotations(
+            ax, get_list_of_patches(list_of_keys, custom_colors), plot_options
+        )
+        if source_database:
+            make_file_legends_and_vertical(
+                ax, cell_id, lower_cycle, upper_cycle, show_invalid,
+                vertical_barriers, list_all_options, leg,
+            )
+
+    # export
+    fig.tight_layout()
+    fig.subplots_adjust(hspace = 0)
+    if source_database:
+        # TODO(sam):
+        send_to_file = False
+        if vertical_barriers is None:
+            quick = True
+        else:
+            quick = False
+
+        if send_to_file:
+            savefig(filename, options)
+            plt.close(fig)
+        else:
+            if quick:
+                dpi = 50
+            else:
+                dpi = 300
+            return get_byte_image(fig, dpi)
+
+    else:
+        savefig(filename, options)
+    plt.close(fig)
+
+
 def generate_plot_options(mode: str, typ: str, target: str) -> dict:
     """ TODO(harvey)
     Args:

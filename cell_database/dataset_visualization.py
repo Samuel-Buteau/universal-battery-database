@@ -251,6 +251,8 @@ csv_format_default =[
     ("discharge_time", lambda x: "{:.4f}".format(x), "Discharge Time (hours)"),
     ("cumulative_time", lambda x: "{:.4f}".format(x), "Cumulative Time (hours)"),
     ("normalized_delta_v", lambda x: "{:.6f}".format(x), "Normalized Delta Voltage (unitless)"),
+    ("normalized_charge_capacity", lambda x: "{:.3f}".format(x), "Normalized Charge Capacity (unitless)"),
+    ("normalized_discharge_capacity", lambda x: "{:.3f}".format(x), "Normalized Discharge Capacity (unitless)"),
 ]
 
 
@@ -267,4 +269,6 @@ field_request_default = [
     ("discharge_time", 'f4', "CUSTOM", lambda cyc: cyc.dchg_duration),
     ("cumulative_time", 'f4', "CUMULATIVE_TIME", None),
     ("normalized_delta_v", 'f4', "NORMALIZED_DELTA_V", None),
+    ("normalized_charge_capacity", 'f4', "NORMALIZED_CAPACITY", lambda cyc: cyc.chg_total_capacity),
+    ("normalized_discharge_capacity", 'f4', "NORMALIZED_CAPACITY", lambda cyc: cyc.dchg_total_capacity),
 ]

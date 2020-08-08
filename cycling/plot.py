@@ -133,7 +133,7 @@ def compute_from_database(
     return compute_from_database2(cell_id, rules, field_request, lower_cycle, upper_cycle, valid)
 
 
-def generic_field(tp, f, cyc, offset_cycle=None, cell_first_time=None, reference_delta_v=None):
+def generic_field(tp, f, cyc, offset_cycle=None, cell_first_time=None, reference_delta_v=None, reference_capacity=None):
     if tp == "CUSTOM":
         return f(cyc)
     elif tp == "CYCLE_NUMBER":
@@ -142,6 +142,8 @@ def generic_field(tp, f, cyc, offset_cycle=None, cell_first_time=None, reference
         return (cyc.get_start_time() - cell_first_time).total_seconds() / (60. * 60.)
     elif tp == "NORMALIZED_DELTA_V":
         return cyc.get_delta_v()/reference_delta_v
+    elif tp == "NORMALIZED_CAPACITY":
+        return f(cyc)/reference_capacity
 
 
 
@@ -191,6 +193,9 @@ def compute_from_database2(
 
     cell_first_time = get_cell_id_first_time(cell_id)
     reference_delta_v = get_reference_delta_v(cell_id)
+    total_capacity = 1.
+    if CellGlobals.objects.filter(cell_id=cell_id).exists():
+        total_capacity = CellGlobals.objects.get(cell_id=cell_id).theoretical_capacity
 
     groups = {}
     for rule_id in rules.keys():
@@ -229,9 +234,6 @@ def compute_from_database2(
                         filters = group_id_f(rule[polarity]['direct_id']) & filters
                     else:
                         group_filter = Q(cell_id=cell_id, polarity=polarity)
-                        total_capacity = 1.
-                        if CellGlobals.objects.filter(cell_id=cell_id).exists():
-                            total_capacity = CellGlobals.objects.get(cell_id=cell_id).theoretical_capacity
                         for lab, leq_f, geq_f, range_f in [
                             (
                                 'constant_rate',
@@ -285,7 +287,7 @@ def compute_from_database2(
                     q_curves += list([
                         tuple(
                             [
-                                generic_field(tp, f, cyc, offset_cycle, cell_first_time, reference_delta_v)
+                                generic_field(tp, f, cyc, offset_cycle, cell_first_time, reference_delta_v, total_capacity)
                                 for _, _, tp, f in field_request
                             ]
                         )

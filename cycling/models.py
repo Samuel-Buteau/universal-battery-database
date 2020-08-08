@@ -278,7 +278,7 @@ def get_cell_id_first_time(cell_id):
         database_file__valid_metadata__cell_id=cell_id,
     ).order_by("database_file__last_modified")
 
-    cycles = Cycle.objects.filter(cycling_file__in=files_cell_id)
+    cycles = Cycle.objects.filter(cycling_file__in=files_cell_id, valid_cycle=True)
     steps = Step.objects.filter(cycle__in=cycles)
     start_times = steps.aggregate(Min("start_time"))
     first_time = start_times["start_time__min"]
@@ -302,11 +302,17 @@ def get_reference_delta_v(cell_id):
     delta_vs = []
     for file in files_cell_id:
         offset = file.database_file.valid_metadata.start_cycle
-        delta_vs += list([delta_v_from_tuple(tup) for tup in Cycle.objects.filter(cycling_file=file, cycle_number__range=(5.-offset, 15.-offset)).values_list("chg_average_voltage","dchg_average_voltage")])
+        delta_vs += list([delta_v_from_tuple(tup) for tup in Cycle.objects.filter(
+            cycling_file=file,
+            valid_cycle=True,
+            cycle_number__range=(5.-offset, 15.-offset)).values_list("chg_average_voltage","dchg_average_voltage")
+                          if delta_v_from_tuple(tup) is not None])
 
     delta_vs = numpy.array(delta_vs)
-    delta_v = stats.trim_mean(delta_vs, 0.25)
-    return delta_v
+    if len(delta_vs) != 0:
+        reference_delta_v = stats.trim_mean(delta_vs, 0.25)
+
+    return reference_delta_v
 
 class Cycle(models.Model):
     cycling_file = models.ForeignKey(CyclingFile, on_delete = models.CASCADE)

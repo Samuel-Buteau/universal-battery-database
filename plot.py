@@ -654,7 +654,7 @@ def compute_target(
                 )
                 y_n = 32
         else:
-            sys.exit("Unknown `mode` in `compute_target`!")
+            target_error(target, mode, "compute_target")
 
         test_results = degradation_model.test_q(
             tf.constant(scaled_cyc, dtype = tf.float32),

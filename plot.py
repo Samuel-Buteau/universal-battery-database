@@ -899,6 +899,43 @@ def plot_direct(target: str, plot_params: dict, init_returns: dict) -> None:
         )
 
 
+def plot_v_vs_q(plot_params: dict, init_returns: dict) -> None:
+    """
+    Args:
+        plot_params: Parameters for plotting.
+        init_returns: Return value of `ml_smoothing.initial_processing`.
+    """
+    model_max_cyc_n = 3
+    header = "N_VQ"
+
+    cell_ids\
+        = plot_params["cell_ids"][:plot_params[Key.OPTIONS][Key.CELL_ID_SHOW]]
+    count = plot_params["count"]
+    options = plot_params[Key.OPTIONS]
+
+    degradation_model = init_returns[Key.MODEL]
+    dataset = init_returns[Key.DATASET]
+    cycle_m = init_returns[Key.CYC_M]
+    cycle_v = init_returns[Key.CYC_V]
+
+    for cell_id_count, cell_id in enumerate(cell_ids):
+        svit_and_count, keys, averages = fetch_svit_keys_averages(
+            dataset, cell_id,
+        )
+        model_data = (
+            degradation_model, cell_id, cycle_m, cycle_v,
+            svit_and_count, keys, averages,
+        )
+
+        plot_engine_v_vs_q(
+            data_streams = [("model", model_data, "plot", model_max_cyc_n)],
+            target = "v_vs_q",
+            todos = [("dchg", "q"), ("chg", "q"), ("chg", "q_prev")],
+            options = options,
+            filename = header + "_{}_Count_{}.png".format(cell_id, count)
+        )
+
+
 def savefig(figname, options: dict):
     plt.savefig(os.path.join(options[Key.PATH_PLOTS], figname), dpi = 300)
 

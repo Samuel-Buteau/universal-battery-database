@@ -8,7 +8,7 @@ import tensorflow as tf
 from django.core.management.base import BaseCommand
 
 from Key import Key
-from plot import plot_direct
+from plot import plot_direct, plot_v_vs_q
 
 from cycling.models import id_dict_from_id_list
 from machine_learning.DegradationModelBlackbox import DegradationModel
@@ -452,9 +452,7 @@ def train_and_evaluate(
                         plot_direct(
                             "generic_vs_capacity", plot_params, init_returns,
                         )
-                        plot_direct(
-                            "v_vs_q", plot_params, init_returns,
-                        )
+                        plot_v_vs_q(plot_params, init_returns)
 
                         end = time.time()
                         print("time to plot: ", end - start)

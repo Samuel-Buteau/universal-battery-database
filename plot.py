@@ -277,7 +277,7 @@ def generate_plot_options(mode: str, typ: str, target: str) -> dict:
     Returns: TODO(harvey)
     """
 
-    if target == "generic_vs_capacity" or target == "v_vs_q":
+    if target == "generic_vs_capacity":
         # label
         x_quantity = "Capacity"
         y_quantity = get_y_quantity(mode)
@@ -285,6 +285,16 @@ def generate_plot_options(mode: str, typ: str, target: str) -> dict:
             ("dchg", "cc"): (.5, 1.),
             ("chg", "cc"): (.5, .5),
             ("chg", "cv"): (0., .5),
+        }
+
+    elif target == "v_vs_q":
+        # label
+        x_quantity = "Capacity"
+        y_quantity = get_y_quantity(mode)
+        leg = {
+            ("dchg", "q"): (.5, 1.),
+            ("chg", "q"): (.5, .5),
+            ("chg", "q_prev"): (0., .5),
         }
 
     elif target == "generic_vs_cycle":
@@ -348,7 +358,7 @@ def get_y_quantity(mode: str) -> str:
     Returns:
         "voltage" if mode is "cc", "current" if mode is "cv".
     """
-    if mode == "cc":
+    if mode == "cc" or mode == "q" or mode == "q_prev":
         y_quantity = "voltage"
     elif mode == "cv":
         y_quantity = "current"
@@ -697,27 +707,14 @@ def compute_target(
             ]
         )
     elif target == "v_vs_q":
-        v_range = np.ones(1, dtype = np.float32)
-        current_range = np.ones(1, dtype = np.float32)
-        if mode == "cc":
-            v_min = min(averages[Key.V_PREV_END_AVG], averages[Key.V_END_AVG])
-            v_max = max(averages[Key.V_PREV_END_AVG], averages[Key.V_END_AVG])
-            v_range = np.linspace(v_min, v_max, 32)
-            y_n = 32
-        elif mode == "cv":
-            curr_max = abs(averages[Key.I_CC_AVG])
-            curr_min = abs(averages[Key.I_END_AVG])
-
-            if curr_min == curr_max:
-                current_range = np.array([curr_min])
-                y_n = 1
-            else:
-                current_range = sign_change * np.exp(
-                    np.linspace(np.log(curr_min), np.log(curr_max), 32)
-                )
-                y_n = 32
-        else:
+        if not (mode == "q" or mode == "q_prev"):
             target_error(target, mode, "compute_target")
+
+        current_range = np.ones(1, dtype = np.float32)
+        v_min = min(averages[Key.V_PREV_END_AVG], averages[Key.V_END_AVG])
+        v_max = max(averages[Key.V_PREV_END_AVG], averages[Key.V_END_AVG])
+        v_range = np.linspace(v_min, v_max, 32)
+        y_n = 32
 
         test_results = degradation_model.test_all_voltages(
             tf.constant(scaled_cyc, dtype = tf.float32),
@@ -735,24 +732,13 @@ def compute_target(
             tf.constant(svit_and_count[Key.COUNT_MATRIX], dtype = tf.float32),
         )
 
-        if mode == "cc":
-            yrange = v_range
-            pred_capacity_label = Key.Pred.I_CC
-        elif mode == "cv":
-            yrange = current_range
-            pred_capacity_label = Key.Pred.I_CV
-        else:
-            target_error(target, mode, "compute_target")
-
-        cap = tf.reshape(
-            test_results[pred_capacity_label], shape = [max_cyc_n, -1],
-        )
+        cap = tf.reshape(test_results[mode], shape = [max_cyc_n, -1])
 
         if y_n == 1:
             y_n = (1,)
 
         generic = np.array(
-            [(cyc, cap[i, :], yrange) for i, cyc in enumerate(cycle)],
+            [(cyc, cap[i, :], v_range) for i, cyc in enumerate(cycle)],
             dtype = [
                 (Key.N, "f4"),
                 (generic_map["x"], "f4", y_n),
@@ -877,7 +863,7 @@ def plot_direct(target: str, plot_params: dict, init_returns: dict) -> None:
     elif target == "v_vs_q":
         compiled_max_cyc_n = 8
         model_max_cyc_n = 3
-        header = "VQN"
+        header = "N_VQ"
     else:
         target_error(target, "", "plot_direct")
 

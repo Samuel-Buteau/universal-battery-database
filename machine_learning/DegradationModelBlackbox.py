@@ -628,7 +628,6 @@ class DegradationModel(Model):
                 [cycle.shape[0], 1, 1, 1, 1, 1],
             ),
         }
-        training = False
 
         cycle = call_params[Key.CYC]  # matrix; dim: [batch, 1]
         voltage_tensor = call_params[Key.V_TENSOR]  # dim: [batch, voltages]
@@ -638,7 +637,7 @@ class DegradationModel(Model):
 
         feats_cell = self.cell_from_indices(
             indices = call_params[Key.INDICES],  # batch of index; dim: [batch]
-            training = training, sample = False,
+            training = False, sample = False,
         )
 
         # duplicate cycles and others for all the voltages
@@ -647,7 +646,7 @@ class DegradationModel(Model):
         voltage_count = voltage_tensor.shape[1]
         current_count = current_tensor.shape[1]
 
-        capacity_params = {
+        params = {
             Key.COUNT_BATCH: batch_count,
             Key.COUNT_V: voltage_count,
             Key.COUNT_I: current_count,
@@ -668,45 +667,38 @@ class DegradationModel(Model):
             Key.COUNT_MATRIX: count_matrix,
         }
 
-        # assert_current_sign(call_params, current_tensor)
-
-        cc_capacity = self.q_1 = self.q_direct(
-            cycle = add_v_dep(capacity_params[Key.CYC], capacity_params),
-            v = capacity_params[Key.V],
-            feats_cell = add_v_dep(
-                capacity_params[Key.CELL_FEAT],
-                capacity_params,
-                capacity_params[Key.CELL_FEAT].shape[1],
+        return {
+            "q": tf.reshape(
+                self.q_direct(
+                    cycle = add_v_dep(params[Key.CYC], params),
+                    v = params[Key.V],
+                    feats_cell = add_v_dep(
+                        params[Key.CELL_FEAT],
+                        params,
+                        params[Key.CELL_FEAT].shape[1],
+                    ),
+                    current = add_v_dep(params[Key.I_CC], params),
+                    training = False,
+                ),
+                [-1, voltage_count],
             ),
-            current = add_v_dep(capacity_params[Key.I_CC], capacity_params),
-            training = training,
-        )
-        pred_cc_capacity = tf.reshape(cc_capacity, [-1, voltage_count])
-
-        cv_capacity = self.cv_capacity(capacity_params, training = training)
-        pred_cv_capacity = tf.reshape(cv_capacity, [-1, current_count])
-
-        returns = {
-            Key.Pred.I_CC: pred_cc_capacity,
-            Key.Pred.I_CV: pred_cv_capacity,
+            "q_prev": tf.reshape(
+                add_v_dep(
+                    self.q_direct(
+                        cycle = params[Key.CYC],
+                        v = self.prev_voltage_direct(
+                            cycle = params[Key.CYC],
+                            prev_end_current = params[Key.I_PREV_END],
+                            constant_current = params[Key.I_CC],
+                            end_voltage = params[Key.V_END],
+                            feats_cell = params[Key.CELL_FEAT],
+                        ),
+                        feats_cell = params[Key.CELL_FEAT],
+                        current = params[Key.I_PREV_END],
+                        training = False,
+                    ),
+                    params,
+                ),
+                [-1, current_count],
+            ),
         }
-
-        if training:
-            samples = self.sample(n_sample = self.sample_count)
-
-            q, q_der = create_derivatives(
-                self.q_for_derivative,
-                params = {
-                    Key.CYC: samples["cycles"],
-                    Key.V: samples["vs"],
-                    Key.CELL_FEAT: samples["cell_feats"],
-                    Key.I: samples["constant_current"],
-                },
-                der_params = {Key.V: 3, Key.CELL_FEAT: 2, Key.I: 3, Key.CYC: 3}
-            )
-
-            q_loss = calculate_q_loss(q, q_der, options = self.options)
-
-            returns[Key.Loss.Q] = q_loss
-
-        return returns

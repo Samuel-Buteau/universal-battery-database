@@ -687,7 +687,7 @@ def compute_target(
             yrange = current_range
             pred_capacity_label = Key.Pred.I_CV
         else:
-            target_error(target, mode, "compute_target")
+            sys.exit("Unknown `mode` in `compute_target`!")
 
         cap = tf.reshape(
             test_results[pred_capacity_label], shape = [max_cyc_n, -1],

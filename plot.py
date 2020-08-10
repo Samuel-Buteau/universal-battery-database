@@ -179,7 +179,7 @@ def plot_engine_direct(
 def plot_engine_v_vs_q(
     data_streams, target: str, todos, options, filename,
     lower_cycle = None, upper_cycle = None, vertical_barriers = None,
-    list_all_options = None, show_invalid = False, figsize = None,
+    list_all_options = None, show_invalid = False,
 ):
     """ TODO(harvey)
     Args: TODO(harvey)
@@ -850,10 +850,6 @@ def plot_direct(target: str, plot_params: dict, init_returns: dict) -> None:
         compiled_max_cyc_n = 2000
         model_max_cyc_n = 200
         header = "Cap"
-    elif target == "v_vs_q":
-        compiled_max_cyc_n = 8
-        model_max_cyc_n = 3
-        header = "N_VQ"
     else:
         sys.exit("Unknown `target` in `plot_direct`!")
 

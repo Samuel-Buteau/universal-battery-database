@@ -287,7 +287,7 @@ def generate_plot_options(mode: str, typ: str, target: str) -> dict:
 
     elif target == "v_vs_q":
         # label
-        x_quantity = "Capacity"
+        x_quantity = "q"
         y_quantity = get_y_quantity(mode)
         leg = {
             ("dchg", "q"): (.5, 1.),

@@ -75,7 +75,7 @@ def make_legend(key):
 def get_figsize(target):
     """ TODO(harvey) """
     figsize = None
-    if target == "generic_vs_capacity" or target == "v_vs_q":
+    if target == "generic_vs_capacity":
         figsize = [5, 10]
     elif target == "generic_vs_cycle":
         figsize = [11, 10]
@@ -186,9 +186,7 @@ def plot_engine_v_vs_q(
         target: Plot type - "generic_vs_capacity" or "generic_vs_cycle".
     Returns: TODO(harvey)
     """
-    # open plot
-    if figsize is None:
-        figsize = get_figsize(target)
+    figsize = [5, 10]
 
     fig, axs = plt.subplots(
         nrows = len(todos), figsize = figsize, sharex = True,

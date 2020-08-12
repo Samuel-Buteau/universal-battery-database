@@ -53,7 +53,11 @@ def assert_current_sign(call_params, current_tensor):
 
 def build_random_matrix(sigma, var_sigmas: list, d, f):
     if not len(var_sigmas) == d:
-        sys.exit("Wrong number of sigmas given!")
+        raise Exception(
+            "`var_sigmas` is of length {} but `d` is {}".format(
+                len(var_sigmas), d,
+            )
+        )
     random_matrix = np.random.normal(0, sigma, (d, f))
     for i, var_sigma in enumerate(var_sigmas):
         random_matrix[i, :] *= var_sigma

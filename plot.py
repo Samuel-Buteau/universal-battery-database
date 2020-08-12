@@ -205,7 +205,7 @@ def generate_plot_options(mode: str, typ: str, target: str) -> dict:
         }
 
     else:
-        sys.exit("Unknown `target` in `generate_options`!")
+        target_error(target, mode, "generate_options")
 
     x_leg, y_leg = leg[(typ, mode)]
     return {
@@ -260,7 +260,7 @@ def get_y_quantity(mode: str) -> str:
     elif mode == "cv":
         y_quantity = "current"
     else:
-        sys.exit("Unknown `mode` in `get_y_quantity`!")
+        target_error("", mode, "get_y_quantity")
     return y_quantity
 
 
@@ -283,7 +283,7 @@ def get_generic_map(source, target: str, mode: str) -> dict:
         if source == "compiled":
             generic_map["mask"] = "{}_mask_vector".format(mode)
     else:
-        sys.exit("Unknown `target` in `get_generic_map`!")
+        target_error(target, mode, "get_generic_map")
     return generic_map
 
 
@@ -334,7 +334,7 @@ def data_engine(
             else:
                 generic[k] = data[k][Key.MAIN][needed_fields]
     else:
-        sys.exit("Unknown `source` in `data_engine`!")
+        target_error(target, mode, "data_engine")
 
     return generic, list_of_keys, generic_map
 
@@ -561,7 +561,7 @@ def compute_target(
                 )
                 y_n = 32
         else:
-            sys.exit("Unknown `mode` in `compute_target`!")
+            target_error(target, mode, "compute_target")
 
         test_results = degradation_model.test_all_voltages(
             tf.constant(scaled_cyc, dtype = tf.float32),
@@ -586,7 +586,7 @@ def compute_target(
             yrange = current_range
             pred_capacity_label = Key.Pred.I_CV
         else:
-            sys.exit("Unknown `mode` in `compute_target`!")
+            target_error(target, mode, "compute_target")
 
         cap = tf.reshape(
             test_results[pred_capacity_label], shape = [max_cyc_n, -1],
@@ -611,7 +611,7 @@ def compute_target(
             target_voltage = averages[Key.V_END_AVG]
             target_currents = [averages[Key.I_END_AVG]]
         else:
-            sys.exit("Unknown `mode` in `compute_target`!")
+            target_error(target, mode, "compute_target")
 
         test_results = degradation_model.test_single_voltage(
             tf.cast(scaled_cyc, dtype = tf.float32),
@@ -635,7 +635,7 @@ def compute_target(
         elif mode == "cv":
             pred_cap = test_results[Key.Pred.I_CV].numpy()[:, -1]
         else:
-            sys.exit("Unknown `mode` in `compute_target`!")
+            target_error(target, mode, "compute_target")
 
         generic = np.array(
             list(zip(cycle, pred_cap)),
@@ -645,9 +645,17 @@ def compute_target(
             ],
         )
     else:
-        sys.exit("Unknown `target` in `compute_target`!")
+        target_error(target, mode, "compute_target")
 
     return generic
+
+
+def target_error(target: str, mode: str, function_name: str):
+    raise ValueError(
+        "Unknown `target` \"{}\" and `mode` \"{}\" in function `{}`".format(
+            target, mode, function_name,
+        )
+    )
 
 
 def plot_cycling_direct(
@@ -711,7 +719,7 @@ def plot_direct(target: str, plot_params: dict, init_returns: dict) -> None:
         model_max_cyc_n = 200
         header = "Cap"
     else:
-        sys.exit("Unknown `target` in `plot_direct`!")
+        target_error(target, "", "plot_direct")
 
     cell_ids\
         = plot_params["cell_ids"][:plot_params[Key.OPTIONS][Key.CELL_ID_SHOW]]

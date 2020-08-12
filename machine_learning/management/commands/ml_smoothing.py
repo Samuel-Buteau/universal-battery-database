@@ -345,9 +345,16 @@ def initial_processing(
             ).repeat(2).shuffle(100000).batch(options[Key.BATCH])
         )
 
-        degradation_model = DegradationModel(
-            width = options[Key.WIDTH],
-            depth = options[Key.DEPTH],
+        teacher_model = DegradationModel(
+            width = options[Key.TEACHER_WIDTH],
+            depth = options[Key.TEACHER_DEPTH],
+            n_sample = options[Key.N_SAMPLE],
+            options = options,
+            cell_dict = id_dict_from_id_list(np.array(cell_ids)),
+        )
+        student_model = DegradationModel(
+            width = options[Key.STUDENT_WIDTH],
+            depth = options[Key.STUDENT_DEPTH],
             n_sample = options[Key.N_SAMPLE],
             options = options,
             cell_dict = id_dict_from_id_list(np.array(cell_ids)),
@@ -359,7 +366,8 @@ def initial_processing(
 
     return {
         Key.STRAT: strategy,
-        Key.MODEL: degradation_model,
+        Key.TEACHER_MODEL: teacher_model,
+        Key.STUDENT_MODEL: student_model,
         Key.TENSORS: compiled_tensors,
         Key.TRAIN_DS: train_ds,
         Key.CYC_M: cycle_m,
@@ -402,7 +410,7 @@ def train_and_evaluate(
     train_step_params = {
         Key.TENSORS: init_returns[Key.TENSORS],
         Key.OPT: init_returns[Key.OPT],
-        Key.MODEL: init_returns[Key.MODEL],
+        Key.TEACHER_MODEL: init_returns[Key.TEACHER_MODEL],
     }
 
     @tf.function
@@ -471,7 +479,7 @@ def train_step(neigh, params: dict, options: dict):
     # need to split the range
     batch_size2 = neigh.shape[0]
 
-    degradation_model = params[Key.MODEL]
+    degradation_model = params[Key.TEACHER_MODEL]
     optimizer = params[Key.OPT]
     compiled_tensors = params[Key.TENSORS]
 
@@ -732,8 +740,8 @@ class Command(BaseCommand):
             Key.FOUR_FEAT: 1,
             Key.N_SAMPLE: 8 * 16,
 
-            Key.DEPTH: 3,
-            Key.WIDTH: 50,
+            Key.TEACHER_DEPTH: 3,
+            Key.TEACHER_WIDTH: 50,
             Key.BATCH: 4 * 16,
 
             Key.PRINT_LOSS: vis,

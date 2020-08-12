@@ -858,7 +858,7 @@ def plot_direct(target: str, plot_params: dict, init_returns: dict) -> None:
     count = plot_params["count"]
     options = plot_params[Key.OPTIONS]
 
-    degradation_model = init_returns[Key.MODEL]
+    degradation_model = init_returns[Key.TEACHER_MODEL]
     dataset = init_returns[Key.DATASET]
     cycle_m = init_returns[Key.CYC_M]
     cycle_v = init_returns[Key.CYC_V]
@@ -899,7 +899,7 @@ def plot_v_vs_q(plot_params: dict, init_returns: dict) -> None:
     count = plot_params["count"]
     options = plot_params[Key.OPTIONS]
 
-    degradation_model = init_returns[Key.MODEL]
+    degradation_model = init_returns[Key.TEACHER_MODEL]
     dataset = init_returns[Key.DATASET]
     cycle_m = init_returns[Key.CYC_M]
     cycle_v = init_returns[Key.CYC_V]

@@ -99,8 +99,12 @@ class Key:
     T_MAX_V_GRID = "temperature_grid_max_v"
 
     N_SAMPLE = "n_sample"
-    WIDTH = "width"
-    DEPTH = "depth"
+    TEACHER_MODEL = "teacher_model"
+    TEACHER_WIDTH = "teacher_width"
+    TEACHER_DEPTH = "teacher_depth"
+    STUDENT_MODEL = "student_model"
+    STUDENT_WIDTH = "student_width"
+    STUDENT_DEPTH = "student_depth"
     BATCH = "batch_size"
 
     PRINT_LOSS = "print_loss_every"
@@ -226,7 +230,6 @@ class Key:
 
     STRAT = "strategy"
     TENSORS = "compiled_tensors"
-    MODEL = "degradation_model"
     TRAIN_DS = "train_ds"
     CYC_M = "cycle_m"
     CYC_V = "cycle_v"

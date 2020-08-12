@@ -664,7 +664,7 @@ def compute_target(
         else:
             raise Exception(target_error(target, mode, "compute_target"))
 
-        test_results = degradation_model.test_q(
+        test_results = degradation_model.test_all_voltages(
             tf.constant(scaled_cyc, dtype = tf.float32),
             tf.constant(averages[Key.I_CC_AVG], dtype = tf.float32),
             tf.constant(averages[Key.I_PREV_END_AVG], dtype = tf.float32),
@@ -714,7 +714,7 @@ def compute_target(
         v_range = np.linspace(v_min, v_max, 32)
         y_n = 32
 
-        test_results = degradation_model.test_all_voltages(
+        test_results = degradation_model.test_q(
             tf.constant(scaled_cyc, dtype = tf.float32),
             tf.constant(averages[Key.I_CC_AVG], dtype = tf.float32),
             tf.constant(averages[Key.I_PREV_END_AVG], dtype = tf.float32),

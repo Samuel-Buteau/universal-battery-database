@@ -422,11 +422,10 @@ def train_and_evaluate(
                 count += 1
                 sub_count += 1
 
-                l_ = dist_train_step(strategy, neigh)
                 if l is None:
-                    l = l_
+                    l = dist_train_step(strategy, neigh)
                 else:
-                    l += l_
+                    l += dist_train_step(strategy, neigh)
 
                 if count != 0:
                     if (count % options[Key.PRINT_LOSS]) == 0:
@@ -436,13 +435,12 @@ def train_and_evaluate(
                         loss_record.record(count, tot.numpy())
                         loss_record.print_recent(options)
 
-                    plot_params = {
-                        "cell_ids": cell_ids,
-                        "count": count,
-                        Key.OPTIONS: options,
-                    }
-
                     if (count % options[Key.VIS_FIT]) == 0:
+                        plot_params = {
+                            "cell_ids": cell_ids,
+                            "count": count,
+                            Key.OPTIONS: options,
+                        }
                         start = time.time()
                         print("time to simulate: ", start - end)
                         loss_record.plot(count, options)

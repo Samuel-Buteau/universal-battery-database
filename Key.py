@@ -105,6 +105,12 @@ class Key:
     STUDENT_MODEL = "student_model"
     STUDENT_WIDTH = "student_width"
     STUDENT_DEPTH = "student_depth"
+    STUDENT_SAMPLES = "student_samples"
+    SAMPLE_I = "sample_c"
+    SAMPLE_V = "sample_v"
+    SAMPLE_CYC = "sample_cycle"
+    SAMPLE_CELL_FEAT = "sample_cell_feat"
+
     BATCH = "batch_size"
 
     PRINT_LOSS = "print_loss_every"
@@ -233,7 +239,7 @@ class Key:
     TRAIN_DS = "train_ds"
     CYC_M = "cycle_m"
     CYC_V = "cycle_v"
-    OPT = "optimizer"
+    OPTIMIZER = "optimizer"
 
     # TODO (harvey): replace the following class of keys
     class Coeff:

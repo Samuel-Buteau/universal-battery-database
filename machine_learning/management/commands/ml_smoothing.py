@@ -372,7 +372,7 @@ def initial_processing(
         Key.TRAIN_DS: train_ds,
         Key.CYC_M: cycle_m,
         Key.CYC_V: cycle_v,
-        Key.OPT: optimizer,
+        Key.OPTIMIZER: optimizer,
         Key.DATASET: dataset,
     }
 
@@ -409,7 +409,7 @@ def train_and_evaluate(
 
     train_step_params = {
         Key.TENSORS: init_returns[Key.TENSORS],
-        Key.OPT: init_returns[Key.OPT],
+        Key.OPTIMIZER: init_returns[Key.OPTIMIZER],
         Key.TEACHER_MODEL: init_returns[Key.TEACHER_MODEL],
     }
 
@@ -479,8 +479,8 @@ def train_step(neigh, params: dict, options: dict):
     # need to split the range
     batch_size2 = neigh.shape[0]
 
-    degradation_model = params[Key.TEACHER_MODEL]
-    optimizer = params[Key.OPT]
+    teacher_model = params[Key.TEACHER_MODEL]
+    optimizer = params[Key.OPTIMIZER]
     compiled_tensors = params[Key.TENSORS]
 
     sign_grid_tensor = compiled_tensors[Key.SIGN_GRID]
@@ -624,7 +624,7 @@ def train_step(neigh, params: dict, options: dict):
     cell_indices = neigh[:, NEIGH_CELL_ID]
 
     with tf.GradientTape() as tape:
-        train_results = degradation_model(
+        teacher_train_results = teacher_model(
             {
                 Key.CYC: tf.expand_dims(cycle, axis = 1),
                 Key.I_CC: tf.expand_dims(constant_current, axis = 1),
@@ -640,14 +640,14 @@ def train_step(neigh, params: dict, options: dict):
             training = True,
         )
 
-        pred_cc_capacity = train_results[Key.Pred.I_CC]
-        pred_cv_capacity = train_results[Key.Pred.I_CV]
+        teacher_pred_cc_cap = teacher_train_results[Key.Pred.I_CC]
+        teacher_pred_cv_cap = teacher_train_results[Key.Pred.I_CV]
 
         cc_capacity_loss = get_loss(
-            cc_capacity, pred_cc_capacity, cc_mask, cc_mask_2,
+            cc_capacity, teacher_pred_cc_cap, cc_mask, cc_mask_2,
         )
         cv_capacity_loss = get_loss(
-            cv_capacity, pred_cv_capacity, cv_mask, cv_mask_2,
+            cv_capacity, teacher_pred_cv_cap, cv_mask, cv_mask_2,
         )
 
         main_losses = (
@@ -655,10 +655,10 @@ def train_step(neigh, params: dict, options: dict):
             + options[Key.Coeff.Q_CC] * cc_capacity_loss
         )
         loss = main_losses + tf.stop_gradient(main_losses) * (
-            options[Key.Coeff.Q] * train_results[Key.Loss.Q]
+            options[Key.Coeff.Q] * teacher_train_results[Key.Loss.Q]
         )
 
-    gradients = tape.gradient(loss, degradation_model.trainable_variables)
+    gradients = tape.gradient(loss, teacher_model.trainable_variables)
 
     gradients_no_nans = [
         tf.where(tf.math.is_nan(x), tf.zeros_like(x), x) for x in gradients
@@ -669,11 +669,11 @@ def train_step(neigh, params: dict, options: dict):
     )
 
     optimizer.apply_gradients(
-        zip(gradients_norm_clipped, degradation_model.trainable_variables)
+        zip(gradients_norm_clipped, teacher_model.trainable_variables)
     )
 
     return tf.stack(
-        [cc_capacity_loss, cv_capacity_loss, train_results[Key.Loss.Q]],
+        [cc_capacity_loss, cv_capacity_loss, teacher_train_results[Key.Loss.Q]],
     )
 
 

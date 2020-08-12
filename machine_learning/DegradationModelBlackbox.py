@@ -215,6 +215,7 @@ class DegradationModel(Model):
 
             q_loss = calculate_q_loss(q, q_der, options = self.options)
 
+            returns[Key.Q] = q
             returns[Key.Loss.Q] = q_loss
 
         return returns

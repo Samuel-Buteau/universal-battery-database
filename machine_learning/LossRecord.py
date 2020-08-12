@@ -10,7 +10,7 @@ class LossRecord:
         self.labels = [
             Key.Loss.Q_CC, Key.Loss.Q_CV, Key.Loss.V_CC, Key.Loss.V_CV,
             Key.Loss.Q, Key.Loss.SCALE, Key.Loss.R, Key.Loss.SHIFT,
-            Key.Loss.RECIP, Key.Loss.PROJ, Key.Loss.OOB
+            Key.Loss.RECIP, Key.Loss.PROJ, Key.Loss.OOB,
         ]
 
     def record(self, count, losses):

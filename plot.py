@@ -848,23 +848,20 @@ def plot_direct(
     if target == "generic_vs_capacity":
         compiled_max_cyc_n = 8
         model_max_cyc_n = 3
+        header = "VQ"
     elif target == "generic_vs_cycle":
         compiled_max_cyc_n = 2000
         model_max_cyc_n = 200
+        header = "Cap"
     else:
         raise Exception(target_error(target, "", "compute_target"))
+
     if teacher:
         degradation_model = init_returns[Key.TEACHER_MODEL]
-        if target == "generic_vs_capacity":
-            header = "T_VQ"
-        elif target == "generic_vs_cycle":
-            header = "T_Cap"
+        header = "T_" + header
     else:
         degradation_model = init_returns[Key.STUDENT_MODEL]
-        if target == "generic_vs_capacity":
-            header = "S_VQ"
-        elif target == "generic_vs_cycle":
-            header = "S_Cap"
+        header = "S_" + header
 
     cell_ids\
         = plot_params["cell_ids"][:plot_params[Key.OPTIONS][Key.CELL_ID_SHOW]]

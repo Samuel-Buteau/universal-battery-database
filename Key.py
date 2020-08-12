@@ -31,6 +31,7 @@ class Key:
     V_END_AVG = "avg_end_voltage"
     V_TENSOR = "voltage_tensor"
 
+    Q = "q_direct"
     Q_CC = "cc_capacities"
     Q_CC_VEC = "cc_capacity_vector"
     Q_CV = "cv_capacities"
@@ -265,6 +266,7 @@ class Key:
         Q_CV = "coeff_cv_capacity"
         Q_CC = "coeff_cc_capacity"
         Q = "coeff_q"
+        STUDENT_Q = "coeff_student_q"
         Q_GEQ = "coeff_q_geq"
         Q_LEQ = "coeff_q_leq"
         Q_V_MONO = "coeff_q_v_mono"

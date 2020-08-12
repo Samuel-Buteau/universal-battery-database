@@ -495,14 +495,14 @@ def train_and_evaluate(
                         print("time to simulate: ", start - end)
                         loss_record.plot(count, options)
                         plot_direct(
+                            "generic_vs_capacity", plot_params, init_returns,
+                            teacher = False,
+                        )
+                        plot_direct(
                             "generic_vs_cycle", plot_params, init_returns,
                         )
                         plot_direct(
                             "generic_vs_capacity", plot_params, init_returns,
-                        )
-                        plot_direct(
-                            "generic_vs_capacity", plot_params, init_returns,
-                            teacher = False,
                         )
                         plot_v_vs_q(plot_params, init_returns)
 
@@ -526,6 +526,8 @@ def train_step(neigh, train_params: dict, options: dict):
     batch_size2 = neigh.shape[0]
 
     teacher_model = train_params[Key.TEACHER_MODEL]
+    student_model = train_params[Key.STUDENT_MODEL]
+    student_samples = train_params[Key.STUDENT_SAMPLES]
     optimizer = train_params[Key.OPTIMIZER]
     compiled_tensors = train_params[Key.TENSORS]
 
@@ -718,6 +720,53 @@ def train_step(neigh, train_params: dict, options: dict):
         zip(gradients_norm_clipped, teacher_model.trainable_variables)
     )
 
+    with tf.GradientTape() as student_tape:
+        teacher_q = teacher_model(
+            {
+                Key.CYC: tf.expand_dims(cycle, axis = 1),
+                Key.I_CC: tf.expand_dims(constant_current, axis = 1),
+                Key.I_PREV_END: tf.expand_dims(end_current_prev, axis = 1),
+                Key.V_PREV_END: tf.expand_dims(end_voltage_prev, axis = 1),
+                Key.V_END: tf.expand_dims(end_voltage, axis = 1),
+                Key.INDICES: cell_indices,
+                Key.V_TENSOR: cc_voltage,
+                Key.I_TENSOR: cv_current,
+                Key.SVIT_GRID: svit_grid,
+                Key.COUNT_MATRIX: count_matrix,
+            },
+            training = True,
+        )[Key.Q]
+        student_q = student_model.q_direct(
+            cycle = student_samples[Key.SAMPLE_CYC],
+            v = student_samples[Key.SAMPLE_V],
+            current = student_samples[Key.SAMPLE_I],
+            feats_cell = student_samples[Key.SAMPLE_CELL_FEAT],
+        )
+
+        student_loss = options[Key.Coeff.STUDENT_Q] * tf.reduce_mean(
+            tf.square(
+                tf.stop_gradient(teacher_q) - student_q
+            )
+        )
+
+    gradients_student = student_tape.gradient(
+        student_loss, student_model.trainable_variables,
+    )
+    for x in gradients_student:
+        if x is None:
+            gradients_student.remove(x)
+    gradients_no_nans_student = [
+        tf.where(tf.math.is_nan(x), tf.zeros_like(x), x)
+        for x in gradients_student
+    ]
+    gradients_norm_clipped_student, _ = tf.clip_by_global_norm(
+        gradients_no_nans_student, options[Key.GLB_NORM_CLIP],
+    )
+
+    optimizer.apply_gradients(
+        zip(gradients_norm_clipped_student, student_model.trainable_variables)
+    )
+
     return tf.stack(
         [cc_capacity_loss, cv_capacity_loss, teacher_train_results[Key.Loss.Q]],
     )
@@ -760,6 +809,7 @@ class Command(BaseCommand):
             Key.Coeff.Q_CC: 1.,
 
             Key.Coeff.Q: 0.0001,
+            Key.Coeff.STUDENT_Q: 0.0001,
             Key.Coeff.Q_GEQ: 1.,
             Key.Coeff.Q_LEQ: 1.,
             Key.Coeff.Q_V_MONO: 0.,

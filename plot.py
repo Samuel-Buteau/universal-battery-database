@@ -176,6 +176,97 @@ def plot_engine_direct(
     plt.close(fig)
 
 
+def plot_engine_v_vs_q(
+    data_streams, target: str, todos, options, filename,
+    lower_cycle = None, upper_cycle = None, vertical_barriers = None,
+    list_all_options = None, show_invalid = False,
+):
+    """ TODO(harvey)
+    Args: TODO(harvey)
+        target: Plot type - "generic_vs_capacity" or "generic_vs_cycle".
+    Returns: TODO(harvey)
+    """
+    figsize = [5, 10]
+
+    fig, axs = plt.subplots(
+        nrows = len(todos), figsize = figsize, sharex = True,
+    )
+    for i, todo in enumerate(todos):
+        typ, mode = todo
+        if len(todos) == 1:
+            ax = axs
+        else:
+            ax = axs[i]
+        for axis in ["top", "bottom", "left", "right"]:
+            ax.spines[axis].set_linewidth(3.)
+
+        plot_options = generate_plot_options(mode, typ, target)
+        list_of_target_data = []
+
+        source_database = False
+        cell_id = None
+        for source, data, _, max_cyc_n in data_streams:
+            list_of_target_data.append(
+                data_engine(
+                    source, target, data, typ, mode,
+                    max_cyc_n = max_cyc_n, lower_cycle = lower_cycle,
+                    upper_cycle = upper_cycle,
+                )
+            )
+            if source == "database":
+                source_database = True
+                cell_id, valid = data
+
+        list_of_keys = []
+        for _, lok, _ in list_of_target_data:
+            list_of_keys += lok
+        list_of_keys = get_list_of_keys(list(set(list_of_keys)), typ)
+
+        custom_colors = map_legend_to_color(list_of_keys)
+
+        for j, target_data in enumerate(list_of_target_data):
+            generic, _, generic_map = target_data
+
+            plot_generic(
+                target, generic, list_of_keys, custom_colors, generic_map, ax,
+                channel = data_streams[j][2], plot_options = plot_options,
+            )
+
+        leg = produce_annotations(
+            ax, get_list_of_patches(list_of_keys, custom_colors), plot_options
+        )
+        if source_database:
+            make_file_legends_and_vertical(
+                ax, cell_id, lower_cycle, upper_cycle, show_invalid,
+                vertical_barriers, list_all_options, leg,
+            )
+
+    # export
+    fig.tight_layout()
+    fig.subplots_adjust(hspace = 0)
+    if source_database:
+        # TODO(sam):
+        send_to_file = False
+        if vertical_barriers is None:
+            quick = True
+        else:
+            quick = False
+
+        if send_to_file:
+            savefig(filename, options)
+            plt.close(fig)
+        else:
+            if quick:
+                dpi = 50
+            else:
+                dpi = 300
+            return get_byte_image(fig, dpi)
+
+    else:
+        savefig(filename, options)
+    plt.close(fig)
+
+
 def generate_plot_options(mode: str, typ: str, target: str) -> dict:
     """ TODO(harvey)
     Args:
@@ -194,6 +285,16 @@ def generate_plot_options(mode: str, typ: str, target: str) -> dict:
             ("chg", "cv"): (0., .5),
         }
 
+    elif target == "v_vs_q":
+        # label
+        x_quantity = "q"
+        y_quantity = get_y_quantity(mode)
+        leg = {
+            ("dchg", "q"): (.5, 1.),
+            ("chg", "q"): (.5, .5),
+            ("chg", "q_prev"): (0., .5),
+        }
+
     elif target == "generic_vs_cycle":
         # label
         x_quantity = "Cycle"
@@ -205,7 +306,7 @@ def generate_plot_options(mode: str, typ: str, target: str) -> dict:
         }
 
     else:
-        target_error(target, mode, "generate_options")
+        sys.exit("Unknown `target` in `generate_options`!")
 
     x_leg, y_leg = leg[(typ, mode)]
     return {
@@ -255,12 +356,12 @@ def get_y_quantity(mode: str) -> str:
     Returns:
         "voltage" if mode is "cc", "current" if mode is "cv".
     """
-    if mode == "cc":
+    if mode == "cc" or mode == "q" or mode == "q_prev":
         y_quantity = "voltage"
     elif mode == "cv":
         y_quantity = "current"
     else:
-        target_error("", mode, "get_y_quantity")
+        sys.exit("Unknown `mode` in `get_y_quantity`!")
     return y_quantity
 
 
@@ -275,7 +376,7 @@ def get_generic_map(source, target: str, mode: str) -> dict:
     quantity = get_y_quantity(mode)
     if target == "generic_vs_cycle":
         generic_map = {"y": "last_{}_capacity".format(mode)}
-    elif target == "generic_vs_capacity":
+    elif target == "generic_vs_capacity" or target == "v_vs_q":
         generic_map = {
             "x": "{}_capacity_vector".format(mode),
             "y": "{}_{}_vector".format(mode, quantity),
@@ -283,7 +384,7 @@ def get_generic_map(source, target: str, mode: str) -> dict:
         if source == "compiled":
             generic_map["mask"] = "{}_mask_vector".format(mode)
     else:
-        target_error(target, mode, "get_generic_map")
+        sys.exit("Unknown `target` in `get_generic_map`!")
     return generic_map
 
 
@@ -334,7 +435,7 @@ def data_engine(
             else:
                 generic[k] = data[k][Key.MAIN][needed_fields]
     else:
-        target_error(target, mode, "data_engine")
+        sys.exit("Unknown `source` in `data_engine`!")
 
     return generic, list_of_keys, generic_map
 
@@ -458,7 +559,7 @@ def plot_generic(
             y = plot_options["sign_change"] * group[generic_map["y"]]
             color = custom_colors[k]
             simple_plot(ax, x, y, color, channel)
-        elif target == "generic_vs_capacity":
+        elif target == "generic_vs_capacity" or target == "v_vs_q":
             for i in range(len(group)):
                 x_ = plot_options["sign_change"] * group[generic_map["x"]][i]
                 y_ = group[generic_map["y"]][i]
@@ -561,9 +662,9 @@ def compute_target(
                 )
                 y_n = 32
         else:
-            target_error(target, mode, "compute_target")
+            sys.exit("Unknown `mode` in `compute_target`!")
 
-        test_results = degradation_model.test_all_voltages(
+        test_results = degradation_model.test_q(
             tf.constant(scaled_cyc, dtype = tf.float32),
             tf.constant(averages[Key.I_CC_AVG], dtype = tf.float32),
             tf.constant(averages[Key.I_PREV_END_AVG], dtype = tf.float32),
@@ -586,7 +687,7 @@ def compute_target(
             yrange = current_range
             pred_capacity_label = Key.Pred.I_CV
         else:
-            target_error(target, mode, "compute_target")
+            sys.exit("Unknown `mode` in `compute_target`!")
 
         cap = tf.reshape(
             test_results[pred_capacity_label], shape = [max_cyc_n, -1],
@@ -603,6 +704,45 @@ def compute_target(
                 (generic_map["y"], "f4", y_n),
             ]
         )
+    elif target == "v_vs_q":
+        if not (mode == "q" or mode == "q_prev"):
+            target_error(target, mode, "compute_target")
+
+        current_range = np.ones(1, dtype = np.float32)
+        v_min = min(averages[Key.V_PREV_END_AVG], averages[Key.V_END_AVG])
+        v_max = max(averages[Key.V_PREV_END_AVG], averages[Key.V_END_AVG])
+        v_range = np.linspace(v_min, v_max, 32)
+        y_n = 32
+
+        test_results = degradation_model.test_all_voltages(
+            tf.constant(scaled_cyc, dtype = tf.float32),
+            tf.constant(averages[Key.I_CC_AVG], dtype = tf.float32),
+            tf.constant(averages[Key.I_PREV_END_AVG], dtype = tf.float32),
+            tf.constant(averages[Key.V_PREV_END_AVG], dtype = tf.float32),
+            tf.constant(averages[Key.V_END_AVG], dtype = tf.float32),
+            tf.constant(
+                degradation_model.cell_direct.id_dict[cell_id],
+                dtype = tf.int32,
+            ),
+            tf.constant(v_range, dtype = tf.float32),
+            tf.constant(current_range, dtype = tf.float32),
+            tf.constant(svit_and_count[Key.SVIT_GRID], dtype = tf.float32),
+            tf.constant(svit_and_count[Key.COUNT_MATRIX], dtype = tf.float32),
+        )
+
+        cap = tf.reshape(test_results[mode], shape = [max_cyc_n, -1])
+
+        if y_n == 1:
+            y_n = (1,)
+
+        generic = np.array(
+            [(cyc, cap[i, :], v_range) for i, cyc in enumerate(cycle)],
+            dtype = [
+                (Key.N, "f4"),
+                (generic_map["x"], "f4", y_n),
+                (generic_map["y"], "f4", y_n),
+            ]
+        )
     elif target == "generic_vs_cycle":
         if mode == "cc":
             target_voltage = averages["avg_last_cc_voltage"]
@@ -611,7 +751,7 @@ def compute_target(
             target_voltage = averages[Key.V_END_AVG]
             target_currents = [averages[Key.I_END_AVG]]
         else:
-            target_error(target, mode, "compute_target")
+            sys.exit("Unknown `mode` in `compute_target`!")
 
         test_results = degradation_model.test_single_voltage(
             tf.cast(scaled_cyc, dtype = tf.float32),
@@ -635,7 +775,7 @@ def compute_target(
         elif mode == "cv":
             pred_cap = test_results[Key.Pred.I_CV].numpy()[:, -1]
         else:
-            target_error(target, mode, "compute_target")
+            sys.exit("Unknown `mode` in `compute_target`!")
 
         generic = np.array(
             list(zip(cycle, pred_cap)),
@@ -645,17 +785,9 @@ def compute_target(
             ],
         )
     else:
-        target_error(target, mode, "compute_target")
+        sys.exit("Unknown `target` in `compute_target`!")
 
     return generic
-
-
-def target_error(target: str, mode: str, function_name: str):
-    raise ValueError(
-        "Unknown `target` \"{}\" and `mode` \"{}\" in function `{}`".format(
-            target, mode, function_name,
-        )
-    )
 
 
 def plot_cycling_direct(
@@ -719,7 +851,7 @@ def plot_direct(target: str, plot_params: dict, init_returns: dict) -> None:
         model_max_cyc_n = 200
         header = "Cap"
     else:
-        target_error(target, "", "plot_direct")
+        sys.exit("Unknown `target` in `plot_direct`!")
 
     cell_ids\
         = plot_params["cell_ids"][:plot_params[Key.OPTIONS][Key.CELL_ID_SHOW]]
@@ -748,6 +880,43 @@ def plot_direct(target: str, plot_params: dict, init_returns: dict) -> None:
             ],
             target = target,
             todos = [("dchg", "cc"), ("chg", "cc"), ("chg", "cv")],
+            options = options,
+            filename = header + "_{}_Count_{}.png".format(cell_id, count)
+        )
+
+
+def plot_v_vs_q(plot_params: dict, init_returns: dict) -> None:
+    """
+    Args:
+        plot_params: Parameters for plotting.
+        init_returns: Return value of `ml_smoothing.initial_processing`.
+    """
+    model_max_cyc_n = 3
+    header = "N_VQ"
+
+    cell_ids\
+        = plot_params["cell_ids"][:plot_params[Key.OPTIONS][Key.CELL_ID_SHOW]]
+    count = plot_params["count"]
+    options = plot_params[Key.OPTIONS]
+
+    degradation_model = init_returns[Key.MODEL]
+    dataset = init_returns[Key.DATASET]
+    cycle_m = init_returns[Key.CYC_M]
+    cycle_v = init_returns[Key.CYC_V]
+
+    for cell_id_count, cell_id in enumerate(cell_ids):
+        svit_and_count, keys, averages = fetch_svit_keys_averages(
+            dataset, cell_id,
+        )
+        model_data = (
+            degradation_model, cell_id, cycle_m, cycle_v,
+            svit_and_count, keys, averages,
+        )
+
+        plot_engine_v_vs_q(
+            data_streams = [("model", model_data, "plot", model_max_cyc_n)],
+            target = "v_vs_q",
+            todos = [("dchg", "q"), ("chg", "q"), ("chg", "q_prev")],
             options = options,
             filename = header + "_{}_Count_{}.png".format(cell_id, count)
         )

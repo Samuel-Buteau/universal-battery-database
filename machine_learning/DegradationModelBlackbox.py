@@ -53,11 +53,7 @@ def assert_current_sign(call_params, current_tensor):
 
 def build_random_matrix(sigma, var_sigmas: list, d, f):
     if not len(var_sigmas) == d:
-        raise ValueError(
-            "`var_sigmas` is of length {} but `d` is {}".format(
-                len(var_sigmas), d,
-            )
-        )
+        sys.exit("Wrong number of sigmas given!")
     random_matrix = np.random.normal(0, sigma, (d, f))
     for i, var_sigma in enumerate(var_sigmas):
         random_matrix[i, :] *= var_sigma
@@ -584,3 +580,121 @@ class DegradationModel(Model):
             },
             training = False,
         )
+
+    @tf.function
+    def test_q(
+        self, cycle, constant_current, end_current_prev, end_voltage_prev,
+        end_voltage, cell_id_index, voltages, currents, svit_grid, count_matrix,
+    ):
+
+        call_params = {
+            Key.CYC: tf.expand_dims(cycle, axis = 1),
+            Key.I_CC: tf.tile(
+                tf.reshape(constant_current, [1, 1]),
+                [cycle.shape[0], 1],
+            ),
+            Key.I_PREV_END: tf.tile(
+                tf.reshape(end_current_prev, [1, 1]),
+                [cycle.shape[0], 1],
+            ),
+            Key.V_PREV_END: tf.tile(
+                tf.reshape(end_voltage_prev, [1, 1]),
+                [cycle.shape[0], 1],
+            ),
+            Key.V_END: tf.tile(
+                tf.reshape(end_voltage, [1, 1]),
+                [cycle.shape[0], 1],
+            ),
+            Key.INDICES: tf.tile(
+                tf.expand_dims(cell_id_index, axis = 0),
+                [cycle.shape[0]],
+            ),
+            Key.V_TENSOR: tf.tile(
+                tf.reshape(voltages, [1, -1]), [cycle.shape[0], 1],
+            ),
+            Key.I_TENSOR: tf.tile(
+                tf.reshape(currents, shape = [1, -1]), [cycle.shape[0], 1],
+            ),
+            Key.SVIT_GRID: tf.tile(
+                tf.expand_dims(svit_grid, axis = 0),
+                [cycle.shape[0], 1, 1, 1, 1, 1],
+            ),
+            Key.COUNT_MATRIX: tf.tile(
+                tf.expand_dims(count_matrix, axis = 0),
+                [cycle.shape[0], 1, 1, 1, 1, 1],
+            ),
+        }
+
+        cycle = call_params[Key.CYC]  # matrix; dim: [batch, 1]
+        voltage_tensor = call_params[Key.V_TENSOR]  # dim: [batch, voltages]
+        current_tensor = call_params[Key.I_TENSOR]  # dim: [batch, voltages]
+        svit_grid = call_params[Key.SVIT_GRID]
+        count_matrix = call_params[Key.COUNT_MATRIX]
+
+        feats_cell = self.cell_from_indices(
+            indices = call_params[Key.INDICES],  # batch of index; dim: [batch]
+            training = False, sample = False,
+        )
+
+        # duplicate cycles and others for all the voltages
+        # dimensions are now [batch, voltages, features_cell]
+        batch_count = cycle.shape[0]
+        voltage_count = voltage_tensor.shape[1]
+        current_count = current_tensor.shape[1]
+
+        params = {
+            Key.COUNT_BATCH: batch_count,
+            Key.COUNT_V: voltage_count,
+            Key.COUNT_I: current_count,
+
+            Key.V: tf.reshape(voltage_tensor, [-1, 1]),
+            Key.I_CV: tf.reshape(current_tensor, [-1, 1]),
+
+            Key.CYC: cycle,
+
+            # The following matrices all have dimensions [batch, 1]
+            Key.I_CC: call_params[Key.I_CC],
+            Key.I_PREV_END: call_params[Key.I_PREV_END],
+            Key.V_PREV_END: call_params[Key.V_PREV_END],
+            Key.CELL_FEAT: feats_cell,
+            Key.V_END: call_params[Key.V_END],
+
+            Key.SVIT_GRID: svit_grid,
+            Key.COUNT_MATRIX: count_matrix,
+        }
+
+        return {
+            "q": tf.reshape(
+                self.q_direct(
+                    cycle = add_v_dep(params[Key.CYC], params),
+                    v = params[Key.V],
+                    feats_cell = add_v_dep(
+                        params[Key.CELL_FEAT],
+                        params,
+                        params[Key.CELL_FEAT].shape[1],
+                    ),
+                    current = add_v_dep(params[Key.I_CC], params),
+                    training = False,
+                ),
+                [-1, voltage_count],
+            ),
+            "q_prev": tf.reshape(
+                add_v_dep(
+                    self.q_direct(
+                        cycle = params[Key.CYC],
+                        v = self.prev_voltage_direct(
+                            cycle = params[Key.CYC],
+                            prev_end_current = params[Key.I_PREV_END],
+                            constant_current = params[Key.I_CC],
+                            end_voltage = params[Key.V_END],
+                            feats_cell = params[Key.CELL_FEAT],
+                        ),
+                        feats_cell = params[Key.CELL_FEAT],
+                        current = params[Key.I_PREV_END],
+                        training = False,
+                    ),
+                    params,
+                ),
+                [-1, current_count],
+            ),
+        }

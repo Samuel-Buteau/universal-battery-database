@@ -514,20 +514,20 @@ def train_and_evaluate(
                     return
 
 
-def train_step(neigh, params: dict, options: dict):
+def train_step(neigh, train_params: dict, options: dict):
     """ One training step.
 
     Args:
         neigh: Neighbourhood.
-        params: Contains all necessary parameters.
+        train_params: Contains all necessary parameters.
         options: Options for `ml_smoothing`.
     """
     # need to split the range
     batch_size2 = neigh.shape[0]
 
-    teacher_model = params[Key.TEACHER_MODEL]
-    optimizer = params[Key.OPTIMIZER]
-    compiled_tensors = params[Key.TENSORS]
+    teacher_model = train_params[Key.TEACHER_MODEL]
+    optimizer = train_params[Key.OPTIMIZER]
+    compiled_tensors = train_params[Key.TENSORS]
 
     sign_grid_tensor = compiled_tensors[Key.SIGN_GRID]
     voltage_grid_tensor = compiled_tensors[Key.V_GRID]

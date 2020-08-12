@@ -89,7 +89,8 @@ class Key:
     FF_V_SIGMA_V_END = "four_feat_v_sigma_voltage"
 
     GLB_NORM_CLIP = "global_norm_clip"
-    LRN_RATE = "learning_rate"
+    TEACHER_LRN_RATE = "learning_rate"
+    STUDENT_LRN_RATE = "s_lrn_rate"
     MIN_LAT = "min_latent"
 
     MIN_V_GRID = "voltage_grid_min_v"
@@ -240,7 +241,8 @@ class Key:
     TRAIN_DS = "train_ds"
     CYC_M = "cycle_m"
     CYC_V = "cycle_v"
-    OPTIMIZER = "optimizer"
+    TEACHER_OPTIMIZER = "optimizer"
+    STUDENT_OPTIMIZER = "s_optimizer"
 
     # TODO (harvey): replace the following class of keys
     class Coeff:

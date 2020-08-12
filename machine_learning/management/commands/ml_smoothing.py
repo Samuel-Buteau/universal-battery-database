@@ -360,10 +360,6 @@ def initial_processing(
             cell_dict = id_dict_from_id_list(np.array(cell_ids)),
         )
 
-        optimizer = tf.keras.optimizers.Adam(
-            learning_rate = options[Key.LRN_RATE],
-        )
-
     return {
         Key.STRAT: strategy,
         Key.TEACHER_MODEL: teacher_model,
@@ -372,7 +368,12 @@ def initial_processing(
         Key.TRAIN_DS: train_ds,
         Key.CYC_M: cycle_m,
         Key.CYC_V: cycle_v,
-        Key.OPTIMIZER: optimizer,
+        Key.TEACHER_OPTIMIZER: tf.keras.optimizers.Adam(
+            learning_rate = options[Key.TEACHER_LRN_RATE],
+        ),
+        Key.STUDENT_OPTIMIZER: tf.keras.optimizers.Adam(
+            learning_rate = options[Key.STUDENT_LRN_RATE],
+        ),
         Key.DATASET: dataset,
     }
 
@@ -435,7 +436,8 @@ def train_and_evaluate(
 
     train_step_params = {
         Key.TENSORS: init_returns[Key.TENSORS],
-        Key.OPTIMIZER: init_returns[Key.OPTIMIZER],
+        Key.TEACHER_OPTIMIZER: init_returns[Key.TEACHER_OPTIMIZER],
+        Key.STUDENT_OPTIMIZER: init_returns[Key.STUDENT_OPTIMIZER],
         Key.TEACHER_MODEL: init_returns[Key.TEACHER_MODEL],
         Key.STUDENT_SAMPLES: {
             Key.SAMPLE_V: tf.random.uniform(
@@ -525,7 +527,8 @@ def train_step(neigh, train_params: dict, options: dict):
     teacher_model = train_params[Key.TEACHER_MODEL]
     student_model = train_params[Key.STUDENT_MODEL]
     student_samples = train_params[Key.STUDENT_SAMPLES]
-    optimizer = train_params[Key.OPTIMIZER]
+    teacher_optimizer = train_params[Key.TEACHER_OPTIMIZER]
+    student_optimizer = train_params[Key.STUDENT_OPTIMIZER]
     compiled_tensors = train_params[Key.TENSORS]
 
     sign_grid_tensor = compiled_tensors[Key.SIGN_GRID]
@@ -713,7 +716,7 @@ def train_step(neigh, train_params: dict, options: dict):
         gradients_no_nans, options[Key.GLB_NORM_CLIP],
     )
 
-    optimizer.apply_gradients(
+    teacher_optimizer.apply_gradients(
         zip(gradients_norm_clipped, teacher_model.trainable_variables)
     )
 
@@ -760,7 +763,7 @@ def train_step(neigh, train_params: dict, options: dict):
         gradients_no_nans_student, options[Key.GLB_NORM_CLIP],
     )
 
-    optimizer.apply_gradients(
+    student_optimizer.apply_gradients(
         zip(gradients_norm_clipped_student, student_model.trainable_variables)
     )
 
@@ -784,7 +787,8 @@ class Command(BaseCommand):
         float_args = {
             Key.GLB_NORM_CLIP: 10.,
 
-            Key.LRN_RATE: 5e-4,
+            Key.TEACHER_LRN_RATE: 5e-4,
+            Key.STUDENT_LRN_RATE: 5e-3,
             Key.MIN_LAT: 1,
 
             Key.Coeff.FEAT_CELL_DER: .001,

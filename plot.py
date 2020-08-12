@@ -843,6 +843,7 @@ def plot_direct(
         target: Plot type - "generic_vs_capacity" or "generic_vs_cycle".
         plot_params: Parameters for plotting.
         init_returns: Return value of `ml_smoothing.initial_processing`.
+        teacher: If True, then the teacher model is used
     """
     if target == "generic_vs_capacity":
         compiled_max_cyc_n = 8

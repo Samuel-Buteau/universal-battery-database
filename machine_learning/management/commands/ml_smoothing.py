@@ -401,16 +401,58 @@ def train_and_evaluate(
         options:
     """
     strategy = init_returns[Key.STRAT]
+    n_sample = options[Key.N_SAMPLE]
 
     epochs = 100000
     count = 0
 
     end = time.time()
 
+    student_model = init_returns[Key.STUDENT_MODEL]
+
+    sampled_constant_current = tf.exp(
+        tf.random.uniform(
+            minval = tf.math.log(0.001), maxval = tf.math.log(5.),
+            shape = [n_sample, 1],
+        )
+    )
+    sampled_constant_current_sign = tf.cast(
+        tf.random.uniform(
+            minval = 0, maxval = 1,
+            shape = [n_sample, 1], dtype = tf.int32,
+        ),
+        dtype = tf.float32,
+    )
+    sampled_constant_current_sign = 2.0 * sampled_constant_current_sign - 1.
+
+    sampled_feats_cell = student_model.cell_from_indices(
+        indices = tf.random.uniform(
+            maxval = student_model.cell_direct.num_keys,
+            shape = [n_sample], dtype = tf.int32,
+        ),
+        training = False, sample = True,
+    )
+
     train_step_params = {
         Key.TENSORS: init_returns[Key.TENSORS],
         Key.OPTIMIZER: init_returns[Key.OPTIMIZER],
         Key.TEACHER_MODEL: init_returns[Key.TEACHER_MODEL],
+        Key.STUDENT_SAMPLES: {
+            Key.SAMPLE_V: tf.random.uniform(
+                minval = 2.5, maxval = 5., shape = [n_sample, 1],
+            ),
+            Key.SAMPLE_CYC: tf.random.uniform(
+                minval = -.1, maxval = 5., shape = [n_sample, 1],
+            ),
+            Key.SAMPLE_I: (
+                sampled_constant_current_sign * sampled_constant_current
+            ),
+            Key.SAMPLE_CELL_FEAT: tf.stop_gradient(
+                sampled_feats_cell
+            ),
+        },
+
+        Key.STUDENT_MODEL: init_returns[Key.STUDENT_MODEL],
     }
 
     @tf.function
@@ -457,6 +499,10 @@ def train_and_evaluate(
                         )
                         plot_direct(
                             "generic_vs_capacity", plot_params, init_returns,
+                        )
+                        plot_direct(
+                            "generic_vs_capacity", plot_params, init_returns,
+                            teacher = False,
                         )
                         plot_v_vs_q(plot_params, init_returns)
 
@@ -742,6 +788,8 @@ class Command(BaseCommand):
 
             Key.TEACHER_DEPTH: 3,
             Key.TEACHER_WIDTH: 50,
+            Key.STUDENT_DEPTH: 2,
+            Key.STUDENT_WIDTH: 30,
             Key.BATCH: 4 * 16,
 
             Key.PRINT_LOSS: vis,

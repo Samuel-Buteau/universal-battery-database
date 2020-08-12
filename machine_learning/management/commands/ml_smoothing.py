@@ -495,16 +495,13 @@ def train_and_evaluate(
                         print("time to simulate: ", start - end)
                         loss_record.plot(count, options)
                         plot_direct(
-                            "generic_vs_capacity", plot_params, init_returns,
+                            "generic_vs_cycle", plot_params, init_returns,
                             teacher = False,
                         )
                         plot_direct(
-                            "generic_vs_cycle", plot_params, init_returns,
-                        )
-                        plot_direct(
                             "generic_vs_capacity", plot_params, init_returns,
+                            teacher = False,
                         )
-                        plot_v_vs_q(plot_params, init_returns)
 
                         end = time.time()
                         print("time to plot: ", end - start)

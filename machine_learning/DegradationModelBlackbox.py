@@ -305,7 +305,7 @@ class DegradationModel(Model):
                 feats_cell = params[Key.CELL_FEAT],
             ),
             feats_cell = params[Key.CELL_FEAT],
-            current = params[Key.I_PREV_END],
+            current = params[Key.I_CC],
             training = training,
         )
 

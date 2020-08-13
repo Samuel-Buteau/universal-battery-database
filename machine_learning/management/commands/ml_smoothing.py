@@ -11,7 +11,10 @@ from Key import Key
 from plot import plot_direct, plot_v_vs_q
 
 from cycling.models import id_dict_from_id_list
-from machine_learning.DegradationModelBlackbox import DegradationModel
+from machine_learning.DegradationModelBlackbox import (
+    DegradationModel,
+    build_random_matrix
+)
 from machine_learning.LossRecordBlackbox import LossRecord
 
 # TODO(sam): For each cell_id, needs a multigrid of (S, V, I, T) (current
@@ -333,18 +336,23 @@ def initial_processing(
             ).repeat(2).shuffle(100000).batch(options[Key.BATCH])
         )
 
+        random_matrix_q = build_random_matrix(
+            sigma = options[Key.Q_SIG],
+            var_sigmas = [
+                options[Key.Q_SIG_N],
+                options[Key.Q_SIG_V],
+                options[Key.Q_SIG_I],
+            ],
+            d = 3, f = 32,
+        )
+
         teacher_model = DegradationModel(
             width = options[Key.TEACHER_WIDTH],
             depth = options[Key.TEACHER_DEPTH],
             n_sample = options[Key.N_SAMPLE],
             options = options,
             cell_dict = id_dict_from_id_list(np.array(cell_ids)),
-            sigmas = {
-                Key.Q_SIG: options[Key.T_Q_SIG],
-                Key.Q_SIG_N: options[Key.T_Q_SIG_N],
-                Key.Q_SIG_V: options[Key.T_Q_SIG_V],
-                Key.Q_SIG_I: options[Key.T_Q_SIG_I],
-            },
+            random_matrix_q = random_matrix_q,
         )
         student_model = DegradationModel(
             width = options[Key.STUDENT_WIDTH],
@@ -352,12 +360,7 @@ def initial_processing(
             n_sample = options[Key.N_SAMPLE],
             options = options,
             cell_dict = id_dict_from_id_list(np.array(cell_ids)),
-            sigmas = {
-                Key.Q_SIG: options[Key.S_Q_SIG],
-                Key.Q_SIG_N: options[Key.S_Q_SIG_N],
-                Key.Q_SIG_V: options[Key.S_Q_SIG_V],
-                Key.Q_SIG_I: options[Key.S_Q_SIG_I],
-            },
+            random_matrix_q = random_matrix_q,
         )
 
     return {
@@ -462,6 +465,12 @@ def train_and_evaluate(
                         plot_direct(
                             "generic_vs_capacity", plot_params, init_returns,
                             teacher = False,
+                        )
+                        plot_direct(
+                            "generic_vs_cycle", plot_params, init_returns,
+                        )
+                        plot_direct(
+                            "generic_vs_capacity", plot_params, init_returns,
                         )
 
                         end = time.time()
@@ -816,15 +825,10 @@ class Command(BaseCommand):
             Key.Coeff.Q_DER_I: 0.,
             Key.Coeff.Q_DER_N: 0.,
 
-            Key.T_Q_SIG: 0.08,
-            Key.T_Q_SIG_N: 1.5,
-            Key.T_Q_SIG_V: 1.2,
-            Key.T_Q_SIG_I: .5,
-
-            Key.S_Q_SIG: 1,
-            Key.S_Q_SIG_N: 1.5,
-            Key.S_Q_SIG_V: 1.2,
-            Key.S_Q_SIG_I: 1.5,
+            Key.Q_SIG: 0.08,
+            Key.Q_SIG_N: 1.5,
+            Key.Q_SIG_V: 1.2,
+            Key.Q_SIG_I: .5,
         }
 
         vis = 1000

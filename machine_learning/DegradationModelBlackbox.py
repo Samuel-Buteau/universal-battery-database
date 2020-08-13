@@ -78,7 +78,7 @@ class DegradationModel(Model):
 
     def __init__(
         self, depth: int, width: int, n_sample: int, options: dict,
-        cell_dict: dict, sigmas: dict,
+        cell_dict: dict, random_matrix_q,
         n_channels = 16,
     ):
         """
@@ -107,15 +107,7 @@ class DegradationModel(Model):
         self.v_param_count = 4
         self.f = 32
 
-        self.random_matrix_q = build_random_matrix(
-            sigma = sigmas[Key.Q_SIG],
-            var_sigmas = [
-                sigmas[Key.Q_SIG_N],
-                sigmas[Key.Q_SIG_V],
-                sigmas[Key.Q_SIG_I],
-            ],
-            d = self.q_param_count, f = self.f,
-        )
+        self.random_matrix_q = random_matrix_q
 
     def call(self, call_params: dict, training = False) -> dict:
         """ Call function for the Model during training or evaluation.

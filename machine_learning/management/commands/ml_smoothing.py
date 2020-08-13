@@ -748,7 +748,48 @@ def train_step(neigh, train_params: dict, options: dict):
                 tf.square(
                     tf.stop_gradient(teacher_q) - student_q
                 )
+            ) +
+            tf.reduce_mean(
+                tf.square(
+                    tf.stop_gradient(teacher_q_der[Key.D_CYC]) - student_q_der[Key.D_CYC]
+                )
+            )  +
+            tf.reduce_mean(
+                tf.square(
+                    tf.stop_gradient(teacher_q_der[Key.D_V]) - student_q_der[Key.D_V]
+                )
+            ) +
+            tf.reduce_mean(
+                tf.square(
+                    tf.stop_gradient(teacher_q_der[Key.D_I]) - student_q_der[Key.D_I]
+                )
+            ) +
+            tf.reduce_mean(
+                tf.square(
+                    tf.stop_gradient(teacher_q_der[Key.D_CELL_FEAT]) - student_q_der[Key.D_CELL_FEAT]
+                )
+            ) +
+            tf.reduce_mean(
+                tf.square(
+                    tf.stop_gradient(teacher_q_der[Key.D2_CYC]) - student_q_der[Key.D2_CYC]
+                )
+            )  +
+            tf.reduce_mean(
+                tf.square(
+                    tf.stop_gradient(teacher_q_der[Key.D2_V]) - student_q_der[Key.D2_V]
+                )
+            ) +
+            tf.reduce_mean(
+                tf.square(
+                    tf.stop_gradient(teacher_q_der[Key.D2_I]) - student_q_der[Key.D2_I]
+                )
+            ) +
+            tf.reduce_mean(
+                tf.square(
+                    tf.stop_gradient(teacher_q_der[Key.D2_CELL_FEAT]) - student_q_der[Key.D2_CELL_FEAT]
+                )
             )
+            
         )
 
     gradients_student = student_tape.gradient(

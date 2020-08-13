@@ -268,6 +268,8 @@ field_request_default = [
     ("discharge_time", 'f4', "CUSTOM", lambda cyc: cyc.dchg_duration),
     ("cumulative_time", 'f4', "CUMULATIVE_TIME", None),
     ("normalized_delta_v", 'f4', "NORMALIZED_DELTA_V", None),
+    ("normalized_charge_capacity", 'f4', "NORMALIZED_CAPACITY", lambda cyc: cyc.chg_total_capacity),
+    ("normalized_discharge_capacity", 'f4', "NORMALIZED_CAPACITY", lambda cyc: cyc.dchg_total_capacity),
     ("normalized_typical_charge_capacity", 'f4', "NORMALIZED_TYPICAL_CAPACITY", lambda cyc: cyc.chg_total_capacity),
     ("normalized_typical_discharge_capacity", 'f4', "NORMALIZED_TYPICAL_CAPACITY", lambda cyc: cyc.dchg_total_capacity),
 ]

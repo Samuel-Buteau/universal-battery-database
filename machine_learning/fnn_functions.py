@@ -27,6 +27,13 @@ def feedforward_nn_parameters(
     if bottleneck is None:
         bottleneck = width
 
+    if bottleneck != width:
+        projector = Dense(
+            bottleneck,
+            activation = None,
+            use_bias = False,
+        )
+
     initial = Dense(
         width,
         activation = main_activation,
@@ -64,8 +71,10 @@ def feedforward_nn_parameters(
             use_bias = True,
             bias_initializer = "zeros",
         )
-    return {"initial": initial, "bulk": bulk, "final": final}
-
+    ret = {"initial": initial, "bulk": bulk, "final": final}
+    if bottleneck != width:
+        ret['projector'] = projector
+    return ret
 
 def nn_call(nn_func: dict, dependencies: tuple, training = True, get_bottleneck=False):
     """ Call a feedforward neural network
@@ -86,12 +95,22 @@ def nn_call(nn_func: dict, dependencies: tuple, training = True, get_bottleneck=
         tf.concat(dependencies, axis = 1), training = training,
     )
 
-    for dd in nn_func["bulk"]:
+    for dd in nn_func["bulk"][:-1]:
         centers_prime = centers
         centers_prime = tf.nn.relu(centers_prime)
         for d in dd:
             centers_prime = d(centers_prime, training = training)
         centers = centers + centers_prime  # This is a skip connection
+
+    dd = nn_func["bulk"][-1]
+    centers_prime = centers
+    centers_prime = tf.nn.relu(centers_prime)
+    for d in dd:
+        centers_prime = d(centers_prime, training = training)
+    if 'projector' in nn_func.keys():
+        centers = nn_func['projector'](centers, training= training) + centers_prime  # This is a skip connection
+    else:
+        centers = centers + centers_prime
 
     if get_bottleneck:
         return nn_func["final"](centers, training = training), centers

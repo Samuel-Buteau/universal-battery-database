@@ -487,7 +487,7 @@ class DegradationModel(Model):
                 training=training,
                 get_bottleneck=params["get_bottleneck"]
             )
-            b = tf.reduce(bottleneck * params["PROJ"], axis=-1)
+            b = tf.reduce_mean(bottleneck * params["PROJ"], axis=-1)
             return tf.concat([q, b], axis=-1)
         else:
             return self.q_direct(

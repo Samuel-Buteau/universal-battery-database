@@ -17,6 +17,9 @@ from machine_learning.DegradationModelBlackbox import (
 )
 from machine_learning.LossRecordBlackbox import LossRecord
 
+# TODO add as command line argument:
+BOTTLENECK = 64
+
 # TODO(sam): For each cell_id, needs a multigrid of (S, V, I, T) (current
 #  needs to be adjusted)
 # TODO(sam): Each cycle must have an index mapping to the nearest reference
@@ -343,7 +346,7 @@ def initial_processing(
                 options[Key.Q_SIG_V],
                 options[Key.Q_SIG_I],
             ],
-            d = 3, f = 32,
+            d = 3, f = 64,
         )
 
         teacher_model = DegradationModel(
@@ -353,6 +356,7 @@ def initial_processing(
             options = options,
             cell_dict = id_dict_from_id_list(np.array(cell_ids)),
             random_matrix_q = random_matrix_q,
+            bottleneck=BOTTLENECK,
         )
         student_model = DegradationModel(
             width = options[Key.STUDENT_WIDTH],
@@ -361,6 +365,7 @@ def initial_processing(
             options = options,
             cell_dict = id_dict_from_id_list(np.array(cell_ids)),
             random_matrix_q = random_matrix_q,
+            bottleneck=BOTTLENECK,
         )
 
     return {
@@ -726,6 +731,9 @@ def train_step(neigh, train_params: dict, options: dict):
         Key.SAMPLE_I: (
             sampled_constant_current_sign * sampled_constant_current
         ),
+        "PROJ": tf.random.uniform(
+            minval = -1., maxval = 1., shape = [n_sample, BOTTLENECK],
+        ),
        
     }
 
@@ -735,13 +743,33 @@ def train_step(neigh, train_params: dict, options: dict):
             V = samples[Key.SAMPLE_V],
             I = samples[Key.SAMPLE_I],
             CELL_FEAT = teacher_feats_cell,
+            PROJ = samples["PROJ"],
         )
         student_q, student_q_der = student_model.transfer_q(
             CYC = samples[Key.SAMPLE_CYC],
             V = samples[Key.SAMPLE_V],
             I = samples[Key.SAMPLE_I],
             CELL_FEAT = student_feats_cell,
+            PROJ=samples["PROJ"],
         )
+
+        teacher_b, teacher_b_der = teacher_model.transfer_q(
+            CYC=samples[Key.SAMPLE_CYC],
+            V=samples[Key.SAMPLE_V],
+            I=samples[Key.SAMPLE_I],
+            CELL_FEAT=teacher_feats_cell,
+            PROJ=samples["PROJ"],
+            get_bottleneck=True,
+        )
+        student_b, student_b_der = student_model.transfer_q(
+            CYC=samples[Key.SAMPLE_CYC],
+            V=samples[Key.SAMPLE_V],
+            I=samples[Key.SAMPLE_I],
+            CELL_FEAT=student_feats_cell,
+            PROJ=samples["PROJ"],
+            get_bottleneck=True,
+        )
+
 
         student_loss = options[Key.Coeff.STUDENT_Q] * (
             tf.reduce_mean(
@@ -749,7 +777,7 @@ def train_step(neigh, train_params: dict, options: dict):
                     tf.stop_gradient(teacher_q) - student_q
                 )
             ) +
-            tf.reduce_mean(
+            0.1*(tf.reduce_mean(
                 tf.square(
                     tf.stop_gradient(teacher_q_der[Key.D_CYC]) - student_q_der[Key.D_CYC]
                 )
@@ -763,24 +791,31 @@ def train_step(neigh, train_params: dict, options: dict):
                 tf.square(
                     tf.stop_gradient(teacher_q_der[Key.D_I]) - student_q_der[Key.D_I]
                 )
-            ) +
-          
-            tf.reduce_mean(
-                tf.square(
-                    tf.stop_gradient(teacher_q_der[Key.D2_CYC]) - student_q_der[Key.D2_CYC]
-                )
-            )  +
-            tf.reduce_mean(
-                tf.square(
-                    tf.stop_gradient(teacher_q_der[Key.D2_V]) - student_q_der[Key.D2_V]
-                )
-            ) +
-            tf.reduce_mean(
-                tf.square(
-                    tf.stop_gradient(teacher_q_der[Key.D2_I]) - student_q_der[Key.D2_I]
-                )
-            ) 
+            ))
+
             
+        ) + options[Key.Coeff.STUDENT_Q] * 0.1 * (
+                tf.reduce_mean(
+                    tf.square(
+                        tf.stop_gradient(teacher_b) - student_b
+                    )
+                ) +
+                0.1 * (tf.reduce_mean(
+            tf.square(
+                tf.stop_gradient(teacher_b_der[Key.D_CYC]) - student_b_der[Key.D_CYC]
+            )
+        ) +
+                       tf.reduce_mean(
+                           tf.square(
+                               tf.stop_gradient(teacher_b_der[Key.D_V]) - student_b_der[Key.D_V]
+                           )
+                       ) +
+                       tf.reduce_mean(
+                           tf.square(
+                               tf.stop_gradient(teacher_b_der[Key.D_I]) - student_b_der[Key.D_I]
+                           )
+                       ))
+
         )
 
     gradients_student = student_tape.gradient(
@@ -822,7 +857,7 @@ class Command(BaseCommand):
             Key.GLB_NORM_CLIP: 10.,
 
             Key.TEACHER_LRN_RATE: 5e-4,
-            Key.STUDENT_LRN_RATE: 5e-2,
+            Key.STUDENT_LRN_RATE: 5e-4,
             Key.MIN_LAT: 1,
 
             Key.Coeff.FEAT_CELL_DER: .001,
@@ -844,7 +879,7 @@ class Command(BaseCommand):
             Key.Coeff.Q_CC: 1.,
 
             Key.Coeff.Q: 0.0001,
-            Key.Coeff.STUDENT_Q: 0.01,
+            Key.Coeff.STUDENT_Q: 1.,
             Key.Coeff.Q_GEQ: 1.,
             Key.Coeff.Q_LEQ: 1.,
             Key.Coeff.Q_V_MONO: 0.,
@@ -854,7 +889,7 @@ class Command(BaseCommand):
             Key.Coeff.Q_DER_I: 0.,
             Key.Coeff.Q_DER_N: 0.,
 
-            Key.Q_SIG: 0.08,
+            Key.Q_SIG: 0.4,
             Key.Q_SIG_N: 1.5,
             Key.Q_SIG_V: 1.2,
             Key.Q_SIG_I: .5,
@@ -866,9 +901,9 @@ class Command(BaseCommand):
             Key.N_SAMPLE: 8 * 16,
 
             Key.TEACHER_DEPTH: 3,
-            Key.TEACHER_WIDTH: 50,
-            Key.STUDENT_DEPTH: 2,
-            Key.STUDENT_WIDTH: 30,
+            Key.TEACHER_WIDTH: 64,
+            Key.STUDENT_DEPTH: 3,
+            Key.STUDENT_WIDTH: 64,
             Key.BATCH: 4 * 16,
 
             Key.PRINT_LOSS: vis,

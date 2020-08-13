@@ -4,11 +4,11 @@ from tensorflow.keras.layers import Dense
 
 from Key import Key
 
-main_activation = tf.keras.activations.relu
+main_activation = tf.keras.activations.elu
 
 
 def feedforward_nn_parameters(
-    depth: int, width: int, last = None, finalize = False
+    depth: int, width: int, last = None, finalize = False, bottleneck=None
 ):
     """ Create a new feedforward neural network
 
@@ -24,6 +24,16 @@ def feedforward_nn_parameters(
     """
     if last is None:
         last = 1
+    if bottleneck is None:
+        bottleneck = width
+
+    if bottleneck != width:
+        projector = Dense(
+            bottleneck,
+            activation = None,
+            use_bias=True,
+            bias_initializer="zeros",
+        )
 
     initial = Dense(
         width,
@@ -32,16 +42,19 @@ def feedforward_nn_parameters(
         bias_initializer = "zeros"
     )
 
+    widths = [width for _ in range(depth)]
+    widths[-1] = bottleneck
+
     bulk = [
         [
             Dense(
-                width,
+                widths[i],
                 activation = activation,
                 use_bias = True,
                 bias_initializer = "zeros",
-            ) for activation in ["relu", None]
+            ) for activation in ["elu", None]
         ]
-        for _ in range(depth)
+        for i in range(depth)
     ]
 
     if finalize:
@@ -59,10 +72,12 @@ def feedforward_nn_parameters(
             use_bias = True,
             bias_initializer = "zeros",
         )
-    return {"initial": initial, "bulk": bulk, "final": final}
+    ret = {"initial": initial, "bulk": bulk, "final": final}
+    if bottleneck != width:
+        ret['projector'] = projector
+    return ret
 
-
-def nn_call(nn_func: dict, dependencies: tuple, training = True):
+def nn_call(nn_func: dict, dependencies: tuple, training = True, get_bottleneck=False):
     """ Call a feedforward neural network
 
     Examples:
@@ -81,14 +96,27 @@ def nn_call(nn_func: dict, dependencies: tuple, training = True):
         tf.concat(dependencies, axis = 1), training = training,
     )
 
-    for dd in nn_func["bulk"]:
+    for dd in nn_func["bulk"][:-1]:
         centers_prime = centers
-        centers_prime = tf.nn.relu(centers_prime)
+        centers_prime = tf.nn.elu(centers_prime)
         for d in dd:
             centers_prime = d(centers_prime, training = training)
         centers = centers + centers_prime  # This is a skip connection
 
-    return nn_func["final"](centers, training = training)
+    dd = nn_func["bulk"][-1]
+    centers_prime = centers
+    centers_prime = tf.nn.elu(centers_prime)
+    for d in dd:
+        centers_prime = d(centers_prime, training = training)
+    if 'projector' in nn_func.keys():
+        centers = nn_func['projector'](centers, training= training) + centers_prime  # This is a skip connection
+    else:
+        centers = centers + centers_prime
+
+    if get_bottleneck:
+        return nn_func["final"](centers, training = training), centers
+    else:
+        return nn_func["final"](centers, training = training)
 
 
 def add_v_dep(

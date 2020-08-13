@@ -351,6 +351,12 @@ def initial_processing(
             n_sample = options[Key.N_SAMPLE],
             options = options,
             cell_dict = id_dict_from_id_list(np.array(cell_ids)),
+            sigmas = {
+                Key.T_Q_SIGMA: options[Key.T_Q_SIGMA],
+                Key.T_Q_SIGMA_CYC: options[Key.T_Q_SIGMA_CYC],
+                Key.T_Q_SIGMA_V: options[Key.T_Q_SIGMA_V],
+                Key.T_Q_SIGMA_I: options[Key.T_Q_SIGMA_I],
+            },
         )
         student_model = DegradationModel(
             width = options[Key.STUDENT_WIDTH],
@@ -358,6 +364,12 @@ def initial_processing(
             n_sample = options[Key.N_SAMPLE],
             options = options,
             cell_dict = id_dict_from_id_list(np.array(cell_ids)),
+            sigmas = {
+                Key.S_Q_SIGMA: options[Key.S_Q_SIGMA],
+                Key.S_Q_SIGMA_CYC: options[Key.S_Q_SIGMA_CYC],
+                Key.S_Q_SIGMA_V: options[Key.S_Q_SIGMA_V],
+                Key.S_Q_SIGMA_I: options[Key.S_Q_SIGMA_I],
+            },
         )
 
     return {
@@ -820,16 +832,15 @@ class Command(BaseCommand):
             Key.Coeff.Q_DER_I: 0.,
             Key.Coeff.Q_DER_N: 0.,
 
-            Key.FF_Q_SIGMA: 0.08,
-            Key.FF_Q_SIGMA_CYC: 1.5,
-            Key.FF_Q_SIGMA_V: 1.2,
-            Key.FF_Q_SIGMA_I: .5,
+            Key.T_Q_SIGMA: 0.08,
+            Key.T_Q_SIGMA_CYC: 1.5,
+            Key.T_Q_SIGMA_V: 1.2,
+            Key.T_Q_SIGMA_I: .5,
 
-            Key.FF_V_SIGMA: 0.08,
-            Key.FF_V_SIGMA_CYC: 0.3,
-            Key.FF_V_SIGMA_I_PRE: 0.3,
-            Key.FF_V_SIGMA_I_CC: 1.,
-            Key.FF_V_SIGMA_V_END: 2.,
+            Key.S_Q_SIGMA: 1,
+            Key.S_Q_SIGMA_CYC: 1.5,
+            Key.S_Q_SIGMA_V: 1.2,
+            Key.S_Q_SIGMA_I: 1.5,
         }
 
         vis = 1000

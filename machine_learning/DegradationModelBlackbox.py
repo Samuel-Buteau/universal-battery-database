@@ -77,7 +77,9 @@ class DegradationModel(Model):
     """
 
     def __init__(
-        self, depth, width, n_sample, options, cell_dict, n_channels = 16,
+        self, depth: int, width: int, n_sample: int, options: dict,
+        cell_dict: dict, sigmas: dict,
+        n_channels = 16,
     ):
         """
         Args:
@@ -106,11 +108,11 @@ class DegradationModel(Model):
         self.f = 32
 
         self.random_matrix_q = build_random_matrix(
-            sigma = options[Key.FF_Q_SIGMA],
+            sigma = options[Key.T_Q_SIGMA],
             var_sigmas = [
-                options[Key.FF_Q_SIGMA_CYC],
-                options[Key.FF_Q_SIGMA_V],
-                options[Key.FF_Q_SIGMA_I],
+                options[Key.T_Q_SIGMA_CYC],
+                options[Key.T_Q_SIGMA_V],
+                options[Key.T_Q_SIGMA_I],
             ],
             d = self.q_param_count, f = self.f,
         )

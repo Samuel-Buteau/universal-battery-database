@@ -127,10 +127,13 @@ class Key:
     # Begin: Keys in derivatives ===============================================
 
     D_V = "d_v"
+    D2_V = "d2_v"
     D3_V = "d3_v"
     D_I = "d_current"
+    D2_I = "d2_current"
     D3_I = "d3_current"
     D_CYC = "d_cycle"
+    D2_CYC = "d2_cycle"
     D3_CYC = "d3_cycle"
     D_CELL_FEAT = "d_features_cell"
     D2_CELL_FEAT = "d2_features_cell"

@@ -73,22 +73,12 @@ def ml_smoothing(options):
         "dataset_ver_{}.file".format(options[Key.DATA_VERSION])
     )
 
-    dataset_names_path = os.path.join(
-        options[Key.PATH_DATASET],
-        "dataset_ver_{}_names.file".format(options[Key.DATA_VERSION])
-    )
-
     if not os.path.exists(dataset_path):
         print("Path \"" + dataset_path + "\" does not exist.")
         return
 
     with open(dataset_path, "rb") as f:
         dataset = pickle.load(f)
-
-    dataset_names = None
-    if os.path.exists(dataset_names_path):
-        with open(dataset_names_path, "rb") as f:
-            dataset_names = pickle.load(f)
 
     cell_ids = list(dataset[Key.ALL_DATA].keys())
 
@@ -100,9 +90,7 @@ def ml_smoothing(options):
         return
 
     train_and_evaluate(
-        initial_processing(
-            dataset, dataset_names, cell_ids, options, strategy = strategy,
-        ),
+        initial_processing(dataset, cell_ids, options, strategy = strategy),
         cell_ids,
         options,
     )
@@ -127,7 +115,7 @@ def three_level_flatten(iterables):
 
 
 def initial_processing(
-    dataset: dict, dataset_names, cell_ids, options: dict, strategy,
+    dataset: dict, cell_ids, options: dict, strategy,
 ) -> dict:
     """ Handle the initial data processing
 

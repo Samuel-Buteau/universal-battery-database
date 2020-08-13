@@ -120,7 +120,7 @@ class DegradationModel(Model):
                     "get_bottleneck":get_bottleneck,
                     "PROJ":PROJ,
                 },
-                der_params = {Key.V: 1, Key.CELL_FEAT: 0, Key.I: 1, Key.CYC: 1}
+                der_params = {Key.V: 2, Key.CELL_FEAT: 0, Key.I: 2, Key.CYC: 2}
             )
         return q, q_der
     

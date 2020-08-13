@@ -108,7 +108,20 @@ class DegradationModel(Model):
         self.f = 32
 
         self.random_matrix_q = random_matrix_q
-
+        
+    def transfer_q(self, CYC, V, CELL_FEAT, I):
+        q, q_der = create_derivatives(
+                self.q_for_derivative,
+                params = {
+                    Key.CYC: CYC,
+                    Key.V: V,
+                    Key.CELL_FEAT: CELL_FEAT,
+                    Key.I: I,
+                },
+                der_params = {Key.V: 2, Key.CELL_FEAT: 2, Key.I: 2, Key.CYC: 2}
+            )
+        return q, q_der
+    
     def call(self, call_params: dict, training = False) -> dict:
         """ Call function for the Model during training or evaluation.
 

@@ -702,15 +702,21 @@ def train_step(neigh, train_params: dict, options: dict):
         dtype = tf.float32,
     )
     sampled_constant_current_sign = 2.0 * sampled_constant_current_sign - 1.
-
-    sampled_feats_cell = student_model.cell_from_indices(
-        indices = tf.random.uniform(
+    
+    sample_indices = tf.random.uniform(
             maxval = student_model.cell_direct.num_keys,
             shape = [n_sample], dtype = tf.int32,
-        ),
+        )
+    
+    student_feats_cell = student_model.cell_from_indices(
+        indices = sample_indices,
         training = False, sample = True,
     )
-    student_samples = {
+    teacher_feats_cell = teacher_model.cell_from_indices(
+        indices = sample_indices,
+        training = False, sample = True,
+    )
+    samples = {
         Key.SAMPLE_V: tf.random.uniform(
             minval = 2.5, maxval = 5., shape = [n_sample, 1],
         ),
@@ -720,32 +726,21 @@ def train_step(neigh, train_params: dict, options: dict):
         Key.SAMPLE_I: (
             sampled_constant_current_sign * sampled_constant_current
         ),
-        Key.SAMPLE_CELL_FEAT: tf.stop_gradient(
-            sampled_feats_cell
-        ),
+       
     }
 
     with tf.GradientTape() as student_tape:
-        teacher_q = teacher_model(
-            {
-                Key.CYC: tf.expand_dims(cycle, axis = 1),
-                Key.I_CC: tf.expand_dims(constant_current, axis = 1),
-                Key.I_PREV_END: tf.expand_dims(end_current_prev, axis = 1),
-                Key.V_PREV_END: tf.expand_dims(end_voltage_prev, axis = 1),
-                Key.V_END: tf.expand_dims(end_voltage, axis = 1),
-                Key.INDICES: cell_indices,
-                Key.V_TENSOR: cc_voltage,
-                Key.I_TENSOR: cv_current,
-                Key.SVIT_GRID: svit_grid,
-                Key.COUNT_MATRIX: count_matrix,
-            },
-            training = True,
-        )[Key.Q]
+        teacher_q = teacher_model.q_direct(
+            cycle = samples[Key.SAMPLE_CYC],
+            v = samples[Key.SAMPLE_V],
+            current = samples[Key.SAMPLE_I],
+            feats_cell = teacher_feats_cells,
+        )
         student_q = student_model.q_direct(
-            cycle = student_samples[Key.SAMPLE_CYC],
-            v = student_samples[Key.SAMPLE_V],
-            current = student_samples[Key.SAMPLE_I],
-            feats_cell = student_samples[Key.SAMPLE_CELL_FEAT],
+            cycle = samples[Key.SAMPLE_CYC],
+            v = samples[Key.SAMPLE_V],
+            current = samples[Key.SAMPLE_I],
+            feats_cell = student_feats_cells,
         )
 
         student_loss = options[Key.Coeff.STUDENT_Q] * tf.reduce_mean(

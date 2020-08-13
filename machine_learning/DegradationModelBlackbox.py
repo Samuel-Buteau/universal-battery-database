@@ -115,17 +115,6 @@ class DegradationModel(Model):
             d = self.q_param_count, f = self.f,
         )
 
-        self.random_matrix_v = build_random_matrix(
-            sigma = options[Key.FF_V_SIGMA],
-            var_sigmas = [
-                options[Key.FF_V_SIGMA_CYC],
-                options[Key.FF_V_SIGMA_I_PRE],
-                options[Key.FF_V_SIGMA_I_CC],
-                options[Key.FF_V_SIGMA_V_END],
-            ],
-            d = self.v_param_count, f = self.f,
-        )
-
     def call(self, call_params: dict, training = False) -> dict:
         """ Call function for the Model during training or evaluation.
 
@@ -302,15 +291,9 @@ class DegradationModel(Model):
 
         q_0 = self.q_direct(
             cycle = params[Key.CYC],
-            v = self.prev_voltage_direct(
-                cycle = params[Key.CYC],
-                prev_end_current = params[Key.I_PREV_END],
-                constant_current = params[Key.I_CC],
-                end_voltage = params[Key.V_END],
-                feats_cell = params[Key.CELL_FEAT],
-            ),
+            v = params[Key.V_PREV_END],
             feats_cell = params[Key.CELL_FEAT],
-            current = params[Key.I_CC],
+            current = params[Key.I_PREV_END],
             training = training,
         )
 

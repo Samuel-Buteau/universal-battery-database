@@ -734,13 +734,13 @@ def train_step(neigh, train_params: dict, options: dict):
             cycle = samples[Key.SAMPLE_CYC],
             v = samples[Key.SAMPLE_V],
             current = samples[Key.SAMPLE_I],
-            feats_cell = teacher_feats_cells,
+            feats_cell = teacher_feats_cell,
         )
         student_q = student_model.q_direct(
             cycle = samples[Key.SAMPLE_CYC],
             v = samples[Key.SAMPLE_V],
             current = samples[Key.SAMPLE_I],
-            feats_cell = student_feats_cells,
+            feats_cell = student_feats_cell,
         )
 
         student_loss = options[Key.Coeff.STUDENT_Q] * tf.reduce_mean(

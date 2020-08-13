@@ -346,7 +346,7 @@ def initial_processing(
                 options[Key.Q_SIG_V],
                 options[Key.Q_SIG_I],
             ],
-            d = 3, f = 32,
+            d = 3, f = 64,
         )
 
         teacher_model = DegradationModel(
@@ -879,7 +879,7 @@ class Command(BaseCommand):
             Key.Coeff.Q_CC: 1.,
 
             Key.Coeff.Q: 0.0001,
-            Key.Coeff.STUDENT_Q: 0.01,
+            Key.Coeff.STUDENT_Q: 1.,
             Key.Coeff.Q_GEQ: 1.,
             Key.Coeff.Q_LEQ: 1.,
             Key.Coeff.Q_V_MONO: 0.,
@@ -889,7 +889,7 @@ class Command(BaseCommand):
             Key.Coeff.Q_DER_I: 0.,
             Key.Coeff.Q_DER_N: 0.,
 
-            Key.Q_SIG: 0.08,
+            Key.Q_SIG: 0.4,
             Key.Q_SIG_N: 1.5,
             Key.Q_SIG_V: 1.2,
             Key.Q_SIG_I: .5,

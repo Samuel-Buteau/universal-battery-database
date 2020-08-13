@@ -864,55 +864,40 @@ def transfer_step(train_params: dict, options: dict):
                         student_q_der[Key.D2_I],
                     )
                 )
-            ) + options[Key.Coeff.Q_STUDENT] * 0.01 * (
-                               tf.reduce_mean(
-                                   tf.square(
-                                       tf.stop_gradient(teacher_b) - student_b
-                                   )
-                               ) +
-                               0.1 * (tf.reduce_mean(
-                               tf.square(
-                                   tf.stop_gradient(teacher_b_der[Key.D_CYC]) -
-                                   student_b_der[Key.D_CYC]
-                               )
-                           ) +
-                                      tf.reduce_mean(
-                                          tf.square(
-                                              tf.stop_gradient(
-                                                  teacher_b_der[Key.D_V]) -
-                                              student_b_der[Key.D_V]
-                                          )
-                                      ) +
-                                      tf.reduce_mean(
-                                          tf.square(
-                                              tf.stop_gradient(
-                                                  teacher_b_der[Key.D_I]) -
-                                              student_b_der[Key.D_I]
-                                          )
-                                      ))
-                               +
-                               0.02 * (tf.reduce_mean(
-                               tf.square(
-                                   tf.stop_gradient(teacher_b_der[Key.D2_CYC]) -
-                                   student_b_der[Key.D2_CYC]
-                               )
-                           ) +
-                                       tf.reduce_mean(
-                                           tf.square(
-                                               tf.stop_gradient(
-                                                   teacher_b_der[Key.D2_V]) -
-                                               student_b_der[Key.D2_V]
-                                           )
-                                       ) +
-                                       tf.reduce_mean(
-                                           tf.square(
-                                               tf.stop_gradient(
-                                                   teacher_b_der[Key.D2_I]) -
-                                               student_b_der[Key.D2_I]
-                                           )
-                                       ))
+            )
+            student_loss += options[Key.Coeff.Q_STUDENT] * 0.01 * (
+                mse(
+                    tf.stop_gradient(teacher_b) - student_b
+                ) + 0.1 * (
+                    mse(
+                        tf.stop_gradient(teacher_b_der[Key.D_CYC]),
+                        student_b_der[Key.D_CYC],
+                    ) +
+                    mse(
+                        tf.stop_gradient(teacher_b_der[Key.D_V]),
+                        student_b_der[Key.D_V],
+                    ) +
+                    mse(
+                        tf.stop_gradient(teacher_b_der[Key.D_I]),
+                        student_b_der[Key.D_I],
+                    )
+                )
+                + 0.02 * (
+                    mse(
+                        tf.stop_gradient(teacher_b_der[Key.D2_CYC]),
+                        student_b_der[Key.D2_CYC],
+                    ) +
+                    mse(
+                        tf.stop_gradient(teacher_b_der[Key.D2_V]),
+                        student_b_der[Key.D2_V],
+                    ) +
+                    mse(
+                        tf.stop_gradient(teacher_b_der[Key.D2_I]),
+                        student_b_der[Key.D2_I],
+                    )
+                )
 
-                           )
+            )
 
         gradients_student = student_tape.gradient(
             student_loss, student_model.trainable_variables,

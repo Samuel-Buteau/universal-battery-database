@@ -696,187 +696,194 @@ def train_step(neigh, train_params: dict, options: dict):
         zip(gradients_norm_clipped, teacher_model.trainable_variables)
     )
 
-    sampled_constant_current = tf.exp(
-        tf.random.uniform(
-            minval = tf.math.log(0.001), maxval = tf.math.log(5.),
-            shape = [n_sample, 1],
+    for virtual_batch_i in range(4):
+
+        sampled_constant_current = tf.exp(
+            tf.random.uniform(
+                minval = tf.math.log(0.001), maxval = tf.math.log(5.),
+                shape = [n_sample, 1],
+            )
         )
-    )
-    sampled_constant_current_sign = tf.cast(
-        tf.random.uniform(
-            minval = 0, maxval = 1,
-            shape = [n_sample, 1], dtype = tf.int32,
-        ),
-        dtype = tf.float32,
-    )
-    sampled_constant_current_sign = 2.0 * sampled_constant_current_sign - 1.
-    
-    sample_indices = tf.random.uniform(
-            maxval = student_model.cell_direct.num_keys,
-            shape = [1], dtype = tf.int32,
+        sampled_constant_current_sign = tf.cast(
+            tf.random.uniform(
+                minval = 0, maxval = 1,
+                shape = [n_sample, 1], dtype = tf.int32,
+            ),
+            dtype = tf.float32,
         )
+        sampled_constant_current_sign = 2.0 * sampled_constant_current_sign - 1.
 
-    max_cycles =  tf.gather(tf.reshape(max_cycle_cell_tensor, [-1,1]), sample_indices, axis = 0)
-    
-    student_feats_cell = student_model.cell_from_indices(
-        indices = sample_indices,
-        training = False, sample = True,
-    )
-    teacher_feats_cell = teacher_model.cell_from_indices(
-        indices = sample_indices,
-        training = False, sample = True,
-    )
+        sample_indices = tf.random.uniform(
+                maxval = student_model.cell_direct.num_keys,
+                shape = [1], dtype = tf.int32,
+            )
 
-    #TODO: anything else which is cell-specific
+        max_cycles =  tf.gather(tf.reshape(max_cycle_cell_tensor, [-1,1]), sample_indices, axis = 0)
 
-    max_cycles = tf.tile(max_cycles, [n_sample, 1])
-    student_feats_cell = tf.tile(student_feats_cell, [n_sample, 1])
-    teacher_feats_cell = tf.tile(teacher_feats_cell, [n_sample, 1])
-
-    samples = {
-        Key.SAMPLE_V: tf.random.uniform(
-            minval = 2.5, maxval = 5., shape = [n_sample, 1],
-        ),
-        Key.SAMPLE_CYC: max_cycles * tf.random.uniform(
-            minval = -.0001, maxval = 2., shape = [n_sample, 1],
-        ),
-        Key.SAMPLE_I: (
-            sampled_constant_current_sign * sampled_constant_current
-        ),
-        "PROJ": tf.random.uniform(
-            minval = -1., maxval = 1., shape = [n_sample, BOTTLENECK],
-        ),
-       
-    }
-
-    with tf.GradientTape() as student_tape:
-        teacher_q, teacher_q_der = teacher_model.transfer_q(
-            CYC = samples[Key.SAMPLE_CYC],
-            V = samples[Key.SAMPLE_V],
-            I = samples[Key.SAMPLE_I],
-            CELL_FEAT = teacher_feats_cell,
-            PROJ = samples["PROJ"],
+        student_feats_cell = student_model.cell_from_indices(
+            indices = sample_indices,
+            training = False, sample = True,
         )
-        student_q, student_q_der = student_model.transfer_q(
-            CYC = samples[Key.SAMPLE_CYC],
-            V = samples[Key.SAMPLE_V],
-            I = samples[Key.SAMPLE_I],
-            CELL_FEAT = student_feats_cell,
-            PROJ=samples["PROJ"],
+        teacher_feats_cell = teacher_model.cell_from_indices(
+            indices = sample_indices,
+            training = False, sample = True,
         )
 
-        teacher_b, teacher_b_der = teacher_model.transfer_q(
-            CYC=samples[Key.SAMPLE_CYC],
-            V=samples[Key.SAMPLE_V],
-            I=samples[Key.SAMPLE_I],
-            CELL_FEAT=teacher_feats_cell,
-            PROJ=samples["PROJ"],
-            get_bottleneck=True,
-        )
-        student_b, student_b_der = student_model.transfer_q(
-            CYC=samples[Key.SAMPLE_CYC],
-            V=samples[Key.SAMPLE_V],
-            I=samples[Key.SAMPLE_I],
-            CELL_FEAT=student_feats_cell,
-            PROJ=samples["PROJ"],
-            get_bottleneck=True,
-        )
+        #TODO: anything else which is cell-specific
+
+        max_cycles = tf.tile(max_cycles, [n_sample, 1])
+        student_feats_cell = tf.tile(student_feats_cell, [n_sample, 1])
+        teacher_feats_cell = tf.tile(teacher_feats_cell, [n_sample, 1])
+
+        samples = {
+            Key.SAMPLE_V: tf.random.uniform(
+                minval = 2.5, maxval = 5., shape = [n_sample, 1],
+            ),
+            Key.SAMPLE_CYC: max_cycles * tf.random.uniform(
+                minval = -.0001, maxval = 2., shape = [n_sample, 1],
+            ),
+            Key.SAMPLE_I: (
+                sampled_constant_current_sign * sampled_constant_current
+            ),
+            "PROJ": tf.random.uniform(
+                minval = -1., maxval = 1., shape = [n_sample, BOTTLENECK],
+            ),
+
+        }
+
+        with tf.GradientTape() as student_tape:
+            teacher_q, teacher_q_der = teacher_model.transfer_q(
+                CYC = samples[Key.SAMPLE_CYC],
+                V = samples[Key.SAMPLE_V],
+                I = samples[Key.SAMPLE_I],
+                CELL_FEAT = teacher_feats_cell,
+                PROJ = samples["PROJ"],
+            )
+            student_q, student_q_der = student_model.transfer_q(
+                CYC = samples[Key.SAMPLE_CYC],
+                V = samples[Key.SAMPLE_V],
+                I = samples[Key.SAMPLE_I],
+                CELL_FEAT = student_feats_cell,
+                PROJ=samples["PROJ"],
+            )
+
+            teacher_b, teacher_b_der = teacher_model.transfer_q(
+                CYC=samples[Key.SAMPLE_CYC],
+                V=samples[Key.SAMPLE_V],
+                I=samples[Key.SAMPLE_I],
+                CELL_FEAT=teacher_feats_cell,
+                PROJ=samples["PROJ"],
+                get_bottleneck=True,
+            )
+            student_b, student_b_der = student_model.transfer_q(
+                CYC=samples[Key.SAMPLE_CYC],
+                V=samples[Key.SAMPLE_V],
+                I=samples[Key.SAMPLE_I],
+                CELL_FEAT=student_feats_cell,
+                PROJ=samples["PROJ"],
+                get_bottleneck=True,
+            )
 
 
-        student_loss = options[Key.Coeff.Q_STUDENT] * (
-            tf.reduce_mean(
-                tf.square(
-                    tf.stop_gradient(teacher_q) - student_q
-                )
-            ) +
-            0.1*(tf.reduce_mean(
-                tf.square(
-                    tf.stop_gradient(teacher_q_der[Key.D_CYC]) - student_q_der[Key.D_CYC]
-                )
-            )  +
-            tf.reduce_mean(
-                tf.square(
-                    tf.stop_gradient(teacher_q_der[Key.D_V]) - student_q_der[Key.D_V]
-                )
-            ) +
-            tf.reduce_mean(
-                tf.square(
-                    tf.stop_gradient(teacher_q_der[Key.D_I]) - student_q_der[Key.D_I]
-                )
-            )) +
-            0.02 * (tf.reduce_mean(
-                tf.square(
-                    tf.stop_gradient(teacher_q_der[Key.D2_CYC]) - student_q_der[Key.D2_CYC]
-                )
-            )  +
-               tf.reduce_mean(
-                   tf.square(
-                       tf.stop_gradient(teacher_q_der[Key.D2_V]) - student_q_der[Key.D2_V]
-                   )
-               ) +
-               tf.reduce_mean(
-                   tf.square(
-                       tf.stop_gradient(teacher_q_der[Key.D2_I]) - student_q_der[Key.D2_I]
-                   )
-               ))
-
-            
-        ) + options[Key.Coeff.Q_STUDENT] * 0.01 * (
+            student_loss = options[Key.Coeff.Q_STUDENT] * (
                 tf.reduce_mean(
                     tf.square(
-                        tf.stop_gradient(teacher_b) - student_b
+                        tf.stop_gradient(teacher_q) - student_q
                     )
                 ) +
-                0.1 * (tf.reduce_mean(
-                        tf.square(
-                            tf.stop_gradient(teacher_b_der[Key.D_CYC]) - student_b_der[Key.D_CYC]
-                        )
-                        ) +
-                       tf.reduce_mean(
-                           tf.square(
-                               tf.stop_gradient(teacher_b_der[Key.D_V]) - student_b_der[Key.D_V]
-                           )
-                       ) +
-                       tf.reduce_mean(
-                           tf.square(
-                               tf.stop_gradient(teacher_b_der[Key.D_I]) - student_b_der[Key.D_I]
-                           )
-                       ))
-                +
+                0.1*(tf.reduce_mean(
+                    tf.square(
+                        tf.stop_gradient(teacher_q_der[Key.D_CYC]) - student_q_der[Key.D_CYC]
+                    )
+                )  +
+                tf.reduce_mean(
+                    tf.square(
+                        tf.stop_gradient(teacher_q_der[Key.D_V]) - student_q_der[Key.D_V]
+                    )
+                ) +
+                tf.reduce_mean(
+                    tf.square(
+                        tf.stop_gradient(teacher_q_der[Key.D_I]) - student_q_der[Key.D_I]
+                    )
+                )) +
                 0.02 * (tf.reduce_mean(
-            tf.square(
-                tf.stop_gradient(teacher_b_der[Key.D2_CYC]) - student_b_der[Key.D2_CYC]
+                    tf.square(
+                        tf.stop_gradient(teacher_q_der[Key.D2_CYC]) - student_q_der[Key.D2_CYC]
+                    )
+                )  +
+                   tf.reduce_mean(
+                       tf.square(
+                           tf.stop_gradient(teacher_q_der[Key.D2_V]) - student_q_der[Key.D2_V]
+                       )
+                   ) +
+                   tf.reduce_mean(
+                       tf.square(
+                           tf.stop_gradient(teacher_q_der[Key.D2_I]) - student_q_der[Key.D2_I]
+                       )
+                   ))
+
+
+            ) + options[Key.Coeff.Q_STUDENT] * 0.01 * (
+                    tf.reduce_mean(
+                        tf.square(
+                            tf.stop_gradient(teacher_b) - student_b
+                        )
+                    ) +
+                    0.1 * (tf.reduce_mean(
+                            tf.square(
+                                tf.stop_gradient(teacher_b_der[Key.D_CYC]) - student_b_der[Key.D_CYC]
+                            )
+                            ) +
+                           tf.reduce_mean(
+                               tf.square(
+                                   tf.stop_gradient(teacher_b_der[Key.D_V]) - student_b_der[Key.D_V]
+                               )
+                           ) +
+                           tf.reduce_mean(
+                               tf.square(
+                                   tf.stop_gradient(teacher_b_der[Key.D_I]) - student_b_der[Key.D_I]
+                               )
+                           ))
+                    +
+                    0.02 * (tf.reduce_mean(
+                tf.square(
+                    tf.stop_gradient(teacher_b_der[Key.D2_CYC]) - student_b_der[Key.D2_CYC]
+                )
+                ) +
+                           tf.reduce_mean(
+                               tf.square(
+                                   tf.stop_gradient(teacher_b_der[Key.D2_V]) - student_b_der[Key.D2_V]
+                               )
+                           ) +
+                           tf.reduce_mean(
+                               tf.square(
+                                   tf.stop_gradient(teacher_b_der[Key.D2_I]) - student_b_der[Key.D2_I]
+                               )
+                           ))
+
             )
-            ) +
-                       tf.reduce_mean(
-                           tf.square(
-                               tf.stop_gradient(teacher_b_der[Key.D2_V]) - student_b_der[Key.D2_V]
-                           )
-                       ) +
-                       tf.reduce_mean(
-                           tf.square(
-                               tf.stop_gradient(teacher_b_der[Key.D2_I]) - student_b_der[Key.D2_I]
-                           )
-                       ))
 
+        gradients_student = student_tape.gradient(
+            student_loss, student_model.trainable_variables,
         )
-
-    gradients_student = student_tape.gradient(
-        student_loss, student_model.trainable_variables,
-    )
-    for x in gradients_student:
-        if x is None:
-            gradients_student.remove(x)
-    gradients_no_nans_student = [
-        tf.where(tf.math.is_nan(x), tf.zeros_like(x), x)
-        for x in gradients_student
-    ]
-    gradients_norm_clipped_student, _ = tf.clip_by_global_norm(
-        gradients_no_nans_student, options[Key.GLB_NORM_CLIP],
-    )
+        for x in gradients_student:
+            if x is None:
+                gradients_student.remove(x)
+        gradients_no_nans_student = [
+            tf.where(tf.math.is_nan(x), tf.zeros_like(x), x)
+            for x in gradients_student
+        ]
+        gradients_norm_clipped_student, _ = tf.clip_by_global_norm(
+            gradients_no_nans_student, options[Key.GLB_NORM_CLIP],
+        )
+        if virtual_batch_i == 0:
+            acc_gradients = gradients_norm_clipped_student
+        else:
+            for j, gr in enumerate(gradients_norm_clipped_student):
+                acc_gradients[j] += gr
 
     student_optimizer.apply_gradients(
-        zip(gradients_norm_clipped_student, student_model.trainable_variables)
+        zip(acc_gradients, student_model.trainable_variables)
     )
 
     return tf.stack(

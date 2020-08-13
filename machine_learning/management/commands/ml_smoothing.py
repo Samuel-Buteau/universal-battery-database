@@ -776,7 +776,7 @@ def train_step(neigh, train_params: dict, options: dict):
         )
 
 
-        student_loss = options[Key.Coeff.STUDENT_Q] * (
+        student_loss = options[Key.Coeff.Q_STUDENT] * (
             tf.reduce_mean(
                 tf.square(
                     tf.stop_gradient(teacher_q) - student_q
@@ -814,7 +814,7 @@ def train_step(neigh, train_params: dict, options: dict):
                ))
 
             
-        ) + options[Key.Coeff.STUDENT_Q] * 0.01 * (
+        ) + options[Key.Coeff.Q_STUDENT] * 0.01 * (
                 tf.reduce_mean(
                     tf.square(
                         tf.stop_gradient(teacher_b) - student_b
@@ -926,7 +926,7 @@ class Command(BaseCommand):
             Key.Coeff.Q_DER_I: 0.,
             Key.Coeff.Q_DER_N: 0.,
 
-            Key.Coeff.STUDENT_Q: 1.,
+            Key.Coeff.Q_STUDENT: 1.,
 
             Key.Q_SIG: 0.08,
             Key.Q_SIG_N: 2.,

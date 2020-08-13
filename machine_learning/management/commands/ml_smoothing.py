@@ -158,7 +158,7 @@ def initial_processing(
 
         all_data = dataset[Key.ALL_DATA][cell_id]
         cyc_grp_dict = all_data[Key.CYC_GRP_DICT]
-
+        max_cyc_cell = 0
         for k_count, k in enumerate(cyc_grp_dict.keys()):
 
             if any([
@@ -186,7 +186,8 @@ def initial_processing(
 
             # range of cycles which exist for this cycle group
             min_cyc, max_cyc = min(main_data[Key.N]), max(main_data[Key.N])
-
+            if max_cyc_cell < max_cyc:
+                max_cyc_cell= max_cyc
             """
             - now create neighborhoods, which contains the cycles,
               grouped by proximity
@@ -311,6 +312,7 @@ def initial_processing(
 
             for key in dict_to_acc:
                 numpy_acc(compiled_data, key, dict_to_acc[key])
+        numpy_acc(compiled_data, "MAX_CYCLE_CELL", np.array([max_cyc_cell]))
 
     neigh_data = tf.constant(compiled_data[Key.NEIGH_DATA])
 
@@ -323,6 +325,7 @@ def initial_processing(
     cycle_v = cycle_v.numpy()
     cycle_tensor = (cycle_tensor - cycle_m) / tf.sqrt(cycle_v)
     compiled_tensors[Key.CYC] = cycle_tensor
+    compiled_tensors["MAX_CYCLE_CELL"] = tf.constant((compiled_data["MAX_CYCLE_CELL"]  - cycle_m) / tf.sqrt(cycle_v))
 
     labels = [
         Key.V_CC_VEC, Key.Q_CC_VEC, Key.MASK_CC_VEC, Key.Q_CV_VEC, Key.I_CV_VEC,
@@ -510,7 +513,7 @@ def train_step(neigh, train_params: dict, options: dict):
     tmp_grid_tensor = compiled_tensors[Key.TEMP_GRID]
 
     count_matrix_tensor = compiled_tensors[Key.COUNT_MATRIX]
-
+    max_cycle_cell_tensor = compiled_tensors["MAX_CYCLE_CELL"]
     cycle_tensor = compiled_tensors[Key.CYC]
     constant_current_tensor = compiled_tensors[Key.I_CC]
     end_current_prev_tensor = compiled_tensors[Key.I_PREV_END]
@@ -712,6 +715,8 @@ def train_step(neigh, train_params: dict, options: dict):
             maxval = student_model.cell_direct.num_keys,
             shape = [n_sample], dtype = tf.int32,
         )
+
+    max_cycles =  tf.gather(max_cycle_cell_tensor, sample_indices, axis = 0)
     
     student_feats_cell = student_model.cell_from_indices(
         indices = sample_indices,
@@ -725,8 +730,8 @@ def train_step(neigh, train_params: dict, options: dict):
         Key.SAMPLE_V: tf.random.uniform(
             minval = 2.5, maxval = 5., shape = [n_sample, 1],
         ),
-        Key.SAMPLE_CYC: tf.random.uniform(
-            minval = -.0001, maxval = 5., shape = [n_sample, 1],
+        Key.SAMPLE_CYC: max_cycles * tf.random.uniform(
+            minval = -.0001, maxval = 2., shape = [n_sample, 1],
         ),
         Key.SAMPLE_I: (
             sampled_constant_current_sign * sampled_constant_current

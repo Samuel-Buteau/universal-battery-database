@@ -208,7 +208,7 @@ class DegradationModel(Model):
                     Key.CELL_FEAT: samples["cell_feats"],
                     Key.I: samples["constant_current"],
                 },
-                der_params = {Key.V: 3, Key.CELL_FEAT: 2, Key.I: 3, Key.CYC: 3}
+                der_params = {Key.V: 3, Key.CELL_FEAT: 0, Key.I: 3, Key.CYC: 3}
             )
 
             q_loss = calculate_q_loss(q, q_der, options = self.options)

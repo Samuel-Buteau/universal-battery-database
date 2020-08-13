@@ -915,7 +915,8 @@ class Command(BaseCommand):
             Key.Coeff.Q_CC: 1.,
 
             Key.Coeff.Q: 0.0001,
-            Key.Coeff.STUDENT_Q: 1.,
+            Key.Coeff.Q_CENTERED: 0.000001,
+
             Key.Coeff.Q_GEQ: 1.,
             Key.Coeff.Q_LEQ: 1.,
             Key.Coeff.Q_V_MONO: 0.,
@@ -924,6 +925,8 @@ class Command(BaseCommand):
             Key.Coeff.Q_DER3_N: 0.,
             Key.Coeff.Q_DER_I: 0.,
             Key.Coeff.Q_DER_N: 0.,
+
+            Key.Coeff.STUDENT_Q: 1.,
 
             Key.Q_SIG: 0.08,
             Key.Q_SIG_N: 2.,
@@ -934,7 +937,7 @@ class Command(BaseCommand):
         vis = 1000
         int_args = {
             Key.FOUR_FEAT: 1,
-            Key.N_SAMPLE: 8 * 16,
+            Key.N_SAMPLE: 1 * 16,
 
             Key.TEACHER_DEPTH: 3,
             Key.TEACHER_WIDTH: 64,

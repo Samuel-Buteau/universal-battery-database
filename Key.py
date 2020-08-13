@@ -266,7 +266,7 @@ class Key:
         Q_CV = "coeff_cv_capacity"
         Q_CC = "coeff_cc_capacity"
         Q = "coeff_q"
-        STUDENT_Q = "coeff_student_q"
+        Q_STUDENT = "coeff_student_q"
         Q_GEQ = "coeff_q_geq"
         Q_LEQ = "coeff_q_leq"
         Q_V_MONO = "coeff_q_v_mono"
@@ -275,6 +275,7 @@ class Key:
         Q_DER3_N = "coeff_q_d3_cycle"
         Q_DER_I = "coeff_q_d_current"
         Q_DER_N = "coeff_q_d_cycle"
+        Q_CENTERED = "coeff_q_centered"
 
     # TODO (harvey): replace the following class of keys
     class Loss:

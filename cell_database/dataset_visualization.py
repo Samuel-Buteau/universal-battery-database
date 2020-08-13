@@ -22,8 +22,6 @@ def escape_string_to_path(my_string):
         ('$', '_DOLLAR_'),
         ('&', '_AMPERSAND_'),
         ("\'", '_HALFQUOTE_'),
-        ("(", "_OPENP_"),
-        (")", "_CLOSEP_"),
         ("*", "_STAR_"),
         (',', '_COMMA_'),
         (';', '_SEMICOLON_'),
@@ -31,7 +29,6 @@ def escape_string_to_path(my_string):
         ('?', '_QUESTION_'),
         ('[', '_OPENB_'),
         (']', '_CLOSEB_'),
-        ('=', '_EQUAL_'),
         ('\\', '_SLASH_'),
         ('^', '_HAT_'),
         ('`', '_BACKQUOTE_'),
@@ -79,7 +76,7 @@ def get_dataset_labels(dataset):
         wet_name, specified = wet_cell.get_specific_name_details(dataset)
         if not specified:
             wet_name = str(wet_cell.cell_id)
-        wet_names[wet_cell.cell_id] = wet_name + " (CELL ID: {})".format(wet_cell.cell_id)
+        wet_names[wet_cell.cell_id] = wet_name + " (CELL ID {})".format(wet_cell.cell_id)
         names = {}
         colors = {}
         pos = {}

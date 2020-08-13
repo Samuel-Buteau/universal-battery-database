@@ -158,7 +158,7 @@ def initial_processing(
 
         all_data = dataset[Key.ALL_DATA][cell_id]
         cyc_grp_dict = all_data[Key.CYC_GRP_DICT]
-
+        max_cyc_cell = 0
         for k_count, k in enumerate(cyc_grp_dict.keys()):
 
             if any([
@@ -186,7 +186,8 @@ def initial_processing(
 
             # range of cycles which exist for this cycle group
             min_cyc, max_cyc = min(main_data[Key.N]), max(main_data[Key.N])
-
+            if max_cyc_cell < max_cyc:
+                max_cyc_cell= max_cyc
             """
             - now create neighborhoods, which contains the cycles,
               grouped by proximity
@@ -311,6 +312,7 @@ def initial_processing(
 
             for key in dict_to_acc:
                 numpy_acc(compiled_data, key, dict_to_acc[key])
+        numpy_acc(compiled_data, "MAX_CYCLE_CELL", np.array([max_cyc_cell]))
 
     neigh_data = tf.constant(compiled_data[Key.NEIGH_DATA])
 
@@ -323,6 +325,7 @@ def initial_processing(
     cycle_v = cycle_v.numpy()
     cycle_tensor = (cycle_tensor - cycle_m) / tf.sqrt(cycle_v)
     compiled_tensors[Key.CYC] = cycle_tensor
+    compiled_tensors["MAX_CYCLE_CELL"] = tf.constant((compiled_data["MAX_CYCLE_CELL"]  - cycle_m) / tf.sqrt(cycle_v))
 
     labels = [
         Key.V_CC_VEC, Key.Q_CC_VEC, Key.MASK_CC_VEC, Key.Q_CV_VEC, Key.I_CV_VEC,
@@ -496,7 +499,7 @@ def train_step(neigh, train_params: dict, options: dict):
     """
     # need to split the range
     batch_size2 = neigh.shape[0]
-    n_sample = 64 * 32
+    n_sample = 4 * 32
 
     teacher_model = train_params[Key.TEACHER_MODEL]
     student_model = train_params[Key.STUDENT_MODEL]
@@ -510,7 +513,7 @@ def train_step(neigh, train_params: dict, options: dict):
     tmp_grid_tensor = compiled_tensors[Key.TEMP_GRID]
 
     count_matrix_tensor = compiled_tensors[Key.COUNT_MATRIX]
-
+    max_cycle_cell_tensor = compiled_tensors["MAX_CYCLE_CELL"]
     cycle_tensor = compiled_tensors[Key.CYC]
     constant_current_tensor = compiled_tensors[Key.I_CC]
     end_current_prev_tensor = compiled_tensors[Key.I_PREV_END]
@@ -712,6 +715,8 @@ def train_step(neigh, train_params: dict, options: dict):
             maxval = student_model.cell_direct.num_keys,
             shape = [1], dtype = tf.int32,
         )
+
+    max_cycles =  tf.gather(max_cycle_cell_tensor, sample_indices, axis = 0)
     
     student_feats_cell = student_model.cell_from_indices(
         indices = sample_indices,
@@ -725,8 +730,8 @@ def train_step(neigh, train_params: dict, options: dict):
         Key.SAMPLE_V: tf.random.uniform(
             minval = 2.5, maxval = 5., shape = [n_sample, 1],
         ),
-        Key.SAMPLE_CYC: tf.random.uniform(
-            minval = -.0001, maxval = 5., shape = [n_sample, 1],
+        Key.SAMPLE_CYC: max_cycles * tf.random.uniform(
+            minval = -.0001, maxval = 2., shape = [n_sample, 1],
         ),
         Key.SAMPLE_I: (
             sampled_constant_current_sign * sampled_constant_current
@@ -888,7 +893,7 @@ class Command(BaseCommand):
             Key.GLB_NORM_CLIP: 10.,
 
             Key.TEACHER_LRN_RATE: 5e-4,
-            Key.STUDENT_LRN_RATE: 5e-4,
+            Key.STUDENT_LRN_RATE: 1e-4,
             Key.MIN_LAT: 1,
 
             Key.Coeff.FEAT_CELL_DER: .001,
@@ -910,7 +915,8 @@ class Command(BaseCommand):
             Key.Coeff.Q_CC: 1.,
 
             Key.Coeff.Q: 0.0001,
-            Key.Coeff.STUDENT_Q: 1.,
+            Key.Coeff.Q_CENTERED: 0.000001,
+
             Key.Coeff.Q_GEQ: 1.,
             Key.Coeff.Q_LEQ: 1.,
             Key.Coeff.Q_V_MONO: 0.,
@@ -920,8 +926,10 @@ class Command(BaseCommand):
             Key.Coeff.Q_DER_I: 0.,
             Key.Coeff.Q_DER_N: 0.,
 
-            Key.Q_SIG: 0.4,
-            Key.Q_SIG_N: 1.5,
+            Key.Coeff.STUDENT_Q: 1.,
+
+            Key.Q_SIG: 0.08,
+            Key.Q_SIG_N: 2.,
             Key.Q_SIG_V: 1.2,
             Key.Q_SIG_I: .5,
         }
@@ -929,7 +937,7 @@ class Command(BaseCommand):
         vis = 1000
         int_args = {
             Key.FOUR_FEAT: 1,
-            Key.N_SAMPLE: 8 * 16,
+            Key.N_SAMPLE: 1 * 16,
 
             Key.TEACHER_DEPTH: 3,
             Key.TEACHER_WIDTH: 64,

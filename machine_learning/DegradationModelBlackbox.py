@@ -478,7 +478,7 @@ class DegradationModel(Model):
         Returns:
             Computed state of charge; same as that for `q_direct`.
         """
-        if params["get_bottleneck"]:
+        if 'get_bottleneck' in params.keys() and params["get_bottleneck"]:
             q, bottleneck = self.q_direct(
                 cycle=params[Key.CYC],
                 feats_cell=params[Key.CELL_FEAT],

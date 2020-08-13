@@ -834,7 +834,7 @@ def transfer_step(train_params: dict, options: dict):
                 get_bottleneck = True,
             )
 
-            student_loss = options[Key.Coeff.Q_STUDENT] * (
+            student_loss = (
                 mse(tf.stop_gradient(teacher_q), student_q)
                 + 0.1 * (
                     mse(
@@ -865,7 +865,7 @@ def transfer_step(train_params: dict, options: dict):
                     )
                 )
             )
-            student_loss += options[Key.Coeff.Q_STUDENT] * 0.01 * (
+            student_loss += 0.01 * (
                 mse(
                     tf.stop_gradient(teacher_b) - student_b
                 ) + 0.1 * (
@@ -898,6 +898,7 @@ def transfer_step(train_params: dict, options: dict):
                 )
 
             )
+            student_loss *= options[Key.Coeff.Q_STUDENT]
 
         gradients_student = student_tape.gradient(
             student_loss, student_model.trainable_variables,

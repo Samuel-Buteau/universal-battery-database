@@ -4,7 +4,7 @@ from tensorflow.keras.layers import Dense
 
 from Key import Key
 
-main_activation = tf.keras.activations.relu
+main_activation = tf.keras.activations.elu
 
 
 def feedforward_nn_parameters(
@@ -31,7 +31,8 @@ def feedforward_nn_parameters(
         projector = Dense(
             bottleneck,
             activation = None,
-            use_bias = False,
+            use_bias=True,
+            bias_initializer="zeros",
         )
 
     initial = Dense(
@@ -51,7 +52,7 @@ def feedforward_nn_parameters(
                 activation = activation,
                 use_bias = True,
                 bias_initializer = "zeros",
-            ) for activation in ["relu", None]
+            ) for activation in ["elu", None]
         ]
         for i in range(depth)
     ]
@@ -97,14 +98,14 @@ def nn_call(nn_func: dict, dependencies: tuple, training = True, get_bottleneck=
 
     for dd in nn_func["bulk"][:-1]:
         centers_prime = centers
-        centers_prime = tf.nn.relu(centers_prime)
+        centers_prime = tf.nn.elu(centers_prime)
         for d in dd:
             centers_prime = d(centers_prime, training = training)
         centers = centers + centers_prime  # This is a skip connection
 
     dd = nn_func["bulk"][-1]
     centers_prime = centers
-    centers_prime = tf.nn.relu(centers_prime)
+    centers_prime = tf.nn.elu(centers_prime)
     for d in dd:
         centers_prime = d(centers_prime, training = training)
     if 'projector' in nn_func.keys():

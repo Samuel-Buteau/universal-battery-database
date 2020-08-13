@@ -857,7 +857,7 @@ class Command(BaseCommand):
             Key.GLB_NORM_CLIP: 10.,
 
             Key.TEACHER_LRN_RATE: 5e-4,
-            Key.STUDENT_LRN_RATE: 5e-2,
+            Key.STUDENT_LRN_RATE: 5e-4,
             Key.MIN_LAT: 1,
 
             Key.Coeff.FEAT_CELL_DER: .001,
@@ -901,9 +901,9 @@ class Command(BaseCommand):
             Key.N_SAMPLE: 8 * 16,
 
             Key.TEACHER_DEPTH: 3,
-            Key.TEACHER_WIDTH: 50,
-            Key.STUDENT_DEPTH: 2,
-            Key.STUDENT_WIDTH: 30,
+            Key.TEACHER_WIDTH: 64,
+            Key.STUDENT_DEPTH: 3,
+            Key.STUDENT_WIDTH: 64,
             Key.BATCH: 4 * 16,
 
             Key.PRINT_LOSS: vis,

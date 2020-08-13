@@ -936,6 +936,9 @@ def transfer_step(train_params: dict, options: dict):
     )
 
 
+def mse(x_1, x_2):
+    return tf.reduce_mean(tf.square(x_1 - x_2))
+
 
 def get_loss(measured, predicted, mask, mask_2):
     return tf.reduce_mean(

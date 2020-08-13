@@ -491,7 +491,7 @@ def train_step(neigh, train_params: dict, options: dict):
     """
     # need to split the range
     batch_size2 = neigh.shape[0]
-    n_sample = 64 * 32
+    n_sample = options[Key.N_SAMPLE]
 
     teacher_model = train_params[Key.TEACHER_MODEL]
     student_model = train_params[Key.STUDENT_MODEL]
@@ -764,11 +764,7 @@ def train_step(neigh, train_params: dict, options: dict):
                     tf.stop_gradient(teacher_q_der[Key.D_I]) - student_q_der[Key.D_I]
                 )
             ) +
-            tf.reduce_mean(
-                tf.square(
-                    tf.stop_gradient(teacher_q_der[Key.D_CELL_FEAT]) - student_q_der[Key.D_CELL_FEAT]
-                )
-            ) +
+          
             tf.reduce_mean(
                 tf.square(
                     tf.stop_gradient(teacher_q_der[Key.D2_CYC]) - student_q_der[Key.D2_CYC]
@@ -783,12 +779,7 @@ def train_step(neigh, train_params: dict, options: dict):
                 tf.square(
                     tf.stop_gradient(teacher_q_der[Key.D2_I]) - student_q_der[Key.D2_I]
                 )
-            ) +
-            tf.reduce_mean(
-                tf.square(
-                    tf.stop_gradient(teacher_q_der[Key.D2_CELL_FEAT]) - student_q_der[Key.D2_CELL_FEAT]
-                )
-            )
+            ) 
             
         )
 

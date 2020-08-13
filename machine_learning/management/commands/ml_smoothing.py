@@ -716,7 +716,7 @@ def train_step(neigh, train_params: dict, options: dict):
             shape = [n_sample], dtype = tf.int32,
         )
 
-    max_cycles =  tf.gather(max_cycle_cell_tensor, sample_indices, axis = 0)
+    max_cycles =  tf.gather(tf.reshape(max_cycle_cell_tensor, [-1,1]), sample_indices, axis = 0)
     
     student_feats_cell = student_model.cell_from_indices(
         indices = sample_indices,

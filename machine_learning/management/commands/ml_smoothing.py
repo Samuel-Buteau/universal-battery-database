@@ -352,10 +352,10 @@ def initial_processing(
             options = options,
             cell_dict = id_dict_from_id_list(np.array(cell_ids)),
             sigmas = {
-                Key.T_Q_SIGMA: options[Key.T_Q_SIGMA],
-                Key.T_Q_SIGMA_CYC: options[Key.T_Q_SIGMA_CYC],
-                Key.T_Q_SIGMA_V: options[Key.T_Q_SIGMA_V],
-                Key.T_Q_SIGMA_I: options[Key.T_Q_SIGMA_I],
+                Key.Q_SIG: options[Key.T_Q_SIG],
+                Key.Q_SIG_N: options[Key.T_Q_SIG_N],
+                Key.Q_SIG_V: options[Key.T_Q_SIG_V],
+                Key.Q_SIG_I: options[Key.T_Q_SIG_I],
             },
         )
         student_model = DegradationModel(
@@ -365,10 +365,10 @@ def initial_processing(
             options = options,
             cell_dict = id_dict_from_id_list(np.array(cell_ids)),
             sigmas = {
-                Key.S_Q_SIGMA: options[Key.S_Q_SIGMA],
-                Key.S_Q_SIGMA_CYC: options[Key.S_Q_SIGMA_CYC],
-                Key.S_Q_SIGMA_V: options[Key.S_Q_SIGMA_V],
-                Key.S_Q_SIGMA_I: options[Key.S_Q_SIGMA_I],
+                Key.Q_SIG: options[Key.S_Q_SIG],
+                Key.Q_SIG_N: options[Key.S_Q_SIG_N],
+                Key.Q_SIG_V: options[Key.S_Q_SIG_V],
+                Key.Q_SIG_I: options[Key.S_Q_SIG_I],
             },
         )
 
@@ -414,58 +414,17 @@ def train_and_evaluate(
         options:
     """
     strategy = init_returns[Key.STRAT]
-    n_sample = options[Key.N_SAMPLE]
 
     epochs = 100000
     count = 0
 
     end = time.time()
 
-    student_model = init_returns[Key.STUDENT_MODEL]
-
-    sampled_constant_current = tf.exp(
-        tf.random.uniform(
-            minval = tf.math.log(0.001), maxval = tf.math.log(5.),
-            shape = [n_sample, 1],
-        )
-    )
-    sampled_constant_current_sign = tf.cast(
-        tf.random.uniform(
-            minval = 0, maxval = 1,
-            shape = [n_sample, 1], dtype = tf.int32,
-        ),
-        dtype = tf.float32,
-    )
-    sampled_constant_current_sign = 2.0 * sampled_constant_current_sign - 1.
-
-    sampled_feats_cell = student_model.cell_from_indices(
-        indices = tf.random.uniform(
-            maxval = student_model.cell_direct.num_keys,
-            shape = [n_sample], dtype = tf.int32,
-        ),
-        training = False, sample = True,
-    )
-
     train_step_params = {
         Key.TENSORS: init_returns[Key.TENSORS],
         Key.TEACHER_OPTIMIZER: init_returns[Key.TEACHER_OPTIMIZER],
         Key.STUDENT_OPTIMIZER: init_returns[Key.STUDENT_OPTIMIZER],
         Key.TEACHER_MODEL: init_returns[Key.TEACHER_MODEL],
-        Key.STUDENT_SAMPLES: {
-            Key.SAMPLE_V: tf.random.uniform(
-                minval = 2.5, maxval = 5., shape = [n_sample, 1],
-            ),
-            Key.SAMPLE_CYC: tf.random.uniform(
-                minval = -.1, maxval = 5., shape = [n_sample, 1],
-            ),
-            Key.SAMPLE_I: (
-                sampled_constant_current_sign * sampled_constant_current
-            ),
-            Key.SAMPLE_CELL_FEAT: tf.stop_gradient(
-                sampled_feats_cell
-            ),
-        },
-
         Key.STUDENT_MODEL: init_returns[Key.STUDENT_MODEL],
     }
 
@@ -535,10 +494,10 @@ def train_step(neigh, train_params: dict, options: dict):
     """
     # need to split the range
     batch_size2 = neigh.shape[0]
+    n_sample = options[Key.N_SAMPLE]
 
     teacher_model = train_params[Key.TEACHER_MODEL]
     student_model = train_params[Key.STUDENT_MODEL]
-    student_samples = train_params[Key.STUDENT_SAMPLES]
     teacher_optimizer = train_params[Key.TEACHER_OPTIMIZER]
     student_optimizer = train_params[Key.STUDENT_OPTIMIZER]
     compiled_tensors = train_params[Key.TENSORS]
@@ -732,6 +691,43 @@ def train_step(neigh, train_params: dict, options: dict):
         zip(gradients_norm_clipped, teacher_model.trainable_variables)
     )
 
+    sampled_constant_current = tf.exp(
+        tf.random.uniform(
+            minval = tf.math.log(0.001), maxval = tf.math.log(5.),
+            shape = [n_sample, 1],
+        )
+    )
+    sampled_constant_current_sign = tf.cast(
+        tf.random.uniform(
+            minval = 0, maxval = 1,
+            shape = [n_sample, 1], dtype = tf.int32,
+        ),
+        dtype = tf.float32,
+    )
+    sampled_constant_current_sign = 2.0 * sampled_constant_current_sign - 1.
+
+    sampled_feats_cell = student_model.cell_from_indices(
+        indices = tf.random.uniform(
+            maxval = student_model.cell_direct.num_keys,
+            shape = [n_sample], dtype = tf.int32,
+        ),
+        training = False, sample = True,
+    )
+    student_samples = {
+        Key.SAMPLE_V: tf.random.uniform(
+            minval = 2.5, maxval = 5., shape = [n_sample, 1],
+        ),
+        Key.SAMPLE_CYC: tf.random.uniform(
+            minval = -.1, maxval = 5., shape = [n_sample, 1],
+        ),
+        Key.SAMPLE_I: (
+            sampled_constant_current_sign * sampled_constant_current
+        ),
+        Key.SAMPLE_CELL_FEAT: tf.stop_gradient(
+            sampled_feats_cell
+        ),
+    }
+
     with tf.GradientTape() as student_tape:
         teacher_q = teacher_model(
             {
@@ -800,7 +796,7 @@ class Command(BaseCommand):
             Key.GLB_NORM_CLIP: 10.,
 
             Key.TEACHER_LRN_RATE: 5e-4,
-            Key.STUDENT_LRN_RATE: 5e-3,
+            Key.STUDENT_LRN_RATE: 5e-2,
             Key.MIN_LAT: 1,
 
             Key.Coeff.FEAT_CELL_DER: .001,
@@ -822,7 +818,7 @@ class Command(BaseCommand):
             Key.Coeff.Q_CC: 1.,
 
             Key.Coeff.Q: 0.0001,
-            Key.Coeff.STUDENT_Q: 0.0001,
+            Key.Coeff.STUDENT_Q: 0.01,
             Key.Coeff.Q_GEQ: 1.,
             Key.Coeff.Q_LEQ: 1.,
             Key.Coeff.Q_V_MONO: 0.,
@@ -832,15 +828,15 @@ class Command(BaseCommand):
             Key.Coeff.Q_DER_I: 0.,
             Key.Coeff.Q_DER_N: 0.,
 
-            Key.T_Q_SIGMA: 0.08,
-            Key.T_Q_SIGMA_CYC: 1.5,
-            Key.T_Q_SIGMA_V: 1.2,
-            Key.T_Q_SIGMA_I: .5,
+            Key.T_Q_SIG: 0.08,
+            Key.T_Q_SIG_N: 1.5,
+            Key.T_Q_SIG_V: 1.2,
+            Key.T_Q_SIG_I: .5,
 
-            Key.S_Q_SIGMA: 1,
-            Key.S_Q_SIGMA_CYC: 1.5,
-            Key.S_Q_SIGMA_V: 1.2,
-            Key.S_Q_SIGMA_I: 1.5,
+            Key.S_Q_SIG: 1,
+            Key.S_Q_SIG_N: 1.5,
+            Key.S_Q_SIG_V: 1.2,
+            Key.S_Q_SIG_I: 1.5,
         }
 
         vis = 1000

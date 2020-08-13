@@ -108,11 +108,11 @@ class DegradationModel(Model):
         self.f = 32
 
         self.random_matrix_q = build_random_matrix(
-            sigma = options[Key.T_Q_SIGMA],
+            sigma = sigmas[Key.Q_SIG],
             var_sigmas = [
-                options[Key.T_Q_SIGMA_CYC],
-                options[Key.T_Q_SIGMA_V],
-                options[Key.T_Q_SIGMA_I],
+                sigmas[Key.Q_SIG_N],
+                sigmas[Key.Q_SIG_V],
+                sigmas[Key.Q_SIG_I],
             ],
             d = self.q_param_count, f = self.f,
         )

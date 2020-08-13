@@ -454,8 +454,9 @@ def train_and_evaluate(
                     l = dist_train_step(strategy, neigh)
                 else:
                     l += dist_train_step(strategy, neigh)
-                if count % 4 == 0:
-                    dist_transfer_step(strategy)
+                if count % 32 == 0:
+                    for _ in range(4):
+                        dist_transfer_step(strategy)
 
                 if count != 0:
                     if (count % options[Key.PRINT_LOSS]) == 0:
@@ -714,7 +715,7 @@ def transfer_step(train_params: dict, options: dict):
         options: Options for `ml_smoothing`.
     """
     # need to split the range
-    n_sample = 4 * 32
+    n_sample = 4 * 4 * 32
 
     teacher_model = train_params[Key.TEACHER_MODEL]
     student_model = train_params[Key.STUDENT_MODEL]
@@ -724,7 +725,7 @@ def transfer_step(train_params: dict, options: dict):
     max_cycle_cell_tensor = compiled_tensors["MAX_CYCLE_CELL"]
 
 
-    for virtual_batch_i in range(4):
+    for virtual_batch_i in range(4*4):
 
         sampled_constant_current = tf.exp(
             tf.random.uniform(
@@ -932,7 +933,7 @@ class Command(BaseCommand):
             Key.GLB_NORM_CLIP: 10.,
 
             Key.TEACHER_LRN_RATE: 5e-4,
-            Key.STUDENT_LRN_RATE: 1e-4,
+            Key.STUDENT_LRN_RATE: 5e-4,
             Key.MIN_LAT: 1,
 
             Key.Coeff.FEAT_CELL_DER: .001,

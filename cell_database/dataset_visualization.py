@@ -79,7 +79,7 @@ def get_dataset_labels(dataset):
         wet_name, specified = wet_cell.get_specific_name_details(dataset)
         if not specified:
             wet_name = str(wet_cell.cell_id)
-        wet_names[wet_cell.cell_id] = wet_name
+        wet_names[wet_cell.cell_id] = wet_name + " (CELL ID: {})".format(wet_cell.cell_id)
         names = {}
         colors = {}
         pos = {}

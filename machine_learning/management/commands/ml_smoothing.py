@@ -925,8 +925,8 @@ class Command(BaseCommand):
             Key.Coeff.Q_DER_I: 0.,
             Key.Coeff.Q_DER_N: 0.,
 
-            Key.Q_SIG: 0.4,
-            Key.Q_SIG_N: 1.5,
+            Key.Q_SIG: 0.08,
+            Key.Q_SIG_N: 2.,
             Key.Q_SIG_V: 1.2,
             Key.Q_SIG_I: .5,
         }

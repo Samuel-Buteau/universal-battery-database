@@ -726,7 +726,7 @@ def train_step(neigh, train_params: dict, options: dict):
             minval = 2.5, maxval = 5., shape = [n_sample, 1],
         ),
         Key.SAMPLE_CYC: tf.random.uniform(
-            minval = -.1, maxval = 5., shape = [n_sample, 1],
+            minval = -.0001, maxval = 5., shape = [n_sample, 1],
         ),
         Key.SAMPLE_I: (
             sampled_constant_current_sign * sampled_constant_current

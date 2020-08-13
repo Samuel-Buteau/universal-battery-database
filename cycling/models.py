@@ -285,8 +285,9 @@ def get_cell_id_first_time(cell_id):
     return first_time
 
 
-def get_reference_delta_v(cell_id):
+def get_reference_delta_v_and_typical_capacity(cell_id):
     reference_delta_v = 1.0
+    typical_q = 1.
 
     files_cell_id = CyclingFile.objects.filter(
         database_file__deprecated=False,
@@ -312,7 +313,20 @@ def get_reference_delta_v(cell_id):
     if len(delta_vs) != 0:
         reference_delta_v = stats.trim_mean(delta_vs, 0.25)
 
-    return reference_delta_v
+    qs = []
+    for file in files_cell_id:
+        offset = file.database_file.valid_metadata.start_cycle
+        qs += list([tup for tup in Cycle.objects.filter(
+            cycling_file=file,
+            valid_cycle=True,
+            cycle_number__range=(0. - offset, 10. - offset)).values_list("dchg_total_capacity", flat=True)
+                          if tup is not None])
+
+    qs = numpy.array(qs)
+    if len(qs) != 0:
+        typical_q = stats.trim_mean(qs, 0.25)
+
+    return reference_delta_v, typical_q
 
 class Cycle(models.Model):
     cycling_file = models.ForeignKey(CyclingFile, on_delete = models.CASCADE)

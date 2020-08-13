@@ -133,7 +133,7 @@ def compute_from_database(
     return compute_from_database2(cell_id, rules, field_request, lower_cycle, upper_cycle, valid)
 
 
-def generic_field(tp, f, cyc, offset_cycle=None, cell_first_time=None, reference_delta_v=None, reference_capacity=None):
+def generic_field(tp, f, cyc, offset_cycle=None, cell_first_time=None, reference_delta_v=None, reference_capacity=None, typical_capacity=None):
     if tp == "CUSTOM":
         return f(cyc)
     elif tp == "CYCLE_NUMBER":
@@ -144,6 +144,8 @@ def generic_field(tp, f, cyc, offset_cycle=None, cell_first_time=None, reference
         return cyc.get_delta_v()/reference_delta_v
     elif tp == "NORMALIZED_CAPACITY":
         return f(cyc)/reference_capacity
+    elif tp == "NORMALIZED_TYPICAL_CAPACITY":
+        return f(cyc)/typical_capacity
 
 
 
@@ -192,7 +194,7 @@ def compute_from_database2(
     ).order_by("database_file__last_modified")
 
     cell_first_time = get_cell_id_first_time(cell_id)
-    reference_delta_v = get_reference_delta_v(cell_id)
+    reference_delta_v, typical_q = get_reference_delta_v_and_typical_capacity(cell_id)
     total_capacity = 1.
     if CellGlobals.objects.filter(cell_id=cell_id).exists():
         total_capacity = CellGlobals.objects.get(cell_id=cell_id).theoretical_capacity
@@ -287,7 +289,7 @@ def compute_from_database2(
                     q_curves += list([
                         tuple(
                             [
-                                generic_field(tp, f, cyc, offset_cycle, cell_first_time, reference_delta_v, total_capacity)
+                                generic_field(tp, f, cyc, offset_cycle, cell_first_time, reference_delta_v, total_capacity, typical_q)
                                 for _, _, tp, f in field_request
                             ]
                         )

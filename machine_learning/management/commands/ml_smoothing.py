@@ -730,22 +730,24 @@ def train_step(neigh, train_params: dict, options: dict):
     }
 
     with tf.GradientTape() as student_tape:
-        teacher_q = teacher_model.q_direct(
-            cycle = samples[Key.SAMPLE_CYC],
-            v = samples[Key.SAMPLE_V],
-            current = samples[Key.SAMPLE_I],
-            feats_cell = teacher_feats_cell,
+        teacher_q, teacher_q_der = teacher_model.transfer_q(
+            CYC = samples[Key.SAMPLE_CYC],
+            V = samples[Key.SAMPLE_V],
+            I = samples[Key.SAMPLE_I],
+            CELL_FEAT = teacher_feats_cell,
         )
-        student_q = student_model.q_direct(
-            cycle = samples[Key.SAMPLE_CYC],
-            v = samples[Key.SAMPLE_V],
-            current = samples[Key.SAMPLE_I],
-            feats_cell = student_feats_cell,
+        student_q, student_q_der = student_model.transfer_q(
+            CYC = samples[Key.SAMPLE_CYC],
+            V = samples[Key.SAMPLE_V],
+            I = samples[Key.SAMPLE_I],
+            CELL_FEAT = student_feats_cell,
         )
 
-        student_loss = options[Key.Coeff.STUDENT_Q] * tf.reduce_mean(
-            tf.square(
-                tf.stop_gradient(teacher_q) - student_q
+        student_loss = options[Key.Coeff.STUDENT_Q] * (
+            tf.reduce_mean(
+                tf.square(
+                    tf.stop_gradient(teacher_q) - student_q
+                )
             )
         )
 

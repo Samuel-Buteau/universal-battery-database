@@ -732,7 +732,7 @@ def train_step(neigh, train_params: dict, options: dict):
             sampled_constant_current_sign * sampled_constant_current
         ),
         "PROJ": tf.random.uniform(
-            minval = -1., maxval = 1., shape = [n_sample, BOTTLENECK],
+            minval = -1., maxval = 1., shape = [n_sample, BOTTLENECK+1],
         ),
        
     }

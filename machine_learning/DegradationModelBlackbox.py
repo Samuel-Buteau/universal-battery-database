@@ -118,7 +118,7 @@ class DegradationModel(Model):
                     Key.CELL_FEAT: CELL_FEAT,
                     Key.I: I,
                 },
-                der_params = {Key.V: 2, Key.CELL_FEAT: 2, Key.I: 2, Key.CYC: 2}
+                der_params = {Key.V: 2, Key.CELL_FEAT: 0, Key.I: 2, Key.CYC: 2}
             )
         return q, q_der
     

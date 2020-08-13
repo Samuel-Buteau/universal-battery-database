@@ -109,7 +109,7 @@ class DegradationModel(Model):
 
         self.random_matrix_q = random_matrix_q
         
-    def transfer_q(self, CYC, V, CELL_FEAT, I, PROJ):
+    def transfer_q(self, CYC, V, CELL_FEAT, I, PROJ, get_bottleneck=False):
         q, q_der = create_derivatives(
                 self.q_for_derivative,
                 params = {
@@ -117,7 +117,7 @@ class DegradationModel(Model):
                     Key.V: V,
                     Key.CELL_FEAT: CELL_FEAT,
                     Key.I: I,
-                    "get_bottleneck":True,
+                    "get_bottleneck":get_bottleneck,
                     "PROJ":PROJ,
                 },
                 der_params = {Key.V: 1, Key.CELL_FEAT: 0, Key.I: 1, Key.CYC: 1}
@@ -488,8 +488,8 @@ class DegradationModel(Model):
                 get_bottleneck=params["get_bottleneck"]
             )
 
-            qq = tf.concat([q, bottleneck], axis=-1)
-            return tf.reduce_mean(qq * params["PROJ"], axis=-1, keepdims=True)
+
+            return tf.reduce_mean(bottleneck * params["PROJ"], axis=-1, keepdims=True)
         else:
             return self.q_direct(
                 cycle = params[Key.CYC],

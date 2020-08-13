@@ -732,7 +732,7 @@ def train_step(neigh, train_params: dict, options: dict):
             sampled_constant_current_sign * sampled_constant_current
         ),
         "PROJ": tf.random.uniform(
-            minval = -1., maxval = 1., shape = [n_sample, BOTTLENECK+1],
+            minval = -1., maxval = 1., shape = [n_sample, BOTTLENECK],
         ),
        
     }
@@ -752,6 +752,24 @@ def train_step(neigh, train_params: dict, options: dict):
             CELL_FEAT = student_feats_cell,
             PROJ=samples["PROJ"],
         )
+
+        teacher_b, teacher_b_der = teacher_model.transfer_q(
+            CYC=samples[Key.SAMPLE_CYC],
+            V=samples[Key.SAMPLE_V],
+            I=samples[Key.SAMPLE_I],
+            CELL_FEAT=teacher_feats_cell,
+            PROJ=samples["PROJ"],
+            get_bottleneck=True,
+        )
+        student_b, student_b_der = student_model.transfer_q(
+            CYC=samples[Key.SAMPLE_CYC],
+            V=samples[Key.SAMPLE_V],
+            I=samples[Key.SAMPLE_I],
+            CELL_FEAT=student_feats_cell,
+            PROJ=samples["PROJ"],
+            get_bottleneck=True,
+        )
+
 
         student_loss = options[Key.Coeff.STUDENT_Q] * (
             tf.reduce_mean(
@@ -776,6 +794,28 @@ def train_step(neigh, train_params: dict, options: dict):
             ))
 
             
+        ) + options[Key.Coeff.STUDENT_Q] * 0.1 * (
+                tf.reduce_mean(
+                    tf.square(
+                        tf.stop_gradient(teacher_b) - student_b
+                    )
+                ) +
+                0.1 * (tf.reduce_mean(
+            tf.square(
+                tf.stop_gradient(teacher_b_der[Key.D_CYC]) - student_b_der[Key.D_CYC]
+            )
+        ) +
+                       tf.reduce_mean(
+                           tf.square(
+                               tf.stop_gradient(teacher_b_der[Key.D_V]) - student_b_der[Key.D_V]
+                           )
+                       ) +
+                       tf.reduce_mean(
+                           tf.square(
+                               tf.stop_gradient(teacher_b_der[Key.D_I]) - student_b_der[Key.D_I]
+                           )
+                       ))
+
         )
 
     gradients_student = student_tape.gradient(

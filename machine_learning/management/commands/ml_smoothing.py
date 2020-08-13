@@ -710,7 +710,7 @@ def train_step(neigh, train_params: dict, options: dict):
     
     sample_indices = tf.random.uniform(
             maxval = student_model.cell_direct.num_keys,
-            shape = [n_sample], dtype = tf.int32,
+            shape = [1], dtype = tf.int32,
         )
     
     student_feats_cell = student_model.cell_from_indices(

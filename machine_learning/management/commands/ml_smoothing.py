@@ -17,6 +17,9 @@ from machine_learning.DegradationModelBlackbox import (
 )
 from machine_learning.LossRecordBlackbox import LossRecord
 
+# TODO add as command line argument:
+BOTTLENECK = 64
+
 # TODO(sam): For each cell_id, needs a multigrid of (S, V, I, T) (current
 #  needs to be adjusted)
 # TODO(sam): Each cycle must have an index mapping to the nearest reference
@@ -353,6 +356,7 @@ def initial_processing(
             options = options,
             cell_dict = id_dict_from_id_list(np.array(cell_ids)),
             random_matrix_q = random_matrix_q,
+            bottleneck=BOTTLENECK,
         )
         student_model = DegradationModel(
             width = options[Key.STUDENT_WIDTH],
@@ -361,6 +365,7 @@ def initial_processing(
             options = options,
             cell_dict = id_dict_from_id_list(np.array(cell_ids)),
             random_matrix_q = random_matrix_q,
+            bottleneck=BOTTLENECK,
         )
 
     return {
@@ -726,6 +731,9 @@ def train_step(neigh, train_params: dict, options: dict):
         Key.SAMPLE_I: (
             sampled_constant_current_sign * sampled_constant_current
         ),
+        "PROJ": tf.random.uniform(
+            minval = -1., maxval = 1., shape = [n_sample, BOTTLENECK],
+        ),
        
     }
 
@@ -735,12 +743,14 @@ def train_step(neigh, train_params: dict, options: dict):
             V = samples[Key.SAMPLE_V],
             I = samples[Key.SAMPLE_I],
             CELL_FEAT = teacher_feats_cell,
+            PROJ = samples["PROJ"],
         )
         student_q, student_q_der = student_model.transfer_q(
             CYC = samples[Key.SAMPLE_CYC],
             V = samples[Key.SAMPLE_V],
             I = samples[Key.SAMPLE_I],
             CELL_FEAT = student_feats_cell,
+            PROJ=samples["PROJ"],
         )
 
         student_loss = options[Key.Coeff.STUDENT_Q] * (
@@ -749,7 +759,7 @@ def train_step(neigh, train_params: dict, options: dict):
                     tf.stop_gradient(teacher_q) - student_q
                 )
             ) +
-            tf.reduce_mean(
+            0.1*(tf.reduce_mean(
                 tf.square(
                     tf.stop_gradient(teacher_q_der[Key.D_CYC]) - student_q_der[Key.D_CYC]
                 )
@@ -763,23 +773,8 @@ def train_step(neigh, train_params: dict, options: dict):
                 tf.square(
                     tf.stop_gradient(teacher_q_der[Key.D_I]) - student_q_der[Key.D_I]
                 )
-            ) +
-          
-            tf.reduce_mean(
-                tf.square(
-                    tf.stop_gradient(teacher_q_der[Key.D2_CYC]) - student_q_der[Key.D2_CYC]
-                )
-            )  +
-            tf.reduce_mean(
-                tf.square(
-                    tf.stop_gradient(teacher_q_der[Key.D2_V]) - student_q_der[Key.D2_V]
-                )
-            ) +
-            tf.reduce_mean(
-                tf.square(
-                    tf.stop_gradient(teacher_q_der[Key.D2_I]) - student_q_der[Key.D2_I]
-                )
-            ) 
+            ))
+
             
         )
 

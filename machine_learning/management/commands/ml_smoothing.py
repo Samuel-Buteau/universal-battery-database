@@ -445,8 +445,12 @@ def train_and_evaluate(
     loss_record = LossRecord()
     with strategy.scope():
         for epoch in range(epochs):
+            if count > 6000:
+                break
             sub_count = 0
             for neigh in init_returns[Key.TRAIN_DS]:
+                if count > 6000:
+                    break
                 count += 1
                 sub_count += 1
 
@@ -454,9 +458,6 @@ def train_and_evaluate(
                     l = dist_train_step(strategy, neigh)
                 else:
                     l += dist_train_step(strategy, neigh)
-                if count % 32 == 0:
-                    for _ in range(4):
-                        dist_transfer_step(strategy)
 
                 if count != 0:
                     if (count % options[Key.PRINT_LOSS]) == 0:
@@ -477,14 +478,6 @@ def train_and_evaluate(
                         loss_record.plot(count, options)
                         plot_direct(
                             "generic_vs_cycle", plot_params, init_returns,
-                            teacher = False,
-                        )
-                        plot_direct(
-                            "generic_vs_capacity", plot_params, init_returns,
-                            teacher = False,
-                        )
-                        plot_direct(
-                            "generic_vs_cycle", plot_params, init_returns,
                         )
                         plot_direct(
                             "generic_vs_capacity", plot_params, init_returns,
@@ -494,9 +487,36 @@ def train_and_evaluate(
                         print("time to plot: ", end - start)
                         print()
 
+
+        for count in range(100000):
+            dist_transfer_step(strategy)
+
+            if count != 0:
+
+                if (count % options[Key.VIS_FIT]) == 0:
+                    plot_params = {
+                        "cell_ids": cell_ids,
+                        "count": count,
+                        Key.OPTIONS: options,
+                    }
+                    start = time.time()
+                    print("time to simulate: ", start - end)
+                    loss_record.plot(count, options)
+                    plot_direct(
+                        "generic_vs_cycle", plot_params, init_returns,
+                        teacher=False,
+                    )
+                    plot_direct(
+                        "generic_vs_capacity", plot_params, init_returns,
+                        teacher=False,
+                    )
+
+                    end = time.time()
+                    print("time to plot: ", end - start)
+                    print()
+
                 if count >= options[Key.STOP]:
                     return
-
 
 def train_step(neigh, train_params: dict, options: dict):
     """ One training step.
@@ -715,7 +735,7 @@ def transfer_step(train_params: dict, options: dict):
         options: Options for `ml_smoothing`.
     """
     # need to split the range
-    n_sample = 4 * 4 * 32
+    n_sample = 32 * 32 * 32
 
     teacher_model = train_params[Key.TEACHER_MODEL]
     student_model = train_params[Key.STUDENT_MODEL]
@@ -725,7 +745,7 @@ def transfer_step(train_params: dict, options: dict):
     max_cycle_cell_tensor = compiled_tensors["MAX_CYCLE_CELL"]
 
 
-    for virtual_batch_i in range(4*4):
+    for virtual_batch_i in range(4):
 
         sampled_constant_current = tf.exp(
             tf.random.uniform(

@@ -932,7 +932,7 @@ class Command(BaseCommand):
             Key.GLB_NORM_CLIP: 10.,
 
             Key.TEACHER_LRN_RATE: 5e-4,
-            Key.STUDENT_LRN_RATE: 2e-5,
+            Key.STUDENT_LRN_RATE: 1e-4,
             Key.MIN_LAT: 1,
 
             Key.Coeff.FEAT_CELL_DER: .001,

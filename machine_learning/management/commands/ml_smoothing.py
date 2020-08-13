@@ -791,20 +791,35 @@ def train_step(neigh, train_params: dict, options: dict):
                 tf.square(
                     tf.stop_gradient(teacher_q_der[Key.D_I]) - student_q_der[Key.D_I]
                 )
-            ))
+            )) +
+            0.02 * (tf.reduce_mean(
+                tf.square(
+                    tf.stop_gradient(teacher_q_der[Key.D2_CYC]) - student_q_der[Key.D2_CYC]
+                )
+            )  +
+               tf.reduce_mean(
+                   tf.square(
+                       tf.stop_gradient(teacher_q_der[Key.D2_V]) - student_q_der[Key.D2_V]
+                   )
+               ) +
+               tf.reduce_mean(
+                   tf.square(
+                       tf.stop_gradient(teacher_q_der[Key.D2_I]) - student_q_der[Key.D2_I]
+                   )
+               ))
 
             
-        ) + options[Key.Coeff.STUDENT_Q] * 0.1 * (
+        ) + options[Key.Coeff.STUDENT_Q] * 0.01 * (
                 tf.reduce_mean(
                     tf.square(
                         tf.stop_gradient(teacher_b) - student_b
                     )
                 ) +
                 0.1 * (tf.reduce_mean(
-            tf.square(
-                tf.stop_gradient(teacher_b_der[Key.D_CYC]) - student_b_der[Key.D_CYC]
-            )
-        ) +
+                        tf.square(
+                            tf.stop_gradient(teacher_b_der[Key.D_CYC]) - student_b_der[Key.D_CYC]
+                        )
+                        ) +
                        tf.reduce_mean(
                            tf.square(
                                tf.stop_gradient(teacher_b_der[Key.D_V]) - student_b_der[Key.D_V]
@@ -813,6 +828,22 @@ def train_step(neigh, train_params: dict, options: dict):
                        tf.reduce_mean(
                            tf.square(
                                tf.stop_gradient(teacher_b_der[Key.D_I]) - student_b_der[Key.D_I]
+                           )
+                       ))
+                +
+                0.02 * (tf.reduce_mean(
+            tf.square(
+                tf.stop_gradient(teacher_b_der[Key.D2_CYC]) - student_b_der[Key.D2_CYC]
+            )
+            ) +
+                       tf.reduce_mean(
+                           tf.square(
+                               tf.stop_gradient(teacher_b_der[Key.D2_V]) - student_b_der[Key.D2_V]
+                           )
+                       ) +
+                       tf.reduce_mean(
+                           tf.square(
+                               tf.stop_gradient(teacher_b_der[Key.D2_I]) - student_b_der[Key.D2_I]
                            )
                        ))
 

@@ -726,6 +726,13 @@ def train_step(neigh, train_params: dict, options: dict):
         indices = sample_indices,
         training = False, sample = True,
     )
+
+    #TODO: anything else which is cell-specific
+
+    max_cycles = tf.tile(max_cycles, [n_sample, 1])
+    student_feats_cell = tf.tile(student_feats_cell, [n_sample, 1])
+    teacher_feats_cell = tf.tile(teacher_feats_cell, [n_sample, 1])
+
     samples = {
         Key.SAMPLE_V: tf.random.uniform(
             minval = 2.5, maxval = 5., shape = [n_sample, 1],
@@ -893,7 +900,7 @@ class Command(BaseCommand):
             Key.GLB_NORM_CLIP: 10.,
 
             Key.TEACHER_LRN_RATE: 5e-4,
-            Key.STUDENT_LRN_RATE: 1e-4,
+            Key.STUDENT_LRN_RATE: 2e-5,
             Key.MIN_LAT: 1,
 
             Key.Coeff.FEAT_CELL_DER: .001,

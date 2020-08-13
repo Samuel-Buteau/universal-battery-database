@@ -394,10 +394,10 @@ class DegradationModel(Model):
 
         if get_bottleneck:
             res, bottleneck = nn_call(self.fnn_q, dependencies, training = training, get_bottleneck=get_bottleneck)
-            return tf.nn.elu(res), bottleneck
+            return res, bottleneck
         else:
             res = nn_call(self.fnn_q, dependencies, training = training, get_bottleneck=get_bottleneck)
-            return tf.nn.elu(res)
+            return res
 
     def prev_voltage_direct(
         self, cycle, prev_end_current, constant_current, end_voltage,
@@ -445,7 +445,7 @@ class DegradationModel(Model):
             input_dependencies.append(feats_cell)
             dependencies = tuple(input_dependencies)
 
-        return tf.nn.elu(nn_call(self.fnn_q, dependencies, training = training))
+        return nn_call(self.fnn_v, dependencies, training = training)
 
     def q_for_derivative(self, params: dict, training = True):
         """

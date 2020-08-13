@@ -434,6 +434,12 @@ def train_and_evaluate(
             args = (neigh,),
         )
 
+    @tf.function
+    def dist_transfer_step(strategy):
+        return strategy.experimental_run_v2(
+            lambda : transfer_step( train_step_params, options),
+            args=(),
+        )
     # TODO(harvey): what is `l`?
     l = None
     loss_record = LossRecord()
@@ -448,6 +454,8 @@ def train_and_evaluate(
                     l = dist_train_step(strategy, neigh)
                 else:
                     l += dist_train_step(strategy, neigh)
+                if count % 4 == 0:
+                    dist_transfer_step(strategy)
 
                 if count != 0:
                     if (count % options[Key.PRINT_LOSS]) == 0:
@@ -499,12 +507,8 @@ def train_step(neigh, train_params: dict, options: dict):
     """
     # need to split the range
     batch_size2 = neigh.shape[0]
-    n_sample = 4 * 32
-
     teacher_model = train_params[Key.TEACHER_MODEL]
-    student_model = train_params[Key.STUDENT_MODEL]
     teacher_optimizer = train_params[Key.TEACHER_OPTIMIZER]
-    student_optimizer = train_params[Key.STUDENT_OPTIMIZER]
     compiled_tensors = train_params[Key.TENSORS]
 
     sign_grid_tensor = compiled_tensors[Key.SIGN_GRID]
@@ -513,7 +517,6 @@ def train_step(neigh, train_params: dict, options: dict):
     tmp_grid_tensor = compiled_tensors[Key.TEMP_GRID]
 
     count_matrix_tensor = compiled_tensors[Key.COUNT_MATRIX]
-    max_cycle_cell_tensor = compiled_tensors["MAX_CYCLE_CELL"]
     cycle_tensor = compiled_tensors[Key.CYC]
     constant_current_tensor = compiled_tensors[Key.I_CC]
     end_current_prev_tensor = compiled_tensors[Key.I_PREV_END]
@@ -695,6 +698,31 @@ def train_step(neigh, train_params: dict, options: dict):
     teacher_optimizer.apply_gradients(
         zip(gradients_norm_clipped, teacher_model.trainable_variables)
     )
+
+
+    return tf.stack(
+        [cc_capacity_loss, cv_capacity_loss, teacher_train_results[Key.Loss.Q]],
+    )
+
+
+def transfer_step(train_params: dict, options: dict):
+    """ One training step.
+
+    Args:
+        neigh: Neighbourhood.
+        train_params: Contains all necessary parameters.
+        options: Options for `ml_smoothing`.
+    """
+    # need to split the range
+    n_sample = 4 * 32
+
+    teacher_model = train_params[Key.TEACHER_MODEL]
+    student_model = train_params[Key.STUDENT_MODEL]
+
+    student_optimizer = train_params[Key.STUDENT_OPTIMIZER]
+    compiled_tensors = train_params[Key.TENSORS]
+    max_cycle_cell_tensor = compiled_tensors["MAX_CYCLE_CELL"]
+
 
     for virtual_batch_i in range(4):
 
@@ -886,9 +914,6 @@ def train_step(neigh, train_params: dict, options: dict):
         zip(acc_gradients, student_model.trainable_variables)
     )
 
-    return tf.stack(
-        [cc_capacity_loss, cv_capacity_loss, teacher_train_results[Key.Loss.Q]],
-    )
 
 
 def get_loss(measured, predicted, mask, mask_2):

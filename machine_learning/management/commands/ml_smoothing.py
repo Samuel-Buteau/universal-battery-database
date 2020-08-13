@@ -491,7 +491,7 @@ def train_step(neigh, train_params: dict, options: dict):
     """
     # need to split the range
     batch_size2 = neigh.shape[0]
-    n_sample = options[Key.N_SAMPLE]
+    n_sample = 64 * 32
 
     teacher_model = train_params[Key.TEACHER_MODEL]
     student_model = train_params[Key.STUDENT_MODEL]

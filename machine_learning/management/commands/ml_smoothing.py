@@ -446,7 +446,6 @@ def train_and_evaluate(
     with strategy.scope():
         for epoch in range(options[Key.TEACHER_EPOCHS]):
             sub_count = 0
-            # 261 neighbourhoods
             for neigh in init_returns[Key.TRAIN_DS]:
                 count += 1
                 sub_count += 1
@@ -488,14 +487,14 @@ def train_and_evaluate(
 
             if count != 0:
 
-                if (count % options[Key.VIS_FIT]) == 0:
+                if (count % options[Key.VIS_TEACHER]) == 0:
                     plot_params = {
                         "cell_ids": cell_ids,
                         "count": count,
                         Key.OPTIONS: options,
                     }
                     start = time.time()
-                    print("time to simulate: ", start - end)
+                    print("Time to simulate:", start - end)
                     loss_record.plot(count, options)
                     plot_direct(
                         "generic_vs_cycle", plot_params, init_returns,
@@ -507,8 +506,8 @@ def train_and_evaluate(
                     )
 
                     end = time.time()
-                    print("time to plot: ", end - start)
-                    print()
+                    print("Time to plot: {}\n".format(end - start))
+
 
                 if count >= options[Key.STOP]:
                     return
@@ -730,14 +729,14 @@ def transfer_step(train_params: dict, options: dict):
         options: Options for `ml_smoothing`.
     """
     # need to split the range
-    n_sample = 32 * 32 * 32
+    n_sample = options[Key.STUDENT_SAMPLE_COUNT]
 
     teacher_model = train_params[Key.TEACHER_MODEL]
     student_model = train_params[Key.STUDENT_MODEL]
 
     student_optimizer = train_params[Key.STUDENT_OPTIMIZER]
     compiled_tensors = train_params[Key.TENSORS]
-    max_cycle_cell_tensor = compiled_tensors["MAX_CYCLE_CELL"]
+    max_cyc_cell_tensor = compiled_tensors["MAX_CYCLE_CELL"]
 
     for virtual_batch_i in range(4):
 
@@ -749,8 +748,7 @@ def transfer_step(train_params: dict, options: dict):
         )
         sampled_constant_current_sign = tf.cast(
             tf.random.uniform(
-                minval = 0, maxval = 1,
-                shape = [n_sample, 1], dtype = tf.int32,
+                minval = 0, maxval = 1, shape = [n_sample, 1], dtype = tf.int32,
             ),
             dtype = tf.float32,
         )
@@ -761,16 +759,15 @@ def transfer_step(train_params: dict, options: dict):
             shape = [1], dtype = tf.int32,
         )
 
-        max_cycles = tf.gather(tf.reshape(max_cycle_cell_tensor, [-1, 1]),
-                               sample_indices, axis = 0)
+        max_cycles = tf.gather(
+            tf.reshape(max_cyc_cell_tensor, [-1, 1]), sample_indices, axis = 0,
+        )
 
         student_feats_cell = student_model.cell_from_indices(
-            indices = sample_indices,
-            training = False, sample = True,
+            indices = sample_indices, training = False, sample = True,
         )
         teacher_feats_cell = teacher_model.cell_from_indices(
-            indices = sample_indices,
-            training = False, sample = True,
+            indices = sample_indices, training = False, sample = True,
         )
 
         # TODO: anything else which is cell-specific
@@ -983,17 +980,17 @@ class Command(BaseCommand):
 
             Key.TEACHER_DEPTH: 3,
             Key.TEACHER_WIDTH: 64,
-            Key.TEACHER_EPOCHS: 30,
+            Key.TEACHER_EPOCHS: 2000,
             Key.STUDENT_DEPTH: 3,
             Key.STUDENT_WIDTH: 64,
-            Key.STUDENT_EPOCHS: 30,
+            Key.STUDENT_EPOCHS: 6000,
             Key.BATCH: 4 * 16,
 
             Key.PRINT_LOSS: vis,
-            Key.VIS_FIT: vis,
-            Key.VIS_VQ: vis,
+            Key.VIS_TEACHER: vis,
+            Key.VIS_STUDENT: vis / 20,
+            Key.STUDENT_SAMPLE_COUNT: 32 * 64,
 
-            Key.STOP: 16000,
             Key.CELL_ID_SHOW: 10,
         }
 

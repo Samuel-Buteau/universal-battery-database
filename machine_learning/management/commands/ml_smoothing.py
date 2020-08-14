@@ -444,7 +444,8 @@ def train_and_evaluate(
     l = None
     loss_record = LossRecord()
     with strategy.scope():
-        for epoch in range(options[Key.TEACHER_EPOCHS]):
+        count = 0
+        while count <= options[Key.TEACHER_EPOCHS]:
             sub_count = 0
             for neigh in init_returns[Key.TRAIN_DS]:
                 count += 1
@@ -455,37 +456,12 @@ def train_and_evaluate(
                 else:
                     l += dist_train_step(strategy, neigh)
 
-                if count != 0:
-                    if (count % options[Key.PRINT_LOSS]) == 0:
-                        tot = l / tf.cast(sub_count, dtype = tf.float32)
-                        l = None
-                        sub_count = 0
-                        loss_record.record(count, tot.numpy())
-                        loss_record.print_recent(options)
-
-                    if (count % options[Key.VIS_FIT]) == 0:
-                        plot_params = {
-                            "cell_ids": cell_ids,
-                            "count": count,
-                            Key.OPTIONS: options,
-                        }
-                        start = time.time()
-                        print("time to simulate:", start - end)
-                        loss_record.plot(count, options)
-                        plot_direct(
-                            "generic_vs_cycle", plot_params, init_returns,
-                        )
-                        plot_direct(
-                            "generic_vs_capacity", plot_params, init_returns,
-                        )
-
-                        end = time.time()
-                        print("time to plot: {}\n".format(end - start))
-
-        for count in range(options[Key.TEACHER_EPOCHS]):
-            dist_transfer_step(strategy)
-
-            if count != 0:
+                if (count % options[Key.PRINT_LOSS]) == 0:
+                    tot = l / tf.cast(sub_count, dtype = tf.float32)
+                    l = None
+                    sub_count = 0
+                    loss_record.record(count, tot.numpy())
+                    loss_record.print_recent(options)
 
                 if (count % options[Key.VIS_TEACHER]) == 0:
                     plot_params = {
@@ -498,19 +474,42 @@ def train_and_evaluate(
                     loss_record.plot(count, options)
                     plot_direct(
                         "generic_vs_cycle", plot_params, init_returns,
-                        teacher = False,
                     )
                     plot_direct(
                         "generic_vs_capacity", plot_params, init_returns,
-                        teacher = False,
                     )
 
                     end = time.time()
                     print("Time to plot: {}\n".format(end - start))
 
+        print("Teacher training done.")
 
-                if count >= options[Key.STOP]:
-                    return
+        for count in range(1, options[Key.STUDENT_EPOCHS]):
+            dist_transfer_step(strategy)
+
+            if (count % options[Key.VIS_STUDENT]) == 0:
+
+                plot_params = {
+                    "cell_ids": cell_ids,
+                    "count": count,
+                    Key.OPTIONS: options,
+                }
+
+                start = time.time()
+                print("Time to simulate:", start - end)
+                loss_record.plot(count, options)
+
+                plot_direct(
+                    "generic_vs_cycle", plot_params, init_returns,
+                    teacher = False,
+                )
+                plot_direct(
+                    "generic_vs_capacity", plot_params, init_returns,
+                    teacher = False,
+                )
+
+                end = time.time()
+                print("Time to plot: {}\n".format(end - start))
 
 
 def train_step(neigh, train_params: dict, options: dict):
@@ -988,7 +987,7 @@ class Command(BaseCommand):
 
             Key.PRINT_LOSS: vis,
             Key.VIS_TEACHER: vis,
-            Key.VIS_STUDENT: vis / 20,
+            Key.VIS_STUDENT: vis / 10,
             Key.STUDENT_SAMPLE_COUNT: 32 * 64,
 
             Key.CELL_ID_SHOW: 10,

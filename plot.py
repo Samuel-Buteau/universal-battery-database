@@ -835,12 +835,15 @@ def plot_cycling_direct(
         )
 
 
-def plot_direct(target: str, plot_params: dict, init_returns: dict) -> None:
+def plot_direct(
+    target: str, plot_params: dict, init_returns: dict, teacher = True,
+) -> None:
     """
     Args:
         target: Plot type - "generic_vs_capacity" or "generic_vs_cycle".
         plot_params: Parameters for plotting.
         init_returns: Return value of `ml_smoothing.initial_processing`.
+        teacher: If True, then the teacher model is used
     """
     if target == "generic_vs_capacity":
         compiled_max_cyc_n = 8
@@ -853,12 +856,18 @@ def plot_direct(target: str, plot_params: dict, init_returns: dict) -> None:
     else:
         raise Exception(target_error(target, "", "compute_target"))
 
+    if teacher:
+        degradation_model = init_returns[Key.TEACHER_MODEL]
+        header = "T_" + header
+    else:
+        degradation_model = init_returns[Key.STUDENT_MODEL]
+        header = "S_" + header
+
     cell_ids\
         = plot_params["cell_ids"][:plot_params[Key.OPTIONS][Key.CELL_ID_SHOW]]
     count = plot_params["count"]
     options = plot_params[Key.OPTIONS]
 
-    degradation_model = init_returns[Key.MODEL]
     dataset = init_returns[Key.DATASET]
     cycle_m = init_returns[Key.CYC_M]
     cycle_v = init_returns[Key.CYC_V]
@@ -899,7 +908,7 @@ def plot_v_vs_q(plot_params: dict, init_returns: dict) -> None:
     count = plot_params["count"]
     options = plot_params[Key.OPTIONS]
 
-    degradation_model = init_returns[Key.MODEL]
+    degradation_model = init_returns[Key.TEACHER_MODEL]
     dataset = init_returns[Key.DATASET]
     cycle_m = init_returns[Key.CYC_M]
     cycle_v = init_returns[Key.CYC_V]

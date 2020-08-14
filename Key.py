@@ -31,6 +31,7 @@ class Key:
     V_END_AVG = "avg_end_voltage"
     V_TENSOR = "voltage_tensor"
 
+    Q = "q_direct"
     Q_CC = "cc_capacities"
     Q_CC_VEC = "cc_capacity_vector"
     Q_CV = "cv_capacities"
@@ -77,18 +78,14 @@ class Key:
     DATA_VERSION = "dataset_version"
 
     FOUR_FEAT = "four_feat"
-    FF_Q_SIGMA = "four_feat_q_sigma"
-    FF_Q_SIGMA_CYC = "four_feat_q_sigma_cyc"
-    FF_Q_SIGMA_V = "four_feat_q_sigma_voltage"
-    FF_Q_SIGMA_I = "four_feat_q_sigma_current"
-    FF_V_SIGMA = "four_feat_v_sigma"
-    FF_V_SIGMA_CYC = "four_feat_v_sigma_cyc"
-    FF_V_SIGMA_I_PRE = "four_feat_v_sigma_previous_current"
-    FF_V_SIGMA_I_CC = "four_feat_v_sigma_constant_current"
-    FF_V_SIGMA_V_END = "four_feat_v_sigma_voltage"
+    Q_SIG = "t_q_sig"
+    Q_SIG_N = "t_q_sig_cyc"
+    Q_SIG_V = "t_q_sig_voltage"
+    Q_SIG_I = "t_q_sig_current"
 
     GLB_NORM_CLIP = "global_norm_clip"
-    LRN_RATE = "learning_rate"
+    TEACHER_LRN_RATE = "learning_rate"
+    STUDENT_LRN_RATE = "s_lrn_rate"
     MIN_LAT = "min_latent"
 
     MIN_V_GRID = "voltage_grid_min_v"
@@ -99,8 +96,18 @@ class Key:
     T_MAX_V_GRID = "temperature_grid_max_v"
 
     N_SAMPLE = "n_sample"
-    WIDTH = "width"
-    DEPTH = "depth"
+    TEACHER_MODEL = "teacher_model"
+    TEACHER_WIDTH = "teacher_width"
+    TEACHER_DEPTH = "teacher_depth"
+    STUDENT_MODEL = "student_model"
+    STUDENT_WIDTH = "student_width"
+    STUDENT_DEPTH = "student_depth"
+    STUDENT_SAMPLES = "student_samples"
+    SAMPLE_I = "sample_c"
+    SAMPLE_V = "sample_v"
+    SAMPLE_CYC = "sample_cycle"
+    SAMPLE_CELL_FEAT = "sample_cell_feat"
+
     BATCH = "batch_size"
 
     PRINT_LOSS = "print_loss_every"
@@ -120,10 +127,13 @@ class Key:
     # Begin: Keys in derivatives ===============================================
 
     D_V = "d_v"
+    D2_V = "d2_v"
     D3_V = "d3_v"
     D_I = "d_current"
+    D2_I = "d2_current"
     D3_I = "d3_current"
     D_CYC = "d_cycle"
+    D2_CYC = "d2_cycle"
     D3_CYC = "d3_cycle"
     D_CELL_FEAT = "d_features_cell"
     D2_CELL_FEAT = "d2_features_cell"
@@ -226,11 +236,11 @@ class Key:
 
     STRAT = "strategy"
     TENSORS = "compiled_tensors"
-    MODEL = "degradation_model"
     TRAIN_DS = "train_ds"
     CYC_M = "cycle_m"
     CYC_V = "cycle_v"
-    OPT = "optimizer"
+    TEACHER_OPTIMIZER = "optimizer"
+    STUDENT_OPTIMIZER = "s_optimizer"
 
     # TODO (harvey): replace the following class of keys
     class Coeff:
@@ -256,6 +266,7 @@ class Key:
         Q_CV = "coeff_cv_capacity"
         Q_CC = "coeff_cc_capacity"
         Q = "coeff_q"
+        Q_STUDENT = "coeff_student_q"
         Q_GEQ = "coeff_q_geq"
         Q_LEQ = "coeff_q_leq"
         Q_V_MONO = "coeff_q_v_mono"
@@ -264,6 +275,7 @@ class Key:
         Q_DER3_N = "coeff_q_d3_cycle"
         Q_DER_I = "coeff_q_d_current"
         Q_DER_N = "coeff_q_d_cycle"
+        Q_CENTERED = "coeff_q_centered"
 
     # TODO (harvey): replace the following class of keys
     class Loss:

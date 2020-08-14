@@ -77,7 +77,9 @@ class DegradationModel(Model):
     """
 
     def __init__(
-        self, depth, width, n_sample, options, cell_dict, n_channels = 16,
+        self, depth: int, width: int, bottleneck:int, n_sample: int, options: dict,
+        cell_dict: dict, random_matrix_q,
+        n_channels = 16,
     ):
         """
         Args:
@@ -89,7 +91,7 @@ class DegradationModel(Model):
         self.options = options  # incentive coefficients
         self.feature_count = width  # number of features
 
-        self.fnn_q = feedforward_nn_parameters(depth, width, finalize = True)
+        self.fnn_q = feedforward_nn_parameters(depth, width, finalize = True, bottleneck=bottleneck)
         self.fnn_v = feedforward_nn_parameters(depth, width, finalize = True)
 
         self.cell_direct = PrimitiveDictionaryLayer(
@@ -105,27 +107,23 @@ class DegradationModel(Model):
         self.v_param_count = 4
         self.f = 32
 
-        self.random_matrix_q = build_random_matrix(
-            sigma = options[Key.FF_Q_SIGMA],
-            var_sigmas = [
-                options[Key.FF_Q_SIGMA_CYC],
-                options[Key.FF_Q_SIGMA_V],
-                options[Key.FF_Q_SIGMA_I],
-            ],
-            d = self.q_param_count, f = self.f,
-        )
-
-        self.random_matrix_v = build_random_matrix(
-            sigma = options[Key.FF_V_SIGMA],
-            var_sigmas = [
-                options[Key.FF_V_SIGMA_CYC],
-                options[Key.FF_V_SIGMA_I_PRE],
-                options[Key.FF_V_SIGMA_I_CC],
-                options[Key.FF_V_SIGMA_V_END],
-            ],
-            d = self.v_param_count, f = self.f,
-        )
-
+        self.random_matrix_q = random_matrix_q
+        
+    def transfer_q(self, CYC, V, CELL_FEAT, I, PROJ, get_bottleneck=False):
+        q, q_der = create_derivatives(
+                self.q_for_derivative,
+                params = {
+                    Key.CYC: CYC,
+                    Key.V: V,
+                    Key.CELL_FEAT: CELL_FEAT,
+                    Key.I: I,
+                    "get_bottleneck":get_bottleneck,
+                    "PROJ":PROJ,
+                },
+                der_params = {Key.V: 2, Key.CELL_FEAT: 0, Key.I: 2, Key.CYC: 2}
+            )
+        return q, q_der
+    
     def call(self, call_params: dict, training = False) -> dict:
         """ Call function for the Model during training or evaluation.
 
@@ -210,11 +208,12 @@ class DegradationModel(Model):
                     Key.CELL_FEAT: samples["cell_feats"],
                     Key.I: samples["constant_current"],
                 },
-                der_params = {Key.V: 3, Key.CELL_FEAT: 2, Key.I: 3, Key.CYC: 3}
+                der_params = {Key.V: 3, Key.CELL_FEAT: 0, Key.I: 3, Key.CYC: 3}
             )
 
             q_loss = calculate_q_loss(q, q_der, options = self.options)
 
+            returns[Key.Q] = q
             returns[Key.Loss.Q] = q_loss
 
         return returns
@@ -301,15 +300,9 @@ class DegradationModel(Model):
 
         q_0 = self.q_direct(
             cycle = params[Key.CYC],
-            v = self.prev_voltage_direct(
-                cycle = params[Key.CYC],
-                prev_end_current = params[Key.I_PREV_END],
-                constant_current = params[Key.I_CC],
-                end_voltage = params[Key.V_END],
-                feats_cell = params[Key.CELL_FEAT],
-            ),
+            v = params[Key.V_PREV_END],
             feats_cell = params[Key.CELL_FEAT],
-            current = params[Key.I_CC],
+            current = params[Key.I_PREV_END],
             training = training,
         )
 
@@ -361,7 +354,7 @@ class DegradationModel(Model):
         return q_1 - add_current_dep(q_0, params)
 
     def q_direct(
-        self, cycle, v, feats_cell, current, training = True,
+        self, cycle, v, feats_cell, current, training = True, get_bottleneck = False
     ):
         """
         Compute state of charge directly (receiving arguments directly without
@@ -399,7 +392,12 @@ class DegradationModel(Model):
         else:
             dependencies = (cycle, v, current, feats_cell)
 
-        return tf.nn.elu(nn_call(self.fnn_q, dependencies, training = training))
+        if get_bottleneck:
+            res, bottleneck = nn_call(self.fnn_q, dependencies, training = training, get_bottleneck=get_bottleneck)
+            return res, bottleneck
+        else:
+            res = nn_call(self.fnn_q, dependencies, training = training, get_bottleneck=get_bottleneck)
+            return res
 
     def prev_voltage_direct(
         self, cycle, prev_end_current, constant_current, end_voltage,
@@ -447,7 +445,7 @@ class DegradationModel(Model):
             input_dependencies.append(feats_cell)
             dependencies = tuple(input_dependencies)
 
-        return tf.nn.elu(nn_call(self.fnn_q, dependencies, training = training))
+        return nn_call(self.fnn_v, dependencies, training = training)
 
     def q_for_derivative(self, params: dict, training = True):
         """
@@ -480,14 +478,26 @@ class DegradationModel(Model):
         Returns:
             Computed state of charge; same as that for `q_direct`.
         """
+        if 'get_bottleneck' in params.keys() and params["get_bottleneck"]:
+            q, bottleneck = self.q_direct(
+                cycle=params[Key.CYC],
+                feats_cell=params[Key.CELL_FEAT],
+                v=params[Key.V],
+                current=params[Key.I],
+                training=training,
+                get_bottleneck=params["get_bottleneck"]
+            )
 
-        return self.q_direct(
-            cycle = params[Key.CYC],
-            feats_cell = params[Key.CELL_FEAT],
-            v = params[Key.V],
-            current = params[Key.I],
-            training = training,
-        )
+
+            return tf.reduce_mean(bottleneck * params["PROJ"], axis=-1, keepdims=True)
+        else:
+            return self.q_direct(
+                cycle = params[Key.CYC],
+                feats_cell = params[Key.CELL_FEAT],
+                v = params[Key.V],
+                current = params[Key.I],
+                training = training,
+            )
 
     @tf.function
     def test_all_voltages(

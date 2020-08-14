@@ -8,15 +8,16 @@ main_activation = tf.keras.activations.elu
 
 
 def feedforward_nn_parameters(
-    depth: int, width: int, last = None, finalize = False, bottleneck=None
+    depth: int, width: int, last = None, finalize = False, bottleneck = None,
 ):
     """ Create a new feedforward neural network
 
     Args:
         depth: The depth the feedforward neural network
         width: The width of the feedforward neural network
-        last: TODO(harvey)
-        finalize: TODO(harvey)
+        last:
+        finalize:
+        bottleneck:
 
     Returns:
         { "initial", "bulk", and "final" }, each key corresponds to a component
@@ -31,8 +32,8 @@ def feedforward_nn_parameters(
         projector = Dense(
             bottleneck,
             activation = None,
-            use_bias=True,
-            bias_initializer="zeros",
+            use_bias = True,
+            bias_initializer = "zeros",
         )
 
     initial = Dense(
@@ -77,7 +78,10 @@ def feedforward_nn_parameters(
         ret['projector'] = projector
     return ret
 
-def nn_call(nn_func: dict, dependencies: tuple, training = True, get_bottleneck=False):
+
+def nn_call(
+    nn_func: dict, dependencies: tuple, training = True, get_bottleneck = False,
+):
     """ Call a feedforward neural network
 
     Examples:
@@ -88,6 +92,7 @@ def nn_call(nn_func: dict, dependencies: tuple, training = True, get_bottleneck=
         dependencies: The dependencies of the neural network.
         training: Flag for training or evaluation.
             True for training; False for evaluation.
+        get_bottleneck:
 
     Returns:
         The output of the neural network.
@@ -109,7 +114,9 @@ def nn_call(nn_func: dict, dependencies: tuple, training = True, get_bottleneck=
     for d in dd:
         centers_prime = d(centers_prime, training = training)
     if 'projector' in nn_func.keys():
-        centers = nn_func['projector'](centers, training= training) + centers_prime  # This is a skip connection
+        centers = nn_func['projector'](
+            centers, training = training,
+        ) + centers_prime  # This is a skip connection
     else:
         centers = centers + centers_prime
 
@@ -175,8 +182,6 @@ def create_derivatives(
     Given a feedforward neural network `nn`,
         compute its value and its first derivative.
 
-    TODO(harvey): Is "forall" explained somewhere? Maybe an entry
-        in a wiki would be helpful.
     Derivatives will only be taken inside forall statements.
     If auxiliary variables must be given, create a lambda.
 
@@ -201,7 +206,7 @@ def create_derivatives(
         params: Contains parameters for computing the given quantity.
         der_params: Contains parameters for computing the first derivative of
             the given quantity.
-        internal_loss: TODO(harvey)
+        internal_loss:
 
     Returns:
         The evaluated quantity and it first derivative. If the `internal_loss`

@@ -241,6 +241,8 @@ class Key:
     CYC_V = "cycle_v"
     TEACHER_OPTIMIZER = "optimizer"
     STUDENT_OPTIMIZER = "s_optimizer"
+    TEACHER_EPOCHS = "teacher_epochs"
+    STUDENT_EPOCHS = "student_epochs"
 
     # TODO (harvey): replace the following class of keys
     class Coeff:

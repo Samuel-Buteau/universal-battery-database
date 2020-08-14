@@ -415,9 +415,7 @@ def train_and_evaluate(
     """
     strategy = init_returns[Key.STRAT]
 
-    epochs = 100000
     count = 0
-
     end = time.time()
 
     train_step_params = {
@@ -446,13 +444,10 @@ def train_and_evaluate(
     l = None
     loss_record = LossRecord()
     with strategy.scope():
-        for epoch in range(epochs):
-            if count > 6000:
-                break
+        for epoch in range(options[Key.TEACHER_EPOCHS]):
             sub_count = 0
+            # 261 neighbourhoods
             for neigh in init_returns[Key.TRAIN_DS]:
-                if count > 6000:
-                    break
                 count += 1
                 sub_count += 1
 
@@ -476,7 +471,7 @@ def train_and_evaluate(
                             Key.OPTIONS: options,
                         }
                         start = time.time()
-                        print("time to simulate: ", start - end)
+                        print("time to simulate:", start - end)
                         loss_record.plot(count, options)
                         plot_direct(
                             "generic_vs_cycle", plot_params, init_returns,
@@ -486,10 +481,9 @@ def train_and_evaluate(
                         )
 
                         end = time.time()
-                        print("time to plot: ", end - start)
-                        print()
+                        print("time to plot: {}\n".format(end - start))
 
-        for count in range(100000):
+        for count in range(options[Key.TEACHER_EPOCHS]):
             dist_transfer_step(strategy)
 
             if count != 0:
@@ -866,9 +860,8 @@ def transfer_step(train_params: dict, options: dict):
                 )
             )
             student_loss += 0.01 * (
-                mse(
-                    tf.stop_gradient(teacher_b) - student_b
-                ) + 0.1 * (
+                mse(tf.stop_gradient(teacher_b), student_b)
+                + 0.1 * (
                     mse(
                         tf.stop_gradient(teacher_b_der[Key.D_CYC]),
                         student_b_der[Key.D_CYC],
@@ -881,8 +874,7 @@ def transfer_step(train_params: dict, options: dict):
                         tf.stop_gradient(teacher_b_der[Key.D_I]),
                         student_b_der[Key.D_I],
                     )
-                )
-                + 0.02 * (
+                ) + 0.02 * (
                     mse(
                         tf.stop_gradient(teacher_b_der[Key.D2_CYC]),
                         student_b_der[Key.D2_CYC],
@@ -896,7 +888,6 @@ def transfer_step(train_params: dict, options: dict):
                         student_b_der[Key.D2_I],
                     )
                 )
-
             )
             student_loss *= options[Key.Coeff.Q_STUDENT]
 
@@ -992,8 +983,10 @@ class Command(BaseCommand):
 
             Key.TEACHER_DEPTH: 3,
             Key.TEACHER_WIDTH: 64,
+            Key.TEACHER_EPOCHS: 30,
             Key.STUDENT_DEPTH: 3,
             Key.STUDENT_WIDTH: 64,
+            Key.STUDENT_EPOCHS: 30,
             Key.BATCH: 4 * 16,
 
             Key.PRINT_LOSS: vis,

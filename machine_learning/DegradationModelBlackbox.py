@@ -77,9 +77,8 @@ class DegradationModel(Model):
     """
 
     def __init__(
-        self, depth: int, width: int, bottleneck:int, n_sample: int, options: dict,
-        cell_dict: dict, random_matrix_q,
-        n_channels = 16,
+        self, depth: int, width: int, bottleneck: int, n_sample: int,
+        options: dict, cell_dict: dict, random_matrix_q, n_channels = 16,
     ):
         """
         Args:
@@ -91,7 +90,9 @@ class DegradationModel(Model):
         self.options = options  # incentive coefficients
         self.feature_count = width  # number of features
 
-        self.fnn_q = feedforward_nn_parameters(depth, width, finalize = True, bottleneck=bottleneck)
+        self.fnn_q = feedforward_nn_parameters(
+            depth, width, finalize = True, bottleneck = bottleneck,
+        )
         self.fnn_v = feedforward_nn_parameters(depth, width, finalize = True)
 
         self.cell_direct = PrimitiveDictionaryLayer(
@@ -108,22 +109,22 @@ class DegradationModel(Model):
         self.f = 32
 
         self.random_matrix_q = random_matrix_q
-        
-    def transfer_q(self, CYC, V, CELL_FEAT, I, PROJ, get_bottleneck=False):
+
+    def transfer_q(self, CYC, V, CELL_FEAT, I, PROJ, get_bottleneck = False):
         q, q_der = create_derivatives(
-                self.q_for_derivative,
-                params = {
-                    Key.CYC: CYC,
-                    Key.V: V,
-                    Key.CELL_FEAT: CELL_FEAT,
-                    Key.I: I,
-                    "get_bottleneck":get_bottleneck,
-                    "PROJ":PROJ,
-                },
-                der_params = {Key.V: 2, Key.CELL_FEAT: 0, Key.I: 2, Key.CYC: 2}
-            )
+            self.q_for_derivative,
+            params = {
+                Key.CYC: CYC,
+                Key.V: V,
+                Key.CELL_FEAT: CELL_FEAT,
+                Key.I: I,
+                "get_bottleneck": get_bottleneck,
+                "PROJ": PROJ,
+            },
+            der_params = {Key.V: 2, Key.CELL_FEAT: 0, Key.I: 2, Key.CYC: 2}
+        )
         return q, q_der
-    
+
     def call(self, call_params: dict, training = False) -> dict:
         """ Call function for the Model during training or evaluation.
 
@@ -354,7 +355,8 @@ class DegradationModel(Model):
         return q_1 - add_current_dep(q_0, params)
 
     def q_direct(
-        self, cycle, v, feats_cell, current, training = True, get_bottleneck = False
+        self, cycle, v, feats_cell, current,
+        training = True, get_bottleneck = False,
     ):
         """
         Compute state of charge directly (receiving arguments directly without
@@ -393,10 +395,16 @@ class DegradationModel(Model):
             dependencies = (cycle, v, current, feats_cell)
 
         if get_bottleneck:
-            res, bottleneck = nn_call(self.fnn_q, dependencies, training = training, get_bottleneck=get_bottleneck)
+            res, bottleneck = nn_call(
+                self.fnn_q, dependencies,
+                training = training, get_bottleneck = get_bottleneck,
+            )
             return res, bottleneck
         else:
-            res = nn_call(self.fnn_q, dependencies, training = training, get_bottleneck=get_bottleneck)
+            res = nn_call(
+                self.fnn_q, dependencies,
+                training = training, get_bottleneck = get_bottleneck,
+            )
             return res
 
     def prev_voltage_direct(
@@ -480,16 +488,17 @@ class DegradationModel(Model):
         """
         if 'get_bottleneck' in params.keys() and params["get_bottleneck"]:
             q, bottleneck = self.q_direct(
-                cycle=params[Key.CYC],
-                feats_cell=params[Key.CELL_FEAT],
-                v=params[Key.V],
-                current=params[Key.I],
-                training=training,
-                get_bottleneck=params["get_bottleneck"]
+                cycle = params[Key.CYC],
+                feats_cell = params[Key.CELL_FEAT],
+                v = params[Key.V],
+                current = params[Key.I],
+                training = training,
+                get_bottleneck = params["get_bottleneck"]
             )
 
-
-            return tf.reduce_mean(bottleneck * params["PROJ"], axis=-1, keepdims=True)
+            return tf.reduce_mean(
+                bottleneck * params["PROJ"], axis = -1, keepdims = True,
+            )
         else:
             return self.q_direct(
                 cycle = params[Key.CYC],

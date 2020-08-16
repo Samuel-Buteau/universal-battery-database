@@ -103,6 +103,8 @@ class Key:
     STUDENT_WIDTH = "student_width"
     STUDENT_DEPTH = "student_depth"
     STUDENT_SAMPLES = "student_samples"
+    STUDENT_SAMPLE_COUNT = "s_sample_count"
+
     SAMPLE_I = "sample_c"
     SAMPLE_V = "sample_v"
     SAMPLE_CYC = "sample_cycle"
@@ -111,9 +113,8 @@ class Key:
     BATCH = "batch_size"
 
     PRINT_LOSS = "print_loss_every"
-    VIS_FIT = "visualize_fit_every"
-    VIS_VQ = "visualize_vq_every"
-    STOP = "stop_count"
+    VIS_TEACHER = "visualize_fit_every"
+    VIS_STUDENT = "visualize_vq_every"
     CELL_ID_SHOW = "cell_id_show"
 
     REF_CYC_N = "reference_cycles_n"
@@ -241,6 +242,8 @@ class Key:
     CYC_V = "cycle_v"
     TEACHER_OPTIMIZER = "optimizer"
     STUDENT_OPTIMIZER = "s_optimizer"
+    TEACHER_EPOCHS = "teacher_epochs"
+    STUDENT_EPOCHS = "student_epochs"
 
     # TODO (harvey): replace the following class of keys
     class Coeff:

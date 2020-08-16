@@ -104,6 +104,7 @@ class Key:
     STUDENT_DEPTH = "student_depth"
     STUDENT_SAMPLES = "student_samples"
     STUDENT_SAMPLE_COUNT = "s_sample_count"
+
     SAMPLE_I = "sample_c"
     SAMPLE_V = "sample_v"
     SAMPLE_CYC = "sample_cycle"

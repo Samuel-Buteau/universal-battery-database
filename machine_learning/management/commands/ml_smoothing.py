@@ -326,7 +326,8 @@ def initial_processing(
     cycle_tensor = (cycle_tensor - cycle_m) / tf.sqrt(cycle_v)
     compiled_tensors[Key.CYC] = cycle_tensor
     compiled_tensors["MAX_CYCLE_CELL"] = tf.constant(
-        (compiled_data["MAX_CYCLE_CELL"] - cycle_m) / tf.sqrt(cycle_v))
+        (compiled_data["MAX_CYCLE_CELL"] - cycle_m) / tf.sqrt(cycle_v)
+    )
 
     labels = [
         Key.V_CC_VEC, Key.Q_CC_VEC, Key.MASK_CC_VEC, Key.Q_CV_VEC, Key.I_CV_VEC,
@@ -488,7 +489,6 @@ def train_and_evaluate(
             dist_transfer_step(strategy)
 
             if (count % options[Key.VIS_STUDENT]) == 0:
-
                 plot_params = {
                     "cell_ids": cell_ids,
                     "count": count,
@@ -525,7 +525,7 @@ def train_step(neigh, train_params: dict, options: dict):
 
     teacher_model = train_params[Key.TEACHER_MODEL]
     teacher_optimizer = train_params[Key.TEACHER_OPTIMIZER]
-    
+
     compiled_tensors = train_params[Key.TENSORS]
 
     sign_grid_tensor = compiled_tensors[Key.SIGN_GRID]
@@ -986,8 +986,6 @@ class Command(BaseCommand):
             Key.STUDENT_DEPTH: 3,
             Key.STUDENT_WIDTH: 64,
             Key.STUDENT_EPOCHS: 6000,
-            Key.STUDENT_DEPTH: 3,
-            Key.STUDENT_WIDTH: 64,
             Key.BATCH: 4 * 16,
 
             Key.PRINT_LOSS: vis,

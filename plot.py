@@ -292,7 +292,6 @@ def generate_plot_options(mode: str, typ: str, target: str) -> dict:
         leg = {
             ("dchg", "q"): (.5, 1.),
             ("chg", "q"): (.5, .5),
-            ("chg", "q_prev"): (0., .5),
         }
 
     elif target == "generic_vs_cycle":
@@ -356,7 +355,7 @@ def get_y_quantity(mode: str) -> str:
     Returns:
         "voltage" if mode is "cc", "current" if mode is "cv".
     """
-    if mode == "cc" or mode == "q" or mode == "q_prev":
+    if mode == "cc" or mode == "q":
         y_quantity = "voltage"
     elif mode == "cv":
         y_quantity = "current"
@@ -664,7 +663,7 @@ def compute_target(
         else:
             raise Exception(target_error(target, mode, "compute_target"))
 
-        test_results = degradation_model.test_all_voltages(
+        q = degradation_model.test_all_voltages(
             tf.constant(scaled_cyc, dtype = tf.float32),
             tf.constant(averages[Key.I_CC_AVG], dtype = tf.float32),
             tf.constant(averages[Key.I_PREV_END_AVG], dtype = tf.float32),
@@ -690,7 +689,7 @@ def compute_target(
             raise Exception(target_error(target, mode, "compute_target"))
 
         cap = tf.reshape(
-            test_results[pred_capacity_label], shape = [max_cyc_n, -1],
+            q[pred_capacity_label], shape = [max_cyc_n, -1],
         )
 
         if y_n == 1:
@@ -705,7 +704,7 @@ def compute_target(
             ]
         )
     elif target == "v_vs_q":
-        if not (mode == "q" or mode == "q_prev"):
+        if not mode == "q":
             raise Exception(target_error(target, mode, "compute_target"))
 
         current_range = np.ones(1, dtype = np.float32)
@@ -714,7 +713,7 @@ def compute_target(
         v_range = np.linspace(v_min, v_max, 32)
         y_n = 32
 
-        test_results = degradation_model.test_q(
+        q = degradation_model.test_q(
             tf.constant(scaled_cyc, dtype = tf.float32),
             tf.constant(averages[Key.I_CC_AVG], dtype = tf.float32),
             tf.constant(averages[Key.I_PREV_END_AVG], dtype = tf.float32),
@@ -730,7 +729,7 @@ def compute_target(
             tf.constant(svit_and_count[Key.COUNT_MATRIX], dtype = tf.float32),
         )
 
-        cap = tf.reshape(test_results[mode], shape = [max_cyc_n, -1])
+        cap = tf.reshape(q, shape = [max_cyc_n, -1])
 
         if y_n == 1:
             y_n = (1,)
@@ -753,7 +752,7 @@ def compute_target(
         else:
             raise Exception(target_error(target, mode, "compute_target"))
 
-        test_results = degradation_model.test_single_voltage(
+        q = degradation_model.test_single_voltage(
             tf.cast(scaled_cyc, dtype = tf.float32),
             tf.constant(target_voltage, dtype = tf.float32),
             tf.constant(averages[Key.I_CC_AVG], dtype = tf.float32),
@@ -770,10 +769,10 @@ def compute_target(
         )
         if mode == "cc":
             pred_cap = tf.reshape(
-                test_results[Key.Pred.I_CC], shape = [-1],
+                q[Key.Pred.I_CC], shape = [-1],
             ).numpy()
         elif mode == "cv":
-            pred_cap = test_results[Key.Pred.I_CV].numpy()[:, -1]
+            pred_cap = q[Key.Pred.I_CV].numpy()[:, -1]
         else:
             raise Exception(target_error(target, mode, "compute_target"))
 
@@ -925,7 +924,7 @@ def plot_v_vs_q(plot_params: dict, init_returns: dict) -> None:
         plot_engine_v_vs_q(
             data_streams = [("model", model_data, "plot", model_max_cyc_n)],
             target = "v_vs_q",
-            todos = [("dchg", "q"), ("chg", "q"), ("chg", "q_prev")],
+            todos = [("dchg", "q"), ("chg", "q")],
             options = options,
             filename = header + "_{}_Count_{}.png".format(cell_id, count)
         )

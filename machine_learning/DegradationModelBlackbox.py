@@ -93,7 +93,6 @@ class DegradationModel(Model):
         self.fnn_q = feedforward_nn_parameters(
             depth, width, finalize = True, bottleneck = bottleneck,
         )
-        self.fnn_v = feedforward_nn_parameters(depth, width, finalize = True)
 
         self.cell_direct = PrimitiveDictionaryLayer(
             num_feats = self.feature_count, id_dict = cell_dict,
@@ -105,7 +104,6 @@ class DegradationModel(Model):
         self.fourier_features = bool(options[Key.FOUR_FEAT])
 
         self.q_param_count = 3
-        self.v_param_count = 4
         self.f = 32
 
         self.random_matrix_q = random_matrix_q
@@ -407,54 +405,6 @@ class DegradationModel(Model):
             )
             return res
 
-    def prev_voltage_direct(
-        self, cycle, prev_end_current, constant_current, end_voltage,
-        feats_cell, training = True,
-    ):
-        """
-        Compute state of charge directly (receiving arguments directly without
-        using `params`).
-
-        Args: TODO(harvey)
-            cycle: Cycle, often Key.CYC.
-            v: Voltage
-            feats_cell: Cell features.
-            current: Current.
-            training: Flag for training or evaluation.
-                True for training; False for evaluation.
-
-        Returns:
-            Computed state of charge.
-        """
-
-        input_dependencies = [
-            cycle,
-            prev_end_current,
-            constant_current,
-            end_voltage,
-        ]
-        if self.fourier_features:
-            b, d, f = len(prev_end_current), self.v_param_count, self.f
-            input_vector = tf.concat(input_dependencies, axis = 1)
-
-            dot_product = tf.einsum(
-                'bd,df->bf',
-                input_vector,
-                self.random_matrix_v,
-            )
-
-            dependencies = (
-                tf.math.sin(dot_product),
-                tf.math.cos(dot_product),
-                feats_cell,
-            )
-
-        else:
-            input_dependencies.append(feats_cell)
-            dependencies = tuple(input_dependencies)
-
-        return nn_call(self.fnn_v, dependencies, training = training)
-
     def q_for_derivative(self, params: dict, training = True):
         """
         Wrapper function calling `q_direct`, to be passed in to
@@ -686,38 +636,17 @@ class DegradationModel(Model):
             Key.COUNT_MATRIX: count_matrix,
         }
 
-        return {
-            "q": tf.reshape(
-                self.q_direct(
-                    cycle = add_v_dep(params[Key.CYC], params),
-                    v = params[Key.V],
-                    feats_cell = add_v_dep(
-                        params[Key.CELL_FEAT],
-                        params,
-                        params[Key.CELL_FEAT].shape[1],
-                    ),
-                    current = add_v_dep(params[Key.I_CC], params),
-                    training = False,
-                ),
-                [-1, voltage_count],
-            ),
-            "q_prev": tf.reshape(
-                add_v_dep(
-                    self.q_direct(
-                        cycle = params[Key.CYC],
-                        v = self.prev_voltage_direct(
-                            cycle = params[Key.CYC],
-                            prev_end_current = params[Key.I_PREV_END],
-                            constant_current = params[Key.I_CC],
-                            end_voltage = params[Key.V_END],
-                            feats_cell = params[Key.CELL_FEAT],
-                        ),
-                        feats_cell = params[Key.CELL_FEAT],
-                        current = params[Key.I_PREV_END],
-                        training = False,
-                    ),
+        return tf.reshape(
+            self.q_direct(
+                cycle = add_v_dep(params[Key.CYC], params),
+                v = params[Key.V],
+                feats_cell = add_v_dep(
+                    params[Key.CELL_FEAT],
                     params,
+                    params[Key.CELL_FEAT].shape[1],
                 ),
-                [-1, current_count],
+                current = add_v_dep(params[Key.I_CC], params),
+                training = False,
             ),
-        }
+            [-1, voltage_count],
+        )

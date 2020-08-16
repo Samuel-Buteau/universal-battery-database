@@ -416,9 +416,6 @@ def train_and_evaluate(
     """
     strategy = init_returns[Key.STRAT]
 
-    count = 0
-    end = time.time()
-
     train_step_params = {
         Key.TENSORS: init_returns[Key.TENSORS],
         Key.TEACHER_OPTIMIZER: init_returns[Key.TEACHER_OPTIMIZER],
@@ -444,8 +441,9 @@ def train_and_evaluate(
     # TODO(harvey): what is `l`?
     l = None
     loss_record = LossRecord()
+    count = 0
+    end = time.time()
     with strategy.scope():
-        count = 0
         while count <= options[Key.TEACHER_EPOCHS]:
             sub_count = 0
             for neigh in init_returns[Key.TRAIN_DS]:

@@ -130,39 +130,28 @@ class DegradationModelStudent(DegradationModel):
 
         # electrolyte pointers and weights
 
+        combined_max = self.n_solvent_max + self.n_salt_max
+        all_max = combined_max + self.n_additive_max
         pointers = np.zeros(
-            shape = (
-                self.lyte_direct.num_keys,
-                self.n_solvent_max + self.n_salt_max + self.n_additive_max,
-            ),
-            dtype = np.int32,
+            shape = (self.lyte_direct.num_keys, all_max), dtype = np.int32,
         )
         weights = np.zeros(
-            shape = (
-                self.lyte_direct.num_keys,
-                self.n_solvent_max + self.n_salt_max + self.n_additive_max,
-            ),
-            dtype = np.float32,
+            shape = (self.lyte_direct.num_keys, all_max), dtype = np.float32,
         )
 
         for lyte_id in self.lyte_direct.id_dict.keys():
-            for reference_index, lyte_to in [
+            for ref_index, lyte_to in [
                 (0, lyte_to_solvent),
                 (self.n_solvent_max, lyte_to_salt),
-                (self.n_solvent_max + self.n_salt_max, lyte_to_additive),
+                (combined_max, lyte_to_additive),
             ]:
                 if lyte_id in lyte_to.keys():
                     my_components = lyte_to[lyte_id]
                     for i in range(len(my_components)):
                         mol_id, weight = my_components[i]
-                        pointers[
-                            self.lyte_direct.id_dict[lyte_id],
-                            i + reference_index,
-                        ] = mol_dict[mol_id]
-                        weights[
-                            self.lyte_direct.id_dict[lyte_id],
-                            i + reference_index,
-                        ] = weight
+                        dict_id = self.lyte_direct.id_dict[lyte_id]
+                        pointers[dict_id, i + ref_index] = mol_dict[mol_id]
+                        weights[dict_id, i + ref_index] = weight
 
         self.lyte_pointers = tf.constant(pointers)
         self.lyte_weights = tf.constant(weights)
@@ -230,15 +219,9 @@ class DegradationModelStudent(DegradationModel):
 
         if training:
             (
-                sampled_vs,
-                sampled_qs,
-                sampled_cycles,
-                sampled_constant_current,
-                sampled_feats_cell,
-                sampled_latent,
-                sampled_svit_grid,
-                sampled_count_matrix,
-                sampled_encoded_stress,
+                sampled_vs, sampled_qs, sampled_cycles,
+                sampled_constant_current, sampled_feats_cell, sampled_latent,
+                sampled_svit_grid, sampled_count_matrix, sampled_encoded_stress,
             ) = self.sample(
                 svit_grid, batch_count, count_matrix, n_sample = self.n_sample,
             )
@@ -346,29 +329,21 @@ class DegradationModelStudent(DegradationModel):
             training = training, sample = sample
         )
 
+        combined_max = self.n_solvent_max + self.n_salt_max
+        all_max = combined_max + self.n_additive_max
         feats_mol_reshaped = tf.reshape(
-            feats_mol,
-            [
-                -1,
-                self.n_solvent_max + self.n_salt_max + self.n_additive_max,
-                self.mol_direct.num_features,
-            ],
+            feats_mol, [-1, all_max, self.mol_direct.num_features],
         )
 
+        loss_mol_reshaped, loss_solvent = None, None
+        loss_salt, loss_additive = None, None
         if training:
-            loss_mol_reshaped = tf.reshape(
-                loss_mol,
-                [
-                    -1,
-                    self.n_solvent_max + self.n_salt_max + self.n_additive_max,
-                    1,
-                ],
-            )
+            loss_mol_reshaped = tf.reshape(loss_mol, [-1, all_max, 1])
 
-        fetched_mol_weights = tf.reshape(
-            fetched_weights_lyte,
-            [-1, self.n_solvent_max + self.n_salt_max + self.n_additive_max, 1],
-        ) * feats_mol_reshaped
+        fetched_mol_weights = (
+            tf.reshape(fetched_weights_lyte, [-1, all_max, 1])
+            * feats_mol_reshaped
+        )
 
         total_solvent = 1. / (1e-10 + tf.reduce_sum(
             fetched_weights_lyte[:, 0:self.n_solvent_max], axis = 1,
@@ -377,60 +352,41 @@ class DegradationModelStudent(DegradationModel):
         feats_solvent = tf.reshape(total_solvent, [-1, 1]) * tf.reduce_sum(
             fetched_mol_weights[:, 0:self.n_solvent_max, :], axis = 1,
         )
-        combined_max = self.n_solvent_max + self.n_salt_max
         feats_salt = tf.reduce_sum(
             fetched_mol_weights[:, self.n_solvent_max:combined_max, :],
             axis = 1,
         )
-        all_max = combined_max + self.n_additive_max
         feats_additive = tf.reduce_sum(
             fetched_mol_weights[:, combined_max:all_max, :],
             axis = 1,
         )
 
         if training:
-            fetched_mol_loss_weights = tf.reshape(
-                fetched_weights_lyte,
-                [
-                    -1,
-                    self.n_solvent_max + self.n_salt_max + self.n_additive_max,
-                    1,
-                ],
-            ) * loss_mol_reshaped
+            fetched_mol_loss_weights = (
+                tf.reshape(fetched_weights_lyte, [-1, all_max, 1])
+                * loss_mol_reshaped
+            )
             loss_solvent = tf.reshape(total_solvent, [-1, 1]) * tf.reduce_sum(
                 fetched_mol_loss_weights[:, 0:self.n_solvent_max, :],
                 axis = 1,
             )
             loss_salt = tf.reduce_sum(
-                fetched_mol_loss_weights[
-                :, self.n_solvent_max:self.n_solvent_max + self.n_salt_max, :,
-                ],
+                fetched_mol_loss_weights[:, self.n_solvent_max:combined_max, :],
                 axis = 1,
             )
             loss_additive = tf.reduce_sum(
-                fetched_mol_loss_weights[
-                :,
-                self.n_solvent_max + self.n_salt_max:
-                self.n_solvent_max + self.n_salt_max + self.n_additive_max,
-                :
-                ],
+                fetched_mol_loss_weights[:, combined_max: all_max, :],
                 axis = 1,
             )
 
         derivatives = {}
-
         if compute_derivatives:
 
             with tf.GradientTape(persistent = True) as tape_d1:
+                lyte_dependencies = (feats_solvent, feats_salt, feats_additive)
                 tape_d1.watch(feats_solvent)
                 tape_d1.watch(feats_salt)
                 tape_d1.watch(feats_additive)
-
-                lyte_dependencies = (
-                    feats_solvent,
-                    feats_salt,
-                    feats_additive,
-                )
 
                 feats_lyte_indirect = nn_call(
                     self.lyte_indirect, lyte_dependencies, training = training,
@@ -448,12 +404,7 @@ class DegradationModelStudent(DegradationModel):
 
             del tape_d1
         else:
-            lyte_dependencies = (
-                feats_solvent,
-                feats_salt,
-                feats_additive,
-            )
-
+            lyte_dependencies = (feats_solvent, feats_salt, feats_additive)
             feats_lyte_indirect = nn_call(
                 self.lyte_indirect, lyte_dependencies, training = training,
             )
@@ -480,12 +431,8 @@ class DegradationModelStudent(DegradationModel):
                 tape_d1.watch(feats_dry_cell)
 
                 cell_dependencies = (
-                    feats_pos,
-                    feats_neg,
-                    feats_lyte,
-                    feats_dry_cell,
+                    feats_pos, feats_neg, feats_lyte, feats_dry_cell,
                 )
-
                 feats_cell_indirect = nn_call(
                     self.cell_indirect, cell_dependencies, training = training,
                 )
@@ -506,10 +453,7 @@ class DegradationModelStudent(DegradationModel):
             del tape_d1
         else:
             cell_dependencies = (
-                feats_pos,
-                feats_neg,
-                feats_lyte,
-                feats_dry_cell,
+                feats_pos, feats_neg, feats_lyte, feats_dry_cell,
             )
 
             feats_cell_indirect = nn_call(

@@ -423,7 +423,7 @@ def initial_processing(
         teacher_model = DegradationModel(
             width = options[Key.TEACHER_WIDTH],
             depth = options[Key.TEACHER_DEPTH],
-            n_sample = options[Key.N_SAMPLE],
+            n_sample = options[Key.SAMPLE_COUNT],
             options = options,
             cell_dict = id_dict_from_id_list(np.array(cell_ids)),
             random_matrix_q = random_matrix_q,
@@ -452,7 +452,7 @@ def initial_processing(
                 pos_to_pos_name, neg_to_neg_name, lyte_to_lyte_name,
                 mol_to_mol_name, dry_cell_to_dry_cell_name,
             ),
-            n_sample = options[Key.N_SAMPLE],
+            n_sample = options[Key.SAMPLE_COUNT],
             min_latent = options[Key.MIN_LAT],
             options = options,
             random_matrix_q = random_matrix_q,
@@ -813,7 +813,7 @@ def transfer_step(train_params: dict, options: dict):
         options: Options for `ml_smoothing`.
     """
     # need to split the range
-    n_sample = options[Key.STUDENT_SAMPLE_COUNT]
+    sample_count = options[Key.STUDENT_SAMPLE_COUNT]
 
     teacher_model = train_params[Key.TEACHER_MODEL]
     student_model = train_params[Key.STUDENT_MODEL]
@@ -827,12 +827,13 @@ def transfer_step(train_params: dict, options: dict):
         sampled_constant_current = tf.exp(
             tf.random.uniform(
                 minval = tf.math.log(0.001), maxval = tf.math.log(5.),
-                shape = [n_sample, 1],
+                shape = [sample_count, 1],
             )
         )
         sampled_constant_current_sign = tf.cast(
             tf.random.uniform(
-                minval = 0, maxval = 1, shape = [n_sample, 1], dtype = tf.int32,
+                minval = 0, maxval = 1, shape = [sample_count, 1],
+                dtype = tf.int32,
             ),
             dtype = tf.float32,
         )
@@ -856,23 +857,23 @@ def transfer_step(train_params: dict, options: dict):
 
         # TODO: anything else which is cell-specific
 
-        max_cycles = tf.tile(max_cycles, [n_sample, 1])
-        student_feats_cell = tf.tile(student_feats_cell, [n_sample, 1])
-        teacher_feats_cell = tf.tile(teacher_feats_cell, [n_sample, 1])
+        max_cycles = tf.tile(max_cycles, [sample_count, 1])
+        student_feats_cell = tf.tile(student_feats_cell, [sample_count, 1])
+        teacher_feats_cell = tf.tile(teacher_feats_cell, [sample_count, 1])
 
         samples = {
             Key.Sample.V: tf.random.uniform(
-                minval = 2.5, maxval = 5., shape = [n_sample, 1],
+                minval = 2.5, maxval = 5., shape = [sample_count, 1],
             ),
             Key.Sample.CYC: max_cycles * tf.random.uniform(
-                minval = -.0001, maxval = 2., shape = [n_sample, 1],
+                minval = -.0001, maxval = 2., shape = [sample_count, 1],
             ),
             Key.Sample.I: (
                 sampled_constant_current_sign * sampled_constant_current
             ),
             "PROJ": tf.random.uniform(
                 minval = -1., maxval = 1.,
-                shape = [n_sample, options[Key.BOTTLENECK]],
+                shape = [sample_count, options[Key.BOTTLENECK]],
             ),
 
         }
@@ -1059,10 +1060,12 @@ class Command(BaseCommand):
             Key.Q_SIG_I: .5,
         }
 
+        # TODO: potential bug - N_SAMPLE and STUDENT_SAMPLE_COUNT mixed
+
         vis = 1000
         int_args = {
             Key.FOUR_FEAT: 1,
-            Key.N_SAMPLE: 1 * 16,
+            Key.SAMPLE_COUNT: 1 * 16,
 
             Key.TEACHER_DEPTH: 3,
             Key.TEACHER_WIDTH: 64,
@@ -1076,7 +1079,7 @@ class Command(BaseCommand):
             Key.PRINT_LOSS: vis,
             Key.VIS_TEACHER: vis,
             Key.VIS_STUDENT: vis / 10,
-            Key.STUDENT_SAMPLE_COUNT: 32 * 64,
+            Key.STUDENT_SAMPLE_COUNT: 1 * 16,
 
             Key.CELL_ID_SHOW: 10,
         }

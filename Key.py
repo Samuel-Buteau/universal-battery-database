@@ -95,7 +95,7 @@ class Key:
     T_MIN_V_GRID = "temperature_grid_min_v"
     T_MAX_V_GRID = "temperature_grid_max_v"
 
-    N_SAMPLE = "n_sample"
+    SAMPLE_COUNT = "n_sample"
     TEACHER_MODEL = "teacher_model"
     TEACHER_WIDTH = "teacher_width"
     TEACHER_DEPTH = "teacher_depth"

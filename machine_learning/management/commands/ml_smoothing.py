@@ -793,34 +793,34 @@ def transfer_step(train_params: dict, options: dict):
 
         with tf.GradientTape() as student_tape:
             teacher_q, teacher_q_der = teacher_model.transfer_q(
-                CYC = samples[Key.SAMPLE_CYC],
-                V = samples[Key.SAMPLE_V],
-                I = samples[Key.SAMPLE_I],
-                CELL_FEAT = teacher_feats_cell,
-                PROJ = samples["PROJ"],
+                cycle = samples[Key.SAMPLE_CYC],
+                voltage = samples[Key.SAMPLE_V],
+                current = samples[Key.SAMPLE_I],
+                cell_feat = teacher_feats_cell,
+                proj = samples["PROJ"],
             )
             student_q, student_q_der = student_model.transfer_q(
-                CYC = samples[Key.SAMPLE_CYC],
-                V = samples[Key.SAMPLE_V],
-                I = samples[Key.SAMPLE_I],
-                CELL_FEAT = student_feats_cell,
-                PROJ = samples["PROJ"],
+                cycle = samples[Key.SAMPLE_CYC],
+                voltage = samples[Key.SAMPLE_V],
+                current = samples[Key.SAMPLE_I],
+                cell_feat = student_feats_cell,
+                proj = samples["PROJ"],
             )
 
             teacher_b, teacher_b_der = teacher_model.transfer_q(
-                CYC = samples[Key.SAMPLE_CYC],
-                V = samples[Key.SAMPLE_V],
-                I = samples[Key.SAMPLE_I],
-                CELL_FEAT = teacher_feats_cell,
-                PROJ = samples["PROJ"],
+                cycle = samples[Key.SAMPLE_CYC],
+                voltage = samples[Key.SAMPLE_V],
+                current = samples[Key.SAMPLE_I],
+                cell_feat = teacher_feats_cell,
+                proj = samples["PROJ"],
                 get_bottleneck = True,
             )
             student_b, student_b_der = student_model.transfer_q(
-                CYC = samples[Key.SAMPLE_CYC],
-                V = samples[Key.SAMPLE_V],
-                I = samples[Key.SAMPLE_I],
-                CELL_FEAT = student_feats_cell,
-                PROJ = samples["PROJ"],
+                cycle = samples[Key.SAMPLE_CYC],
+                voltage = samples[Key.SAMPLE_V],
+                current = samples[Key.SAMPLE_I],
+                cell_feat = student_feats_cell,
+                proj = samples["PROJ"],
                 get_bottleneck = True,
             )
 

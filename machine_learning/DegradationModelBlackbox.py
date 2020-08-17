@@ -108,16 +108,18 @@ class DegradationModel(Model):
 
         self.random_matrix_q = random_matrix_q
 
-    def transfer_q(self, CYC, V, CELL_FEAT, I, PROJ, get_bottleneck = False):
+    def transfer_q(
+        self, cycle, voltage, cell_feat, current, proj, get_bottleneck = False,
+    ):
         q, q_der = create_derivatives(
             self.q_for_derivative,
             params = {
-                Key.CYC: CYC,
-                Key.V: V,
-                Key.CELL_FEAT: CELL_FEAT,
-                Key.I: I,
+                Key.CYC: cycle,
+                Key.V: voltage,
+                Key.CELL_FEAT: cell_feat,
+                Key.I: current,
                 "get_bottleneck": get_bottleneck,
-                "PROJ": PROJ,
+                "PROJ": proj,
             },
             der_params = {Key.V: 2, Key.CELL_FEAT: 0, Key.I: 2, Key.CYC: 2}
         )

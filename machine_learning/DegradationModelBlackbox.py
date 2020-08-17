@@ -76,7 +76,8 @@ class DegradationModel(Model):
 
     def __init__(
         self, depth: int, width: int, bottleneck: int, n_sample: int,
-        options: dict, cell_dict: dict, random_matrix_q, n_channels = 16,
+        options: dict, cell_dict: dict, random_matrix_q,
+        q_param_count = 3, n_channels = 16,
     ):
         """
         Args:
@@ -101,7 +102,7 @@ class DegradationModel(Model):
 
         self.fourier_features = bool(options[Key.FOUR_FEAT])
 
-        self.q_param_count = 3
+        self.q_param_count = q_param_count
         self.f = 32
 
         self.random_matrix_q = random_matrix_q
@@ -356,18 +357,13 @@ class DegradationModel(Model):
         self, cycle, v, feats_cell, current,
         training = True, get_bottleneck = False,
     ):
-        """
-        Compute state of charge directly (receiving arguments directly without
-        using `params`).
-
+        """ Compute state of charge directly
         Args: TODO(harvey)
             cycle: Cycle, often Key.CYC.
             v: Voltage
             feats_cell: Cell features.
             current: Current.
             training: Flag for training or evaluation.
-                True for training; False for evaluation.
-
         Returns:
             Computed state of charge.
         """

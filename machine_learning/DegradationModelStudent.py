@@ -9,7 +9,7 @@ from machine_learning.PrimitiveDictionaryLayer import (
 )
 from machine_learning.StressToEncodedLayer import StressToEncodedLayer
 from machine_learning.fnn_functions import (
-    create_derivatives,
+    add_current_dep, add_v_dep, create_derivatives,
     feedforward_nn_parameters, nn_call
 )
 from machine_learning.loss_calculator_blackbox import calculate_q_loss
@@ -29,7 +29,7 @@ class DegradationModelStudent(DegradationModel):
     ):
         super(DegradationModel, self).__init__(
             depth, width, bottleneck, n_sample, options, cell_dict,
-            random_matrix_q, n_channels,
+            random_matrix_q, 4, n_channels,
         )
 
         self.dry_cell_direct = PrimitiveDictionaryLayer(
@@ -682,3 +682,128 @@ class DegradationModelStudent(DegradationModel):
             sampled_count_matrix,
             sampled_encoded_stress,
         )
+
+    def cc_capacity(self, params: dict, training = True):
+        """ Compute constant-current capacity during training or evaluation.
+        Args:
+            params: Contains the parameters of constant-current capacity.
+            training: Flag for training or evaluation:
+        Returns:
+            Computed constant-current capacity.
+        """
+
+        encoded_stress = self.stress_to_encoded_direct(
+            svit_grid = params[Key.SVIT_GRID],
+            count_matrix = params[Key.COUNT_MATRIX],
+        )
+
+        q_0 = self.q_with_stress_direct(
+            cycle = params[Key.CYC],
+            v = params[Key.V_PREV_END],
+            current = params[Key.I_PREV_END],
+            feats_cell = params[Key.CELL_FEAT],
+            encoded_stress = encoded_stress,
+            training = training,
+        )
+
+        q_1 = self.q_with_stress_direct(
+            cycle = add_v_dep(params[Key.CYC], params),
+            v = params[Key.V],
+            current = add_v_dep(params[Key.I_CC], params),
+            feats_cell = add_v_dep(
+                params[Key.CELL_FEAT], params, params[Key.CELL_FEAT].shape[1],
+            ),
+            encoded_stress = add_v_dep(
+                encoded_stress, params, encoded_stress.shape[1],
+            ),
+            training = training,
+        )
+
+        return q_1 - add_v_dep(q_0, params)
+
+    def cv_capacity(self, params: dict, training = True):
+        """ Compute constant-voltage capacity during training or evaluation.
+        Args:
+            params: Parameters for computing constant-voltage (cv) capacity.
+            training: Flag for training or evaluation.
+        Returns:
+            Computed constant-voltage capacity.
+        """
+        encoded_stress = self.stress_to_encoded_direct(
+            svit_grid = params[Key.SVIT_GRID],
+            count_matrix = params[Key.COUNT_MATRIX],
+        )
+
+        q_0 = self.q_with_stress_direct(
+            cycle = params[Key.CYC],
+            v = params[Key.V_PREV_END],
+            current = params[Key.I_PREV_END],
+            feats_cell = params[Key.CELL_FEAT],
+            encoded_stress = encoded_stress,
+            training = training,
+        )
+
+        # NOTE (sam): if there truly is no dependency on current for scale,
+        # then we can restructure the code below.
+
+        q_1 = self.q_with_stress_direct(
+            cycle = add_current_dep(params[Key.CYC], params),
+            v = add_current_dep(params[Key.V_END], params),
+            current = params[Key.I_CV],
+            feats_cell = add_current_dep(
+                params[Key.CELL_FEAT], params, params[Key.CELL_FEAT].shape[1],
+            ),
+            encoded_stress = add_current_dep(
+                encoded_stress, params, encoded_stress.shape[1],
+            ),
+            training = training,
+        )
+
+        return q_1 - add_current_dep(q_0, params)
+
+    def stress_to_encoded_direct(
+        self, svit_grid, count_matrix, training = True,
+    ):
+        """ Compute stress directly
+         Returns:
+            (svit_grid, count_matrix) and the training flag.
+        """
+        return self.stress_to_encoded_layer(
+            (svit_grid, count_matrix), training = training,
+        )
+
+    def q_with_stress_direct(
+        self, cycle, v, feats_cell, current, encoded_stress,
+        training = True, get_bottleneck = False,
+    ):
+
+        inputs = [cycle, v, current, encoded_stress]
+        if self.fourier_features:
+            b, d, f = len(cycle), self.q_param_count, self.f
+            input_vector = tf.concat(inputs, axis = 1)
+            dot_product = tf.einsum(
+                'bd,df->bf',
+                input_vector,
+                self.random_matrix_q,
+            )
+
+            dependencies = (
+                tf.math.sin(dot_product),
+                tf.math.cos(dot_product),
+                feats_cell,
+            )
+        else:
+            dependencies = tuple(inputs)
+
+        if get_bottleneck:
+            res, bottleneck = nn_call(
+                self.fnn_q, dependencies,
+                training = training, get_bottleneck = get_bottleneck,
+            )
+            return res, bottleneck
+        else:
+            res = nn_call(
+                self.fnn_q, dependencies,
+                training = training, get_bottleneck = get_bottleneck,
+            )
+            return res

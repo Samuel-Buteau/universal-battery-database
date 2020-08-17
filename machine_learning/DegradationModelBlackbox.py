@@ -131,7 +131,7 @@ class DegradationModel(Model):
         Args:
             call_params: Contains -
                 Cycle,
-                Constant current6252 Quantum information and quantum computing,
+                Constant current,
                 The end current of the previous step,
                 The end voltage of the previous step,
                 The end voltage of the current step,

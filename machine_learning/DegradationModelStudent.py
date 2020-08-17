@@ -31,6 +31,7 @@ class DegradationModelStudent(DegradationModel):
             depth, width, bottleneck, n_sample, options, cell_dict,
             random_matrix_q, 4, n_channels,
         )
+        self.num_feats = width
 
         self.dry_cell_direct = PrimitiveDictionaryLayer(
             num_feats = 6, id_dict = dry_cell_dict,
@@ -67,6 +68,9 @@ class DegradationModelStudent(DegradationModel):
         self.dry_cell_given = tf.constant(self.dry_cell_given)
         self.dry_cell_latent_flags = tf.constant(self.dry_cell_latent_flags)
 
+        self.cell_direct = PrimitiveDictionaryLayer(
+            num_feats = self.num_feats, id_dict = cell_dict,
+        )
         self.pos_direct = PrimitiveDictionaryLayer(
             num_feats = self.num_feats, id_dict = pos_dict,
         )

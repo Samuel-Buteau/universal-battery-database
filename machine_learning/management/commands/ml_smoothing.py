@@ -12,9 +12,9 @@ from plot import plot_direct, plot_v_vs_q
 
 from cycling.models import id_dict_from_id_list
 from machine_learning.DegradationModelBlackbox import (
-    DegradationModel,
-    build_random_matrix
+    DegradationModel, build_random_matrix
 )
+from machine_learning.DegradationModelStudent import DegradationModelStudent
 from machine_learning.LossRecordBlackbox import LossRecord
 
 # TODO add as command line argument:
@@ -44,17 +44,12 @@ NEIGH_REFERENCE = 11
 NEIGH_TOTAL = 12
 
 
-def ml_smoothing(options):
-    """
-    The main function to carry out the machine learning training and evaluation
-    procedure.
-
-    Todo(harvey): Add more description about what this does.
+def ml_smoothing(options) -> None:
+    """ The main function to carry out the machine learning training and
+    evaluation procedure.
 
     Args:
         options: Dictionary defining various fitting-related arguments.
-
-    Returns: None
     """
     if len(tf.config.experimental.list_physical_devices("GPU")) == 1:
         strategy = tf.distribute.OneDeviceStrategy(device = "/gpu:0")
@@ -78,6 +73,10 @@ def ml_smoothing(options):
         options[Key.PATH_DATASET],
         "dataset_ver_{}.file".format(options[Key.DATA_VERSION])
     )
+    dataset_names_path = os.path.join(
+        options[Key.PATH_DATASET],
+        "dataset_ver_{}_names.file".format(options[Key.DATA_VERSION])
+    )
 
     if not os.path.exists(dataset_path):
         print("Path \"" + dataset_path + "\" does not exist.")
@@ -85,6 +84,10 @@ def ml_smoothing(options):
 
     with open(dataset_path, "rb") as f:
         dataset = pickle.load(f)
+    dataset_names = None
+    if os.path.exists(dataset_names_path):
+        with open(dataset_names_path, "rb") as f:
+            dataset_names = pickle.load(f)
 
     cell_ids = list(dataset[Key.ALL_DATA].keys())
 
@@ -96,9 +99,10 @@ def ml_smoothing(options):
         return
 
     train_and_evaluate(
-        initial_processing(dataset, cell_ids, options, strategy = strategy),
-        cell_ids,
-        options,
+        initial_processing(
+            dataset, dataset_names, cell_ids, options, strategy = strategy,
+        ),
+        cell_ids, options,
     )
 
 
@@ -121,17 +125,15 @@ def three_level_flatten(iterables):
 
 
 def initial_processing(
-    dataset: dict, cell_ids, options: dict, strategy,
+    dataset: dict, dataset_names, cell_ids, options: dict, strategy,
 ) -> dict:
     """ Handle the initial data processing
-
     Args:
         dataset: Contains the quantities given in the dataset.
-        dataset_names: TODO(harvey)
-        cell_ids: TODO(harvey)
+        dataset_names:
+        cell_ids:
         options: Parameters used to tune the machine learning fitting process.
-        strategy: TODO(harvey)
-
+        strategy:
     Returns:
         { Key.STRAT, Key.MODEL, Key.TENSORS, Key.TRAIN_DS, Key.CYC_M,
           Key.CYC_V, Key.OPT, Key.MY_DATA }
@@ -154,8 +156,62 @@ def initial_processing(
     # in log space, so I/q becomes log(I) - log(q)
     numpy_acc(compiled_data, Key.I_GRID, np.array([dataset[Key.I_GRID]]))
 
-    for cell_id_count, cell_id in enumerate(cell_ids):
+    cell_id_array = np.array(cell_ids)  # cell ID array
+    cell_id_to_pos_id = {}  # cell ID to positive electrode ID
+    cell_id_to_neg_id = {}  # cell ID to negative electrode ID
+    cell_id_to_lyte_id = {}  # cell ID to electrolyte ID
+    cell_id_to_dry_cell_id = {}  # cell ID to dry cell ID
+    dry_cell_id_to_meta = {}  # dry cell ID to meta
+    cell_id_to_latent = {}  # cell ID to latent
 
+    lyte_to_latent = {}  # electrolyte ID to latent ID weight
+    lyte_to_sol_weight = {}  # electrolyte ID to solvent ID weight
+    lyte_to_salt_weight = {}  # electrolyte ID to salt ID weight
+    lyte_to_addi_weight = {}  # electrolyte ID to additive ID weight
+
+    for cell_id in cell_id_array:
+        if cell_id in dataset[Key.CELL_TO_POS].keys():
+            cell_id_to_pos_id[cell_id] = dataset[Key.CELL_TO_POS][cell_id]
+        if cell_id in dataset[Key.CELL_TO_NEG].keys():
+            cell_id_to_neg_id[cell_id] = dataset[Key.CELL_TO_NEG][cell_id]
+        if cell_id in dataset[Key.CELL_TO_LYTE].keys():
+            cell_id_to_lyte_id[cell_id] = dataset[Key.CELL_TO_LYTE][cell_id]
+        if cell_id in dataset[Key.CELL_TO_DRY].keys():
+            dry_cell_id = dataset[Key.CELL_TO_DRY][cell_id]
+            cell_id_to_dry_cell_id[cell_id] = dry_cell_id
+
+            if dry_cell_id in dataset[Key.DRY_TO_META].keys():
+                dry_cell_id_to_meta[dry_cell_id]\
+                    = dataset[Key.DRY_TO_META][dry_cell_id]
+
+        if cell_id in dataset[Key.CELL_TO_LAT].keys():
+            cell_id_to_latent[cell_id] = dataset[Key.CELL_TO_LAT][cell_id]
+
+        if cell_id_to_latent[cell_id] < 0.5:
+            lyte_id = cell_id_to_lyte_id[cell_id]
+            if lyte_id in dataset[Key.LYTE_TO_SOL].keys():
+                lyte_to_sol_weight[lyte_id] = dataset[Key.LYTE_TO_SOL][lyte_id]
+            if lyte_id in dataset[Key.LYTE_TO_SALT].keys():
+                lyte_to_salt_weight[lyte_id] = dataset[Key.LYTE_TO_SALT][
+                    lyte_id]
+            if lyte_id in dataset[Key.LYTE_TO_ADD].keys():
+                lyte_to_addi_weight[lyte_id] = dataset[Key.LYTE_TO_ADD][lyte_id]
+            if lyte_id in dataset[Key.LYTE_TO_LAT].keys():
+                lyte_to_latent[lyte_id] = dataset[Key.LYTE_TO_LAT][lyte_id]
+
+    mess = [
+        [[s[0] for s in siw] for siw in lyte_to_sol_weight.values()],
+        [[s[0] for s in siw] for siw in lyte_to_salt_weight.values()],
+        [[s[0] for s in siw] for siw in lyte_to_addi_weight.values()],
+    ]
+
+    mol_ids = to_sorted_array(list(three_level_flatten(mess)))
+    dry_cell_ids = to_sorted_array(cell_id_to_dry_cell_id.values())
+    pos_ids = to_sorted_array(cell_id_to_pos_id.values())
+    neg_ids = to_sorted_array(cell_id_to_neg_id.values())
+    lyte_id_list = to_sorted_array(cell_id_to_lyte_id.values())
+
+    for cell_id_count, cell_id in enumerate(cell_ids):
         all_data = dataset[Key.ALL_DATA][cell_id]
         cyc_grp_dict = all_data[Key.CYC_GRP_DICT]
         max_cyc_cell = 0
@@ -344,6 +400,19 @@ def initial_processing(
             ).repeat(2).shuffle(100000).batch(options[Key.BATCH])
         )
 
+        dry_cell_to_dry_cell_name = {}
+        pos_to_pos_name = {}
+        neg_to_neg_name = {}
+        lyte_to_lyte_name = {}
+        mol_to_mol_name = {}
+
+        if dataset_names is not None:
+            pos_to_pos_name = dataset_names[Key.NAME_POS]
+            neg_to_neg_name = dataset_names[Key.NAME_NEG]
+            lyte_to_lyte_name = dataset_names[Key.NAME_LYTE]
+            mol_to_mol_name = dataset_names[Key.NAME_MOL]
+            dry_cell_to_dry_cell_name = dataset_names[Key.NAME_DRY]
+
         random_matrix_q = build_random_matrix(
             sigma = options[Key.Q_SIG],
             var_sigmas = [
@@ -363,12 +432,31 @@ def initial_processing(
             random_matrix_q = random_matrix_q,
             bottleneck = BOTTLENECK,
         )
-        student_model = DegradationModel(
+        student_model = DegradationModelStudent(
             width = options[Key.STUDENT_WIDTH],
             depth = options[Key.STUDENT_DEPTH],
+            cell_dict = id_dict_from_id_list(np.array(cell_ids)),
+            pos_dict = id_dict_from_id_list(pos_ids),
+            neg_dict = id_dict_from_id_list(neg_ids),
+            lyte_dict = id_dict_from_id_list(lyte_id_list),
+            mol_dict = id_dict_from_id_list(mol_ids),
+            dry_cell_dict = id_dict_from_id_list(dry_cell_ids),
+            cell_to_pos = cell_id_to_pos_id,
+            cell_to_neg = cell_id_to_neg_id,
+            cell_to_lyte = cell_id_to_lyte_id,
+            cell_to_dry_cell = cell_id_to_dry_cell_id,
+            dry_cell_to_meta = dry_cell_id_to_meta,
+            cell_latent_flags = cell_id_to_latent,
+            lyte_to_solvent = lyte_to_sol_weight,
+            lyte_to_salt = lyte_to_salt_weight,
+            lyte_to_additive = lyte_to_addi_weight,
+            lyte_latent_flags = lyte_to_latent,
+            names = (
+                pos_to_pos_name, neg_to_neg_name, lyte_to_lyte_name,
+                mol_to_mol_name, dry_cell_to_dry_cell_name,
+            ),
             n_sample = options[Key.N_SAMPLE],
             options = options,
-            cell_dict = id_dict_from_id_list(np.array(cell_ids)),
             random_matrix_q = random_matrix_q,
             bottleneck = BOTTLENECK,
         )
@@ -723,7 +811,6 @@ def transfer_step(train_params: dict, options: dict):
     """ One training step.
 
     Args:
-        neigh: Neighbourhood.
         train_params: Contains all necessary parameters.
         options: Options for `ml_smoothing`.
     """

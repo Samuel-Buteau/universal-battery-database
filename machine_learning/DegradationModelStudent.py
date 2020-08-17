@@ -187,7 +187,7 @@ class DegradationModelStudent(DegradationModel):
         )
 
     def call(self, call_params: dict, training = False) -> dict:
-        print("Student  called")
+        print("Student call called")
 
         cycle = call_params[Key.CYC]  # matrix; dim: [batch, 1]
         voltage_tensor = call_params[Key.V_TENSOR]  # dim: [batch, voltages]
@@ -279,7 +279,7 @@ class DegradationModelStudent(DegradationModel):
         self, indices,
         training = True, sample = False, compute_derivatives = False,
     ):
-        print("Student  called")
+        print("Student cell called")
         feats_cell_direct, loss_cell = self.cell_direct(
             indices, training = training, sample = False,
         )

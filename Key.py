@@ -105,6 +105,8 @@ class Key:
     STUDENT_SAMPLES = "student_samples"
     STUDENT_SAMPLE_COUNT = "s_sample_count"
 
+    BOTTLENECK = "bottleneck"
+
     SAMPLE_I = "sample_c"
     SAMPLE_V = "sample_v"
     SAMPLE_CYC = "sample_cycle"
@@ -123,10 +125,6 @@ class Key:
     I_MAX = "current_max_n"
     TEMP_GRID_N = "temperature_grid_n_samples"
 
-    # End: Keys in options (ml_smoothing and compile_dataset ===================
-
-    # Begin: Keys in derivatives ===============================================
-
     D_V = "d_v"
     D2_V = "d2_v"
     D3_V = "d3_v"
@@ -138,8 +136,6 @@ class Key:
     D3_CYC = "d3_cycle"
     D_CELL_FEAT = "d_features_cell"
     D2_CELL_FEAT = "d2_features_cell"
-
-    # End: Keys in derivatives =================================================
 
     """ Structured array with dtype:
         [
@@ -188,8 +184,6 @@ class Key:
     """
     REF_ALL_MATS = "all_reference_mats"
 
-    # Begin: keys inside dataset ===============================================
-
     """ (dict) Indexed by cell ID, each yields a dictionary with keys:
         [ Key.ALL_REF_MATS, Key.CYC_GRP_DICT ]
     """
@@ -225,15 +219,11 @@ class Key:
     LYTE_TO_ADD = "electrolyte_id_to_additive_id_weight"
     LYTE_TO_LAT = "electrolyte_id_to_latent"
 
-    # Begin: keys for dataset names ============================================
-
     NAME_DRY = "dry_to_dry_name"
     NAME_POS = "pos_to_pos_name"
     NAME_NEG = "neg_to_neg_name"
     NAME_LYTE = "electrolyte_to_electrolyte_name"
     NAME_MOL = "molecule_to_molecule_name"
-
-    # End: keys for dataset names ==============================================
 
     STRAT = "strategy"
     TENSORS = "compiled_tensors"

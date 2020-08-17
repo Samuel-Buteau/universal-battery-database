@@ -140,8 +140,6 @@ class DegradationModel(Model):
                 S.V.I.T. grid,
                 Count.
             training: Flag for training or evaluation.
-                True for training; False for evaluation.
-
         Returns:
             `{ Key.Pred.I_CC, Key.Pred.I_CV }`. During training, the
                 dictionary also includes Key.Loss.Q.

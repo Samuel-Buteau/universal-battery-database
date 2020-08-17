@@ -17,9 +17,6 @@ from machine_learning.DegradationModelBlackbox import (
 from machine_learning.DegradationModelStudent import DegradationModelStudent
 from machine_learning.LossRecordBlackbox import LossRecord
 
-# TODO add as command line argument:
-BOTTLENECK = 64
-
 # TODO(sam): For each cell_id, needs a multigrid of (S, V, I, T) (current
 #  needs to be adjusted)
 # TODO(sam): Each cycle must have an index mapping to the nearest reference
@@ -430,7 +427,7 @@ def initial_processing(
             options = options,
             cell_dict = id_dict_from_id_list(np.array(cell_ids)),
             random_matrix_q = random_matrix_q,
-            bottleneck = BOTTLENECK,
+            bottleneck = options[Key.BOTTLENECK],
         )
         student_model = DegradationModelStudent(
             width = options[Key.STUDENT_WIDTH],
@@ -458,7 +455,7 @@ def initial_processing(
             n_sample = options[Key.N_SAMPLE],
             options = options,
             random_matrix_q = random_matrix_q,
-            bottleneck = BOTTLENECK,
+            bottleneck = options[Key.BOTTLENECK],
         )
 
     return {
@@ -873,7 +870,8 @@ def transfer_step(train_params: dict, options: dict):
                 sampled_constant_current_sign * sampled_constant_current
             ),
             "PROJ": tf.random.uniform(
-                minval = -1., maxval = 1., shape = [n_sample, BOTTLENECK],
+                minval = -1., maxval = 1.,
+                shape = [n_sample, options[Key.BOTTLENECK]],
             ),
 
         }
@@ -1072,6 +1070,7 @@ class Command(BaseCommand):
             Key.STUDENT_WIDTH: 64,
             Key.STUDENT_EPOCHS: 6000,
             Key.BATCH: 4 * 16,
+            Key.BOTTLENECK: 64,
 
             Key.PRINT_LOSS: vis,
             Key.VIS_TEACHER: vis,

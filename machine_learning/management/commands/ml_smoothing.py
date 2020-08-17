@@ -643,10 +643,13 @@ def train_step(neigh, train_params: dict, options: dict):
         [batch_size2], minval = 0., maxval = 1., dtype = tf.float32,
     )
     cyc_indices = tf.cast(
-        (1. - cyc_indices_lerp) * tf.cast(
+        (1. - cyc_indices_lerp)
+        * tf.cast(
             neigh[:, NEIGH_MIN_CYC] + neigh[:, NEIGH_ABSOLUTE_CYC],
             tf.float32,
-        ) + cyc_indices_lerp * tf.cast(
+        )
+        + cyc_indices_lerp
+        * tf.cast(
             neigh[:, NEIGH_MAX_CYC] + neigh[:, NEIGH_ABSOLUTE_CYC],
             tf.float32,
         ),

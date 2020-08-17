@@ -404,13 +404,19 @@ class DegradationModelStudent(DegradationModel):
             )
 
         derivatives = {}
+
         if compute_derivatives:
 
             with tf.GradientTape(persistent = True) as tape_d1:
-                lyte_dependencies = (feats_solvent, feats_salt, feats_additive)
                 tape_d1.watch(feats_solvent)
                 tape_d1.watch(feats_salt)
                 tape_d1.watch(feats_additive)
+
+                lyte_dependencies = (
+                    feats_solvent,
+                    feats_salt,
+                    feats_additive,
+                )
 
                 feats_lyte_indirect = nn_call(
                     self.lyte_indirect, lyte_dependencies, training = training,
@@ -428,7 +434,12 @@ class DegradationModelStudent(DegradationModel):
 
             del tape_d1
         else:
-            lyte_dependencies = (feats_solvent, feats_salt, feats_additive)
+            lyte_dependencies = (
+                feats_solvent,
+                feats_salt,
+                feats_additive,
+            )
+
             feats_lyte_indirect = nn_call(
                 self.lyte_indirect, lyte_dependencies, training = training,
             )
@@ -455,8 +466,12 @@ class DegradationModelStudent(DegradationModel):
                 tape_d1.watch(feats_dry_cell)
 
                 cell_dependencies = (
-                    feats_pos, feats_neg, feats_lyte, feats_dry_cell,
+                    feats_pos,
+                    feats_neg,
+                    feats_lyte,
+                    feats_dry_cell,
                 )
+
                 feats_cell_indirect = nn_call(
                     self.cell_indirect, cell_dependencies, training = training,
                 )
@@ -477,7 +492,10 @@ class DegradationModelStudent(DegradationModel):
             del tape_d1
         else:
             cell_dependencies = (
-                feats_pos, feats_neg, feats_lyte, feats_dry_cell,
+                feats_pos,
+                feats_neg,
+                feats_lyte,
+                feats_dry_cell,
             )
 
             feats_cell_indirect = nn_call(

@@ -861,13 +861,13 @@ def transfer_step(train_params: dict, options: dict):
         teacher_feats_cell = tf.tile(teacher_feats_cell, [n_sample, 1])
 
         samples = {
-            Key.SAMPLE_V: tf.random.uniform(
+            Key.Sample.V: tf.random.uniform(
                 minval = 2.5, maxval = 5., shape = [n_sample, 1],
             ),
-            Key.SAMPLE_CYC: max_cycles * tf.random.uniform(
+            Key.Sample.CYC: max_cycles * tf.random.uniform(
                 minval = -.0001, maxval = 2., shape = [n_sample, 1],
             ),
-            Key.SAMPLE_I: (
+            Key.Sample.I: (
                 sampled_constant_current_sign * sampled_constant_current
             ),
             "PROJ": tf.random.uniform(
@@ -879,32 +879,32 @@ def transfer_step(train_params: dict, options: dict):
 
         with tf.GradientTape() as student_tape:
             teacher_q, teacher_q_der = teacher_model.transfer_q(
-                cycle = samples[Key.SAMPLE_CYC],
-                voltage = samples[Key.SAMPLE_V],
-                current = samples[Key.SAMPLE_I],
+                cycle = samples[Key.Sample.CYC],
+                voltage = samples[Key.Sample.V],
+                current = samples[Key.Sample.I],
                 cell_feat = teacher_feats_cell,
                 proj = samples["PROJ"],
             )
             student_q, student_q_der = student_model.transfer_q(
-                cycle = samples[Key.SAMPLE_CYC],
-                voltage = samples[Key.SAMPLE_V],
-                current = samples[Key.SAMPLE_I],
+                cycle = samples[Key.Sample.CYC],
+                voltage = samples[Key.Sample.V],
+                current = samples[Key.Sample.I],
                 cell_feat = student_feats_cell,
                 proj = samples["PROJ"],
             )
 
             teacher_b, teacher_b_der = teacher_model.transfer_q(
-                cycle = samples[Key.SAMPLE_CYC],
-                voltage = samples[Key.SAMPLE_V],
-                current = samples[Key.SAMPLE_I],
+                cycle = samples[Key.Sample.CYC],
+                voltage = samples[Key.Sample.V],
+                current = samples[Key.Sample.I],
                 cell_feat = teacher_feats_cell,
                 proj = samples["PROJ"],
                 get_bottleneck = True,
             )
             student_b, student_b_der = student_model.transfer_q(
-                cycle = samples[Key.SAMPLE_CYC],
-                voltage = samples[Key.SAMPLE_V],
-                current = samples[Key.SAMPLE_I],
+                cycle = samples[Key.Sample.CYC],
+                voltage = samples[Key.Sample.V],
+                current = samples[Key.Sample.I],
                 cell_feat = student_feats_cell,
                 proj = samples["PROJ"],
                 get_bottleneck = True,
@@ -1066,10 +1066,10 @@ class Command(BaseCommand):
 
             Key.TEACHER_DEPTH: 3,
             Key.TEACHER_WIDTH: 64,
-            Key.TEACHER_EPOCHS: 2000,
+            Key.TEACHER_EPOCHS: 6,
             Key.STUDENT_DEPTH: 3,
             Key.STUDENT_WIDTH: 64,
-            Key.STUDENT_EPOCHS: 6000,
+            Key.STUDENT_EPOCHS: 200,
             Key.BATCH: 4 * 16,
             Key.BOTTLENECK: 64,
 

@@ -107,10 +107,10 @@ class Key:
 
     BOTTLENECK = "bottleneck"
 
-    SAMPLE_I = "sample_c"
-    SAMPLE_V = "sample_v"
-    SAMPLE_CYC = "sample_cycle"
-    SAMPLE_CELL_FEAT = "sample_cell_feat"
+    class Sample:
+        I = "sam_curr"
+        V = "sam_v"
+        CYC = "sam_cyc"
 
     BATCH = "batch_size"
 

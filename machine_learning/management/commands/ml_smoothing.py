@@ -453,6 +453,7 @@ def initial_processing(
                 mol_to_mol_name, dry_cell_to_dry_cell_name,
             ),
             n_sample = options[Key.N_SAMPLE],
+            min_latent = options[Key.MIN_LAT],
             options = options,
             random_matrix_q = random_matrix_q,
             bottleneck = options[Key.BOTTLENECK],
@@ -1029,7 +1030,7 @@ class Command(BaseCommand):
             Key.Coeff.CELL_DER: .1,
             Key.Coeff.CELL_EQ: 10.,
 
-            Key.Coeff.LYTE: 1.,
+            Key.Coeff.LYTE: .05,
             Key.Coeff.LYTE_OUT: .1,
             Key.Coeff.LYTE_IN: .1,
             Key.Coeff.LYTE_DER: .1,

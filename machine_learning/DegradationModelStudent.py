@@ -25,13 +25,14 @@ class DegradationModelStudent(DegradationModel):
         cell_to_lyte, cell_to_dry_cell, dry_cell_to_meta,
         lyte_to_solvent, lyte_to_salt, lyte_to_additive, lyte_latent_flags,
         names,
-        n_channels = 16,
+        n_channels = 16, min_latent = 0.1
     ):
         super(DegradationModel, self).__init__(
             depth, width, bottleneck, n_sample, options, cell_dict,
             random_matrix_q, 4, n_channels,
         )
         self.num_feats = width
+        self.min_latent = min_latent
 
         self.dry_cell_direct = PrimitiveDictionaryLayer(
             num_feats = 6, id_dict = dry_cell_dict,
@@ -83,6 +84,22 @@ class DegradationModelStudent(DegradationModel):
         self.mol_direct = PrimitiveDictionaryLayer(
             num_feats = self.num_feats, id_dict = mol_dict,
         )
+
+        self.num_keys = self.cell_direct.num_keys
+
+        # cell_latent_flags is a dict with cell_ids as keys.
+        # latent_flags is a numpy array such that the indecies match cell_dict
+        latent_flags = np.ones(
+            (self.cell_direct.num_keys, 1), dtype = np.float32,
+        )
+
+        for cell_id in self.cell_direct.id_dict.keys():
+            if cell_id in cell_latent_flags.keys():
+                latent_flags[
+                    self.cell_direct.id_dict[cell_id], 0,
+                ] = cell_latent_flags[cell_id]
+
+        self.cell_latent_flags = tf.constant(latent_flags)
 
         cell_pointers = np.zeros(
             shape = (self.cell_direct.num_keys, 4), dtype = np.int32
@@ -695,7 +712,6 @@ class DegradationModelStudent(DegradationModel):
         Returns:
             Computed constant-current capacity.
         """
-
         encoded_stress = self.stress_to_encoded_direct(
             svit_grid = params[Key.SVIT_GRID],
             count_matrix = params[Key.COUNT_MATRIX],
@@ -780,7 +796,6 @@ class DegradationModelStudent(DegradationModel):
         self, cycle, v, feats_cell, current, encoded_stress,
         training = True, get_bottleneck = False,
     ):
-
         inputs = [cycle, v, current, encoded_stress]
         if self.fourier_features:
             b, d, f = len(cycle), self.q_param_count, self.f

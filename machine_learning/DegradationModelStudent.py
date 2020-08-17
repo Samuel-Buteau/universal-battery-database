@@ -31,6 +31,7 @@ class DegradationModelStudent(DegradationModel):
             depth, width, bottleneck, n_sample, options, cell_dict,
             random_matrix_q, 4, n_channels,
         )
+        print("Student init called")
         self.num_feats = width
         self.min_latent = min_latent
 
@@ -186,6 +187,7 @@ class DegradationModelStudent(DegradationModel):
         )
 
     def call(self, call_params: dict, training = False) -> dict:
+        print("Student  called")
 
         cycle = call_params[Key.CYC]  # matrix; dim: [batch, 1]
         voltage_tensor = call_params[Key.V_TENSOR]  # dim: [batch, voltages]
@@ -277,6 +279,7 @@ class DegradationModelStudent(DegradationModel):
         self, indices,
         training = True, sample = False, compute_derivatives = False,
     ):
+        print("Student  called")
         feats_cell_direct, loss_cell = self.cell_direct(
             indices, training = training, sample = False,
         )
@@ -630,6 +633,7 @@ class DegradationModelStudent(DegradationModel):
     def sample_with_cell_chem(
         self, svit_grid, batch_count, count_matrix, n_sample = 4 * 32,
     ):
+        print("Student sample called")
 
         sampled_vs = tf.random.uniform(
             minval = 2.5, maxval = 5., shape = [n_sample, 1],
@@ -712,6 +716,7 @@ class DegradationModelStudent(DegradationModel):
         Returns:
             Computed constant-current capacity.
         """
+        print("Student cc cap called")
         encoded_stress = self.stress_to_encoded_direct(
             svit_grid = params[Key.SVIT_GRID],
             count_matrix = params[Key.COUNT_MATRIX],
@@ -749,6 +754,7 @@ class DegradationModelStudent(DegradationModel):
         Returns:
             Computed constant-voltage capacity.
         """
+        print("Student cv cap called")
         encoded_stress = self.stress_to_encoded_direct(
             svit_grid = params[Key.SVIT_GRID],
             count_matrix = params[Key.COUNT_MATRIX],
@@ -788,6 +794,7 @@ class DegradationModelStudent(DegradationModel):
          Returns:
             (svit_grid, count_matrix) and the training flag.
         """
+        print("Student stress called")
         return self.stress_to_encoded_layer(
             (svit_grid, count_matrix), training = training,
         )
@@ -796,6 +803,7 @@ class DegradationModelStudent(DegradationModel):
         self, cycle, v, feats_cell, current, encoded_stress,
         training = True, get_bottleneck = False,
     ):
+        print("Student q called")
         inputs = [cycle, v, current, encoded_stress]
         if self.fourier_features:
             b, d, f = len(cycle), self.q_param_count, self.f

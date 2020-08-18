@@ -121,39 +121,9 @@ def three_level_flatten(iterables):
                 yield element
 
 
-def initial_processing(
-    dataset: dict, dataset_names, cell_ids, options: dict, strategy,
-) -> dict:
-    """ Handle the initial data processing
-    Args:
-        dataset: Contains the quantities given in the dataset.
-        dataset_names:
-        cell_ids:
-        options: Parameters used to tune the machine learning fitting process.
-        strategy:
-    Returns:
-        { Key.STRAT, Key.MODEL, Key.TENSORS, Key.TRAIN_DS, Key.CYC_M,
-          Key.CYC_V, Key.OPT, Key.MY_DATA }
+def build_chem_dicts(cell_id_array, dataset):
+    """ Build the dictionaries used to retrieve cell chemistry information. """
 
-    """
-    # TODO (harvey): Cleanup Docstring, maybe put detailed description elsewhere
-    #   An appropriate place might be in the docstring for
-    #   classes inside cycling.Key
-
-    compiled_data = {}
-    compiled_cycs_count, reference_cycs_count = 0, 0
-    dataset[Key.Q_MAX] = 250
-    max_cap = dataset[Key.Q_MAX]
-    keys = [Key.V_GRID, Key.TEMP_GRID, Key.SIGN_GRID]
-    for key in keys:
-        numpy_acc(compiled_data, key, np.array([dataset[key]]))
-
-    dataset[Key.I_GRID] = dataset[Key.I_GRID] - np.log(max_cap)
-    # the current grid is adjusted by the max capacity of the cell_id. It is
-    # in log space, so I/q becomes log(I) - log(q)
-    numpy_acc(compiled_data, Key.I_GRID, np.array([dataset[Key.I_GRID]]))
-
-    cell_id_array = np.array(cell_ids)  # cell ID array
     cell_id_to_pos_id = {}  # cell ID to positive electrode ID
     cell_id_to_neg_id = {}  # cell ID to negative electrode ID
     cell_id_to_lyte_id = {}  # cell ID to electrolyte ID
@@ -207,6 +177,29 @@ def initial_processing(
     pos_ids = to_sorted_array(cell_id_to_pos_id.values())
     neg_ids = to_sorted_array(cell_id_to_neg_id.values())
     lyte_id_list = to_sorted_array(cell_id_to_lyte_id.values())
+
+    return (
+        pos_ids, neg_ids, lyte_id_list, mol_ids, dry_cell_ids,
+        cell_id_to_pos_id, cell_id_to_neg_id, cell_id_to_lyte_id,
+        cell_id_to_dry_cell_id, dry_cell_id_to_meta, cell_id_to_latent,
+        lyte_to_sol_weight, lyte_to_salt_weight, lyte_to_addi_weight,
+        lyte_to_latent,
+    )
+
+
+def compile_tensors(dataset, cell_ids):
+    compiled_data = {}
+    compiled_cycs_count, reference_cycs_count = 0, 0
+    dataset[Key.Q_MAX] = 250
+    max_cap = dataset[Key.Q_MAX]
+    keys = [Key.V_GRID, Key.TEMP_GRID, Key.SIGN_GRID]
+    for key in keys:
+        numpy_acc(compiled_data, key, np.array([dataset[key]]))
+
+    dataset[Key.I_GRID] = dataset[Key.I_GRID] - np.log(max_cap)
+    # the current grid is adjusted by the max capacity of the cell_id. It is
+    # in log space, so I/q becomes log(I) - log(q)
+    numpy_acc(compiled_data, Key.I_GRID, np.array([dataset[Key.I_GRID]]))
 
     for cell_id_count, cell_id in enumerate(cell_ids):
         all_data = dataset[Key.ALL_DATA][cell_id]
@@ -367,8 +360,6 @@ def initial_processing(
                 numpy_acc(compiled_data, key, dict_to_acc[key])
         numpy_acc(compiled_data, "MAX_CYCLE_CELL", np.array([max_cyc_cell]))
 
-    neigh_data = tf.constant(compiled_data[Key.NEIGH_DATA])
-
     compiled_tensors = {}
     # cycles go from 0 to 6000, but nn prefers normally distributed variables
     # so cycle numbers is normalized with mean and variance
@@ -389,6 +380,38 @@ def initial_processing(
     ]
     for label in labels:
         compiled_tensors[label] = tf.constant(compiled_data[label])
+
+    neigh_data = tf.constant(compiled_data[Key.NEIGH_DATA])
+    return neigh_data, compiled_tensors, cycle_m, cycle_v,
+
+
+def initial_processing(
+    dataset: dict, dataset_names, cell_ids, options: dict, strategy,
+) -> dict:
+    """ Handle the initial data processing
+    Args:
+        dataset: Contains the quantities given in the dataset.
+        dataset_names:
+        cell_ids:
+        options: Parameters used to tune the machine learning fitting process.
+        strategy:
+    Returns:
+        { Key.STRAT, Key.MODEL, Key.TENSORS, Key.TRAIN_DS, Key.CYC_M,
+          Key.CYC_V, Key.OPT, Key.MY_DATA }
+
+    """
+
+    (
+        pos_ids, neg_ids, lyte_id_list, mol_ids, dry_cell_ids,
+        cell_id_to_pos_id, cell_id_to_neg_id, cell_id_to_lyte_id,
+        cell_id_to_dry_cell_id, dry_cell_id_to_meta, cell_id_to_latent,
+        lyte_to_sol_weight, lyte_to_salt_weight, lyte_to_addi_weight,
+        lyte_to_latent,
+    ) = build_chem_dicts(np.array(cell_ids), dataset)
+    
+    (
+        neigh_data, compiled_tensors, cycle_m, cycle_v,
+    ) = compile_tensors(dataset, cell_ids)
 
     with strategy.scope():
         train_ds = strategy.experimental_distribute_dataset(

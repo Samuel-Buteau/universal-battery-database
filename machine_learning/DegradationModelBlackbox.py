@@ -83,7 +83,7 @@ class DegradationModel(Model):
         Args:
             options: Used to access the incentive coefficients.
         """
-        super(DegradationModel, self).__init__()
+        super().__init__()
 
         self.sample_count = n_sample  # number of samples
         self.options = options  # incentive coefficients

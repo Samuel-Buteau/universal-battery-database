@@ -105,13 +105,12 @@ def ml_smoothing(options) -> None:
 
 # TODO(sam): these huge tensors would be much easier to understand with
 #  ragged tensors. Right now, I am just flattening everything.
-def numpy_acc(dict, key, data):
-    if key in dict.keys():
-        dict[key] = np.concatenate((dict[key], data))
+def numpy_acc(dictionary, key, data):
+    if key in dictionary.keys():
+        dictionary[key] = np.concatenate((dictionary[key], data))
     else:
-        dict[key] = data
-
-    return dict
+        dictionary[key] = data
+    return dictionary
 
 
 def three_level_flatten(iterables):
@@ -256,20 +255,20 @@ def compile_tensors(dataset, cell_ids):
             # commit the ones that contain good data to the dataset
             neigh_data = []
             valid_cycs = 0
-            for cyc in all_neigh_center_cycs:
-                # max_cyc and min_cyc are the limits of existing cycles.
 
+            for cyc in all_neigh_center_cycs:
+
+                # max_cyc and min_cyc are the limits of existing cycles.
                 below_cyc, above_cyc = cyc - delta, cyc + delta
 
-                # numpy array of True and False; same length as cyc_grp_dict[k]
-                # False when cycle_number falls outside out of
-                # [below_cyc, above_cyc] interval
+                # np array of True and False; same length as cyc_grp_dict[k]
+                # False when cycle_number out of [below_cyc, above_cyc] interval
                 mask = np.logical_and(
                     below_cyc <= main_data[Key.N],
                     main_data[Key.N] <= above_cyc,
                 )
 
-                # the indices for the cyc_grp_dict[k] array which correspond
+                # indices for cyc_grp_dict[k] array which correspond
                 # to a True mask
                 all_valid_indices = np.arange(len(mask))[mask]
 
@@ -277,11 +276,8 @@ def compile_tensors(dataset, cell_ids):
                 if len(all_valid_indices) == 0:
                     continue
 
-                """
-                at this point, we know that this neighborhood
-                will be added to the dataset.
-                """
-
+                # at this point, we know that this neighborhood
+                # will be added to the dataset.
                 min_cyc_index = all_valid_indices[0]
                 max_cyc_index = all_valid_indices[-1]
 
@@ -289,7 +285,6 @@ def compile_tensors(dataset, cell_ids):
 
                 """
                 this commits the neighborhood to the dataset
-
                 - record the info about the center of the neighborhood
                   (cycle number, voltage, rate of charge, rate of discharge)
                 - record the relative index (within the cycle group)
@@ -299,7 +294,6 @@ def compile_tensors(dataset, cell_ids):
                 - record the absolute index into the table of cycles
                   (len(cycles_full)).
                 - keep a slot empty for later
-
                 """
 
                 neigh_data_i = np.zeros(NEIGH_TOTAL, dtype = np.int32)
@@ -343,21 +337,26 @@ def compile_tensors(dataset, cell_ids):
             dict_to_acc = {
                 Key.REF_CYC: all_data[Key.REF_ALL_MATS][Key.N],
                 Key.COUNT_MATRIX: all_data[Key.REF_ALL_MATS][Key.COUNT_MATRIX],
+
                 Key.CYC: main_data[Key.N],
-                Key.V_CC_VEC: main_data[Key.V_CC_VEC],
+
                 Key.Q_CC_VEC: main_data[Key.Q_CC_VEC],
-                Key.MASK_CC_VEC: main_data[Key.MASK_CC_VEC],
-                Key.I_CV_VEC: main_data[Key.I_CV_VEC],
                 Key.Q_CV_VEC: main_data[Key.Q_CV_VEC],
-                Key.MASK_CV_VEC: main_data[Key.MASK_CV_VEC],
+
                 Key.I_CC: main_data[Key.I_CC],
+                Key.I_CV_VEC: main_data[Key.I_CV_VEC],
                 Key.I_PREV_END: main_data[Key.I_PREV_END],
+
+                Key.V_CC_VEC: main_data[Key.V_CC_VEC],
                 Key.V_PREV_END: main_data[Key.V_PREV_END],
                 Key.V_END: main_data[Key.V_END],
-            }
 
+                Key.MASK_CC_VEC: main_data[Key.MASK_CC_VEC],
+                Key.MASK_CV_VEC: main_data[Key.MASK_CV_VEC],
+            }
             for key in dict_to_acc:
                 numpy_acc(compiled_data, key, dict_to_acc[key])
+
         numpy_acc(compiled_data, "MAX_CYCLE_CELL", np.array([max_cyc_cell]))
 
     compiled_tensors = {}
@@ -408,7 +407,7 @@ def initial_processing(
         lyte_to_sol_weight, lyte_to_salt_weight, lyte_to_addi_weight,
         lyte_to_latent,
     ) = build_chem_dicts(np.array(cell_ids), dataset)
-    
+
     (
         neigh_data, compiled_tensors, cycle_m, cycle_v,
     ) = compile_tensors(dataset, cell_ids)

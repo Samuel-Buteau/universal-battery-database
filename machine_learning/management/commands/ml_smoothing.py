@@ -596,66 +596,13 @@ def train_and_evaluate(
                 print("Time to plot: {}\n".format(end - start))
 
 
-def train_step(neigh, train_params: dict, options: dict):
-    """ One training step.
-
-    Args:
-        neigh: Neighbourhood.
-        train_params: Contains all necessary parameters.
-        options: Options for `ml_smoothing`.
-    """
-    # need to split the range
-    batch_size2 = neigh.shape[0]
-
-    teacher_model = train_params[Key.Teacher.MODEL]
-    teacher_optimizer = train_params[Key.TEACHER_OPTIMIZER]
-
-    compiled_tensors = train_params[Key.TENSORS]
-
+def get_svit_and_count(neigh, compiled_tensors, batch_size2):
     sign_grid_tensor = compiled_tensors[Key.SIGN_GRID]
     voltage_grid_tensor = compiled_tensors[Key.V_GRID]
     current_grid_tensor = compiled_tensors[Key.I_GRID]
     tmp_grid_tensor = compiled_tensors[Key.TEMP_GRID]
 
     count_matrix_tensor = compiled_tensors[Key.COUNT_MATRIX]
-    cycle_tensor = compiled_tensors[Key.CYC]
-    constant_current_tensor = compiled_tensors[Key.I_CC]
-    end_current_prev_tensor = compiled_tensors[Key.I_PREV_END]
-    end_voltage_prev_tensor = compiled_tensors[Key.V_PREV_END]
-    end_voltage_tensor = compiled_tensors[Key.V_END]
-
-    cc_voltage_tensor = compiled_tensors[Key.V_CC_VEC]
-    cc_capacity_tensor = compiled_tensors[Key.Q_CC_VEC]
-    cc_mask_tensor = compiled_tensors[Key.MASK_CC_VEC]
-    cv_capacity_tensor = compiled_tensors[Key.Q_CV_VEC]
-    cv_current_tensor = compiled_tensors[Key.I_CV_VEC]
-    cv_mask_tensor = compiled_tensors[Key.MASK_CV_VEC]
-
-    """
-    if you have the minimum cycle and maximum cycle for a neighborhood,
-    you can sample cycle from this neighborhood by sampling real numbers
-    x from [0,1] and computing min_cyc*(1.-x) + max_cyc*x,
-    but here this computation is done in index space,
-    then cycle numbers and vq curves are gathered
-    """
-
-    cyc_indices_lerp = tf.random.uniform(
-        [batch_size2], minval = 0., maxval = 1., dtype = tf.float32,
-    )
-    cyc_indices = tf.cast(
-        (1. - cyc_indices_lerp)
-        * tf.cast(
-            neigh[:, NEIGH_MIN_CYC] + neigh[:, NEIGH_ABSOLUTE_CYC],
-            tf.float32,
-        )
-        + cyc_indices_lerp
-        * tf.cast(
-            neigh[:, NEIGH_MAX_CYC] + neigh[:, NEIGH_ABSOLUTE_CYC],
-            tf.float32,
-        ),
-        tf.int32,
-    )
-
     sign_grid = tf.gather(
         sign_grid_tensor, indices = neigh[:, NEIGH_SIGN_GRID], axis = 0,
     )
@@ -714,6 +661,67 @@ def train_step(neigh, train_params: dict, options: dict):
             batch_size2, sign_grid_dim, voltage_grid_dim, current_grid_dim,
             tmp_grid_dim, 1,
         ],
+    )
+
+    return svit_grid, count_matrix
+
+
+def train_step(neigh, train_params: dict, options: dict):
+    """ One training step.
+
+    Args:
+        neigh: Neighbourhood.
+        train_params: Contains all necessary parameters.
+        options: Options for `ml_smoothing`.
+    """
+    # need to split the range
+    batch_size2 = neigh.shape[0]
+
+    teacher_model = train_params[Key.Teacher.MODEL]
+    teacher_optimizer = train_params[Key.TEACHER_OPTIMIZER]
+
+    compiled_tensors = train_params[Key.TENSORS]
+
+    cycle_tensor = compiled_tensors[Key.CYC]
+    constant_current_tensor = compiled_tensors[Key.I_CC]
+    end_current_prev_tensor = compiled_tensors[Key.I_PREV_END]
+    end_voltage_prev_tensor = compiled_tensors[Key.V_PREV_END]
+    end_voltage_tensor = compiled_tensors[Key.V_END]
+
+    cc_voltage_tensor = compiled_tensors[Key.V_CC_VEC]
+    cc_capacity_tensor = compiled_tensors[Key.Q_CC_VEC]
+    cc_mask_tensor = compiled_tensors[Key.MASK_CC_VEC]
+    cv_capacity_tensor = compiled_tensors[Key.Q_CV_VEC]
+    cv_current_tensor = compiled_tensors[Key.I_CV_VEC]
+    cv_mask_tensor = compiled_tensors[Key.MASK_CV_VEC]
+
+    """
+    if you have the minimum cycle and maximum cycle for a neighborhood,
+    you can sample cycle from this neighborhood by sampling real numbers
+    x from [0,1] and computing min_cyc*(1.-x) + max_cyc*x,
+    but here this computation is done in index space,
+    then cycle numbers and vq curves are gathered
+    """
+
+    cyc_indices_lerp = tf.random.uniform(
+        [batch_size2], minval = 0., maxval = 1., dtype = tf.float32,
+    )
+    cyc_indices = tf.cast(
+        (1. - cyc_indices_lerp)
+        * tf.cast(
+            neigh[:, NEIGH_MIN_CYC] + neigh[:, NEIGH_ABSOLUTE_CYC],
+            tf.float32,
+        )
+        + cyc_indices_lerp
+        * tf.cast(
+            neigh[:, NEIGH_MAX_CYC] + neigh[:, NEIGH_ABSOLUTE_CYC],
+            tf.float32,
+        ),
+        tf.int32,
+    )
+
+    svit_grid, count_matrix = get_svit_and_count(
+        neigh, compiled_tensors, batch_size2,
     )
 
     cycle = tf.gather(cycle_tensor, indices = cyc_indices, axis = 0)

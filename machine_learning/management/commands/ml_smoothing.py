@@ -980,9 +980,9 @@ def transfer_step(train_params: dict, options: dict):
         gradients_student = student_tape.gradient(
             student_loss, student_model.trainable_variables,
         )
-        for x in gradients_student:
-            if x is None:
-                gradients_student.remove(x)
+        while None in gradients_student:
+            gradients_student.remove(None)
+
         gradients_no_nans_student = [
             tf.where(tf.math.is_nan(x), tf.zeros_like(x), x)
             for x in gradients_student

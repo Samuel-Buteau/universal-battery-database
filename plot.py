@@ -1,5 +1,4 @@
 import os
-import sys
 
 import numpy as np
 import tensorflow as tf
@@ -13,7 +12,7 @@ from cycling.models import (
     compute_from_database, make_file_legends_and_vertical, get_byte_image,
 )
 from machine_learning.DegradationModelBlackbox import DegradationModel
-from cycling.Print import Print
+from Print import Print
 
 matplotlib_axes_logger.setLevel("ERROR")
 from plot_constants import *

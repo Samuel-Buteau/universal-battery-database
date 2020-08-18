@@ -851,7 +851,7 @@ def transfer_step(train_params: dict, options: dict):
             tf.reshape(max_cyc_cell_tensor, [-1, 1]), sample_indices, axis = 0,
         )
 
-        student_feats_cell = student_model.cell_from_indices(
+        student_feats_cell, _, _ = student_model.cell_from_indices(
             indices = sample_indices, training = False, sample = True,
         )
         teacher_feats_cell = teacher_model.cell_from_indices(

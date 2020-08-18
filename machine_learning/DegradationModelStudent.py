@@ -27,12 +27,11 @@ class DegradationModelStudent(DegradationModel):
         names,
         n_channels = 16, min_latent = 0.1
     ):
-        super(DegradationModel, self).__init__(
+        super().__init__(
             depth, width, bottleneck, n_sample, options, cell_dict,
             random_matrix_q, 4, n_channels,
         )
 
-        print("Student init called")
         self.num_feats = width
         self.min_latent = min_latent
 

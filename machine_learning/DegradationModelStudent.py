@@ -821,7 +821,7 @@ class DegradationModelStudent(DegradationModel):
         training = True, get_bottleneck = False,
     ):
         print("Student q called")
-        inputs = [cycle, v, current, encoded_stress]
+        inputs = [cycle, v, current]
         if self.fourier_features:
             b, d, f = len(cycle), self.q_param_count, self.f
             input_vector = tf.concat(inputs, axis = 1)
@@ -834,6 +834,7 @@ class DegradationModelStudent(DegradationModel):
             dependencies = (
                 tf.math.sin(dot_product),
                 tf.math.cos(dot_product),
+                encoded_stress,
                 feats_cell,
             )
         else:

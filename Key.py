@@ -96,9 +96,12 @@ class Key:
     T_MAX_V_GRID = "temperature_grid_max_v"
 
     SAMPLE_COUNT = "n_sample"
-    TEACHER_MODEL = "teacher_model"
-    TEACHER_WIDTH = "teacher_width"
-    TEACHER_DEPTH = "teacher_depth"
+
+    class Teacher:
+        MODEL = "teacher_model"
+        WIDTH = "teacher_width"
+        DEPTH = "teacher_depth"
+
     STUDENT_MODEL = "student_model"
     STUDENT_WIDTH = "student_width"
     STUDENT_DEPTH = "student_depth"
@@ -112,7 +115,7 @@ class Key:
         V = "sam_v"
         CYC = "sam_cyc"
 
-    BATCH = "batch_size"
+    BATCH_SIZE = "batch_size"
 
     PRINT_LOSS = "print_loss_every"
     VIS_TEACHER = "visualize_fit_every"

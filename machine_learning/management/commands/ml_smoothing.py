@@ -394,7 +394,7 @@ def initial_processing(
         train_ds = strategy.experimental_distribute_dataset(
             tf.data.Dataset.from_tensor_slices(
                 neigh_data
-            ).repeat(2).shuffle(100000).batch(options[Key.BATCH])
+            ).repeat(2).shuffle(100000).batch(options[Key.BATCH_SIZE])
         )
 
         dry_cell_to_dry_cell_name = {}
@@ -421,8 +421,8 @@ def initial_processing(
         )
 
         teacher_model = DegradationModel(
-            width = options[Key.TEACHER_WIDTH],
-            depth = options[Key.TEACHER_DEPTH],
+            width = options[Key.Teacher.WIDTH],
+            depth = options[Key.Teacher.DEPTH],
             n_sample = options[Key.SAMPLE_COUNT],
             options = options,
             cell_dict = id_dict_from_id_list(np.array(cell_ids)),
@@ -461,7 +461,7 @@ def initial_processing(
 
     return {
         Key.STRAT: strategy,
-        Key.TEACHER_MODEL: teacher_model,
+        Key.Teacher.MODEL: teacher_model,
         Key.STUDENT_MODEL: student_model,
         Key.TENSORS: compiled_tensors,
         Key.TRAIN_DS: train_ds,
@@ -506,7 +506,7 @@ def train_and_evaluate(
         Key.TENSORS: init_returns[Key.TENSORS],
         Key.TEACHER_OPTIMIZER: init_returns[Key.TEACHER_OPTIMIZER],
         Key.STUDENT_OPTIMIZER: init_returns[Key.STUDENT_OPTIMIZER],
-        Key.TEACHER_MODEL: init_returns[Key.TEACHER_MODEL],
+        Key.Teacher.MODEL: init_returns[Key.Teacher.MODEL],
         Key.STUDENT_MODEL: init_returns[Key.STUDENT_MODEL],
     }
 
@@ -607,7 +607,7 @@ def train_step(neigh, train_params: dict, options: dict):
     # need to split the range
     batch_size2 = neigh.shape[0]
 
-    teacher_model = train_params[Key.TEACHER_MODEL]
+    teacher_model = train_params[Key.Teacher.MODEL]
     teacher_optimizer = train_params[Key.TEACHER_OPTIMIZER]
 
     compiled_tensors = train_params[Key.TENSORS]
@@ -818,7 +818,7 @@ def transfer_step(train_params: dict, options: dict):
     # need to split the range
     sample_count = options[Key.STUDENT_SAMPLE_COUNT]
 
-    teacher_model = train_params[Key.TEACHER_MODEL]
+    teacher_model = train_params[Key.Teacher.MODEL]
     student_model = train_params[Key.STUDENT_MODEL]
 
     student_optimizer = train_params[Key.STUDENT_OPTIMIZER]

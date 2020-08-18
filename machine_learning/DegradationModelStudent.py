@@ -31,6 +31,7 @@ class DegradationModelStudent(DegradationModel):
             depth, width, bottleneck, n_sample, options, cell_dict,
             random_matrix_q, 4, n_channels,
         )
+
         print("Student init called")
         self.num_feats = width
         self.min_latent = min_latent
@@ -125,7 +126,6 @@ class DegradationModelStudent(DegradationModel):
                 ] = dry_cell_dict[cell_to_dry_cell[cell_id]]
 
         self.cell_pointers = tf.constant(cell_pointers)
-
         self.cell_indirect = feedforward_nn_parameters(
             depth, width, last = self.num_feats,
         )

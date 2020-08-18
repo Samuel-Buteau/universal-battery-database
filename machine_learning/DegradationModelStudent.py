@@ -852,3 +852,62 @@ class DegradationModelStudent(DegradationModel):
                 training = training, get_bottleneck = get_bottleneck,
             )
             return res
+
+    def q_with_stress_for_derivative(self, params: dict, training = True):
+        """ Wrapper function calling `q_direct`, to be passed in to
+        `create_derivatives` to compute state of charge and its first
+        derivative.
+
+        Args:
+            params: Contains input parameters for computing state of charge (q).
+            training: Flag for training or evaluation.
+        Returns:
+            Computed state of charge; same as that for `q_direct`.
+        """
+        encoded_stress = self.stress_to_encoded_direct(
+            svit_grid = params[Key.SVIT_GRID],
+            count_matrix = params[Key.COUNT_MATRIX],
+        )
+        if 'get_bottleneck' in params.keys() and params["get_bottleneck"]:
+            q, bottleneck = self.q_with_stress_direct(
+                cycle = params[Key.CYC],
+                feats_cell = params[Key.CELL_FEAT],
+                v = params[Key.V],
+                current = params[Key.I],
+                encoded_stress = encoded_stress,
+                training = training,
+                get_bottleneck = params["get_bottleneck"]
+            )
+
+            return tf.reduce_mean(
+                bottleneck * params["PROJ"], axis = -1, keepdims = True,
+            )
+        else:
+            return self.q_with_stress_direct(
+                cycle = params[Key.CYC],
+                feats_cell = params[Key.CELL_FEAT],
+                v = params[Key.V],
+                encoded_stress = encoded_stress,
+                current = params[Key.I],
+                training = training,
+            )
+
+    def transfer_q_with_stress(
+        self, cycle, voltage, cell_feat, current, svit_grid, count_matrix, proj,
+        get_bottleneck = False,
+    ):
+        q, q_der = create_derivatives(
+            self.q_with_stress_for_derivative,
+            params = {
+                Key.CYC: cycle,
+                Key.V: voltage,
+                Key.CELL_FEAT: cell_feat,
+                Key.I: current,
+                Key.SVIT_GRID: svit_grid,
+                Key.COUNT_MATRIX: count_matrix,
+                "get_bottleneck": get_bottleneck,
+                "PROJ": proj,
+            },
+            der_params = {Key.V: 2, Key.CELL_FEAT: 0, Key.I: 2, Key.CYC: 2},
+        )
+        return q, q_der

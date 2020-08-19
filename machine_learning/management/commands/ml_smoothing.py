@@ -1096,17 +1096,18 @@ class Command(BaseCommand):
         # TODO: potential bug - N_SAMPLE and STUDENT_SAMPLE_COUNT mixed
 
         vis = 1000
+        nn_width = 64
         int_args = {
             Key.FOUR_FEAT: 1,
             Key.SAMPLE_COUNT: 1 * 16,
 
-            Key.TEACHER_DEPTH: 3,
-            Key.TEACHER_WIDTH: 64,
-            Key.TEACHER_EPOCHS: 6,
-            Key.STUDENT_DEPTH: 3,
-            Key.STUDENT_WIDTH: 64,
+            Key.Teacher.DEPTH: 3,
+            Key.Teacher.WIDTH: 64,
+            Key.TEACHER_EPOCHS: 6000,
+            Key.STUDENT_DEPTH: nn_width
+            Key.STUDENT_WIDTH: nn_width,
             Key.STUDENT_EPOCHS: 200,
-            Key.BATCH: 4 * 16,
+            Key.BATCH_SIZE: 64,
             Key.BOTTLENECK: 64,
 
             Key.PRINT_LOSS: vis,

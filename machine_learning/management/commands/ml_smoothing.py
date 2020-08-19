@@ -219,8 +219,8 @@ def compile_tensors(dataset, cell_ids):
 
             # normalize capacity_vector with max_cap
             normalize_keys = [
-                Key.Q_CC_TENSOR, Key.Q_CV_TENSOR, Key.Q_CC_LAST, Key.Q_CV_LAST,
-                Key.I_CV_TENSOR, Key.I_CC, Key.I_PREV_END,
+                Key.Q_CC_VEC, Key.Q_CV_VEC, Key.Q_CC_LAST, Key.Q_CV_LAST,
+                Key.I_CV_VEC, Key.I_CC, Key.I_PREV_END,
             ]
             for key in normalize_keys:
                 main_data[key] = 1. / max_cap * main_data[key]
@@ -340,19 +340,19 @@ def compile_tensors(dataset, cell_ids):
 
                 Key.CYC: main_data[Key.N],
 
-                Key.Q_CC_TENSOR: main_data[Key.Q_CC_TENSOR],
-                Key.Q_CV_TENSOR: main_data[Key.Q_CV_TENSOR],
+                Key.Q_CC_VEC: main_data[Key.Q_CC_VEC],
+                Key.Q_CV_VEC: main_data[Key.Q_CV_VEC],
 
                 Key.I_CC: main_data[Key.I_CC],
-                Key.I_CV_TENSOR: main_data[Key.I_CV_TENSOR],
+                Key.I_CV_VEC: main_data[Key.I_CV_VEC],
                 Key.I_PREV_END: main_data[Key.I_PREV_END],
 
-                Key.V_CC_TENSOR: main_data[Key.V_CC_TENSOR],
+                Key.V_CC_VEC: main_data[Key.V_CC_VEC],
                 Key.V_PREV_END: main_data[Key.V_PREV_END],
                 Key.V_END: main_data[Key.V_END],
 
-                Key.MASK_CC_TENSOR: main_data[Key.MASK_CC_TENSOR],
-                Key.MASK_CV_TENSOR: main_data[Key.MASK_CV_TENSOR],
+                Key.MASK_CC_VEC: main_data[Key.MASK_CC_VEC],
+                Key.MASK_CV_VEC: main_data[Key.MASK_CV_VEC],
             }
             for key in dict_to_acc:
                 numpy_acc(compiled_data, key, dict_to_acc[key])
@@ -373,8 +373,8 @@ def compile_tensors(dataset, cell_ids):
     )
 
     labels = [
-        Key.V_CC_TENSOR, Key.Q_CC_TENSOR, Key.MASK_CC_TENSOR, Key.Q_CV_TENSOR, Key.I_CV_TENSOR,
-        Key.MASK_CV_TENSOR, Key.I_CC, Key.I_PREV_END, Key.V_PREV_END, Key.V_END,
+        Key.V_CC_VEC, Key.Q_CC_VEC, Key.MASK_CC_VEC, Key.Q_CV_VEC, Key.I_CV_VEC,
+        Key.MASK_CV_VEC, Key.I_CC, Key.I_PREV_END, Key.V_PREV_END, Key.V_END,
         Key.COUNT_MATRIX, Key.SIGN_GRID, Key.V_GRID, Key.I_GRID, Key.TEMP_GRID,
     ]
     for label in labels:
@@ -701,7 +701,21 @@ def train_step(neigh, train_params: dict, options: dict):
 
     teacher_model = train_params[Key.Teacher.MODEL]
     teacher_optimizer = train_params[Key.TEACHER_OPTIMIZER]
-    tensors = train_params[Key.TENSORS]
+
+    compiled_tensors = train_params[Key.TENSORS]
+
+    cycle_tensor = compiled_tensors[Key.CYC]
+    constant_current_tensor = compiled_tensors[Key.I_CC]
+    end_current_prev_tensor = compiled_tensors[Key.I_PREV_END]
+    end_voltage_prev_tensor = compiled_tensors[Key.V_PREV_END]
+    end_voltage_tensor = compiled_tensors[Key.V_END]
+
+    cc_voltage_tensor = compiled_tensors[Key.V_CC_VEC]
+    cc_capacity_tensor = compiled_tensors[Key.Q_CC_VEC]
+    cc_mask_tensor = compiled_tensors[Key.MASK_CC_VEC]
+    cv_capacity_tensor = compiled_tensors[Key.Q_CV_VEC]
+    cv_current_tensor = compiled_tensors[Key.I_CV_VEC]
+    cv_mask_tensor = compiled_tensors[Key.MASK_CV_VEC]
 
     """
     if you have the minimum cycle and maximum cycle for a neighborhood,
@@ -729,27 +743,26 @@ def train_step(neigh, train_params: dict, options: dict):
     )
 
     svit_grid, count_matrix = get_svit_and_count(
-        neigh, tensors, batch_size2,
+        neigh, compiled_tensors, batch_size2,
     )
 
-    cycle = tf.gather(
-        tensors[Key.CYC], indices = cyc_indices, axis = 0,
-    )
+    cycle = tf.gather(cycle_tensor, indices = cyc_indices, axis = 0)
     constant_current = tf.gather(
-        tensors[Key.I_CC], indices = cyc_indices, axis = 0,
+        constant_current_tensor, indices = cyc_indices, axis = 0,
     )
     end_current_prev = tf.gather(
-        tensors[Key.I_PREV_END], indices = cyc_indices, axis = 0,
+        end_current_prev_tensor, indices = cyc_indices, axis = 0,
     )
     end_voltage_prev = tf.gather(
-        tensors[Key.V_PREV_END], indices = cyc_indices, axis = 0,
+        end_voltage_prev_tensor, indices = cyc_indices, axis = 0,
     )
     end_voltage = tf.gather(
-        tensors[Key.V_END], indices = cyc_indices, axis = 0,
+        end_voltage_tensor, indices = cyc_indices, axis = 0,
     )
-    cc_capacity = tf.gather(tensors[Key.Q_CC_TENSOR], indices = cyc_indices)
-    cc_voltage = tf.gather(tensors[Key.V_CC_TENSOR], indices = cyc_indices)
-    cc_mask = tf.gather(tensors[Key.MASK_CC_TENSOR], indices = cyc_indices)
+
+    cc_capacity = tf.gather(cc_capacity_tensor, indices = cyc_indices)
+    cc_voltage = tf.gather(cc_voltage_tensor, indices = cyc_indices)
+    cc_mask = tf.gather(cc_mask_tensor, indices = cyc_indices)
     cc_mask_2 = tf.tile(
         tf.reshape(
             1. / tf.cast(neigh[:, NEIGH_VALID_CYC], tf.float32),
@@ -758,9 +771,9 @@ def train_step(neigh, train_params: dict, options: dict):
         [1, cc_voltage.shape[1]],
     )
 
-    cv_capacity = tf.gather(tensors[Key.Q_CV_TENSOR], indices = cyc_indices)
-    cv_current = tf.gather(tensors[Key.I_CV_TENSOR], indices = cyc_indices)
-    cv_mask = tf.gather(tensors[Key.MASK_CV_TENSOR], indices = cyc_indices)
+    cv_capacity = tf.gather(cv_capacity_tensor, indices = cyc_indices)
+    cv_current = tf.gather(cv_current_tensor, indices = cyc_indices)
+    cv_mask = tf.gather(cv_mask_tensor, indices = cyc_indices)
     cv_mask_2 = tf.tile(
         tf.reshape(
             1. / tf.cast(neigh[:, NEIGH_VALID_CYC], tf.float32),
@@ -850,13 +863,14 @@ def transfer_step(train_params: dict, options: dict):
                 shape = [sample_count, 1],
             )
         )
-        sampled_constant_current_sign = 2.0 * tf.cast(
+        sampled_constant_current_sign = tf.cast(
             tf.random.uniform(
                 minval = 0, maxval = 1, shape = [sample_count, 1],
                 dtype = tf.int32,
             ),
             dtype = tf.float32,
-        ) - 1.
+        )
+        sampled_constant_current_sign = 2.0 * sampled_constant_current_sign - 1.
 
         sample_indices = tf.random.uniform(
             maxval = student_model.cell_direct.num_keys,

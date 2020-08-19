@@ -96,10 +96,10 @@ def initial_processing(my_data: dict, cell_ids, options) -> dict:
                 legend = make_legend(k)
                 if legend in dual_legends[k[-1]]:
                     print(k)
-            caps = cyc_grp_dict[k][Key.MAIN][Key.Q_CC_TENSOR]
+            caps = cyc_grp_dict[k][Key.MAIN][Key.Q_CC_VEC]
             cycs = cyc_grp_dict[k][Key.MAIN][Key.N]
-            vols = cyc_grp_dict[k][Key.MAIN][Key.V_CC_TENSOR]
-            masks = cyc_grp_dict[k][Key.MAIN][Key.MASK_CC_TENSOR]
+            vols = cyc_grp_dict[k][Key.MAIN][Key.V_CC_VEC]
+            masks = cyc_grp_dict[k][Key.MAIN][Key.MASK_CC_VEC]
 
             if any([
                 abs(cyc_grp_dict[k][Key.I_PREV_END_AVG]) < 1e-5,

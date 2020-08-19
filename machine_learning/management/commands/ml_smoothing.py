@@ -1166,7 +1166,7 @@ class Command(BaseCommand):
         nn_depth = 3
         int_args = {
             Key.FOUR_FEAT: 1,
-            Key.SAMPLE_COUNT: 32,
+            Key.SAMPLE_COUNT: 16,
 
             Key.TEACHER_EPOCHS: 6000,
             Key.Teacher.DEPTH: nn_depth,
@@ -1180,7 +1180,7 @@ class Command(BaseCommand):
             Key.PRINT_LOSS: vis,
             Key.VIS_TEACHER: vis,
             Key.VIS_STUDENT: vis / 10,
-            Key.STUDENT_SAMPLE_COUNT: 32,
+            Key.STUDENT_SAMPLE_COUNT: 16,
 
             Key.CELL_ID_SHOW: 10,
         }

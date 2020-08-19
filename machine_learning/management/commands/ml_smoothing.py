@@ -542,7 +542,7 @@ def train_and_evaluate(
     @tf.function
     def dist_transfer_step(strategy):
         return strategy.experimental_run_v2(
-            lambda: transfer_step(train_step_params, options),
+            lambda: transfer_step(neigh, train_step_params, options),
             args = (),
         )
 
@@ -838,7 +838,7 @@ def train_step(neigh, train_params: dict, options: dict):
     )
 
 
-def transfer_step(train_params: dict, options: dict):
+def transfer_step(neigh, train_params: dict, options: dict):
     """ One training step.
 
     Args:
@@ -854,6 +854,10 @@ def transfer_step(train_params: dict, options: dict):
     student_optimizer = train_params[Key.STUDENT_OPTIMIZER]
     compiled_tensors = train_params[Key.TENSORS]
     max_cyc_cell_tensor = compiled_tensors["MAX_CYCLE_CELL"]
+
+    svit_grid, count_matrix = get_svit_and_count(
+        neigh, compiled_tensors, neigh.shape[0],
+    )
 
     for virtual_batch_i in range(4):
 
@@ -910,6 +914,42 @@ def transfer_step(train_params: dict, options: dict):
             ),
 
         }
+
+        cyc_indices_lerp = tf.random.uniform(
+            [neigh.shape[0]], minval = 0., maxval = 1., dtype = tf.float32,
+        )
+        cyc_indices = tf.cast(
+            (1. - cyc_indices_lerp) * tf.cast(
+                neigh[:, NEIGH_MIN_CYC] + neigh[:, NEIGH_ABSOLUTE_CYC],
+                tf.float32,
+            ) + cyc_indices_lerp * tf.cast(
+                neigh[:, NEIGH_MAX_CYC] + neigh[:, NEIGH_ABSOLUTE_CYC],
+                tf.float32,
+            ),
+            tf.int32,
+        )
+        batch_count = tf.expand_dims(
+            tf.gather(
+                compiled_tensors[Key.CYC], indices = cyc_indices, axis = 0,
+            ),
+            axis = 1,
+        ).shape[0]
+        sampled_svit_grid = tf.gather(
+            svit_grid,
+            indices = tf.random.uniform(
+                minval = 0, maxval = batch_count,
+                shape = [sample_count], dtype = tf.int32,
+            ),
+            axis = 0,
+        )
+        sampled_count_matrix = tf.gather(
+            count_matrix,
+            indices = tf.random.uniform(
+                minval = 0, maxval = batch_count,
+                shape = [sample_count], dtype = tf.int32,
+            ),
+            axis = 0,
+        )
 
         with tf.GradientTape() as student_tape:
             teacher_q, teacher_q_der = teacher_model.transfer_q(

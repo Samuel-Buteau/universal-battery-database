@@ -1087,14 +1087,15 @@ class Command(BaseCommand):
 
         vis = 1000
         nn_width = 64
+        nn_depth = 3
         int_args = {
             Key.FOUR_FEAT: 1,
             Key.SAMPLE_COUNT: 1 * 16,
 
-            Key.Teacher.DEPTH: 3,
-            Key.Teacher.WIDTH: 64,
             Key.TEACHER_EPOCHS: 6000,
-            Key.STUDENT_DEPTH: nn_width,
+            Key.Teacher.DEPTH: nn_depth,
+            Key.Teacher.WIDTH: nn_width,
+            Key.STUDENT_DEPTH: nn_depth,
             Key.STUDENT_WIDTH: nn_width,
             Key.STUDENT_EPOCHS: 200,
             Key.BATCH_SIZE: 64,

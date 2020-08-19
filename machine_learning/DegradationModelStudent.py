@@ -5,12 +5,12 @@ from Key import Key
 from machine_learning.DegradationModelBlackbox import DegradationModel
 from machine_learning.PrimitiveDictionaryLayer import (
     Inequality, Level, PrimitiveDictionaryLayer,
-    Target, incentive_combine, incentive_inequality, incentive_magnitude
+    Target, incentive_combine, incentive_inequality, incentive_magnitude,
 )
 from machine_learning.StressToEncodedLayer import StressToEncodedLayer
 from machine_learning.fnn_functions import (
     add_current_dep, add_v_dep, create_derivatives,
-    feedforward_nn_parameters, nn_call
+    feedforward_nn_parameters, nn_call,
 )
 from machine_learning.loss_calculator_blackbox import calculate_q_loss
 
@@ -194,13 +194,9 @@ class DegradationModelStudent(DegradationModel):
             indices, training = training, sample = False,
         )
 
-        fetched_latent_cell = tf.gather(
+        fetched_latent_cell = self.min_latent + tf.gather(
             self.cell_latent_flags, indices, axis = 0,
-        )
-
-        fetched_latent_cell = (
-            self.min_latent + (1 - self.min_latent) * fetched_latent_cell
-        )
+        ) * (1 - self.min_latent)
         fetched_pointers_cell = tf.gather(
             self.cell_pointers, indices, axis = 0,
         )
@@ -241,25 +237,22 @@ class DegradationModelStudent(DegradationModel):
             lyte_indices, training = training, sample = sample,
         )
 
-        fetched_latent_lyte = tf.gather(
+        fetched_latent_lyte = self.min_latent + tf.gather(
             self.lyte_latent_flags, lyte_indices, axis = 0,
-        )
-        fetched_latent_lyte = (
-            self.min_latent + (1 - self.min_latent) * fetched_latent_lyte
-        )
+        ) * (1 - self.min_latent)
 
-        fetched_pointers_lyte = tf.gather(
-            self.lyte_pointers, lyte_indices, axis = 0,
-        )
         fetched_weights_lyte = tf.gather(
             self.lyte_weights, lyte_indices, axis = 0,
         )
-        fetched_pointers_lyte_reshaped = tf.reshape(
-            fetched_pointers_lyte, [-1],
+        fetched_pointers_lyte = tf.reshape(
+            tf.gather(
+                self.lyte_pointers, lyte_indices, axis = 0,
+            ),
+            [-1],
         )
 
         feats_mol, loss_mol = self.mol_direct(
-            fetched_pointers_lyte_reshaped,
+            fetched_pointers_lyte,
             training = training, sample = sample
         )
 
@@ -291,8 +284,7 @@ class DegradationModelStudent(DegradationModel):
             axis = 1,
         )
         feats_additive = tf.reduce_sum(
-            fetched_mol_weights[:, combined_max:all_max, :],
-            axis = 1,
+            fetched_mol_weights[:, combined_max:all_max, :], axis = 1,
         )
 
         if training:
@@ -322,11 +314,7 @@ class DegradationModelStudent(DegradationModel):
                 tape_d1.watch(feats_salt)
                 tape_d1.watch(feats_additive)
 
-                lyte_dependencies = (
-                    feats_solvent,
-                    feats_salt,
-                    feats_additive,
-                )
+                lyte_dependencies = (feats_solvent, feats_salt, feats_additive)
 
                 feats_lyte_indirect = nn_call(
                     self.lyte_indirect, lyte_dependencies, training = training,
@@ -344,11 +332,7 @@ class DegradationModelStudent(DegradationModel):
 
             del tape_d1
         else:
-            lyte_dependencies = (
-                feats_solvent,
-                feats_salt,
-                feats_additive,
-            )
+            lyte_dependencies = (feats_solvent, feats_salt, feats_additive)
 
             feats_lyte_indirect = nn_call(
                 self.lyte_indirect, lyte_dependencies, training = training,
@@ -376,10 +360,7 @@ class DegradationModelStudent(DegradationModel):
                 tape_d1.watch(feats_dry_cell)
 
                 cell_dependencies = (
-                    feats_pos,
-                    feats_neg,
-                    feats_lyte,
-                    feats_dry_cell,
+                    feats_pos, feats_neg, feats_lyte, feats_dry_cell,
                 )
 
                 feats_cell_indirect = nn_call(
@@ -402,10 +383,7 @@ class DegradationModelStudent(DegradationModel):
             del tape_d1
         else:
             cell_dependencies = (
-                feats_pos,
-                feats_neg,
-                feats_lyte,
-                feats_dry_cell,
+                feats_pos, feats_neg, feats_lyte, feats_dry_cell,
             )
 
             feats_cell_indirect = nn_call(
@@ -531,11 +509,6 @@ class DegradationModelStudent(DegradationModel):
             else:
                 loss_derivative_cell_indirect = 0.
 
-        else:
-            loss_input_cell_indirect = None
-            loss_derivative_cell_indirect = None
-
-        if training:
             loss = incentive_combine([
                 (
                     self.options["coeff_cell_output"],

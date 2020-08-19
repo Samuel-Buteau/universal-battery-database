@@ -852,8 +852,7 @@ def transfer_step(train_params: dict, options: dict):
     student_model = train_params[Key.STUDENT_MODEL]
 
     student_optimizer = train_params[Key.STUDENT_OPTIMIZER]
-    compiled_tensors = train_params[Key.TENSORS]
-    max_cyc_cell_tensor = compiled_tensors["MAX_CYCLE_CELL"]
+    max_cyc_cell_tensor = train_params[Key.TENSORS]["MAX_CYCLE_CELL"]
 
     for virtual_batch_i in range(4):
 
@@ -863,14 +862,13 @@ def transfer_step(train_params: dict, options: dict):
                 shape = [sample_count, 1],
             )
         )
-        sampled_constant_current_sign = tf.cast(
+        sampled_constant_current_sign = 2.0 * tf.cast(
             tf.random.uniform(
                 minval = 0, maxval = 1,
                 shape = [sample_count, 1], dtype = tf.int32,
             ),
             dtype = tf.float32,
-        )
-        sampled_constant_current_sign = 2.0 * sampled_constant_current_sign - 1.
+        ) - 1.
 
         sample_indices = tf.random.uniform(
             maxval = student_model.cell_direct.num_keys,

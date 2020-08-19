@@ -1108,7 +1108,7 @@ class Command(BaseCommand):
             Key.Teacher.DEPTH: 3,
             Key.Teacher.WIDTH: 64,
             Key.TEACHER_EPOCHS: 6000,
-            Key.STUDENT_DEPTH: nn_width
+            Key.STUDENT_DEPTH: nn_width,
             Key.STUDENT_WIDTH: nn_width,
             Key.STUDENT_EPOCHS: 200,
             Key.BATCH_SIZE: 64,

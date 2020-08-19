@@ -400,13 +400,13 @@ def initial_processing(cell_ids, options, flags):
                     dtype = [
                         (Key.N, "f4"),
 
-                        (Key.V_CC_VEC, "f4", options[Key.V_N_GRID]),
-                        (Key.Q_CC_VEC, "f4", options[Key.V_N_GRID]),
-                        (Key.MASK_CC_VEC, "f4", options[Key.V_N_GRID]),
+                        (Key.V_CC_TENSOR, "f4", options[Key.V_N_GRID]),
+                        (Key.Q_CC_TENSOR, "f4", options[Key.V_N_GRID]),
+                        (Key.MASK_CC_TENSOR, "f4", options[Key.V_N_GRID]),
 
-                        (Key.I_CV_VEC, "f4", options[Key.I_MAX]),
-                        (Key.Q_CV_VEC, "f4", options[Key.I_MAX]),
-                        (Key.MASK_CV_VEC, "f4", options[Key.I_MAX]),
+                        (Key.I_CV_TENSOR, "f4", options[Key.I_MAX]),
+                        (Key.Q_CV_TENSOR, "f4", options[Key.I_MAX]),
+                        (Key.MASK_CV_TENSOR, "f4", options[Key.I_MAX]),
 
                         (Key.I_CC, "f4"),
                         (Key.I_PREV_END, "f4"),

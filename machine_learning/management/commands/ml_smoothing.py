@@ -852,7 +852,8 @@ def transfer_step(train_params: dict, options: dict):
     student_model = train_params[Key.STUDENT_MODEL]
 
     student_optimizer = train_params[Key.STUDENT_OPTIMIZER]
-    max_cyc_cell_tensor = train_params[Key.TENSORS]["MAX_CYCLE_CELL"]
+    tensors = train_params[Key.TENSORS]
+    max_cyc_cell_tensor = tensors["MAX_CYCLE_CELL"]
 
     for virtual_batch_i in range(4):
 
@@ -884,6 +885,72 @@ def transfer_step(train_params: dict, options: dict):
         )
         teacher_feats_cell = teacher_model.cell_from_indices(
             indices = sample_indices, training = False, sample = True,
+        )
+
+        sign_grid = tf.gather(
+            tensors[Key.SIGN_GRID], indices = sample_indices, axis = 0,
+        )
+        sign_grid_dim = sign_grid.shape[1]
+
+        voltage_grid = tf.gather(
+            tensors[Key.V_GRID], indices = sample_indices, axis = 0,
+        )
+        voltage_grid_dim = voltage_grid.shape[1]
+
+        current_grid = tf.gather(
+            tensors[Key.I_GRID], indices = sample_indices, axis = 0,
+        )
+        current_grid_dim = current_grid.shape[1]
+
+        tmp_grid = tf.gather(
+            tensors[Key.TEMP_GRID], indices = sample_indices, axis = 0,
+        )
+        tmp_grid_dim = tmp_grid.shape[1]
+        s_shape = [1, 1, voltage_grid_dim, current_grid_dim, tmp_grid_dim, 1]
+        v_shape = [1, sign_grid_dim, 1, current_grid_dim, tmp_grid_dim, 1]
+        i_shape = [1, sign_grid_dim, voltage_grid_dim, 1, tmp_grid_dim, 1]
+        t_shape = [1, sign_grid_dim, voltage_grid_dim, current_grid_dim, 1, 1]
+
+        svit_grid = tf.cast(
+            tf.concat(
+                (
+                    tf.tile(
+                        tf.reshape(
+                            sign_grid, [1, sign_grid_dim, 1, 1, 1, 1],
+                        ),
+                        s_shape,
+                    ),
+                    tf.tile(
+                        tf.reshape(
+                            voltage_grid, [1, 1, voltage_grid_dim, 1, 1, 1],
+                        ),
+                        v_shape,
+                    ),
+                    tf.tile(
+                        tf.reshape(
+                            current_grid, [1, 1, 1, current_grid_dim, 1, 1],
+                        ),
+                        i_shape,
+                    ),
+                    tf.tile(
+                        tf.reshape(
+                            tmp_grid, [1, 1, 1, 1, tmp_grid_dim, 1],
+                        ),
+                        t_shape,
+                    ),
+                ),
+                axis = -1,
+            ),
+            dtype = tf.float32,
+        )
+        count_matrix = tf.reshape(
+            tf.gather(
+                tensors[Key.COUNT_MATRIX], sample_indices, axis = 0,
+            ),
+            [
+                1, sign_grid_dim, voltage_grid_dim, current_grid_dim,
+                tmp_grid_dim, 1,
+            ],
         )
 
         max_cycles = tf.tile(max_cycles, [sample_count, 1])
@@ -918,8 +985,8 @@ def transfer_step(train_params: dict, options: dict):
                 cycle = samples[Key.Sample.CYC],
                 voltage = samples[Key.Sample.V],
                 current = samples[Key.Sample.I],
-                svit_grid = sampled_svit_grid,
-                count_matrix = sampled_count_matrix,
+                svit_grid = svit_grid,
+                count_matrix = count_matrix,
                 cell_feat = student_feats_cell,
                 proj = samples["PROJ"],
             )
@@ -936,8 +1003,8 @@ def transfer_step(train_params: dict, options: dict):
                 cycle = samples[Key.Sample.CYC],
                 voltage = samples[Key.Sample.V],
                 current = samples[Key.Sample.I],
-                svit_grid = sampled_svit_grid,
-                count_matrix = sampled_count_matrix,
+                svit_grid = svit_grid,
+                count_matrix = count_matrix,
                 cell_feat = student_feats_cell,
                 proj = samples["PROJ"],
                 get_bottleneck = True,
@@ -1099,21 +1166,21 @@ class Command(BaseCommand):
         nn_depth = 3
         int_args = {
             Key.FOUR_FEAT: 1,
-            Key.SAMPLE_COUNT: 1 * 16,
+            Key.SAMPLE_COUNT: 32,
 
             Key.TEACHER_EPOCHS: 6000,
             Key.Teacher.DEPTH: nn_depth,
             Key.Teacher.WIDTH: nn_width,
             Key.STUDENT_DEPTH: nn_depth,
             Key.STUDENT_WIDTH: nn_width,
-            Key.STUDENT_EPOCHS: 200,
+            Key.STUDENT_EPOCHS: 2000,
             Key.BATCH_SIZE: 64,
             Key.BOTTLENECK: 64,
 
             Key.PRINT_LOSS: vis,
             Key.VIS_TEACHER: vis,
             Key.VIS_STUDENT: vis / 10,
-            Key.STUDENT_SAMPLE_COUNT: 1 * 16,
+            Key.STUDENT_SAMPLE_COUNT: 32,
 
             Key.CELL_ID_SHOW: 10,
         }

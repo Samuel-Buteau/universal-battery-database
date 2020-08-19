@@ -189,6 +189,7 @@ class DegradationModelStudent(DegradationModel):
         self, indices,
         training = True, sample = False, compute_derivatives = False,
     ):
+
         print("Student cell called")
         feats_cell_direct, loss_cell = self.cell_direct(
             indices, training = training, sample = False,
@@ -592,9 +593,11 @@ class DegradationModelStudent(DegradationModel):
             axis = 0,
         )
 
-        sampled_encoded_stress = self.stress_to_encoded_direct(
-            svit_grid = sampled_svit_grid,
-            count_matrix = sampled_count_matrix,
+        sampled_encoded_stress = tf.transpose(
+            self.stress_to_encoded_direct(
+                svit_grid = sampled_svit_grid,
+                count_matrix = sampled_count_matrix,
+            ),
         )
 
         return (
@@ -618,9 +621,11 @@ class DegradationModelStudent(DegradationModel):
             Computed constant-current capacity.
         """
         print("Student cc cap called")
-        encoded_stress = self.stress_to_encoded_direct(
-            svit_grid = params[Key.SVIT_GRID],
-            count_matrix = params[Key.COUNT_MATRIX],
+        encoded_stress = tf.transpose(
+            self.stress_to_encoded_direct(
+                svit_grid = params[Key.SVIT_GRID],
+                count_matrix = params[Key.COUNT_MATRIX],
+            ),
         )
 
         q_0 = self.q_with_stress_direct(
@@ -656,9 +661,11 @@ class DegradationModelStudent(DegradationModel):
             Computed constant-voltage capacity.
         """
         print("Student cv cap called")
-        encoded_stress = self.stress_to_encoded_direct(
-            svit_grid = params[Key.SVIT_GRID],
-            count_matrix = params[Key.COUNT_MATRIX],
+        encoded_stress = tf.transpose(
+            self.stress_to_encoded_direct(
+                svit_grid = params[Key.SVIT_GRID],
+                count_matrix = params[Key.COUNT_MATRIX],
+            ),
         )
 
         q_0 = self.q_with_stress_direct(
@@ -748,9 +755,11 @@ class DegradationModelStudent(DegradationModel):
         Returns:
             Computed state of charge; same as that for `q_direct`.
         """
-        encoded_stress = self.stress_to_encoded_direct(
-            svit_grid = params[Key.SVIT_GRID],
-            count_matrix = params[Key.COUNT_MATRIX],
+        encoded_stress = tf.transpose(
+            self.stress_to_encoded_direct(
+                svit_grid = params[Key.SVIT_GRID],
+                count_matrix = params[Key.COUNT_MATRIX],
+            ),
         )
         if 'get_bottleneck' in params.keys() and params["get_bottleneck"]:
             q, bottleneck = self.q_with_stress_direct(

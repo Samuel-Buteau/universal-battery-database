@@ -249,13 +249,15 @@ class DegradationModelStudent(DegradationModel):
             )
 
             q, q_der = create_derivatives(
-                self.q_for_derivative,
+                self.q_with_stress_for_derivative,
                 params = {
                     Key.CYC: sampled_cycles,
                     Key.STRESS: sampled_encoded_stress,
                     Key.V: sampled_vs,
                     Key.CELL_FEAT: sampled_feats_cell,
                     Key.I: sampled_constant_current,
+                    Key.SVIT_GRID: sampled_svit_grid,
+                    Key.COUNT_MATRIX: sampled_count_matrix,
                 },
                 der_params = {Key.V: 3, Key.CELL_FEAT: 0, Key.I: 3, Key.CYC: 3}
             )

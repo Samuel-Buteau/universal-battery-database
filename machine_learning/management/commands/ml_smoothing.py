@@ -919,10 +919,12 @@ def transfer_step(train_params: dict, options: dict):
                 cell_feat = teacher_feats_cell,
                 proj = samples["PROJ"],
             )
-            student_q, student_q_der = student_model.transfer_q(
+            student_q, student_q_der = student_model.transfer_q_with_stress(
                 cycle = samples[Key.Sample.CYC],
                 voltage = samples[Key.Sample.V],
                 current = samples[Key.Sample.I],
+                svit_grid = sampled_svit_grid,
+                count_matrix = sampled_count_matrix,
                 cell_feat = student_feats_cell,
                 proj = samples["PROJ"],
             )
@@ -935,10 +937,12 @@ def transfer_step(train_params: dict, options: dict):
                 proj = samples["PROJ"],
                 get_bottleneck = True,
             )
-            student_b, student_b_der = student_model.transfer_q(
+            student_b, student_b_der = student_model.transfer_q_with_stress(
                 cycle = samples[Key.Sample.CYC],
                 voltage = samples[Key.Sample.V],
                 current = samples[Key.Sample.I],
+                svit_grid = sampled_svit_grid,
+                count_matrix = sampled_count_matrix,
                 cell_feat = student_feats_cell,
                 proj = samples["PROJ"],
                 get_bottleneck = True,

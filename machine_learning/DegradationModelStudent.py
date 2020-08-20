@@ -16,6 +16,7 @@ from machine_learning.loss_calculator_blackbox import calculate_q_loss
 
 
 class DegradationModelStudent(DegradationModel):
+    """ Subclass of DegradationModel for student; includes cell chemistry. """
 
     def __init__(
         self, depth: int, width: int, bottleneck: int, n_sample: int,
@@ -189,10 +190,14 @@ class DegradationModelStudent(DegradationModel):
         self, indices,
         training = True, sample = False, compute_derivatives = False,
     ):
+        """
+        Returns:
+            feats_cell, loss, fetched_latent_cell,
+        """
 
         print("Student cell called")
         feats_cell_direct, loss_cell = self.cell_direct(
-            indices, training = training, sample = False,
+            indices, training = training,
         )
 
         fetched_latent_cell = self.min_latent + tf.gather(
@@ -533,8 +538,13 @@ class DegradationModelStudent(DegradationModel):
         )
 
     def sample_with_cell_chem(
-        self, svit_grid, batch_count, count_matrix, n_sample = 4 * 32,
-    ):
+        self, svit_grid, batch_count, count_matrix, n_sample,
+    ) -> tuple:
+        """
+        Returns:
+            sampled vs, qs, cycles, constant_current, feats_cell, latent,
+                svit_grid, count_matrix, encoded_stress.
+        """
         print("Student sample called")
 
         sampled_vs = tf.random.uniform(
@@ -552,7 +562,7 @@ class DegradationModelStudent(DegradationModel):
         )
         sampled_constant_current = tf.exp(sampled_constant_current)
         sampled_constant_current_sign = tf.random.uniform(
-            minval = 0, maxval = 1, shape = [n_sample, 1], dtype = tf.int32,
+            maxval = 1, shape = [n_sample, 1], dtype = tf.int32,
         )
         sampled_constant_current_sign = tf.cast(
             sampled_constant_current_sign, dtype = tf.float32,
@@ -579,16 +589,14 @@ class DegradationModelStudent(DegradationModel):
         sampled_svit_grid = tf.gather(
             svit_grid,
             indices = tf.random.uniform(
-                minval = 0, maxval = batch_count,
-                shape = [n_sample], dtype = tf.int32,
+                maxval = batch_count, shape = [n_sample], dtype = tf.int32,
             ),
             axis = 0,
         )
         sampled_count_matrix = tf.gather(
             count_matrix,
             indices = tf.random.uniform(
-                minval = 0, maxval = batch_count,
-                shape = [n_sample], dtype = tf.int32,
+                maxval = batch_count, shape = [n_sample], dtype = tf.int32,
             ),
             axis = 0,
         )
@@ -711,6 +719,10 @@ class DegradationModelStudent(DegradationModel):
         self, cycle, v, feats_cell, current, encoded_stress,
         training = True, get_bottleneck = False,
     ):
+        """ `q_direct` but with stress
+        Returns:
+            If get_bottleneck, then q and bottleneck; just q if not.
+        """
         print("Student q called")
         inputs = [cycle, v, current]
         if self.fourier_features:
@@ -731,18 +743,10 @@ class DegradationModelStudent(DegradationModel):
         else:
             dependencies = tuple(inputs)
 
-        if get_bottleneck:
-            res, bottleneck = nn_call(
-                self.fnn_q, dependencies,
-                training = training, get_bottleneck = get_bottleneck,
-            )
-            return res, bottleneck
-        else:
-            res = nn_call(
-                self.fnn_q, dependencies,
-                training = training, get_bottleneck = get_bottleneck,
-            )
-            return res
+        return nn_call(
+            self.fnn_q, dependencies,
+            training = training, get_bottleneck = get_bottleneck,
+        )
 
     def q_with_stress_for_derivative(self, params: dict, training = True):
         """ Wrapper function calling `q_direct`, to be passed in to
@@ -789,7 +793,11 @@ class DegradationModelStudent(DegradationModel):
         self, cycle, voltage, cell_feat, current, svit_grid, count_matrix, proj,
         get_bottleneck = False,
     ):
-        q, q_der = create_derivatives(
+        """ `transfer_ q` but calls `q_with_stress_for_derivative` instead.
+        Returns:
+            `q` and `q_der`
+        """
+        return create_derivatives(
             self.q_with_stress_for_derivative,
             params = {
                 Key.CYC: cycle,
@@ -803,4 +811,3 @@ class DegradationModelStudent(DegradationModel):
             },
             der_params = {Key.V: 2, Key.CELL_FEAT: 0, Key.I: 2, Key.CYC: 2},
         )
-        return q, q_der

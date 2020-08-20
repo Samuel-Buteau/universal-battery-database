@@ -513,90 +513,12 @@ class DegradationModelStudent(DegradationModel):
             feats_cell, loss, fetched_latent_cell,
         )
 
-    def sample_with_cell_chem(
-        self, svit_grid, batch_count, count_matrix, n_sample,
-    ) -> tuple:
-        """
-        Returns:
-            sampled vs, qs, cycles, constant_current, feats_cell, latent,
-                svit_grid, count_matrix, encoded_stress.
-        """
-        print("Student sample called")
-
-        sampled_vs = tf.random.uniform(
-            minval = 2.5, maxval = 5., shape = [n_sample, 1],
-        )
-        sampled_qs = tf.random.uniform(
-            minval = -.25, maxval = 1.25, shape = [n_sample, 1],
-        )
-        sampled_cycles = tf.random.uniform(
-            minval = -.1, maxval = 5., shape = [n_sample, 1],
-        )
-        sampled_constant_current = tf.random.uniform(
-            minval = tf.math.log(0.001), maxval = tf.math.log(5.),
-            shape = [n_sample, 1],
-        )
-        sampled_constant_current = tf.exp(sampled_constant_current)
-        sampled_constant_current_sign = tf.random.uniform(
-            maxval = 1, shape = [n_sample, 1], dtype = tf.int32,
-        )
-        sampled_constant_current_sign = tf.cast(
-            sampled_constant_current_sign, dtype = tf.float32,
-        )
-        sampled_constant_current_sign = (
-            1. * sampled_constant_current_sign
-            - (1. - sampled_constant_current_sign)
-        )
-
-        sampled_constant_current = (
-            sampled_constant_current_sign * sampled_constant_current
-        )
-
-        sampled_feats_cell, _, sampled_latent = self.cell_from_indices(
-            indices = tf.random.uniform(
-                maxval = self.cell_direct.num_keys,
-                shape = [n_sample], dtype = tf.int32,
-            ),
-            training = False,
-            sample = True,
-        )
-        sampled_feats_cell = tf.stop_gradient(sampled_feats_cell)
-
-        sampled_svit_grid = gather0(
-            svit_grid,
-            indices = tf.random.uniform(
-                maxval = batch_count, shape = [n_sample], dtype = tf.int32,
-            ),
-        )
-        sampled_count_matrix = gather0(
-            count_matrix,
-            indices = tf.random.uniform(
-                maxval = batch_count, shape = [n_sample], dtype = tf.int32,
-            ),
-        )
-
-        sampled_encoded_stress = self.stress_to_encoded_direct(
-            svit_grid = sampled_svit_grid,
-            count_matrix = sampled_count_matrix,
-        )
-
-        return (
-            sampled_vs,
-            sampled_qs,
-            sampled_cycles,
-            sampled_constant_current,
-            sampled_feats_cell,
-            sampled_latent,
-            sampled_svit_grid,
-            sampled_count_matrix,
-            sampled_encoded_stress,
-        )
-
     def cc_capacity(self, params: dict, training = True):
         """ Compute constant-current capacity during training or evaluation.
+
         Args:
             params: Contains the parameters of constant-current capacity.
-            training: Flag for training or evaluation:
+            training: Flag for training or evaluation.
         Returns:
             Computed constant-current capacity.
         """
@@ -628,6 +550,7 @@ class DegradationModelStudent(DegradationModel):
 
     def cv_capacity(self, params: dict, training = True):
         """ Compute constant-voltage capacity during training or evaluation.
+
         Args:
             params: Parameters for computing constant-voltage (cv) capacity.
             training: Flag for training or evaluation.

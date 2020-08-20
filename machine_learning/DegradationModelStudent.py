@@ -631,7 +631,7 @@ class DegradationModelStudent(DegradationModel):
         print("Student cc cap called")
         encoded_stress = tf.transpose(
             self.stress_to_encoded_direct(
-                svit_grid = params[Key.SVIT_GRID],
+                svit_grid = params[Key.Grid.SVIT],
                 count_matrix = params[Key.COUNT_MATRIX],
             ),
         )
@@ -671,7 +671,7 @@ class DegradationModelStudent(DegradationModel):
         print("Student cv cap called")
         encoded_stress = tf.transpose(
             self.stress_to_encoded_direct(
-                svit_grid = params[Key.SVIT_GRID],
+                svit_grid = params[Key.Grid.SVIT],
                 count_matrix = params[Key.COUNT_MATRIX],
             ),
         )
@@ -761,7 +761,7 @@ class DegradationModelStudent(DegradationModel):
         """
         encoded_stress = tf.transpose(
             self.stress_to_encoded_direct(
-                svit_grid = params[Key.SVIT_GRID],
+                svit_grid = params[Key.Grid.SVIT],
                 count_matrix = params[Key.COUNT_MATRIX],
             ),
         )
@@ -804,7 +804,7 @@ class DegradationModelStudent(DegradationModel):
                 Key.V: voltage,
                 Key.CELL_FEAT: cell_feat,
                 Key.I: current,
-                Key.SVIT_GRID: svit_grid,
+                Key.Grid.SVIT: svit_grid,
                 Key.COUNT_MATRIX: count_matrix,
                 "get_bottleneck": get_bottleneck,
                 "PROJ": proj,

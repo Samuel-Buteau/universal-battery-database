@@ -191,14 +191,14 @@ def compile_tensors(dataset, cell_ids):
     compiled_cycs_count, reference_cycs_count = 0, 0
     dataset[Key.Q_MAX] = 250
     max_cap = dataset[Key.Q_MAX]
-    keys = [Key.V_GRID, Key.TEMP_GRID, Key.SIGN_GRID]
+    keys = [Key.Grid.V, Key.Grid.T, Key.Grid.S]
     for key in keys:
         numpy_acc(compiled_data, key, np.array([dataset[key]]))
 
-    dataset[Key.I_GRID] = dataset[Key.I_GRID] - np.log(max_cap)
+    dataset[Key.Grid.I] = dataset[Key.Grid.I] - np.log(max_cap)
     # the current grid is adjusted by the max capacity of the cell_id. It is
     # in log space, so I/q becomes log(I) - log(q)
-    numpy_acc(compiled_data, Key.I_GRID, np.array([dataset[Key.I_GRID]]))
+    numpy_acc(compiled_data, Key.Grid.I, np.array([dataset[Key.Grid.I]]))
 
     for cell_id_count, cell_id in enumerate(cell_ids):
         all_data = dataset[Key.ALL_DATA][cell_id]
@@ -375,7 +375,7 @@ def compile_tensors(dataset, cell_ids):
     labels = [
         Key.V_CC_VEC, Key.Q_CC_VEC, Key.MASK_CC_VEC, Key.Q_CV_VEC, Key.I_CV_VEC,
         Key.MASK_CV_VEC, Key.I_CC, Key.I_PREV_END, Key.V_PREV_END, Key.V_END,
-        Key.COUNT_MATRIX, Key.SIGN_GRID, Key.V_GRID, Key.I_GRID, Key.TEMP_GRID,
+        Key.COUNT_MATRIX, Key.Grid.S, Key.Grid.V, Key.Grid.I, Key.Grid.T,
     ]
     for label in labels:
         compiled_tensors[label] = tf.constant(compiled_data[label])
@@ -619,10 +619,10 @@ def train_and_evaluate(
 
 
 def get_svit_and_count(neigh, compiled_tensors, batch_size2):
-    sign_grid_tensor = compiled_tensors[Key.SIGN_GRID]
-    voltage_grid_tensor = compiled_tensors[Key.V_GRID]
-    current_grid_tensor = compiled_tensors[Key.I_GRID]
-    tmp_grid_tensor = compiled_tensors[Key.TEMP_GRID]
+    sign_grid_tensor = compiled_tensors[Key.Grid.S]
+    voltage_grid_tensor = compiled_tensors[Key.Grid.V]
+    current_grid_tensor = compiled_tensors[Key.Grid.I]
+    tmp_grid_tensor = compiled_tensors[Key.Grid.T]
 
     count_matrix_tensor = compiled_tensors[Key.COUNT_MATRIX]
     sign_grid = tf.gather(
@@ -795,7 +795,7 @@ def train_step(neigh, train_params: dict, options: dict):
                 Key.INDICES: cell_indices,
                 Key.V_TENSOR: cc_voltage,
                 Key.I_TENSOR: cv_current,
-                Key.SVIT_GRID: svit_grid,
+                Key.Grid.SVIT: svit_grid,
                 Key.COUNT_MATRIX: count_matrix,
             },
             training = True,
@@ -887,10 +887,10 @@ def transfer_step(train_params: dict, options: dict):
         )
 
         # svit stands for sign, voltage, current, and temperature
-        s_grid = tf.gather(tensors[Key.SIGN_GRID], sample_indices, axis = 0)
-        v_grid = tf.gather(tensors[Key.V_GRID], sample_indices, axis = 0)
-        i_grid = tf.gather(tensors[Key.I_GRID], sample_indices, axis = 0)
-        t_grid = tf.gather(tensors[Key.TEMP_GRID], sample_indices, axis = 0)
+        s_grid = tf.gather(tensors[Key.Grid.S], sample_indices, axis = 0)
+        v_grid = tf.gather(tensors[Key.Grid.V], sample_indices, axis = 0)
+        i_grid = tf.gather(tensors[Key.Grid.I], sample_indices, axis = 0)
+        t_grid = tf.gather(tensors[Key.Grid.T], sample_indices, axis = 0)
 
         s_dim = s_grid.shape[1]
         i_dim = i_grid.shape[1]

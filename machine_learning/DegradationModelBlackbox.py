@@ -147,7 +147,7 @@ class DegradationModel(Model):
         cycle = call_params[Key.CYC]  # matrix; dim: [batch, 1]
         voltage_tensor = call_params[Key.V_TENSOR]  # dim: [batch, voltages]
         current_tensor = call_params[Key.I_TENSOR]  # dim: [batch, voltages]
-        svit_grid = call_params[Key.SVIT_GRID]
+        svit_grid = call_params[Key.Grid.SVIT]
         count_matrix = call_params[Key.COUNT_MATRIX]
 
         feats_cell = self.cell_from_indices(
@@ -178,7 +178,7 @@ class DegradationModel(Model):
             Key.CELL_FEAT: feats_cell,
             Key.V_END: call_params[Key.V_END],
 
-            Key.SVIT_GRID: svit_grid,
+            Key.Grid.SVIT: svit_grid,
             Key.COUNT_MATRIX: count_matrix,
         }
 
@@ -487,7 +487,7 @@ class DegradationModel(Model):
                 Key.I_TENSOR: tf.tile(
                     tf.reshape(currents, shape = [1, -1]), [cycle.shape[0], 1],
                 ),
-                Key.SVIT_GRID: tf.tile(
+                Key.Grid.SVIT: tf.tile(
                     tf.expand_dims(svit_grid, axis = 0),
                     [cycle.shape[0], 1, 1, 1, 1, 1],
                 ),
@@ -536,7 +536,7 @@ class DegradationModel(Model):
                     tf.reshape(currents, shape = [1, -1]),
                     [cycle.shape[0], 1],
                 ),
-                Key.SVIT_GRID: tf.tile(
+                Key.Grid.SVIT: tf.tile(
                     tf.expand_dims(svit_grid, axis = 0),
                     [cycle.shape[0], 1, 1, 1, 1, 1],
                 ),
@@ -582,7 +582,7 @@ class DegradationModel(Model):
             Key.I_TENSOR: tf.tile(
                 tf.reshape(currents, shape = [1, -1]), [cycle.shape[0], 1],
             ),
-            Key.SVIT_GRID: tf.tile(
+            Key.Grid.SVIT: tf.tile(
                 tf.expand_dims(svit_grid, axis = 0),
                 [cycle.shape[0], 1, 1, 1, 1, 1],
             ),
@@ -595,7 +595,7 @@ class DegradationModel(Model):
         cycle = call_params[Key.CYC]  # matrix; dim: [batch, 1]
         voltage_tensor = call_params[Key.V_TENSOR]  # dim: [batch, voltages]
         current_tensor = call_params[Key.I_TENSOR]  # dim: [batch, voltages]
-        svit_grid = call_params[Key.SVIT_GRID]
+        svit_grid = call_params[Key.Grid.SVIT]
         count_matrix = call_params[Key.COUNT_MATRIX]
 
         feats_cell = self.cell_from_indices(
@@ -626,7 +626,7 @@ class DegradationModel(Model):
             Key.CELL_FEAT: feats_cell,
             Key.V_END: call_params[Key.V_END],
 
-            Key.SVIT_GRID: svit_grid,
+            Key.Grid.SVIT: svit_grid,
             Key.COUNT_MATRIX: count_matrix,
         }
 

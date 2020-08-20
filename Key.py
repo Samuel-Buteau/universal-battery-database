@@ -60,8 +60,16 @@ class Key:
     MASK_CV = "cv_masks"
     MASK_CV_VEC = "cv_mask_vector"
     COUNT_MATRIX = "count_matrix"
-    """ Multi-grid of (S, V, I, T) """
-    SVIT_GRID = "svit_grid"
+
+    class Grid:
+        SVIT = "svit_grid"  # multi-grid of (S, V, I, T)
+        S = "sign_grid"  # signs (1d array)
+        V = "voltage_grid"  # measured voltages (1d array)
+        I = "current_grid"
+        T = "temperature_grid"  # temperatures (1d array)
+        V_COUNT = "voltage_grid_n_samples"
+        I_COUNT = "current_grid_n_samples"
+        T_COUNT = "temperature_grid_n_samples"
 
     PATH_V_CURVES = "path_v_curves"
     PATH_V_CURVES_META = "path_v_curves_meta"
@@ -87,13 +95,6 @@ class Key:
     TEACHER_LRN_RATE = "learning_rate"
     STUDENT_LRN_RATE = "s_lrn_rate"
     MIN_LAT = "min_latent"
-
-    MIN_V_GRID = "voltage_grid_min_v"
-    MAX_V_GRID = "voltage_grid_max_v"
-    I_MIN_V_GRID = "current_grid_min_v"
-    I_MAX_V_GRID = "current_grid_max_v"
-    T_MIN_V_GRID = "temperature_grid_min_v"
-    T_MAX_V_GRID = "temperature_grid_max_v"
 
     SAMPLE_COUNT = "n_sample"
 
@@ -123,10 +124,7 @@ class Key:
     CELL_ID_SHOW = "cell_id_show"
 
     REF_CYC_N = "reference_cycles_n"
-    V_N_GRID = "voltage_grid_n_samples"
-    I_N_GRID = "current_grid_n_samples"
     I_MAX = "current_max_n"
-    TEMP_GRID_N = "temperature_grid_n_samples"
 
     D_V = "d_v"
     D2_V = "d2_v"
@@ -194,14 +192,6 @@ class Key:
 
     """ (number) The maximum capacity across the dataset """
     Q_MAX = "max_cap"
-
-    """ (1d array) Measured voltages """
-    V_GRID = "voltage_grid"
-    I_GRID = "current_grid"
-    """ (1d array) Temperatures """
-    TEMP_GRID = "temperature_grid"
-    """ (1d array) Signs """
-    SIGN_GRID = "sign_grid"
 
     """ (dict) Indexed by cell ID; yields a positive electrode id """
     CELL_TO_POS = "cell_id_to_pos_id"

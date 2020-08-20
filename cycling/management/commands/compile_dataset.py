@@ -184,8 +184,8 @@ def initial_processing(cell_ids, options, flags):
 
     Returns:
         Two dictionaries with the following sets of keys
-        { Key.Q_MAX, Key.ALL_DATA, Key.V_GRID, Key.I_GRID, Key.TEMP_GRID,
-          Key.SIGN_GRID, Key.CELL_TO_POS, Key.CELL_TO_NEG, Key.CELL_TO_LYTE,
+        { Key.Q_MAX, Key.ALL_DATA, Key.Grid.V, Key.Grid.I, Key.Grid.TEMP,
+          Key.Grid.SIGN, Key.CELL_TO_POS, Key.CELL_TO_NEG, Key.CELL_TO_LYTE,
           Key.CELL_TO_DRY, Key.DRY_TO_META, Key.CELL_TO_LAT, Key.LYTE_TO_LAT,
           Key.LYTE_TO_SOL, Key.LYTE_TO_SALT, Key.LYTE_TO_ADD },
         { Key.NAME_POS, Key.NAME_NEG, Key.NAME_LYTE, Key.NAME_MOL,
@@ -197,21 +197,21 @@ def initial_processing(cell_ids, options, flags):
     voltage_grid_degradation = make_voltage_grid(
         options[Key.V_MIN_GRID],
         options[Key.V_MAX_GRID],
-        int(options[Key.V_N_GRID] / 4),
+        int(options[Key.Grid.V_COUNT] / 4),
         cell_ids
     )
 
     current_grid = make_current_grid(
         options[Key.I_MIN_GRID],
         options[Key.I_MAX_GRID],
-        options[Key.I_N_GRID],
+        options[Key.Grid.I_COUNT],
         cell_ids
     )
 
     temperature_grid = make_temperature_grid(
         options[Key.TEMP_GRID_MIN_V],
         options[Key.TEMP_GRID_MAX_V],
-        options[Key.TEMP_GRID_N],
+        options[Key.Grid.T_COUNT],
         cell_ids
     )
     sign_grid = make_sign_grid()
@@ -366,7 +366,7 @@ def initial_processing(cell_ids, options, flags):
                             break
 
                         post_process_results = ml_post_process_cycle(
-                            cyc, options[Key.V_N_GRID], typ,
+                            cyc, options[Key.Grid.V_COUNT], typ,
                             current_max_n = options[Key.I_MAX],
                             voltage_grid_min_v = options["voltage_grid_min_v"],
                             voltage_grid_max_v = options["voltage_grid_max_v"],
@@ -400,9 +400,9 @@ def initial_processing(cell_ids, options, flags):
                     dtype = [
                         (Key.N, "f4"),
 
-                        (Key.V_CC_VEC, "f4", options[Key.V_N_GRID]),
-                        (Key.Q_CC_VEC, "f4", options[Key.V_N_GRID]),
-                        (Key.MASK_CC_VEC, "f4", options[Key.V_N_GRID]),
+                        (Key.V_CC_VEC, "f4", options[Key.Grid.V_COUNT]),
+                        (Key.Q_CC_VEC, "f4", options[Key.Grid.V_COUNT]),
+                        (Key.MASK_CC_VEC, "f4", options[Key.Grid.V_COUNT]),
 
                         (Key.I_CV_VEC, "f4", options[Key.I_MAX]),
                         (Key.Q_CV_VEC, "f4", options[Key.I_MAX]),
@@ -554,10 +554,10 @@ def initial_processing(cell_ids, options, flags):
     return {
                Key.Q_MAX: max_cap,
                Key.ALL_DATA: all_data,
-               Key.V_GRID: voltage_grid_degradation,
-               Key.I_GRID: current_grid,
-               Key.TEMP_GRID: temperature_grid,
-               Key.SIGN_GRID: sign_grid,
+               Key.Grid.V: voltage_grid_degradation,
+               Key.Grid.I: current_grid,
+               Key.Grid.T: temperature_grid,
+               Key.Grid.S: sign_grid,
                Key.CELL_TO_POS: cell_to_cath_id,
                Key.CELL_TO_NEG: cell_to_an_id,
                Key.CELL_TO_LYTE: cell_to_lyte_id,

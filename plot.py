@@ -607,7 +607,7 @@ def get_svit_and_count(my_data, cell_id):
         ),
         axis = -1,
     )
-    return {Key.SVIT_GRID: svit_grid, Key.COUNT_MATRIX: count_matrix}
+    return {Key.Grid.SVIT: svit_grid, Key.COUNT_MATRIX: count_matrix}
 
 
 def compute_target(
@@ -674,7 +674,7 @@ def compute_target(
             ),
             tf.constant(v_range, dtype = tf.float32),
             tf.constant(current_range, dtype = tf.float32),
-            tf.constant(svit_and_count[Key.SVIT_GRID], dtype = tf.float32),
+            tf.constant(svit_and_count[Key.Grid.SVIT], dtype = tf.float32),
             tf.constant(svit_and_count[Key.COUNT_MATRIX], dtype = tf.float32),
         )
 
@@ -724,7 +724,7 @@ def compute_target(
             ),
             tf.constant(v_range, dtype = tf.float32),
             tf.constant(current_range, dtype = tf.float32),
-            tf.constant(svit_and_count[Key.SVIT_GRID], dtype = tf.float32),
+            tf.constant(svit_and_count[Key.Grid.SVIT], dtype = tf.float32),
             tf.constant(svit_and_count[Key.COUNT_MATRIX], dtype = tf.float32),
         )
 
@@ -763,7 +763,7 @@ def compute_target(
                 degradation_model.cell_direct.id_dict[cell_id],
                 dtype = tf.int32,
             ),
-            tf.constant(svit_and_count[Key.SVIT_GRID], dtype = tf.float32),
+            tf.constant(svit_and_count[Key.Grid.SVIT], dtype = tf.float32),
             tf.constant(svit_and_count[Key.COUNT_MATRIX], dtype = tf.float32),
         )
         if mode == "cc":

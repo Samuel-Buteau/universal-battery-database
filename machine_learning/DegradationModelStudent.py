@@ -210,16 +210,12 @@ class DegradationModelStudent(DegradationModel):
         lyte_indices = fetched_pointers_cell[:, 2]
         dry_cell_indices = fetched_pointers_cell[:, 3]
 
-        feats_pos, loss_pos = self.pos_direct(
-            pos_indices, training = training, sample = sample,
-        )
+        feats_pos, loss_pos = self.pos_direct(pos_indices, training, sample)
 
-        feats_neg, loss_neg = self.neg_direct(
-            neg_indices, training = training, sample = sample,
-        )
+        feats_neg, loss_neg = self.neg_direct(neg_indices, training, sample)
 
         feats_dry_cell_unknown, loss_dry_cell_unknown = self.dry_cell_direct(
-            dry_cell_indices, training = training, sample = sample,
+            dry_cell_indices, training, sample,
         )
 
         latent_dry_cell = gather0(self.dry_cell_latent_flags, dry_cell_indices)
@@ -233,7 +229,7 @@ class DegradationModelStudent(DegradationModel):
         loss_dry_cell = loss_dry_cell_unknown
 
         feats_lyte_direct, loss_lyte_direct = self.lyte_direct(
-            lyte_indices, training = training, sample = sample,
+            lyte_indices, training, sample,
         )
 
         lat_lyte = gather0(self.lyte_latent_flags, lyte_indices)
@@ -245,7 +241,7 @@ class DegradationModelStudent(DegradationModel):
         )
 
         feats_mol, loss_mol = self.mol_direct(
-            fetched_pointers_lyte, training = training, sample = sample
+            fetched_pointers_lyte, training, sample
         )
 
         combined_max = self.n_solvent_max + self.n_salt_max

@@ -13,6 +13,7 @@ from machine_learning.fnn_functions import (
     feedforward_nn_parameters, nn_call,
 )
 from machine_learning.loss_calculator_blackbox import calculate_q_loss
+from machine_learning.management.commands.ml_smoothing import gather0
 
 
 class DegradationModelStudent(DegradationModel):
@@ -200,12 +201,9 @@ class DegradationModelStudent(DegradationModel):
             indices, training = training,
         )
 
-        fetched_latent_cell = self.min_latent + tf.gather(
-            self.cell_latent_flags, indices, axis = 0,
-        ) * (1 - self.min_latent)
-        fetched_pointers_cell = tf.gather(
-            self.cell_pointers, indices, axis = 0,
-        )
+        lat_cell = gather0(self.cell_latent_flags, indices)
+        fetched_latent_cell = self.min_latent + lat_cell * (1 - self.min_latent)
+        fetched_pointers_cell = gather0(self.cell_pointers, indices)
 
         pos_indices = fetched_pointers_cell[:, 0]
         neg_indices = fetched_pointers_cell[:, 1]
@@ -224,13 +222,8 @@ class DegradationModelStudent(DegradationModel):
             dry_cell_indices, training = training, sample = sample,
         )
 
-        latent_dry_cell = tf.gather(
-            self.dry_cell_latent_flags, dry_cell_indices, axis = 0,
-        )
-
-        feats_dry_cell_given = tf.gather(
-            self.dry_cell_given, dry_cell_indices, axis = 0,
-        )
+        latent_dry_cell = gather0(self.dry_cell_latent_flags, dry_cell_indices)
+        feats_dry_cell_given = gather0(self.dry_cell_given, dry_cell_indices)
 
         feats_dry_cell = (
             latent_dry_cell * feats_dry_cell_unknown
@@ -243,23 +236,16 @@ class DegradationModelStudent(DegradationModel):
             lyte_indices, training = training, sample = sample,
         )
 
-        fetched_latent_lyte = self.min_latent + tf.gather(
-            self.lyte_latent_flags, lyte_indices, axis = 0,
-        ) * (1 - self.min_latent)
+        lat_lyte = gather0(self.lyte_latent_flags, lyte_indices)
+        fetched_latent_lyte = self.min_latent + lat_lyte * (1 - self.min_latent)
 
-        fetched_weights_lyte = tf.gather(
-            self.lyte_weights, lyte_indices, axis = 0,
-        )
+        fetched_weights_lyte = gather0(self.lyte_weights, lyte_indices)
         fetched_pointers_lyte = tf.reshape(
-            tf.gather(
-                self.lyte_pointers, lyte_indices, axis = 0,
-            ),
-            [-1],
+            gather0(self.lyte_pointers, lyte_indices), [-1],
         )
 
         feats_mol, loss_mol = self.mol_direct(
-            fetched_pointers_lyte,
-            training = training, sample = sample
+            fetched_pointers_lyte, training = training, sample = sample
         )
 
         combined_max = self.n_solvent_max + self.n_salt_max
@@ -586,19 +572,17 @@ class DegradationModelStudent(DegradationModel):
         )
         sampled_feats_cell = tf.stop_gradient(sampled_feats_cell)
 
-        sampled_svit_grid = tf.gather(
+        sampled_svit_grid = gather0(
             svit_grid,
             indices = tf.random.uniform(
                 maxval = batch_count, shape = [n_sample], dtype = tf.int32,
             ),
-            axis = 0,
         )
-        sampled_count_matrix = tf.gather(
+        sampled_count_matrix = gather0(
             count_matrix,
             indices = tf.random.uniform(
                 maxval = batch_count, shape = [n_sample], dtype = tf.int32,
             ),
-            axis = 0,
         )
 
         sampled_encoded_stress = self.stress_to_encoded_direct(

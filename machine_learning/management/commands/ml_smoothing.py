@@ -618,6 +618,10 @@ def train_and_evaluate(
 
 
 def get_svit_and_count(neigh, compiled_tensors, batch_size2):
+    """
+    Returns:
+        svit_grid, count_matrix
+    """
     sign_grid_tensor = compiled_tensors[Key.Grid.S]
     voltage_grid_tensor = compiled_tensors[Key.Grid.V]
     current_grid_tensor = compiled_tensors[Key.Grid.I]
@@ -1068,10 +1072,12 @@ def transfer_step(train_params: dict, options: dict):
 
 
 def mse(x_1, x_2):
+    """ Mean squared error"""
     return tf.reduce_mean(tf.square(x_1 - x_2))
 
 
 def get_loss(measured, predicted, mask, mask_2):
+    """ Mean squared error between measured and predicted with masks """
     return tf.reduce_mean(
         (1e-10 + mask * mask_2) * tf.square(measured - predicted)
     ) / (1e-10 + tf.reduce_mean(mask * mask_2))

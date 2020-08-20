@@ -633,29 +633,25 @@ def get_svit_and_count(neigh, tensors, batch_size2):
     i_grid = gather0(tensors[Key.Grid.I], neigh[:, NEIGH_CURRENT_GRID])
     t_grid = gather0(tensors[Key.Grid.T], neigh[:, NEIGH_TMP_GRID])
 
-    s_dim = s_grid.shape[1]
-    v_dim = v_grid.shape[1]
-    i_dim = i_grid.shape[1]
-    t_dim = t_grid.shape[1]
+    s_dim, v_dim = s_grid.shape[1], v_grid.shape[1]
+    i_dim, t_dim = i_grid.shape[1], t_grid.shape[1]
+
+    s_reshape = [batch_size2, s_dim, 1, 1, 1, 1]
+    i_reshape = [batch_size2, 1, v_dim, 1, 1, 1]
+    v_reshape = [batch_size2, 1, 1, i_dim, 1, 1]
+    t_reshape = [batch_size2, 1, 1, 1, t_dim, 1]
+
+    s_tile = [1, 1, v_dim, i_dim, t_dim, 1]
+    i_tile = [1, s_dim, 1, i_dim, t_dim, 1]
+    v_tile = [1, s_dim, v_dim, 1, t_dim, 1]
+    t_tile = [1, s_dim, v_dim, i_dim, 1, 1]
 
     svit_grid = tf.concat(
         (
-            tf.tile(
-                tf.reshape(s_grid, [batch_size2, s_dim, 1, 1, 1, 1]),
-                [1, 1, v_dim, i_dim, t_dim, 1],
-            ),
-            tf.tile(
-                tf.reshape(v_grid, [batch_size2, 1, v_dim, 1, 1, 1]),
-                [1, s_dim, 1, i_dim, t_dim, 1],
-            ),
-            tf.tile(
-                tf.reshape(i_grid, [batch_size2, 1, 1, i_dim, 1, 1]),
-                [1, s_dim, v_dim, 1, t_dim, 1],
-            ),
-            tf.tile(
-                tf.reshape(t_grid, [batch_size2, 1, 1, 1, t_dim, 1]),
-                [1, s_dim, v_dim, i_dim, 1, 1],
-            ),
+            tf.tile(tf.reshape(s_grid, s_reshape), s_tile),
+            tf.tile(tf.reshape(v_grid, i_reshape), i_tile),
+            tf.tile(tf.reshape(i_grid, v_reshape), v_tile),
+            tf.tile(tf.reshape(t_grid, t_reshape), t_tile),
         ),
         axis = -1,
     )

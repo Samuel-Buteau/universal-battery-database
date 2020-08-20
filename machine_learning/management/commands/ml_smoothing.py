@@ -906,37 +906,35 @@ def transfer_step(train_params: dict, options: dict):
             tensors[Key.TEMP_GRID], indices = sample_indices, axis = 0,
         )
         tmp_grid_dim = tmp_grid.shape[1]
-        s_shape = [1, 1, voltage_grid_dim, current_grid_dim, tmp_grid_dim, 1]
-        v_shape = [1, sign_grid_dim, 1, current_grid_dim, tmp_grid_dim, 1]
-        i_shape = [1, sign_grid_dim, voltage_grid_dim, 1, tmp_grid_dim, 1]
-        t_shape = [1, sign_grid_dim, voltage_grid_dim, current_grid_dim, 1, 1]
+
+        s_reshape = [1, sign_grid_dim, 1, 1, 1, 1]
+        v_reshape = [1, 1, voltage_grid_dim, 1, 1, 1]
+        i_reshape = [1, 1, 1, current_grid_dim, 1, 1]
+        t_reshape = [1, 1, 1, 1, tmp_grid_dim, 1]
+
+        s_tile = [1, 1, voltage_grid_dim, current_grid_dim, tmp_grid_dim, 1]
+        v_tile = [1, sign_grid_dim, 1, current_grid_dim, tmp_grid_dim, 1]
+        i_tile = [1, sign_grid_dim, voltage_grid_dim, 1, tmp_grid_dim, 1]
+        t_tile = [1, sign_grid_dim, voltage_grid_dim, current_grid_dim, 1, 1]
 
         svit_grid = tf.cast(
             tf.concat(
                 (
                     tf.tile(
-                        tf.reshape(
-                            sign_grid, [1, sign_grid_dim, 1, 1, 1, 1],
-                        ),
-                        s_shape,
+                        tf.reshape(sign_grid, s_reshape),
+                        s_tile,
                     ),
                     tf.tile(
-                        tf.reshape(
-                            voltage_grid, [1, 1, voltage_grid_dim, 1, 1, 1],
-                        ),
-                        v_shape,
+                        tf.reshape(voltage_grid, v_reshape),
+                        v_tile,
                     ),
                     tf.tile(
-                        tf.reshape(
-                            current_grid, [1, 1, 1, current_grid_dim, 1, 1],
-                        ),
-                        i_shape,
+                        tf.reshape(current_grid, i_reshape),
+                        i_tile,
                     ),
                     tf.tile(
-                        tf.reshape(
-                            tmp_grid, [1, 1, 1, 1, tmp_grid_dim, 1],
-                        ),
-                        t_shape,
+                        tf.reshape(tmp_grid, t_reshape),
+                        t_tile,
                     ),
                 ),
                 axis = -1,

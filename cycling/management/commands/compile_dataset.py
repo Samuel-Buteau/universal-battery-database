@@ -185,9 +185,9 @@ def initial_processing(cell_ids, options, flags):
     Returns:
         Two dictionaries with the following sets of keys
         { Key.Q_MAX, Key.ALL_DATA, Key.Grid.V, Key.Grid.I, Key.Grid.TEMP,
-          Key.Grid.SIGN, Key.CELL_TO_POS, Key.CELL_TO_NEG, Key.CELL_TO_LYTE,
-          Key.CELL_TO_DRY, Key.DRY_TO_META, Key.CELL_TO_LAT, Key.LYTE_TO_LAT,
-          Key.LYTE_TO_SOL, Key.LYTE_TO_SALT, Key.LYTE_TO_ADD },
+          Key.Grid.SIGN, Key.CellTo.POS, Key.CellTo.NEG, Key.CellTo.LYTE,
+          Key.CellTo.DRY, Key.DRY_TO_META, Key.CellTo.LAT, Key.LyteTo.LAT,
+          Key.LyteTo.SOL, Key.LyteTo.SALT, Key.LyteTo.ADD },
         { Key.NAME_POS, Key.NAME_NEG, Key.NAME_LYTE, Key.NAME_MOL,
           Key.NAME_DRY }
     """
@@ -445,9 +445,9 @@ def initial_processing(cell_ids, options, flags):
     "pos_id_list": 1D array of positive electrode ids
     "neg_id_list": 1D array of negative electrode ids
     "electrolyte_id_list": 1D array of electrolyte ids
-    Key.CELL_TO_POS: a dictionary indexed by cell_id yielding a positive
+    Key.CellTo.POS: a dictionary indexed by cell_id yielding a positive
         electrode id.
-    Key.CELL_TO_NEG: a dictionary indexed by cell_id yielding a positive
+    Key.CellTo.NEG: a dictionary indexed by cell_id yielding a positive
         electrode id.
     Key.CELL_TO_ELE: a dictionary indexed by cell_id yielding a
         positive electrode id.
@@ -558,16 +558,16 @@ def initial_processing(cell_ids, options, flags):
                Key.Grid.I: current_grid,
                Key.Grid.T: temperature_grid,
                Key.Grid.S: sign_grid,
-               Key.CELL_TO_POS: cell_to_cath_id,
-               Key.CELL_TO_NEG: cell_to_an_id,
-               Key.CELL_TO_LYTE: cell_to_lyte_id,
-               Key.CELL_TO_DRY: cell_to_dry_cell_id,
+               Key.CellTo.POS: cell_to_cath_id,
+               Key.CellTo.NEG: cell_to_an_id,
+               Key.CellTo.LYTE: cell_to_lyte_id,
+               Key.CellTo.DRY: cell_to_dry_cell_id,
                Key.DRY_TO_META: dry_cell_to_meta,
-               Key.CELL_TO_LAT: cell_id_to_latent,
-               Key.LYTE_TO_LAT: electrolyte_id_to_latent,
-               Key.LYTE_TO_SOL: electrolyte_id_to_solvent_id_weight,
-               Key.LYTE_TO_SALT: electrolyte_id_to_salt_id_weight,
-               Key.LYTE_TO_ADD: electrolyte_id_to_additive_id_weight,
+               Key.CellTo.LAT: cell_id_to_latent,
+               Key.LyteTo.LAT: electrolyte_id_to_latent,
+               Key.LyteTo.SOL: electrolyte_id_to_solvent_id_weight,
+               Key.LyteTo.SALT: electrolyte_id_to_salt_id_weight,
+               Key.LyteTo.ADD: electrolyte_id_to_additive_id_weight,
            }, {
                Key.NAME_POS: pos_to_pos_name,
                Key.NAME_NEG: neg_to_neg_name,

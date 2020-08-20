@@ -77,8 +77,6 @@ class Key:
 
     INDICES = "indices"
 
-    # Begin: Keys in options (ml_smoothing and compile_dataset =================
-
     OPTIONS = "options"
 
     PATH_DATASET = "path_to_dataset"
@@ -199,24 +197,23 @@ class Key:
     """ (number) The maximum capacity across the dataset """
     Q_MAX = "max_cap"
 
-    """ (dict) Indexed by cell ID; yields a positive electrode id """
-    CELL_TO_POS = "cell_id_to_pos_id"
-    """ (dic) Indexed by cell ID; yields a negative electrode id """
-    CELL_TO_NEG = "cell_id_to_neg_id"
-    """ (dic) Indexed by cell ID; yields an electrolyte id """
-    CELL_TO_LYTE = "cell_id_to_electrolyte_id"
-    """ (dic) Indexed by cell ID; yields
-        1 if the cell is latent, 0 if made of known pos, neg, electrolyte.
-    """
-    CELL_TO_LAT = "cell_id_to_latent"
-    CELL_TO_DRY = "cell_to_dry"
+    class CellTo:
+        """ Indexed by cell ID and yields a IDs of different quantities """
+        POS = "cell_id_to_pos_id"  # positive electrode (dict)
+        NEG = "cell_id_to_neg_id"  # negative electrode (dict)
+        LYTE = "cell_id_to_electrolyte_id"  # electrolyte (dict)
+        DRY = "cell_to_dry"
+        # 1 if the cell is latent, 0 if made of known pos, neg, electrolyte.
+        LAT = "cell_id_to_latent"
 
     DRY_TO_META = "dry_to_meta"
 
-    LYTE_TO_SOL = "electrolyte_id_to_solvent_id_weight"
-    LYTE_TO_SALT = "electrolyte_id_to_salt_id_weight"
-    LYTE_TO_ADD = "electrolyte_id_to_additive_id_weight"
-    LYTE_TO_LAT = "electrolyte_id_to_latent"
+    class LyteTo:
+        """ Electrolyte ID and to IDs of different quantities """
+        SOL = "electrolyte_id_to_solvent_id_weight"
+        SALT = "electrolyte_id_to_salt_id_weight"
+        ADD = "electrolyte_id_to_additive_id_weight"
+        LAT = "electrolyte_id_to_latent"
 
     NAME_DRY = "dry_to_dry_name"
     NAME_POS = "pos_to_pos_name"

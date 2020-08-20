@@ -136,34 +136,33 @@ def build_chem_dicts(cell_id_array, dataset):
     lyte_to_addi_weight = {}  # electrolyte ID to additive ID weight
 
     for cell_id in cell_id_array:
-        if cell_id in dataset[Key.CELL_TO_POS].keys():
-            cell_id_to_pos_id[cell_id] = dataset[Key.CELL_TO_POS][cell_id]
-        if cell_id in dataset[Key.CELL_TO_NEG].keys():
-            cell_id_to_neg_id[cell_id] = dataset[Key.CELL_TO_NEG][cell_id]
-        if cell_id in dataset[Key.CELL_TO_LYTE].keys():
-            cell_id_to_lyte_id[cell_id] = dataset[Key.CELL_TO_LYTE][cell_id]
-        if cell_id in dataset[Key.CELL_TO_DRY].keys():
-            dry_cell_id = dataset[Key.CELL_TO_DRY][cell_id]
+        if cell_id in dataset[Key.CellTo.POS].keys():
+            cell_id_to_pos_id[cell_id] = dataset[Key.CellTo.POS][cell_id]
+        if cell_id in dataset[Key.CellTo.NEG].keys():
+            cell_id_to_neg_id[cell_id] = dataset[Key.CellTo.NEG][cell_id]
+        if cell_id in dataset[Key.CellTo.LYTE].keys():
+            cell_id_to_lyte_id[cell_id] = dataset[Key.CellTo.LYTE][cell_id]
+        if cell_id in dataset[Key.CellTo.DRY].keys():
+            dry_cell_id = dataset[Key.CellTo.DRY][cell_id]
             cell_id_to_dry_cell_id[cell_id] = dry_cell_id
 
             if dry_cell_id in dataset[Key.DRY_TO_META].keys():
                 dry_cell_id_to_meta[dry_cell_id]\
                     = dataset[Key.DRY_TO_META][dry_cell_id]
 
-        if cell_id in dataset[Key.CELL_TO_LAT].keys():
-            cell_id_to_latent[cell_id] = dataset[Key.CELL_TO_LAT][cell_id]
+        if cell_id in dataset[Key.CellTo.LAT].keys():
+            cell_id_to_latent[cell_id] = dataset[Key.CellTo.LAT][cell_id]
 
         if cell_id_to_latent[cell_id] < 0.5:
             lyte_id = cell_id_to_lyte_id[cell_id]
-            if lyte_id in dataset[Key.LYTE_TO_SOL].keys():
-                lyte_to_sol_weight[lyte_id] = dataset[Key.LYTE_TO_SOL][lyte_id]
-            if lyte_id in dataset[Key.LYTE_TO_SALT].keys():
-                lyte_to_salt_weight[lyte_id] = dataset[Key.LYTE_TO_SALT][
-                    lyte_id]
-            if lyte_id in dataset[Key.LYTE_TO_ADD].keys():
-                lyte_to_addi_weight[lyte_id] = dataset[Key.LYTE_TO_ADD][lyte_id]
-            if lyte_id in dataset[Key.LYTE_TO_LAT].keys():
-                lyte_to_latent[lyte_id] = dataset[Key.LYTE_TO_LAT][lyte_id]
+            if lyte_id in dataset[Key.LyteTo.SOL].keys():
+                lyte_to_sol_weight[lyte_id] = dataset[Key.LyteTo.SOL][lyte_id]
+            if lyte_id in dataset[Key.LyteTo.SALT].keys():
+                lyte_to_salt_weight[lyte_id] = dataset[Key.LyteTo.SALT][lyte_id]
+            if lyte_id in dataset[Key.LyteTo.ADD].keys():
+                lyte_to_addi_weight[lyte_id] = dataset[Key.LyteTo.ADD][lyte_id]
+            if lyte_id in dataset[Key.LyteTo.LAT].keys():
+                lyte_to_latent[lyte_id] = dataset[Key.LyteTo.LAT][lyte_id]
 
     mess = [
         [[s[0] for s in siw] for siw in lyte_to_sol_weight.values()],

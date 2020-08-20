@@ -623,14 +623,15 @@ def gather0(tensor, indices):
 
 
 # TODO(harvey): use this function for cleanup
-def tile_reshape(tensor, tile_shape, reshape_shape):
-    """ Wrapper for `tf.tile` and `tf.reshape with shapes `tile_shape` and
-        `reshape_shape`.
+def tile_then_reshape(tensor, tile, reshape):
+    """ Wrapper for `tf.tile` and `tf.reshape.
+
+    Args:
+        tensor: tensor to be shaped
+        tile: shape of `tf.tile`
+        reshape: shape of `tf.reshape`
     """
-    return tf.tile(
-        tf.reshape(tensor, reshape_shape),
-        tile_shape,
-    )
+    return tf.tile(tf.reshape(tensor, reshape), tile)
 
 
 def get_svit_and_count(neigh, tensors, batch_size2):

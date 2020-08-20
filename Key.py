@@ -94,8 +94,6 @@ class Key:
         Q_I = "q_sig_current"
 
     GLB_NORM_CLIP = "global_norm_clip"
-    TEACHER_LRN_RATE = "learning_rate"
-    STUDENT_LRN_RATE = "s_lrn_rate"
     MIN_LAT = "min_latent"
 
     SAMPLE_COUNT = "n_sample"
@@ -104,12 +102,20 @@ class Key:
         MODEL = "teacher_model"
         WIDTH = "teacher_width"
         DEPTH = "teacher_depth"
+        OPTIMIZER = "optimizer"
+        EPOCHS = "teacher_epochs"
+        LRN_RATE = "learning_rate"
+        VIS = "visualize_fit_every"
 
-    STUDENT_MODEL = "student_model"
-    STUDENT_WIDTH = "student_width"
-    STUDENT_DEPTH = "student_depth"
-    STUDENT_SAMPLES = "student_samples"
-    STUDENT_SAMPLE_COUNT = "s_sample_count"
+    class Student:
+        MODEL = "student_model"
+        WIDTH = "student_width"
+        DEPTH = "student_depth"
+        OPTIMIZER = "s_optimizer"
+        EPOCHS = "student_epochs"
+        LRN_RATE = "s_lrn_rate"
+        VIS = "visualize_vq_every"
+        SAMPLE_COUNT = "s_sample_count"
 
     BOTTLENECK = "bottleneck"
 
@@ -121,8 +127,6 @@ class Key:
     BATCH_SIZE = "batch_size"
 
     PRINT_LOSS = "print_loss_every"
-    VIS_TEACHER = "visualize_fit_every"
-    VIS_STUDENT = "visualize_vq_every"
     CELL_ID_SHOW = "cell_id_show"
 
     REF_CYC_N = "reference_cycles_n"
@@ -225,10 +229,6 @@ class Key:
     TRAIN_DS = "train_ds"
     CYC_M = "cycle_m"
     CYC_V = "cycle_v"
-    TEACHER_OPTIMIZER = "optimizer"
-    STUDENT_OPTIMIZER = "s_optimizer"
-    TEACHER_EPOCHS = "teacher_epochs"
-    STUDENT_EPOCHS = "student_epochs"
 
     # TODO (harvey): replace the following class of keys
     class Coeff:

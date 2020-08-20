@@ -858,7 +858,7 @@ def plot_direct(
         degradation_model = init_returns[Key.Teacher.MODEL]
         header = "T_" + header
     else:
-        degradation_model = init_returns[Key.STUDENT_MODEL]
+        degradation_model = init_returns[Key.Student.MODEL]
         header = "S_" + header
 
     cell_ids\

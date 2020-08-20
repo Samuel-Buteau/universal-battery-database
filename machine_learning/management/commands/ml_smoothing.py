@@ -452,8 +452,8 @@ def initial_processing(
             bottleneck = options[Key.BOTTLENECK],
         )
         student_model = DegradationModelStudent(
-            width = options[Key.STUDENT_WIDTH],
-            depth = options[Key.STUDENT_DEPTH],
+            width = options[Key.Student.WIDTH],
+            depth = options[Key.Student.DEPTH],
             cell_dict = id_dict_from_id_list(np.array(cell_ids)),
             pos_dict = id_dict_from_id_list(pos_ids),
             neg_dict = id_dict_from_id_list(neg_ids),
@@ -484,16 +484,16 @@ def initial_processing(
     return {
         Key.STRAT: strategy,
         Key.Teacher.MODEL: teacher_model,
-        Key.STUDENT_MODEL: student_model,
+        Key.Student.MODEL: student_model,
         Key.TENSORS: compiled_tensors,
         Key.TRAIN_DS: train_ds,
         Key.CYC_M: cycle_m,
         Key.CYC_V: cycle_v,
-        Key.TEACHER_OPTIMIZER: tf.keras.optimizers.Adam(
-            learning_rate = options[Key.TEACHER_LRN_RATE],
+        Key.Teacher.OPTIMIZER: tf.keras.optimizers.Adam(
+            learning_rate = options[Key.Teacher.LRN_RATE],
         ),
-        Key.STUDENT_OPTIMIZER: tf.keras.optimizers.Adam(
-            learning_rate = options[Key.STUDENT_LRN_RATE],
+        Key.Student.OPTIMIZER: tf.keras.optimizers.Adam(
+            learning_rate = options[Key.Student.LRN_RATE],
         ),
         Key.DATASET: dataset,
     }
@@ -526,10 +526,10 @@ def train_and_evaluate(
 
     train_step_params = {
         Key.TENSORS: init_returns[Key.TENSORS],
-        Key.TEACHER_OPTIMIZER: init_returns[Key.TEACHER_OPTIMIZER],
-        Key.STUDENT_OPTIMIZER: init_returns[Key.STUDENT_OPTIMIZER],
+        Key.Teacher.OPTIMIZER: init_returns[Key.Teacher.OPTIMIZER],
+        Key.Student.OPTIMIZER: init_returns[Key.Student.OPTIMIZER],
         Key.Teacher.MODEL: init_returns[Key.Teacher.MODEL],
-        Key.STUDENT_MODEL: init_returns[Key.STUDENT_MODEL],
+        Key.Student.MODEL: init_returns[Key.Student.MODEL],
     }
 
     @tf.function
@@ -552,7 +552,7 @@ def train_and_evaluate(
     count = 0
     end = time.time()
     with strategy.scope():
-        while count <= options[Key.TEACHER_EPOCHS]:
+        while count <= options[Key.Teacher.EPOCHS]:
             sub_count = 0
             for neigh in init_returns[Key.TRAIN_DS]:
                 count += 1
@@ -570,7 +570,7 @@ def train_and_evaluate(
                     loss_record.record(count, tot.numpy())
                     loss_record.print_recent(options)
 
-                if (count % options[Key.VIS_TEACHER]) == 0:
+                if (count % options[Key.Teacher.VIS]) == 0:
                     plot_params = {
                         "cell_ids": cell_ids,
                         "count": count,
@@ -591,10 +591,10 @@ def train_and_evaluate(
 
         print("Teacher training done.")
 
-        for count in range(1, options[Key.STUDENT_EPOCHS]):
+        for count in range(1, options[Key.Student.EPOCHS]):
             dist_transfer_step(strategy)
 
-            if (count % options[Key.VIS_STUDENT]) == 0:
+            if (count % options[Key.Student.VIS]) == 0:
                 plot_params = {
                     "cell_ids": cell_ids,
                     "count": count,
@@ -700,7 +700,7 @@ def train_step(neigh, train_params: dict, options: dict):
     batch_size2 = neigh.shape[0]
 
     teacher_model = train_params[Key.Teacher.MODEL]
-    teacher_optimizer = train_params[Key.TEACHER_OPTIMIZER]
+    teacher_optimizer = train_params[Key.Teacher.OPTIMIZER]
 
     compiled_tensors = train_params[Key.TENSORS]
 
@@ -846,12 +846,12 @@ def transfer_step(train_params: dict, options: dict):
         options: Options for `ml_smoothing`.
     """
     # need to split the range
-    sample_count = options[Key.STUDENT_SAMPLE_COUNT]
+    sample_count = options[Key.Student.SAMPLE_COUNT]
 
     teacher_model = train_params[Key.Teacher.MODEL]
-    student_model = train_params[Key.STUDENT_MODEL]
+    student_model = train_params[Key.Student.MODEL]
 
-    student_optimizer = train_params[Key.STUDENT_OPTIMIZER]
+    student_optimizer = train_params[Key.Student.OPTIMIZER]
     tensors = train_params[Key.TENSORS]
     max_cyc_cell_tensor = tensors["MAX_CYCLE_CELL"]
 
@@ -1087,8 +1087,8 @@ class Command(BaseCommand):
         float_args = {
             Key.GLB_NORM_CLIP: 10.,
 
-            Key.TEACHER_LRN_RATE: 5e-4,
-            Key.STUDENT_LRN_RATE: 5e-4,
+            Key.Teacher.LRN_RATE: 5e-4,
+            Key.Student.LRN_RATE: 5e-4,
 
             Key.MIN_LAT: 1,
 
@@ -1107,12 +1107,10 @@ class Command(BaseCommand):
             Key.Coeff.LYTE_DER: .1,
             Key.Coeff.LYTE_EQ: 10.,
 
+            Key.Coeff.Q: 0.0001,
             Key.Coeff.Q_CV: 1.,
             Key.Coeff.Q_CC: 1.,
-
-            Key.Coeff.Q: 0.0001,
             Key.Coeff.Q_CENTERED: 0.000001,
-
             Key.Coeff.Q_GEQ: 1.,
             Key.Coeff.Q_LEQ: 1.,
             Key.Coeff.Q_V_MONO: 0.,
@@ -1139,19 +1137,21 @@ class Command(BaseCommand):
             Key.FOUR_FEAT: 1,
             Key.SAMPLE_COUNT: 16,
 
-            Key.TEACHER_EPOCHS: 6000,
             Key.Teacher.DEPTH: nn_depth,
             Key.Teacher.WIDTH: nn_width,
-            Key.STUDENT_DEPTH: nn_depth,
-            Key.STUDENT_WIDTH: nn_width,
-            Key.STUDENT_EPOCHS: 2000,
+            Key.Teacher.EPOCHS: 6000,
+            Key.Teacher.VIS: vis,
+
+            Key.Student.DEPTH: nn_depth,
+            Key.Student.WIDTH: nn_width,
+            Key.Student.EPOCHS: 2000,
+            Key.Student.VIS: vis / 10,
+            Key.Student.SAMPLE_COUNT: 16,
+
             Key.BATCH_SIZE: 64,
             Key.BOTTLENECK: 64,
 
             Key.PRINT_LOSS: vis,
-            Key.VIS_TEACHER: vis,
-            Key.VIS_STUDENT: vis / 10,
-            Key.STUDENT_SAMPLE_COUNT: 16,
 
             Key.CELL_ID_SHOW: 10,
         }

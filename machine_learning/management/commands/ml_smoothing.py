@@ -879,6 +879,8 @@ def transfer_step(train_params: dict, options: dict):
         )
 
         max_cycles = tf.tile(max_cycles, [sample_count, 1])
+        svit_grid = tf.tile(svit_grid, [sample_count, 1])
+        count_matrix = tf.tile(count_matrix, [sample_count, 1])
         student_feats_cell = tf.tile(student_feats_cell, [sample_count, 1])
         teacher_feats_cell = tf.tile(teacher_feats_cell, [sample_count, 1])
 

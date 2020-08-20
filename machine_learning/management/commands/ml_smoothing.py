@@ -534,7 +534,9 @@ def train_and_evaluate(
     @tf.function
     def dist_train_step(strategy, neigh):
         return strategy.experimental_run_v2(
-            lambda neigh: train_step(neigh, train_step_params, options),
+            lambda neigh: train_teacher_step(
+                neigh, train_step_params, options
+            ),
             args = (neigh,),
         )
 
@@ -685,34 +687,14 @@ def get_svit_and_count(neigh, tensors, batch_size2):
     return svit_grid, count_matrix
 
 
-def train_step(neigh, train_params: dict, options: dict):
-    """ One training step.
+def train_teacher_step(neigh, train_params: dict, options: dict):
+    """ One training step for teacher model.
 
     Args:
         neigh: Neighbourhood.
         train_params: Contains all necessary parameters.
         options: Options for `ml_smoothing`.
     """
-    # need to split the range
-    batch_size2 = neigh.shape[0]
-
-    teacher_model = train_params[Key.Teacher.MODEL]
-    teacher_optimizer = train_params[Key.Teacher.OPTIMIZER]
-
-    compiled_tensors = train_params[Key.TENSORS]
-
-    cycle_tensor = compiled_tensors[Key.CYC]
-    constant_current_tensor = compiled_tensors[Key.I_CC]
-    end_current_prev_tensor = compiled_tensors[Key.I_PREV_END]
-    end_voltage_prev_tensor = compiled_tensors[Key.V_PREV_END]
-    end_voltage_tensor = compiled_tensors[Key.V_END]
-
-    cc_voltage_tensor = compiled_tensors[Key.V_CC_VEC]
-    cc_capacity_tensor = compiled_tensors[Key.Q_CC_VEC]
-    cc_mask_tensor = compiled_tensors[Key.MASK_CC_VEC]
-    cv_capacity_tensor = compiled_tensors[Key.Q_CV_VEC]
-    cv_current_tensor = compiled_tensors[Key.I_CV_VEC]
-    cv_mask_tensor = compiled_tensors[Key.MASK_CV_VEC]
 
     """
     if you have the minimum cycle and maximum cycle for a neighborhood,
@@ -722,9 +704,9 @@ def train_step(neigh, train_params: dict, options: dict):
     then cycle numbers and vq curves are gathered
     """
 
-    cyc_indices_lerp = tf.random.uniform(
-        [batch_size2], minval = 0., maxval = 1., dtype = tf.float32,
-    )
+    batch_size2 = neigh.shape[0]
+
+    cyc_indices_lerp = tf.random.uniform([batch_size2], maxval = 1)
     cyc_indices = tf.cast(
         (1. - cyc_indices_lerp)
         * tf.cast(
@@ -739,42 +721,41 @@ def train_step(neigh, train_params: dict, options: dict):
         tf.int32,
     )
 
+    tensors = train_params[Key.TENSORS]
+
     svit_grid, count_matrix = get_svit_and_count(
-        neigh, compiled_tensors, batch_size2,
+        neigh, tensors, batch_size2,
     )
 
-    cycle = gather0(cycle_tensor, indices = cyc_indices)
-    constant_current = gather0(constant_current_tensor, indices = cyc_indices)
-    end_current_prev = gather0(end_current_prev_tensor, indices = cyc_indices)
-    end_voltage_prev = gather0(end_voltage_prev_tensor, indices = cyc_indices)
-    end_voltage = gather0(end_voltage_tensor, indices = cyc_indices)
+    cycle = gather0(tensors[Key.CYC], cyc_indices)
+    constant_current = gather0(tensors[Key.I_CC], cyc_indices)
+    end_current_prev = gather0(tensors[Key.I_PREV_END], cyc_indices)
+    end_voltage_prev = gather0(tensors[Key.V_PREV_END], cyc_indices)
+    end_voltage = gather0(tensors[Key.V_END], cyc_indices)
 
-    cc_capacity = tf.gather(cc_capacity_tensor, indices = cyc_indices)
-    cc_voltage = tf.gather(cc_voltage_tensor, indices = cyc_indices)
-    cc_mask = tf.gather(cc_mask_tensor, indices = cyc_indices)
-    cc_mask_2 = tf.tile(
-        tf.reshape(
-            1. / tf.cast(neigh[:, NEIGH_VALID_CYC], tf.float32),
-            [batch_size2, 1],
-        ),
-        [1, cc_voltage.shape[1]],
+    cc_capacity = tf.gather(tensors[Key.Q_CC_VEC], cyc_indices)
+    cc_voltage = tf.gather(tensors[Key.V_CC_VEC], cyc_indices)
+    cc_mask = tf.gather(tensors[Key.MASK_CC_VEC], cyc_indices)
+    cc_mask_2 = tile_then_reshape(
+        1. / tf.cast(neigh[:, NEIGH_VALID_CYC], tf.float32),
+        reshape = [batch_size2, 1],
+        tile = [1, cc_voltage.shape[1]],
     )
 
-    cv_capacity = tf.gather(cv_capacity_tensor, indices = cyc_indices)
-    cv_current = tf.gather(cv_current_tensor, indices = cyc_indices)
-    cv_mask = tf.gather(cv_mask_tensor, indices = cyc_indices)
-    cv_mask_2 = tf.tile(
-        tf.reshape(
-            1. / tf.cast(neigh[:, NEIGH_VALID_CYC], tf.float32),
-            [batch_size2, 1],
-        ),
-        [1, cv_current.shape[1]],
+    cv_capacity = tf.gather(tensors[Key.Q_CV_VEC], cyc_indices)
+    cv_current = tf.gather(tensors[Key.I_CV_VEC], cyc_indices)
+    cv_mask = tf.gather(tensors[Key.MASK_CV_VEC], cyc_indices)
+    cv_mask_2 = tile_then_reshape(
+        1. / tf.cast(neigh[:, NEIGH_VALID_CYC], tf.float32),
+        reshape = [batch_size2, 1],
+        tile = [1, cv_current.shape[1]],
     )
 
     cell_indices = neigh[:, NEIGH_CELL_ID]
 
+    model = train_params[Key.Teacher.MODEL]
     with tf.GradientTape() as tape:
-        teacher_train_results = teacher_model(
+        teacher_train_results = model(
             {
                 Key.CYC: tf.expand_dims(cycle, axis = 1),
                 Key.I_CC: tf.expand_dims(constant_current, axis = 1),
@@ -793,22 +774,22 @@ def train_step(neigh, train_params: dict, options: dict):
         teacher_pred_cc_cap = teacher_train_results[Key.Pred.I_CC]
         teacher_pred_cv_cap = teacher_train_results[Key.Pred.I_CV]
 
-        cc_capacity_loss = get_loss(
+        cc_cap_loss = get_loss(
             cc_capacity, teacher_pred_cc_cap, cc_mask, cc_mask_2,
         )
-        cv_capacity_loss = get_loss(
+        cv_cap_loss = get_loss(
             cv_capacity, teacher_pred_cv_cap, cv_mask, cv_mask_2,
         )
 
         main_losses = (
-            options[Key.Coeff.Q_CV] * cv_capacity_loss
-            + options[Key.Coeff.Q_CC] * cc_capacity_loss
+            options[Key.Coeff.Q_CV] * cv_cap_loss
+            + options[Key.Coeff.Q_CC] * cc_cap_loss
         )
         loss = main_losses + tf.stop_gradient(main_losses) * (
             options[Key.Coeff.Q] * teacher_train_results[Key.Loss.Q]
         )
 
-    gradients = tape.gradient(loss, teacher_model.trainable_variables)
+    gradients = tape.gradient(loss, model.trainable_variables)
 
     gradients_no_nans = [
         tf.where(tf.math.is_nan(x), tf.zeros_like(x), x) for x in gradients
@@ -818,12 +799,12 @@ def train_step(neigh, train_params: dict, options: dict):
         gradients_no_nans, options[Key.GLB_NORM_CLIP],
     )
 
-    teacher_optimizer.apply_gradients(
-        zip(gradients_norm_clipped, teacher_model.trainable_variables)
+    train_params[Key.Teacher.OPTIMIZER].apply_gradients(
+        zip(gradients_norm_clipped, model.trainable_variables)
     )
 
     return tf.stack(
-        [cc_capacity_loss, cv_capacity_loss, teacher_train_results[Key.Loss.Q]],
+        [cc_cap_loss, cv_cap_loss, teacher_train_results[Key.Loss.Q]],
     )
 
 

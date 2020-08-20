@@ -61,16 +61,6 @@ class Key:
     MASK_CV_VEC = "cv_mask_vector"
     COUNT_MATRIX = "count_matrix"
 
-    class Grid:
-        SVIT = "svit_grid"  # multi-grid of (S, V, I, T)
-        S = "sign_grid"  # signs (1d array)
-        V = "voltage_grid"  # measured voltages (1d array)
-        I = "current_grid"
-        T = "temperature_grid"  # temperatures (1d array)
-        V_COUNT = "voltage_grid_n_samples"
-        I_COUNT = "current_grid_n_samples"
-        T_COUNT = "temperature_grid_n_samples"
-
     PATH_V_CURVES = "path_v_curves"
     PATH_V_CURVES_META = "path_v_curves_meta"
     CELL_IDS = "wanted_cell_ids"
@@ -85,42 +75,12 @@ class Key:
 
     FOUR_FEAT = "four_feat"
 
-    class Sig:
-        Q = "q_sig"
-        Q_N = "q_sig_cyc"
-        Q_V = "q_sig_voltage"
-        Q_I = "q_sig_current"
-
     GLB_NORM_CLIP = "global_norm_clip"
     MIN_LAT = "min_latent"
 
     SAMPLE_COUNT = "n_sample"
 
-    class Teacher:
-        MODEL = "teacher_model"
-        WIDTH = "teacher_width"
-        DEPTH = "teacher_depth"
-        OPTIMIZER = "optimizer"
-        EPOCHS = "teacher_epochs"
-        LRN_RATE = "learning_rate"
-        VIS = "visualize_fit_every"
-
-    class Student:
-        MODEL = "student_model"
-        WIDTH = "student_width"
-        DEPTH = "student_depth"
-        OPTIMIZER = "s_optimizer"
-        EPOCHS = "student_epochs"
-        LRN_RATE = "s_lrn_rate"
-        VIS = "visualize_vq_every"
-        SAMPLE_COUNT = "s_sample_count"
-
     BOTTLENECK = "bottleneck"
-
-    class Sample:
-        I = "sam_curr"
-        V = "sam_v"
-        CYC = "sam_cyc"
 
     BATCH_SIZE = "batch_size"
 
@@ -197,23 +157,7 @@ class Key:
     """ (number) The maximum capacity across the dataset """
     Q_MAX = "max_cap"
 
-    class CellTo:
-        """ Indexed by cell ID and yields a IDs of different quantities """
-        POS = "cell_id_to_pos_id"  # positive electrode (dict)
-        NEG = "cell_id_to_neg_id"  # negative electrode (dict)
-        LYTE = "cell_id_to_electrolyte_id"  # electrolyte (dict)
-        DRY = "cell_to_dry"
-        # 1 if the cell is latent, 0 if made of known pos, neg, electrolyte.
-        LAT = "cell_id_to_latent"
-
     DRY_TO_META = "dry_to_meta"
-
-    class LyteTo:
-        """ Electrolyte ID and to IDs of different quantities """
-        SOL = "electrolyte_id_to_solvent_id_weight"
-        SALT = "electrolyte_id_to_salt_id_weight"
-        ADD = "electrolyte_id_to_additive_id_weight"
-        LAT = "electrolyte_id_to_latent"
 
     NAME_DRY = "dry_to_dry_name"
     NAME_POS = "pos_to_pos_name"
@@ -226,6 +170,62 @@ class Key:
     TRAIN_DS = "train_ds"
     CYC_M = "cycle_m"
     CYC_V = "cycle_v"
+
+    class Grid:
+        SVIT = "svit_grid"  # multi-grid of (S, V, I, T)
+        S = "sign_grid"  # signs (1d array)
+        V = "voltage_grid"  # measured voltages (1d array)
+        I = "current_grid"
+        T = "temperature_grid"  # temperatures (1d array)
+        V_COUNT = "voltage_grid_n_samples"
+        I_COUNT = "current_grid_n_samples"
+        T_COUNT = "temperature_grid_n_samples"
+
+    class Sig:
+        Q = "q_sig"
+        Q_N = "q_sig_cyc"
+        Q_V = "q_sig_voltage"
+        Q_I = "q_sig_current"
+
+    class Teacher:
+        MODEL = "teacher_model"
+        WIDTH = "teacher_width"
+        DEPTH = "teacher_depth"
+        OPTIMIZER = "optimizer"
+        EPOCHS = "teacher_epochs"
+        LRN_RATE = "learning_rate"
+        VIS = "visualize_fit_every"
+
+    class Student:
+        MODEL = "student_model"
+        WIDTH = "student_width"
+        DEPTH = "student_depth"
+        OPTIMIZER = "s_optimizer"
+        EPOCHS = "student_epochs"
+        LRN_RATE = "s_lrn_rate"
+        VIS = "visualize_vq_every"
+        SAMPLE_COUNT = "s_sample_count"
+
+    class Sample:
+        I = "sam_curr"
+        V = "sam_v"
+        CYC = "sam_cyc"
+
+    class CellTo:
+        """ Indexed by cell ID and yields a IDs of different quantities """
+        POS = "cell_id_to_pos_id"  # positive electrode (dict)
+        NEG = "cell_id_to_neg_id"  # negative electrode (dict)
+        LYTE = "cell_id_to_electrolyte_id"  # electrolyte (dict)
+        DRY = "cell_to_dry"
+        # 1 if the cell is latent, 0 if made of known pos, neg, electrolyte.
+        LAT = "cell_id_to_latent"
+
+    class LyteTo:
+        """ Electrolyte ID and to IDs of different quantities """
+        SOL = "electrolyte_id_to_solvent_id_weight"
+        SALT = "electrolyte_id_to_salt_id_weight"
+        ADD = "electrolyte_id_to_additive_id_weight"
+        LAT = "electrolyte_id_to_latent"
 
     # TODO (harvey): replace the following class of keys
     class Coeff:

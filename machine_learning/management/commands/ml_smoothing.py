@@ -617,76 +617,68 @@ def train_and_evaluate(
                 print("Time to plot: {}\n".format(end - start))
 
 
+def gather0(tensor, indices):
+    """ Wrapper for `tf.gather` with `axis = 0`"""
+    return tf.gather(tensor, indices = indices, axis = 0)
+
+
+# TODO(harvey): use this function for cleanup
+def tile_reshape(tensor, tile_shape, reshape_shape):
+    """ Wrapper for `tf.tile` and `tf.reshape with shapes `tile_shape` and
+        `reshape_shape`.
+    """
+    return tf.tile(
+        tf.reshape(tensor, reshape_shape),
+        tile_shape,
+    )
+
+
 def get_svit_and_count(neigh, tensors, batch_size2):
     """ Get (sign, voltage, current, temperature) grid and count_matrix.
 
     Returns:
         svit_grid, count_matrix
     """
-    sign_grid_tensor = tensors[Key.Grid.S]
-    voltage_grid_tensor = tensors[Key.Grid.V]
-    current_grid_tensor = tensors[Key.Grid.I]
-    tmp_grid_tensor = tensors[Key.Grid.T]
 
     count_matrix_tensor = tensors[Key.COUNT_MATRIX]
-    s_grid = tf.gather(
-        sign_grid_tensor, neigh[:, NEIGH_SIGN_GRID], axis = 0,
-    )
+    s_grid = gather0(tensors[Key.Grid.S], neigh[:, NEIGH_SIGN_GRID])
+    v_grid = gather0(tensors[Key.Grid.V], neigh[:, NEIGH_VOLTAGE_GRID])
+    i_grid = gather0(tensors[Key.Grid.I], neigh[:, NEIGH_CURRENT_GRID])
+    t_grid = gather0(tensors[Key.Grid.T], neigh[:, NEIGH_TMP_GRID])
+
     s_dim = s_grid.shape[1]
-
-    v_grid = tf.gather(
-        voltage_grid_tensor, neigh[:, NEIGH_VOLTAGE_GRID], axis = 0,
-    )
     v_dim = v_grid.shape[1]
-
-    i_grid = tf.gather(
-        current_grid_tensor, neigh[:, NEIGH_CURRENT_GRID], axis = 0,
-    )
     i_dim = i_grid.shape[1]
-
-    t_grid = tf.gather(
-        tmp_grid_tensor, neigh[:, NEIGH_TMP_GRID], axis = 0,
-    )
     t_dim = t_grid.shape[1]
 
-    svit_tuple = (
-        tf.tile(
-            tf.reshape(
-                s_grid, [batch_size2, s_dim, 1, 1, 1, 1],
+    svit_grid = tf.concat(
+        (
+            tf.tile(
+                tf.reshape(s_grid, [batch_size2, s_dim, 1, 1, 1, 1]),
+                [1, 1, v_dim, i_dim, t_dim, 1],
             ),
-            [1, 1, v_dim, i_dim, t_dim, 1],
-        ),
-        tf.tile(
-            tf.reshape(
-                v_grid, [batch_size2, 1, v_dim, 1, 1, 1],
+            tf.tile(
+                tf.reshape(v_grid, [batch_size2, 1, v_dim, 1, 1, 1]),
+                [1, s_dim, 1, i_dim, t_dim, 1],
             ),
-            [1, s_dim, 1, i_dim, t_dim, 1],
-        ),
-        tf.tile(
-            tf.reshape(
-                i_grid, [batch_size2, 1, 1, i_dim, 1, 1],
+            tf.tile(
+                tf.reshape(i_grid, [batch_size2, 1, 1, i_dim, 1, 1]),
+                [1, s_dim, v_dim, 1, t_dim, 1],
             ),
-            [1, s_dim, v_dim, 1, t_dim, 1],
-        ),
-        tf.tile(
-            tf.reshape(
-                t_grid, [batch_size2, 1, 1, 1, t_dim, 1],
+            tf.tile(
+                tf.reshape(t_grid, [batch_size2, 1, 1, 1, t_dim, 1]),
+                [1, s_dim, v_dim, i_dim, 1, 1],
             ),
-            [1, s_dim, v_dim, i_dim, 1, 1],
         ),
+        axis = -1,
     )
-    svit_grid = tf.concat(svit_tuple, axis = -1)
 
     count_matrix = tf.reshape(
-        tf.gather(
+        gather0(
             count_matrix_tensor,
             neigh[:, NEIGH_ABSOLUTE_REFERENCE] + neigh[:, NEIGH_REFERENCE],
-            axis = 0,
         ),
-        [
-            batch_size2, s_dim, v_dim, i_dim,
-            t_dim, 1,
-        ],
+        [batch_size2, s_dim, v_dim, i_dim, t_dim, 1],
     )
 
     return svit_grid, count_matrix
@@ -750,19 +742,11 @@ def train_step(neigh, train_params: dict, options: dict):
         neigh, compiled_tensors, batch_size2,
     )
 
-    cycle = tf.gather(cycle_tensor, indices = cyc_indices, axis = 0)
-    constant_current = tf.gather(
-        constant_current_tensor, indices = cyc_indices, axis = 0,
-    )
-    end_current_prev = tf.gather(
-        end_current_prev_tensor, indices = cyc_indices, axis = 0,
-    )
-    end_voltage_prev = tf.gather(
-        end_voltage_prev_tensor, indices = cyc_indices, axis = 0,
-    )
-    end_voltage = tf.gather(
-        end_voltage_tensor, indices = cyc_indices, axis = 0,
-    )
+    cycle = gather0(cycle_tensor, indices = cyc_indices)
+    constant_current = gather0(constant_current_tensor, indices = cyc_indices)
+    end_current_prev = gather0(end_current_prev_tensor, indices = cyc_indices)
+    end_voltage_prev = gather0(end_voltage_prev_tensor, indices = cyc_indices)
+    end_voltage = gather0(end_voltage_tensor, indices = cyc_indices)
 
     cc_capacity = tf.gather(cc_capacity_tensor, indices = cyc_indices)
     cc_voltage = tf.gather(cc_voltage_tensor, indices = cyc_indices)

@@ -13,7 +13,7 @@ from machine_learning.fnn_functions import (
     feedforward_nn_parameters, nn_call,
 )
 from machine_learning.loss_calculator_blackbox import calculate_q_loss
-from machine_learning.tf_wrappers import gather0
+from machine_learning.tf_wrappers import gather0, sum1
 
 
 class DegradationModelStudent(DegradationModel):
@@ -264,37 +264,31 @@ class DegradationModelStudent(DegradationModel):
             * feats_mol_reshaped
         )
 
-        total_solvent = 1. / (1e-10 + tf.reduce_sum(
-            fetched_weights_lyte[:, 0:self.n_solvent_max], axis = 1,
+        total_solvent = 1. / (1e-10 + sum1(
+            fetched_weights_lyte[:, 0:self.n_solvent_max],
         ))
 
-        feats_solvent = tf.reshape(total_solvent, [-1, 1]) * tf.reduce_sum(
-            fetched_mol_weights[:, 0:self.n_solvent_max, :], axis = 1,
+        feats_solvent = tf.reshape(total_solvent, [-1, 1]) * sum1(
+            fetched_mol_weights[:, 0:self.n_solvent_max, :],
         )
-        feats_salt = tf.reduce_sum(
+        feats_salt = sum1(
             fetched_mol_weights[:, self.n_solvent_max:combined_max, :],
-            axis = 1,
         )
-        feats_additive = tf.reduce_sum(
-            fetched_mol_weights[:, combined_max:all_max, :], axis = 1,
-        )
+        feats_additive = sum1(fetched_mol_weights[:, combined_max:all_max, :])
 
         if training:
             fetched_mol_loss_weights = (
                 tf.reshape(fetched_weights_lyte, [-1, all_max, 1])
                 * loss_mol_reshaped
             )
-            loss_solvent = tf.reshape(total_solvent, [-1, 1]) * tf.reduce_sum(
+            loss_solvent = tf.reshape(total_solvent, [-1, 1]) * sum1(
                 fetched_mol_loss_weights[:, 0:self.n_solvent_max, :],
-                axis = 1,
             )
-            loss_salt = tf.reduce_sum(
+            loss_salt = sum1(
                 fetched_mol_loss_weights[:, self.n_solvent_max:combined_max, :],
-                axis = 1,
             )
-            loss_additive = tf.reduce_sum(
+            loss_additive = sum1(
                 fetched_mol_loss_weights[:, combined_max: all_max, :],
-                axis = 1,
             )
 
         derivatives = {}

@@ -8,6 +8,7 @@ import tensorflow as tf
 from django.core.management.base import BaseCommand
 
 from Key import Key
+from machine_learning.tf_wrappers import gather0, tile_then_reshape
 from plot import plot_direct, plot_v_vs_q
 
 from cycling.models import id_dict_from_id_list
@@ -617,23 +618,6 @@ def train_and_evaluate(
 
                 end = time.time()
                 print("Time to plot: {}\n".format(end - start))
-
-
-def gather0(tensor, indices):
-    """ Wrapper for `tf.gather` with `axis = 0`"""
-    return tf.gather(tensor, indices = indices, axis = 0)
-
-
-# TODO(harvey): use this function for cleanup
-def tile_then_reshape(tensor, tile, reshape):
-    """ Wrapper for `tf.tile` and `tf.reshape.
-
-    Args:
-        tensor: tensor to be shaped
-        tile: shape of `tf.tile`
-        reshape: shape of `tf.reshape`
-    """
-    return tf.tile(tf.reshape(tensor, reshape), tile)
 
 
 def get_svit_and_count(neigh, tensors, batch_size2):

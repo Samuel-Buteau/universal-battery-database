@@ -13,7 +13,7 @@ from machine_learning.fnn_functions import (
     feedforward_nn_parameters, nn_call,
 )
 from machine_learning.loss_calculator_blackbox import calculate_q_loss
-from machine_learning.management.commands.ml_smoothing import gather0
+from machine_learning.tf_wrappers import gather0
 
 
 class DegradationModelStudent(DegradationModel):

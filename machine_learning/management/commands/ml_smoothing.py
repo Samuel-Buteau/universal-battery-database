@@ -865,8 +865,7 @@ def transfer_step(train_params: dict, options: dict):
         )
         sampled_constant_current_sign = 2.0 * tf.cast(
             tf.random.uniform(
-                minval = 0, maxval = 1,
-                shape = [sample_count, 1], dtype = tf.int32,
+                maxval = 1, shape = [sample_count, 1], dtype = tf.int32,
             ),
             dtype = tf.float32,
         ) - 1.
@@ -881,74 +880,48 @@ def transfer_step(train_params: dict, options: dict):
         )
 
         student_feats_cell, _, _ = student_model.cell_from_indices(
-            indices = sample_indices, training = False, sample = True,
+            sample_indices, training = False, sample = True,
         )
         teacher_feats_cell = teacher_model.cell_from_indices(
-            indices = sample_indices, training = False, sample = True,
+            sample_indices, training = False, sample = True,
         )
 
-        sign_grid = tf.gather(
-            tensors[Key.SIGN_GRID], indices = sample_indices, axis = 0,
-        )
-        sign_grid_dim = sign_grid.shape[1]
+        # svit stands for sign, voltage, current, and temperature
+        s_grid = tf.gather(tensors[Key.SIGN_GRID], sample_indices, axis = 0)
+        v_grid = tf.gather(tensors[Key.V_GRID], sample_indices, axis = 0)
+        i_grid = tf.gather(tensors[Key.I_GRID], sample_indices, axis = 0)
+        t_grid = tf.gather(tensors[Key.TEMP_GRID], sample_indices, axis = 0)
 
-        voltage_grid = tf.gather(
-            tensors[Key.V_GRID], indices = sample_indices, axis = 0,
-        )
-        voltage_grid_dim = voltage_grid.shape[1]
+        s_dim = s_grid.shape[1]
+        i_dim = i_grid.shape[1]
+        v_dim = v_grid.shape[1]
+        t_dim = t_grid.shape[1]
 
-        current_grid = tf.gather(
-            tensors[Key.I_GRID], indices = sample_indices, axis = 0,
-        )
-        current_grid_dim = current_grid.shape[1]
+        s_reshape = [1, s_dim, 1, 1, 1, 1]
+        v_reshape = [1, 1, v_dim, 1, 1, 1]
+        i_reshape = [1, 1, 1, i_dim, 1, 1]
+        t_reshape = [1, 1, 1, 1, t_dim, 1]
 
-        tmp_grid = tf.gather(
-            tensors[Key.TEMP_GRID], indices = sample_indices, axis = 0,
-        )
-        tmp_grid_dim = tmp_grid.shape[1]
-
-        s_reshape = [1, sign_grid_dim, 1, 1, 1, 1]
-        v_reshape = [1, 1, voltage_grid_dim, 1, 1, 1]
-        i_reshape = [1, 1, 1, current_grid_dim, 1, 1]
-        t_reshape = [1, 1, 1, 1, tmp_grid_dim, 1]
-
-        s_tile = [1, 1, voltage_grid_dim, current_grid_dim, tmp_grid_dim, 1]
-        v_tile = [1, sign_grid_dim, 1, current_grid_dim, tmp_grid_dim, 1]
-        i_tile = [1, sign_grid_dim, voltage_grid_dim, 1, tmp_grid_dim, 1]
-        t_tile = [1, sign_grid_dim, voltage_grid_dim, current_grid_dim, 1, 1]
+        s_tile = [1, 1, v_dim, i_dim, t_dim, 1]
+        v_tile = [1, s_dim, 1, i_dim, t_dim, 1]
+        i_tile = [1, s_dim, v_dim, 1, t_dim, 1]
+        t_tile = [1, s_dim, v_dim, i_dim, 1, 1]
 
         svit_grid = tf.cast(
             tf.concat(
                 (
-                    tf.tile(
-                        tf.reshape(sign_grid, s_reshape),
-                        s_tile,
-                    ),
-                    tf.tile(
-                        tf.reshape(voltage_grid, v_reshape),
-                        v_tile,
-                    ),
-                    tf.tile(
-                        tf.reshape(current_grid, i_reshape),
-                        i_tile,
-                    ),
-                    tf.tile(
-                        tf.reshape(tmp_grid, t_reshape),
-                        t_tile,
-                    ),
+                    tf.tile(tf.reshape(s_grid, s_reshape), s_tile),
+                    tf.tile(tf.reshape(v_grid, v_reshape), v_tile),
+                    tf.tile(tf.reshape(i_grid, i_reshape), i_tile),
+                    tf.tile(tf.reshape(t_grid, t_reshape), t_tile),
                 ),
                 axis = -1,
             ),
             dtype = tf.float32,
         )
         count_matrix = tf.reshape(
-            tf.gather(
-                tensors[Key.COUNT_MATRIX], sample_indices, axis = 0,
-            ),
-            [
-                1, sign_grid_dim, voltage_grid_dim, current_grid_dim,
-                tmp_grid_dim, 1,
-            ],
+            tf.gather(tensors[Key.COUNT_MATRIX], sample_indices, axis = 0),
+            [1, s_dim, v_dim, i_dim, t_dim, 1],
         )
 
         max_cycles = tf.tile(max_cycles, [sample_count, 1])

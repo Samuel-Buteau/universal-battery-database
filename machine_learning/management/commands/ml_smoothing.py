@@ -408,7 +408,7 @@ def initial_processing(
     ) = build_chem_dicts(np.array(cell_ids), dataset)
 
     (
-        neigh_data, compiled_tensors, cycle_m, cycle_v,
+        neigh_data, tensors, cycle_m, cycle_v,
     ) = compile_tensors(dataset, cell_ids)
 
     with strategy.scope():
@@ -484,7 +484,7 @@ def initial_processing(
         Key.STRAT: strategy,
         Key.Teacher.MODEL: teacher_model,
         Key.Student.MODEL: student_model,
-        Key.TENSORS: compiled_tensors,
+        Key.TENSORS: tensors,
         Key.TRAIN_DS: train_ds,
         Key.CYC_M: cycle_m,
         Key.CYC_V: cycle_v,
@@ -617,61 +617,62 @@ def train_and_evaluate(
                 print("Time to plot: {}\n".format(end - start))
 
 
-def get_svit_and_count(neigh, compiled_tensors, batch_size2):
-    """
+def get_svit_and_count(neigh, tensors, batch_size2):
+    """ Get (sign, voltage, current, temperature) grid and count_matrix.
+
     Returns:
         svit_grid, count_matrix
     """
-    sign_grid_tensor = compiled_tensors[Key.Grid.S]
-    voltage_grid_tensor = compiled_tensors[Key.Grid.V]
-    current_grid_tensor = compiled_tensors[Key.Grid.I]
-    tmp_grid_tensor = compiled_tensors[Key.Grid.T]
+    sign_grid_tensor = tensors[Key.Grid.S]
+    voltage_grid_tensor = tensors[Key.Grid.V]
+    current_grid_tensor = tensors[Key.Grid.I]
+    tmp_grid_tensor = tensors[Key.Grid.T]
 
-    count_matrix_tensor = compiled_tensors[Key.COUNT_MATRIX]
-    sign_grid = tf.gather(
-        sign_grid_tensor, indices = neigh[:, NEIGH_SIGN_GRID], axis = 0,
+    count_matrix_tensor = tensors[Key.COUNT_MATRIX]
+    s_grid = tf.gather(
+        sign_grid_tensor, neigh[:, NEIGH_SIGN_GRID], axis = 0,
     )
-    sign_grid_dim = sign_grid.shape[1]
+    s_dim = s_grid.shape[1]
 
-    voltage_grid = tf.gather(
-        voltage_grid_tensor, indices = neigh[:, NEIGH_VOLTAGE_GRID], axis = 0,
+    v_grid = tf.gather(
+        voltage_grid_tensor, neigh[:, NEIGH_VOLTAGE_GRID], axis = 0,
     )
-    voltage_grid_dim = voltage_grid.shape[1]
+    v_dim = v_grid.shape[1]
 
-    current_grid = tf.gather(
-        current_grid_tensor, indices = neigh[:, NEIGH_CURRENT_GRID], axis = 0,
+    i_grid = tf.gather(
+        current_grid_tensor, neigh[:, NEIGH_CURRENT_GRID], axis = 0,
     )
-    current_grid_dim = current_grid.shape[1]
+    i_dim = i_grid.shape[1]
 
-    tmp_grid = tf.gather(
-        tmp_grid_tensor, indices = neigh[:, NEIGH_TMP_GRID], axis = 0,
+    t_grid = tf.gather(
+        tmp_grid_tensor, neigh[:, NEIGH_TMP_GRID], axis = 0,
     )
-    tmp_grid_dim = tmp_grid.shape[1]
+    t_dim = t_grid.shape[1]
 
     svit_tuple = (
         tf.tile(
             tf.reshape(
-                sign_grid, [batch_size2, sign_grid_dim, 1, 1, 1, 1],
+                s_grid, [batch_size2, s_dim, 1, 1, 1, 1],
             ),
-            [1, 1, voltage_grid_dim, current_grid_dim, tmp_grid_dim, 1],
+            [1, 1, v_dim, i_dim, t_dim, 1],
         ),
         tf.tile(
             tf.reshape(
-                voltage_grid, [batch_size2, 1, voltage_grid_dim, 1, 1, 1],
+                v_grid, [batch_size2, 1, v_dim, 1, 1, 1],
             ),
-            [1, sign_grid_dim, 1, current_grid_dim, tmp_grid_dim, 1],
+            [1, s_dim, 1, i_dim, t_dim, 1],
         ),
         tf.tile(
             tf.reshape(
-                current_grid, [batch_size2, 1, 1, current_grid_dim, 1, 1],
+                i_grid, [batch_size2, 1, 1, i_dim, 1, 1],
             ),
-            [1, sign_grid_dim, voltage_grid_dim, 1, tmp_grid_dim, 1],
+            [1, s_dim, v_dim, 1, t_dim, 1],
         ),
         tf.tile(
             tf.reshape(
-                tmp_grid, [batch_size2, 1, 1, 1, tmp_grid_dim, 1],
+                t_grid, [batch_size2, 1, 1, 1, t_dim, 1],
             ),
-            [1, sign_grid_dim, voltage_grid_dim, current_grid_dim, 1, 1],
+            [1, s_dim, v_dim, i_dim, 1, 1],
         ),
     )
     svit_grid = tf.concat(svit_tuple, axis = -1)
@@ -683,8 +684,8 @@ def get_svit_and_count(neigh, compiled_tensors, batch_size2):
             axis = 0,
         ),
         [
-            batch_size2, sign_grid_dim, voltage_grid_dim, current_grid_dim,
-            tmp_grid_dim, 1,
+            batch_size2, s_dim, v_dim, i_dim,
+            t_dim, 1,
         ],
     )
 

@@ -805,9 +805,8 @@ def transfer_step(train_params: dict, options: dict):
     teacher_model = train_params[Key.Teacher.MODEL]
     student_model = train_params[Key.Student.MODEL]
 
-    student_optimizer = train_params[Key.Student.OPTIMIZER]
+    optimizer = train_params[Key.Student.OPTIMIZER]
     tensors = train_params[Key.TENSORS]
-    max_cyc_cell_tensor = tensors["MAX_CYCLE_CELL"]
 
     for virtual_batch_i in range(4):
 
@@ -829,10 +828,6 @@ def transfer_step(train_params: dict, options: dict):
             shape = [1], dtype = tf.int32,
         )
 
-        max_cycles = tf.gather(
-            tf.reshape(max_cyc_cell_tensor, [-1, 1]), sample_indices, axis = 0,
-        )
-
         student_feats_cell, _, _ = student_model.cell_from_indices(
             sample_indices, training = False, sample = True,
         )
@@ -840,16 +835,18 @@ def transfer_step(train_params: dict, options: dict):
             sample_indices, training = False, sample = True,
         )
 
-        # svit stands for sign, voltage, current, and temperature
-        s_grid = tf.gather(tensors[Key.Grid.S], sample_indices, axis = 0)
-        v_grid = tf.gather(tensors[Key.Grid.V], sample_indices, axis = 0)
-        i_grid = tf.gather(tensors[Key.Grid.I], sample_indices, axis = 0)
-        t_grid = tf.gather(tensors[Key.Grid.T], sample_indices, axis = 0)
+        max_cycles = gather0(
+            tf.reshape(tensors["MAX_CYCLE_CELL"], [-1, 1]), sample_indices,
+        )
 
-        s_dim = s_grid.shape[1]
-        i_dim = i_grid.shape[1]
-        v_dim = v_grid.shape[1]
-        t_dim = t_grid.shape[1]
+        # svit stands for sign, voltage, current, and temperature
+        s_grid = gather0(tensors[Key.Grid.S], sample_indices)
+        v_grid = gather0(tensors[Key.Grid.V], sample_indices)
+        i_grid = gather0(tensors[Key.Grid.I], sample_indices)
+        t_grid = gather0(tensors[Key.Grid.T], sample_indices)
+
+        s_dim, i_dim = s_grid.shape[1], i_grid.shape[1]
+        v_dim, t_dim = v_grid.shape[1], t_grid.shape[1]
 
         s_reshape = [1, s_dim, 1, 1, 1, 1]
         v_reshape = [1, 1, v_dim, 1, 1, 1]
@@ -1019,7 +1016,7 @@ def transfer_step(train_params: dict, options: dict):
             for j, gr in enumerate(gradients_norm_clipped_student):
                 acc_gradients[j] += gr
 
-    student_optimizer.apply_gradients(
+    optimizer.apply_gradients(
         zip(acc_gradients, student_model.trainable_variables)
     )
 

@@ -20,4 +20,4 @@ def tile_then_reshape(tensor, tile, reshape):
 
 def sum1(things):
     """ Wrapper for `tf.reduce_sum` with `axis = 1`"""
-    tf.reduce_sum(things, axis = 1)
+    return tf.reduce_sum(things, axis = 1)

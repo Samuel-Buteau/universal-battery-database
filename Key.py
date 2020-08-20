@@ -86,10 +86,12 @@ class Key:
     DATA_VERSION = "dataset_version"
 
     FOUR_FEAT = "four_feat"
-    Q_SIG = "t_q_sig"
-    Q_SIG_N = "t_q_sig_cyc"
-    Q_SIG_V = "t_q_sig_voltage"
-    Q_SIG_I = "t_q_sig_current"
+
+    class Sig:
+        Q = "q_sig"
+        Q_N = "q_sig_cyc"
+        Q_V = "q_sig_voltage"
+        Q_I = "q_sig_current"
 
     GLB_NORM_CLIP = "global_norm_clip"
     TEACHER_LRN_RATE = "learning_rate"

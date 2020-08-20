@@ -433,11 +433,11 @@ def initial_processing(
             dry_cell_to_dry_cell_name = dataset_names[Key.NAME_DRY]
 
         random_matrix_q = build_random_matrix(
-            sigma = options[Key.Q_SIG],
+            sigma = options[Key.Sig.Q],
             var_sigmas = [
-                options[Key.Q_SIG_N],
-                options[Key.Q_SIG_V],
-                options[Key.Q_SIG_I],
+                options[Key.Sig.Q_N],
+                options[Key.Sig.Q_V],
+                options[Key.Sig.Q_I],
             ],
             d = 3, f = 64,
         )
@@ -1124,10 +1124,10 @@ class Command(BaseCommand):
 
             Key.Coeff.Q_STUDENT: 1.,
 
-            Key.Q_SIG: 0.08,
-            Key.Q_SIG_N: 2.,
-            Key.Q_SIG_V: 1.2,
-            Key.Q_SIG_I: .5,
+            Key.Sig.Q: 0.08,
+            Key.Sig.Q_N: 2.,
+            Key.Sig.Q_V: 1.2,
+            Key.Sig.Q_I: .5,
         }
 
         # TODO: potential bug - N_SAMPLE and STUDENT_SAMPLE_COUNT mixed

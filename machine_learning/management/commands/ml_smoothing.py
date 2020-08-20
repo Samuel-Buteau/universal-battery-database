@@ -870,10 +870,11 @@ def transfer_step(train_params: dict, options: dict):
             tf.gather(tensors[Key.COUNT_MATRIX], sample_indices, axis = 0),
             [1, s_dim, v_dim, i_dim, t_dim, 1],
         )
+        encoded_stress = student_model.stress_to_encoded_direct(
+            svit_grid = svit_grid, count_matrix = count_matrix,
+        )
 
         max_cycles = tf.tile(max_cycles, [sample_count, 1])
-        svit_grid = tf.tile(svit_grid, [sample_count, 1])
-        count_matrix = tf.tile(count_matrix, [sample_count, 1])
         student_feats_cell = tf.tile(student_feats_cell, [sample_count, 1])
         teacher_feats_cell = tf.tile(teacher_feats_cell, [sample_count, 1])
 
@@ -905,8 +906,7 @@ def transfer_step(train_params: dict, options: dict):
                 cycle = samples[Key.Sample.CYC],
                 voltage = samples[Key.Sample.V],
                 current = samples[Key.Sample.I],
-                svit_grid = svit_grid,
-                count_matrix = count_matrix,
+                encoded_stress = encoded_stress,
                 cell_feat = student_feats_cell,
                 proj = samples["PROJ"],
             )
@@ -923,8 +923,7 @@ def transfer_step(train_params: dict, options: dict):
                 cycle = samples[Key.Sample.CYC],
                 voltage = samples[Key.Sample.V],
                 current = samples[Key.Sample.I],
-                svit_grid = svit_grid,
-                count_matrix = count_matrix,
+                encoded_stress = encoded_stress,
                 cell_feat = student_feats_cell,
                 proj = samples["PROJ"],
                 get_bottleneck = True,

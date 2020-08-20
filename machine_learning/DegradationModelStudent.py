@@ -601,11 +601,7 @@ class DegradationModelStudent(DegradationModel):
             Computed constant-current capacity.
         """
         print("Student cc cap called")
-        encoded_stress = self.stress_to_encoded_direct(
-            svit_grid = params[Key.Grid.SVIT],
-            count_matrix = params[Key.COUNT_MATRIX],
-        )
-
+        encoded_stress = params[Key.STRESS]
         q_0 = self.q_with_stress_direct(
             cycle = params[Key.CYC],
             v = params[Key.V_PREV_END],
@@ -639,10 +635,7 @@ class DegradationModelStudent(DegradationModel):
             Computed constant-voltage capacity.
         """
         print("Student cv cap called")
-        encoded_stress = self.stress_to_encoded_direct(
-            svit_grid = params[Key.Grid.SVIT],
-            count_matrix = params[Key.COUNT_MATRIX],
-        )
+        encoded_stress = params[Key.STRESS]
 
         q_0 = self.q_with_stress_direct(
             cycle = params[Key.CYC],
@@ -679,8 +672,11 @@ class DegradationModelStudent(DegradationModel):
             (svit_grid, count_matrix) and the training flag.
         """
         print("Student stress called")
-        return self.stress_to_encoded_layer(
-            (svit_grid, count_matrix), training = training,
+        return tf.tile(
+            self.stress_to_encoded_layer(
+                (svit_grid, count_matrix), training = training,
+            ),
+            [8, 1],
         )
 
     def q_with_stress_direct(
@@ -727,10 +723,7 @@ class DegradationModelStudent(DegradationModel):
         Returns:
             Computed state of charge; same as that for `q_direct`.
         """
-        encoded_stress = self.stress_to_encoded_direct(
-            svit_grid = params[Key.Grid.SVIT],
-            count_matrix = params[Key.COUNT_MATRIX],
-        )
+        encoded_stress = params[Key.STRESS]
         if 'get_bottleneck' in params.keys() and params["get_bottleneck"]:
             q, bottleneck = self.q_with_stress_direct(
                 cycle = params[Key.CYC],
@@ -756,7 +749,7 @@ class DegradationModelStudent(DegradationModel):
             )
 
     def transfer_q_with_stress(
-        self, cycle, voltage, cell_feat, current, svit_grid, count_matrix, proj,
+        self, cycle, voltage, cell_feat, current, encoded_stress, proj,
         get_bottleneck = False,
     ):
         """ `transfer_ q` but calls `q_with_stress_for_derivative` instead.
@@ -770,8 +763,7 @@ class DegradationModelStudent(DegradationModel):
                 Key.V: voltage,
                 Key.CELL_FEAT: cell_feat,
                 Key.I: current,
-                Key.Grid.SVIT: svit_grid,
-                Key.COUNT_MATRIX: count_matrix,
+                Key.STRESS: encoded_stress,
                 "get_bottleneck": get_bottleneck,
                 "PROJ": proj,
             },

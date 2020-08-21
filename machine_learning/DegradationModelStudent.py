@@ -523,13 +523,11 @@ class DegradationModelStudent(DegradationModel):
             Computed constant-current capacity.
         """
         print("Student cc cap called")
-        encoded_stress = params[Key.STRESS]
         q_0 = self.q_with_stress_direct(
             cycle = params[Key.CYC],
             v = params[Key.V_PREV_END],
             current = params[Key.I_PREV_END],
             feats_cell = params[Key.CELL_FEAT],
-            encoded_stress = encoded_stress,
             training = training,
         )
 
@@ -539,9 +537,6 @@ class DegradationModelStudent(DegradationModel):
             current = add_v_dep(params[Key.I_CC], params),
             feats_cell = add_v_dep(
                 params[Key.CELL_FEAT], params, params[Key.CELL_FEAT].shape[1],
-            ),
-            encoded_stress = add_v_dep(
-                encoded_stress, params, encoded_stress.shape[1],
             ),
             training = training,
         )
@@ -558,14 +553,12 @@ class DegradationModelStudent(DegradationModel):
             Computed constant-voltage capacity.
         """
         print("Student cv cap called")
-        encoded_stress = params[Key.STRESS]
 
         q_0 = self.q_with_stress_direct(
             cycle = params[Key.CYC],
             v = params[Key.V_PREV_END],
             current = params[Key.I_PREV_END],
             feats_cell = params[Key.CELL_FEAT],
-            encoded_stress = encoded_stress,
             training = training,
         )
 
@@ -578,9 +571,6 @@ class DegradationModelStudent(DegradationModel):
             current = params[Key.I_CV],
             feats_cell = add_current_dep(
                 params[Key.CELL_FEAT], params, params[Key.CELL_FEAT].shape[1],
-            ),
-            encoded_stress = add_current_dep(
-                encoded_stress, params, encoded_stress.shape[1],
             ),
             training = training,
         )
@@ -603,7 +593,7 @@ class DegradationModelStudent(DegradationModel):
         )
 
     def q_with_stress_direct(
-        self, cycle, v, feats_cell, current, encoded_stress,
+        self, cycle, v, feats_cell, current,
         training = True, get_bottleneck = False,
     ):
         """ `q_direct` but with stress
@@ -624,7 +614,6 @@ class DegradationModelStudent(DegradationModel):
             dependencies = (
                 tf.math.sin(dot_product),
                 tf.math.cos(dot_product),
-                encoded_stress,
                 feats_cell,
             )
         else:
@@ -646,14 +635,12 @@ class DegradationModelStudent(DegradationModel):
         Returns:
             Computed state of charge; same as that for `q_direct`.
         """
-        encoded_stress = params[Key.STRESS]
         if 'get_bottleneck' in params.keys() and params["get_bottleneck"]:
             q, bottleneck = self.q_with_stress_direct(
                 cycle = params[Key.CYC],
                 feats_cell = params[Key.CELL_FEAT],
                 v = params[Key.V],
                 current = params[Key.I],
-                encoded_stress = encoded_stress,
                 training = training,
                 get_bottleneck = params["get_bottleneck"]
             )
@@ -666,13 +653,12 @@ class DegradationModelStudent(DegradationModel):
                 cycle = params[Key.CYC],
                 feats_cell = params[Key.CELL_FEAT],
                 v = params[Key.V],
-                encoded_stress = encoded_stress,
                 current = params[Key.I],
                 training = training,
             )
 
     def transfer_q_with_stress(
-        self, cycle, voltage, cell_feat, current, encoded_stress, proj,
+        self, cycle, voltage, cell_feat, current, proj,
         get_bottleneck = False,
     ):
         """ `transfer_ q` but calls `q_with_stress_for_derivative` instead.
@@ -686,7 +672,6 @@ class DegradationModelStudent(DegradationModel):
                 Key.V: voltage,
                 Key.CELL_FEAT: cell_feat,
                 Key.I: current,
-                Key.STRESS: encoded_stress,
                 "get_bottleneck": get_bottleneck,
                 "PROJ": proj,
             },

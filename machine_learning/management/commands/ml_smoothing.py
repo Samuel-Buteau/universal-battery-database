@@ -835,45 +835,6 @@ def transfer_step(train_params: dict, options: dict):
             tf.reshape(tensors["MAX_CYCLE_CELL"], [-1, 1]), sample_indices,
         )
 
-        # svit stands for sign, voltage, current, and temperature
-        s_grid = gather0(tensors[Key.Grid.S], sample_indices)
-        v_grid = gather0(tensors[Key.Grid.V], sample_indices)
-        i_grid = gather0(tensors[Key.Grid.I], sample_indices)
-        t_grid = gather0(tensors[Key.Grid.T], sample_indices)
-
-        s_dim, i_dim = s_grid.shape[1], i_grid.shape[1]
-        v_dim, t_dim = v_grid.shape[1], t_grid.shape[1]
-
-        s_reshape = [1, s_dim, 1, 1, 1, 1]
-        v_reshape = [1, 1, v_dim, 1, 1, 1]
-        i_reshape = [1, 1, 1, i_dim, 1, 1]
-        t_reshape = [1, 1, 1, 1, t_dim, 1]
-
-        s_tile = [1, 1, v_dim, i_dim, t_dim, 1]
-        v_tile = [1, s_dim, 1, i_dim, t_dim, 1]
-        i_tile = [1, s_dim, v_dim, 1, t_dim, 1]
-        t_tile = [1, s_dim, v_dim, i_dim, 1, 1]
-
-        svit_grid = tf.cast(
-            tf.concat(
-                (
-                    tf.tile(tf.reshape(s_grid, s_reshape), s_tile),
-                    tf.tile(tf.reshape(v_grid, v_reshape), v_tile),
-                    tf.tile(tf.reshape(i_grid, i_reshape), i_tile),
-                    tf.tile(tf.reshape(t_grid, t_reshape), t_tile),
-                ),
-                axis = -1,
-            ),
-            dtype = tf.float32,
-        )
-        count_matrix = tf.reshape(
-            tf.gather(tensors[Key.COUNT_MATRIX], sample_indices, axis = 0),
-            [1, s_dim, v_dim, i_dim, t_dim, 1],
-        )
-        encoded_stress = student_model.stress_to_encoded_direct(
-            svit_grid = svit_grid, count_matrix = count_matrix,
-        )
-
         max_cycles = tf.tile(max_cycles, [sample_count, 1])
         student_feats_cell = tf.tile(student_feats_cell, [sample_count, 1])
         teacher_feats_cell = tf.tile(teacher_feats_cell, [sample_count, 1])
@@ -906,7 +867,6 @@ def transfer_step(train_params: dict, options: dict):
                 cycle = samples[Key.Sample.CYC],
                 voltage = samples[Key.Sample.V],
                 current = samples[Key.Sample.I],
-                encoded_stress = encoded_stress,
                 cell_feat = student_feats_cell,
                 proj = samples["PROJ"],
             )
@@ -923,7 +883,6 @@ def transfer_step(train_params: dict, options: dict):
                 cycle = samples[Key.Sample.CYC],
                 voltage = samples[Key.Sample.V],
                 current = samples[Key.Sample.I],
-                encoded_stress = encoded_stress,
                 cell_feat = student_feats_cell,
                 proj = samples["PROJ"],
                 get_bottleneck = True,

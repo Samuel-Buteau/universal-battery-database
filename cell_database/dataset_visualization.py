@@ -252,6 +252,11 @@ csv_format_default =[
     ("normalized_discharge_capacity", lambda x: "{:.8f}".format(x), "Normalized Discharge Capacity (unitless)"),
     ("normalized_typical_charge_capacity", lambda x: "{:.8f}".format(x), "Charge Capacity Normalized to Typical Dchg Cap (unitless)"),
     ("normalized_typical_discharge_capacity", lambda x: "{:.8f}".format(x), "Discharge Capacity Normalized to Typical Dchg Cap (unitless)"),
+
+
+    ("charge_energy", lambda x: "{:.8f}".format(x), "Charge Energy (mWh)"),
+    ("discharge_energy", lambda x: "{:.8f}".format(x), "Discharge Energy (mWh)"),
+    ("delta_energy", lambda x: "{:.8f}".format(x), "Delta Energy (mWh)"),
 ]
 
 
@@ -272,4 +277,8 @@ field_request_default = [
     ("normalized_discharge_capacity", 'f4', "NORMALIZED_CAPACITY", lambda cyc: cyc.dchg_total_capacity),
     ("normalized_typical_charge_capacity", 'f4', "NORMALIZED_TYPICAL_CAPACITY", lambda cyc: cyc.chg_total_capacity),
     ("normalized_typical_discharge_capacity", 'f4', "NORMALIZED_TYPICAL_CAPACITY", lambda cyc: cyc.dchg_total_capacity),
+
+    ("charge_energy", 'f4', "CUSTOM", lambda cyc: cyc.chg_average_voltage*cyc.chg_total_capacity),
+    ("discharge_energy", 'f4', "CUSTOM", lambda cyc: cyc.dchg_average_voltage*cyc.dchg_total_capacity),
+    ("delta_energy", 'f4', "CUSTOM", lambda cyc: cyc.chg_average_voltage*cyc.chg_total_capacity - cyc.dchg_average_voltage*cyc.dchg_total_capacity),
 ]

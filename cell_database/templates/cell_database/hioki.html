@@ -1,0 +1,56 @@
+{% extends "base_generic.html" %}
+
+{% load static %}
+{% block content %}
+
+
+<style>
+table {
+    border-collapse:collapse;
+
+}
+table, th, td {
+    border:1px solid black;}
+
+
+</style>
+
+
+<form action="{% url 'cell_database:register_hioki' %}" method="post">
+
+	{% csrf_token %}
+	<table>
+	    {{cell_extra_measurements_form.as_table}}
+	</table>
+
+	<input type="submit" name = 'enter_hioki_information' value="Enter Hioki information">
+
+</form>
+
+
+
+{% if measurements_table %}
+    <table>
+        <caption>Existing Measurments</caption>
+        <tr>
+            <th>Cell ID</th>
+            <th>Notes</th>
+            <th>OCV</th>
+            <th>AC IR</th>
+            <th>Weight</th>
+            <th>Thickness</th>
+
+        </tr>
+        {% for m in measurements_table %}
+        <tr>
+            {% for k in m %}
+            <td>{{k}}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </table>
+{% else %}
+    <p>No measurements were registered.</p>
+{% endif %}
+
+{% endblock %}

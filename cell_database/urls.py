@@ -15,6 +15,6 @@ urlpatterns = [
     path('dataset_overview/', views.dataset_overview, name='dataset_overview'),
     url(r'^view_dataset/(?P<pk>\d+)/$', views.view_dataset, name='view_dataset'),
     url(r'^vis_dataset/(?P<pk>\d+)/$', views.vis_dataset, name='vis_dataset'),
-
+    path('register_hioki/', views.register_hioki, name='register_hioki'),	
 ]
 

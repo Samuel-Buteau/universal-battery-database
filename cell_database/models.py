@@ -2073,3 +2073,19 @@ class MyCache(models.Model):
         self.cache = np_base64
         self.write_time = django.utils.timezone.now()
 
+
+
+# October 15, 2020, tutorial about hioki
+class CellExtraMeasurements(models.Model):
+    cell_id = models.IntegerField(blank=True)
+    notes = models.CharField(max_length=1000, null=True, blank=True)
+    ocv = models.FloatField(null=True, blank=True, help_text = "volts") # Volts
+    ac_ir = models.FloatField(null=True, blank=True, help_text = "milliohms") # milliohms at 1000HZ probably
+    weight = models.FloatField(null=True, blank=True, help_text = "grams") # grams
+    thickness = models.FloatField(null=True, blank=True, help_text = "millimeters") # millimeters
+    
+    class Meta:
+         constraints = [
+		    models.UniqueConstraint(fields=['cell_id', 'notes'], name='unique_cell_id_notes')
+	 ]
+

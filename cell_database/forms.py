@@ -228,7 +228,7 @@ class ElectrodeMaterialForm(ModelForm):
                   ]
 
 class ElectrodeMaterialLotForm(ModelForm):
-    predefined_active_material = forms.ModelChoiceField(queryset=Component.objects.filter(
+    predefined_material = forms.ModelChoiceField(queryset=Component.objects.filter(
         Q(component_type=CONDUCTIVE_ADDITIVE) |
         Q(component_type=BINDER) |
         Q(component_type=ACTIVE_MATERIAL)), required=False)
@@ -742,3 +742,9 @@ class DatasetListForm(Form):
         data = self.data.copy()
         data["page_number"] = page_number
         self.data = data
+
+
+class CellExtraMeasurementsForm(ModelForm):
+    class Meta:
+        model = CellExtraMeasurements
+        exclude = []

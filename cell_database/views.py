@@ -2371,3 +2371,42 @@ def dataset_overview(request):
     zipped_data = zip(datasets, counts)
     ar['zipped_data'] = zipped_data
     return render(request, 'cell_database/dataset_overview.html', ar)
+
+
+def register_hioki(request):
+    ar = {}
+    if request.method == 'GET':
+        ar['cell_extra_measurements_form'] = CellExtraMeasurementsForm(prefix='cell-extra-measurements-form')
+    if request.method == 'POST':
+        cell_extra_measurements_form = CellExtraMeasurementsForm(
+               request.POST, 
+               prefix='cell-extra-measurements-form'
+        )
+        
+        if cell_extra_measurements_form.is_valid():
+            cell_id = cell_extra_measurements_form.cleaned_data['cell_id']
+            notes = cell_extra_measurements_form.cleaned_data['notes']
+            ocv = cell_extra_measurements_form.cleaned_data['ocv']
+            ac_ir = cell_extra_measurements_form.cleaned_data['ac_ir']
+            weight = cell_extra_measurements_form.cleaned_data['weight']
+            thickness = cell_extra_measurements_form.cleaned_data['thickness']
+            already_exists = CellExtraMeasurements.objects.filter(
+                cell_id=cell_id, 
+                notes=notes,
+            ).exists()
+            if not already_exists:
+                CellExtraMeasurements.objects.update_or_create(
+                   cell_id=cell_id, 
+                   notes=notes,
+            	   ocv=ocv, 
+                   ac_ir=ac_ir, 
+                   weight=weight,
+                   thickness=thickness,
+                )
+
+    measurements = CellExtraMeasurements.objects.order_by('cell_id')
+    measurements_table = [[m.cell_id, m.notes, m.ocv, m.ac_ir, m.weight, m.thickness] for m in measurements]
+    ar['measurements_table'] = measurements_table 
+    return render(request, 'cell_database/hioki.html', ar)
+
+
